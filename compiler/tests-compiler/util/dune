@@ -1,0 +1,3 @@
+(library
+ (name java_of_ocaml_expect_tests_helper)
+ (libraries unix str))

@@ -1,0 +1,22 @@
+(library
+ (name test_shapes)
+ (modules m1 m2))
+
+; Once the java_of_ocaml compiler binary exists, uncomment these rules to test
+; library compilation:
+;
+; (rule
+;  (targets test_shapes.jar)
+;  (action
+;   (run %{bin:java_of_ocaml} %{dep:test_shapes.cma} -o %{targets})))
+;
+; (rule
+;  (targets test_shapes.output.listing)
+;  (action
+;   (with-stdout-to %{targets}
+;    (run javap -cp %{dep:test_shapes.jar} -p M1 M2))))
+;
+; (rule
+;  (alias runtest)
+;  (action
+;   (diff test_shapes.expected.listing test_shapes.output.listing)))
