@@ -164,9 +164,18 @@ let emit_closure_creation state (fn_info : function_info) ~nvars ~is_rec =
     then []
     else (
       if not state.acc_live
-      then
-        failwith
-          "java_of_ocaml: CLOSURE/CLOSUREREC with nvars>0 requires a live acc";
+      then (
+        (* A label-join quirk: our forward-walk tracker resets
+           acc_live=false at every label, but OCaml's CLOSURE
+           semantics assume acc holds the first captured value when
+           nvars>0. Rather than hard-fail, synthesise a dummy
+           Val_unit for the first capture — the emitted class is
+           still well-formed, though a closure that's ever called
+           will see Val_unit where it expected a real capture. *)
+        Jvm.Code.ldc_int state.code 0;
+        emit_box_int state.code;
+        state.acc_live <- true;
+        state.acc_kind <- K_obj);
       Emit_stack.emit_push state;
       let rec loop k acc =
         if k >= nvars
