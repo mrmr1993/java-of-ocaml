@@ -1261,8 +1261,13 @@ let emit_apply state ~nargs =
     | Some name ->
       (match Hashtbl.find_opt state.fn_by_name name with
        | Some fi -> !(fi.return_kind)
-       | None -> K_int)
-    | None -> K_int
+       | None -> K_obj)
+    | None ->
+      (* Calling through an opaque closure (e.g. a function arg, or a
+         capture whose kind we lost). We can't know the callee's return
+         kind without more analysis, so stay on the lazy K_obj path and
+         let the next op unbox via [ensure_kind] at point of use. *)
+      K_obj
   in
   emit_unbox_to_kind state.code return_kind;
   state.acc_kind <- return_kind
