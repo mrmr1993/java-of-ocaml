@@ -1,0 +1,4 @@
+(library
+ (name java_of_ocaml_compiler)
+ (public_name java_of_ocaml.compiler)
+ (wrapped true))

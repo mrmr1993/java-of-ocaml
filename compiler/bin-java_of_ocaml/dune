@@ -1,0 +1,5 @@
+(executable
+ (name java_of_ocaml)
+ (public_name java_of_ocaml)
+ (package java_of_ocaml)
+ (libraries java_of_ocaml_compiler))

@@ -1,3 +1,32 @@
 (tests
  (names hello arith)
  (modes byte))
+
+; Phase 0 java_of_ocaml compilation: explicit rule wiring, pending a real
+; dune `java` mode. The jvm_hello.ml program uses only what the current
+; compiler supports (the custom `caml_java_print_endline` primitive).
+
+(rule
+ (targets jvm_hello.bc)
+ (deps jvm_hello.ml)
+ (action
+  (run ocamlc -no-check-prims %{deps} -o %{targets})))
+
+(rule
+ (targets Main.class)
+ (deps jvm_hello.bc)
+ (action
+  (run %{bin:java_of_ocaml} %{deps} -o .)))
+
+(rule
+ (targets jvm_hello.output)
+ (deps Main.class)
+ (action
+  (with-stdout-to
+   %{targets}
+   (run java -cp . Main))))
+
+(rule
+ (alias runtest)
+ (action
+  (diff jvm_hello.expected jvm_hello.output)))

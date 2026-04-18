@@ -16,3 +16,9 @@ let%expect_test "list operations via bytecode" =
   compile_and_run_bytecode
     {| List.iter (fun x -> Printf.printf "%d " x) [1; 2; 3]; print_newline () |};
   [%expect {| 1 2 3 |}]
+
+let%expect_test "hello via custom primitive compiled to JVM" =
+  compile_and_run
+    {| external caml_java_print_endline : string -> unit = "caml_java_print_endline"
+       let () = caml_java_print_endline "hello" |};
+  [%expect {| hello |}]
