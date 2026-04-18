@@ -86,46 +86,65 @@ java -cp out_dir Main
 ## Repository layout
 
 - `compiler/lib-java/` — the compiler library (`java_of_ocaml_compiler`).
-    - `bytecode.{ml,mli}` — bytecode-executable reader. Decodes
-      CODE, PRIM, DATA, SYMB sections. `SYMB` parsing goes through
-      `compiler-libs.bytecomp`'s `Symtable.global_map` (do NOT
-      re-implement via `Obj` traversal — user feedback asked
-      specifically for compiler-libs here).
-    - `jvm.{ml,mli}` — class-file emitter. Writes bytes by hand (no
-      `javalib` dependency). Tracks `max_stack` / `max_locals`
-      linearly — this is straight-line code only, so a dangling `pop`
-      after a `goto` silently desyncs the tracker (see
-      `emit_int_case_chain` et al for workarounds using stashed
-      locals). Runtime helper classes generated from here:
-      `Block` (heap block with mutable-ish `tag` + `Object[] fields`),
-      `Closure` (base class; `applyN` dispatches via `arity()` to
-      subclass's concrete method, or builds a `PartialClosure`),
-      `PartialClosure` (captures a target + args, builds deeper
-      partials or dispatches once saturated), `CamlException`
-      (wraps the thrown OCaml value, extends `RuntimeException`).
-    - `compile.{ml,mli}` — the driver. Locates the user range via
-      seed primitives (`caml_java_print_*`, array ops — NOT
-      `caml_fresh_oo_id`, which also appears in Stdlib init), walks
-      the bytecode instruction-by-instruction, tracks OCaml-stack
-      slots + kinds, emits per-instruction JVM code, and generates
-      one class per OCaml function.
-- `compiler/bin-java_of_ocaml/` — the `java_of_ocaml.exe` CLI binary
-  (thin wrapper around `Compile.compile`).
-- `compiler/tests-compiler/` — ppx_expect end-to-end tests. New
-  test files in this directory are auto-discovered by
-  `gen-rules/gen.ml` which generates `dune.inc`. Run `dune promote`
-  after adding new test files.
-- `compiler/tests-compiler/util/` — test helpers
-  (`java_of_ocaml_expect_tests_helper`). Key function:
-  `compile_and_run s` writes `s` to `test.ml`, runs it through
-  `ocamlc` → `java_of_ocaml.exe` → `java`, and prints stdout. Almost
-  every test uses this.
+    Modelled after jsoo's per-concern module discipline; each of the
+    following has a companion `.mli`:
+    - `bytecode` — bytecode-executable reader. Decodes CODE, PRIM,
+      DATA, SYMB. `SYMB` parsing goes through `compiler-libs.bytecomp`'s
+      `Symtable.global_map` (do NOT re-implement via `Obj` traversal —
+      user feedback asked specifically for compiler-libs here).
+    - `jvm_bin` / `jvm_constant_pool` / `jvm_code` / `jvm_class_file` —
+      low-level class-file construction. `jvm_bin` is the u1/u2/u4
+      buffer helpers; `jvm_constant_pool` is the `Cp` builder;
+      `jvm_code` is the method-body builder (labels, exception
+      entries, straight-line [push]/[pop] accounting); `jvm_class_file`
+      assembles a class from methods + fields + cp. `jvm.ml` is now a
+      thin shim re-exporting `Cp` / `Code` + the runtime accessors so
+      older callers see the same API.
+    - `jvm_runtime` — re-exports the four runtime-class byte blobs
+      produced by the Java sources under `runtime-java/`. See that
+      directory for the real Java source.
+    - `global_view` / `instr` / `kind` / `function_info` / `prim` /
+      `inference` / `state` — the compile-time passes extracted out of
+      the old monolithic `compile.ml`. `state` carries the mutable
+      emitter state (OCaml stack, JVM locals, pending cmp, pending
+      retaddrs, open traps, ...); `inference` runs the pre-passes that
+      populate `function_info.{return_kind,arg_kinds}`.
+    - `compile.{ml,mli}` — the remaining emit_* dispatch + compile
+      driver. Locates the user range via seed primitives
+      (`caml_java_print_*`, array ops — NOT `caml_fresh_oo_id`, which
+      appears in Stdlib init), walks the bytecode instruction-by-
+      instruction, emits per-instruction JVM code, generates one class
+      per OCaml function, wires Debug/Timer. The `.mli` is still
+      minimal.
+    - `debug` / `timer` — opt-in per-pass tracing/timing. Enable via
+      `JAVA_OF_OCAML_DEBUG=times,primitives,functions`.
+- `compiler/bin-java_of_ocaml/` — the `java_of_ocaml.exe` CLI binary.
+- `runtime-java/` — hand-written Java sources for the runtime
+  classes (`Block.java`, `Closure.java`, `PartialClosure.java`,
+  `CamlException.java`). Compiled with `javac` at build time;
+  `embed_class_bytes.ml` reads the resulting `.class` files and
+  emits `runtime_bytes.ml`, which is exposed as the
+  `java_of_ocaml_runtime_bytes` library. `jvm_runtime` re-exports
+  its four bindings. Editing the runtime means editing the Java
+  sources; `javac` will catch typos at build time.
+- `compiler/tests-compiler/` — ppx_expect tests, one file per topic
+  (`arithmetic.ml`, `functions.ml`, `variants.ml`, `modules.ml`,
+  `exceptions.ml`, ...). Auto-discovered by `gen-rules/gen.ml` which
+  generates `dune.inc`. Run `dune promote` after adding new test
+  files. `emission_snapshots.ml` is a separate file for javap-based
+  disassembly snapshots.
+- `compiler/tests-compiler/util/` — test helpers. Key functions:
+  `compile_and_run s` (ocamlc → java_of_ocaml → java, prints stdout)
+  and `compile_and_javap s` (same pipeline, then runs `javap -c
+  Main.class` and prints the disassembly).
 - `compiler/tests-java_of_ocaml/` — standalone executable tests with
-  `.expected` output files. Currently runs in `byte` mode only; the
-  commented-out `java` mode is aspirational pending a real dune
-  plugin.
+  `.expected` output files. `byte` mode only; a `java` mode is
+  aspirational pending a real dune plugin.
 - `compiler/tests-full/` — library compilation tests. Currently
   mostly placeholder.
+- `docs/ALIGNMENT.md` — running index of structural/API alignments
+  with jsoo: done, open, deferred. Add notes there when a new
+  alignment opportunity surfaces.
 
 ## Kind-tracking model
 
