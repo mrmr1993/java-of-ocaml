@@ -59,6 +59,16 @@ type prim_handler =
   | P_ml_output
   | P_ml_output_char
   | P_ml_flush
+  | P_sys_get_config
+  | P_sys_const_big_endian
+  | P_sys_const_word_size
+  | P_sys_const_int_size
+  | P_sys_const_max_wosize
+  | P_sys_const_ostype_unix
+  | P_sys_const_ostype_win32
+  | P_sys_const_ostype_cygwin
+  | P_sys_const_backend_type_native
+  | P_sys_const_naked_pointers_checked
   | P_create_bytes
   | P_bytes_length
   | P_bytes_get
@@ -182,10 +192,18 @@ let primitives : prim_entry list =
   (* Returns an OCaml list (nil = Val_int 0). *)
   ; { name = "caml_ml_out_channels_list"; handler = P_noop1; seed = false }
   ; { name = "caml_channel_descriptor"; handler = P_noop_null1; seed = false }
-  ; { name = "caml_sys_get_config"; handler = P_noop_null1; seed = false }
+  ; { name = "caml_sys_get_config"; handler = P_sys_get_config; seed = false }
+  ; { name = "caml_sys_const_big_endian"; handler = P_sys_const_big_endian; seed = false }
+  ; { name = "caml_sys_const_word_size"; handler = P_sys_const_word_size; seed = false }
+  ; { name = "caml_sys_const_int_size"; handler = P_sys_const_int_size; seed = false }
+  ; { name = "caml_sys_const_max_wosize"; handler = P_sys_const_max_wosize; seed = false }
+  ; { name = "caml_sys_const_ostype_unix"; handler = P_sys_const_ostype_unix; seed = false }
+  ; { name = "caml_sys_const_ostype_win32"; handler = P_sys_const_ostype_win32; seed = false }
+  ; { name = "caml_sys_const_ostype_cygwin"; handler = P_sys_const_ostype_cygwin; seed = false }
+  ; { name = "caml_sys_const_backend_type"; handler = P_sys_const_backend_type_native; seed = false }
+  ; { name = "caml_sys_const_naked_pointers_checked"; handler = P_sys_const_naked_pointers_checked; seed = false }
   ; { name = "caml_sys_get_argv"; handler = P_noop_null1; seed = false }
   ; { name = "caml_sys_executable_name"; handler = P_noop_null1; seed = false }
-  ; { name = "caml_sys_const_backend_type"; handler = P_noop_null1; seed = false }
   (* Atomic primitives: we're single-threaded, so OCaml's atomic
      refs (Block of size 1 holding the current value) lower to
      plain getfield / aaload / aastore without synchronisation. *)

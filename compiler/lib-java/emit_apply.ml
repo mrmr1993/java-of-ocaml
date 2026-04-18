@@ -14,16 +14,17 @@ let apply_descriptor_for_nargs nargs =
 let emit_apply_invoke state ~nargs =
   (match state.acc_kind with
    | K_closure _ -> ()
-   | K_obj ->
+   | K_obj | K_int | K_float | K_string | K_block _ ->
+     (* Inference on realistic Stdlib code (CamlinternalMod's
+        module-update path, indirect dispatch through module
+        records) still lands at APPLY sites with acc_kind that
+        isn't K_closure — path-unioning return-kind inference
+        closes most but not all. Box + checkcast defers the
+        mismatch to a runtime ClassCastException if the value
+        genuinely isn't a closure. *)
+     box_if_int state.code state.acc_kind;
      Jvm.Code.checkcast state.code "Closure";
-     state.acc_kind <- K_closure { name = "Closure"; captures = [] }
-   | K_int | K_float | K_string | K_block _ ->
-     failwith
-       (Printf.sprintf
-          "java_of_ocaml: APPLY%d called on a non-closure value (%s). \
-           Closure analysis lost the tag?"
-          nargs
-          (jvm_type_of_kind state.acc_kind)));
+     state.acc_kind <- K_closure { name = "Closure"; captures = [] });
   for k = 0 to nargs - 1 do
     let slot = stack_slot_local ~state k in
     let sk = (List.nth state.slots k).kind in

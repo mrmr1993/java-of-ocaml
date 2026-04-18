@@ -124,6 +124,15 @@ val emit_ml_output_char : State.state -> unit
 val emit_ml_flush : State.state -> unit
 (** [caml_ml_flush(chan)]: [chan.flush()]. *)
 
+val emit_const_int : State.state -> int -> unit
+(** [caml_sys_const_*] family — a [() -> int] stub that returns
+    the given compile-time constant. *)
+
+val emit_sys_get_config : State.state -> unit
+(** [caml_sys_get_config ()] — [(os_type, word_size, big_endian)]
+    triple block. Stdlib destructures it at init; must be a real
+    [Block], not [null]. *)
+
 val emit_create_bytes : State.state -> unit
 val emit_bytes_length : State.state -> unit
 val emit_bytes_get : State.state -> unit

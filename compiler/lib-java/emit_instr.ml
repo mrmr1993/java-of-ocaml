@@ -263,41 +263,41 @@ let emit_instr state (ins : instr) =
       then 3
       else ins.args.(0)
     in
-    match state.acc_kind with
-    | K_block field_kinds ->
-      let fk =
-        try List.nth field_kinds field with
-        | _ ->
-          failwith
-            (Printf.sprintf
-               "java_of_ocaml: GETFIELD %d out of range at pc %d"
-               field
-               ins.pc)
-      in
-      Jvm.Code.getfield
-        state.code
-        ~class_:"Block"
-        ~field:"fields"
-        ~descriptor:"[Ljava/lang/Object;";
-      Jvm.Code.ldc_int state.code field;
-      Jvm.Code.aaload state.code;
-      emit_unbox_to_kind state.code fk;
-      state.acc_kind <- fk
-    | K_obj ->
-      Jvm.Code.checkcast state.code "Block";
-      Jvm.Code.getfield
-        state.code
-        ~class_:"Block"
-        ~field:"fields"
-        ~descriptor:"[Ljava/lang/Object;";
-      Jvm.Code.ldc_int state.code field;
-      Jvm.Code.aaload state.code;
-      state.acc_kind <- K_obj
-    | _ ->
-      failwith
-        (Printf.sprintf
-           "java_of_ocaml: GETFIELD on non-block at pc %d"
-           ins.pc))
+    (match state.acc_kind with
+     | K_block field_kinds ->
+       let fk =
+         try List.nth field_kinds field with
+         | _ ->
+           failwith
+             (Printf.sprintf
+                "java_of_ocaml: GETFIELD %d out of range at pc %d"
+                field
+                ins.pc)
+       in
+       Jvm.Code.getfield
+         state.code
+         ~class_:"Block"
+         ~field:"fields"
+         ~descriptor:"[Ljava/lang/Object;";
+       Jvm.Code.ldc_int state.code field;
+       Jvm.Code.aaload state.code;
+       emit_unbox_to_kind state.code fk;
+       state.acc_kind <- fk
+     | K_obj | K_int | K_float | K_string | K_closure _ ->
+       (* Non-block-kind acc at GETFIELD means inference
+          tagged it wrong (common after a join whose reload
+          leaves acc as K_int). Box + checkcast defers the
+          mismatch to a runtime ClassCastException if genuine. *)
+       box_if_int state.code state.acc_kind;
+       Jvm.Code.checkcast state.code "Block";
+       Jvm.Code.getfield
+         state.code
+         ~class_:"Block"
+         ~field:"fields"
+         ~descriptor:"[Ljava/lang/Object;";
+       Jvm.Code.ldc_int state.code field;
+       Jvm.Code.aaload state.code;
+       state.acc_kind <- K_obj))
   else if op = Bytecode.Op.setfield0
        || op = Bytecode.Op.setfield1
        || op = Bytecode.Op.setfield2
@@ -747,24 +747,21 @@ let emit_instr state (ins : instr) =
     consume_top state;
     state.acc_live <- true;
     state.acc_kind <- K_int)
-  else if op = Bytecode.Op.getstringchar || op = Bytecode.Op.getbyteschar
+  else if op = Bytecode.Op.getstringchar
   then (
-    (* acc is string/bytes, stack[0] is index; result is char code (int). *)
+    (* acc is a String, stack[0] is index; result is char code (int). *)
     (match state.acc_kind with
      | K_string -> ()
-     | K_obj -> Jvm.Code.checkcast state.code "java/lang/String"
      | _ ->
-       emit_throw_unsupported
-         state
-         "GETSTRINGCHAR/GETBYTESCHAR on non-string (Bytes not yet a distinct type)");
+       box_if_int state.code state.acc_kind;
+       Jvm.Code.checkcast state.code "java/lang/String");
     let idx_slot = List.hd state.slots in
     emit_load_for_kind state.code idx_slot.local idx_slot.kind;
     (match idx_slot.kind with
      | K_int -> ()
      | K_obj -> emit_unbox_to_kind state.code K_int
      | _ ->
-       failwith
-         "java_of_ocaml: GETSTRINGCHAR index must be int");
+       failwith "java_of_ocaml: GETSTRINGCHAR index must be int");
     Jvm.Code.invokevirtual
       state.code
       ~class_:"java/lang/String"
@@ -773,12 +770,51 @@ let emit_instr state (ins : instr) =
     consume_top state;
     state.acc_live <- true;
     state.acc_kind <- K_int)
+  else if op = Bytecode.Op.getbyteschar
+  then (
+    (* acc is a Bytes, stack[0] is index; result is char code (int). *)
+    box_if_int state.code state.acc_kind;
+    Jvm.Code.checkcast state.code "Bytes";
+    let idx_slot = List.hd state.slots in
+    emit_load_for_kind state.code idx_slot.local idx_slot.kind;
+    (match idx_slot.kind with
+     | K_int -> ()
+     | K_obj -> emit_unbox_to_kind state.code K_int
+     | _ -> failwith "java_of_ocaml: GETBYTESCHAR index must be int");
+    Jvm.Code.invokevirtual
+      state.code
+      ~class_:"Bytes"
+      ~method_:"get"
+      ~descriptor:"(I)I";
+    consume_top state;
+    state.acc_live <- true;
+    state.acc_kind <- K_int)
   else if op = Bytecode.Op.setbyteschar
-  then
-    (* Writing to a String is impossible — needs K_bytes (Phase 2). *)
-    emit_throw_unsupported
-      state
-      "SETBYTESCHAR requires Bytes support (Phase 2)"
+  then (
+    (* acc is Bytes, stack[0]=index, stack[1]=char code. Returns unit. *)
+    box_if_int state.code state.acc_kind;
+    Jvm.Code.checkcast state.code "Bytes";
+    let idx_slot = List.hd state.slots in
+    let chr_slot = List.nth state.slots 1 in
+    emit_load_for_kind state.code idx_slot.local idx_slot.kind;
+    (match idx_slot.kind with
+     | K_int -> ()
+     | K_obj -> emit_unbox_to_kind state.code K_int
+     | _ -> failwith "java_of_ocaml: SETBYTESCHAR index must be int");
+    emit_load_for_kind state.code chr_slot.local chr_slot.kind;
+    (match chr_slot.kind with
+     | K_int -> ()
+     | K_obj -> emit_unbox_to_kind state.code K_int
+     | _ -> failwith "java_of_ocaml: SETBYTESCHAR char must be int");
+    Jvm.Code.invokevirtual
+      state.code
+      ~class_:"Bytes"
+      ~method_:"set"
+      ~descriptor:"(II)V";
+    pop_slots state 2;
+    Jvm.Code.ldc_int state.code 0;
+    state.acc_live <- true;
+    state.acc_kind <- K_int)
   else if op = Bytecode.Op.getmethod
        || op = Bytecode.Op.getpubmet
        || op = Bytecode.Op.getdynmet
@@ -900,6 +936,21 @@ let emit_instr state (ins : instr) =
        | P_ml_output -> Emit_primitive.emit_ml_output state
        | P_ml_output_char -> Emit_primitive.emit_ml_output_char state
        | P_ml_flush -> Emit_primitive.emit_ml_flush state
+       | P_sys_get_config -> Emit_primitive.emit_sys_get_config state
+       | P_sys_const_big_endian -> Emit_primitive.emit_const_int state 0
+       | P_sys_const_word_size -> Emit_primitive.emit_const_int state 32
+       | P_sys_const_int_size -> Emit_primitive.emit_const_int state 31
+       | P_sys_const_max_wosize ->
+         Emit_primitive.emit_const_int state 0x3fffffff
+       | P_sys_const_ostype_unix -> Emit_primitive.emit_const_int state 1
+       | P_sys_const_ostype_win32 -> Emit_primitive.emit_const_int state 0
+       | P_sys_const_ostype_cygwin -> Emit_primitive.emit_const_int state 0
+       | P_sys_const_backend_type_native ->
+         (* [Sys.backend_type] is a variant [Native | Bytecode |
+            Other of string]. Return constant tag 1 = Bytecode. *)
+         Emit_primitive.emit_const_int state 1
+       | P_sys_const_naked_pointers_checked ->
+         Emit_primitive.emit_const_int state 1
        | P_create_bytes -> Emit_primitive.emit_create_bytes state
        | P_bytes_length -> Emit_primitive.emit_bytes_length state
        | P_bytes_get -> Emit_primitive.emit_bytes_get state

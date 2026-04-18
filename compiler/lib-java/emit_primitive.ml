@@ -214,7 +214,10 @@ let emit_obj_with_tag state =
 let emit_obj_dup state =
   (match state.acc_kind with
    | K_block _ -> ()
-   | _ -> failwith "java_of_ocaml: caml_obj_dup on non-block");
+   | _ ->
+     box_if_int state.code state.acc_kind;
+     Jvm.Code.checkcast state.code "Block";
+     state.acc_kind <- K_obj);
   let src_local = allocate_local state in
   Jvm.Code.astore state.code src_local;
   Jvm.Code.new_ state.code "Block";
@@ -1364,6 +1367,47 @@ let emit_bytes_compare state =
   pop_slots state 1;
   state.acc_live <- true;
   state.acc_kind <- K_int
+
+(* [caml_sys_const_*] — lightweight integer / boolean constants
+   used by Stdlib's [Sys] module to know the host shape. Each
+   takes one unit arg and returns an int. *)
+let emit_const_int state n =
+  drop_live_acc state;
+  Jvm.Code.ldc_int state.code n;
+  state.acc_live <- true;
+  state.acc_kind <- K_int
+
+(* [caml_sys_get_config ()] — [(os_type, word_size, big_endian)]
+   triple. [Sys] destructures this at Stdlib init, so it must be
+   a real Block, not a [null] stub. *)
+let emit_sys_get_config state =
+  drop_live_acc state;
+  Jvm.Code.new_ state.code "Block";
+  Jvm.Code.dup state.code;
+  Jvm.Code.ldc_int state.code 0;
+  Jvm.Code.ldc_int state.code 3;
+  Jvm.Code.anewarray state.code "java/lang/Object";
+  Jvm.Code.dup state.code;
+  Jvm.Code.ldc_int state.code 0;
+  Jvm.Code.ldc_string state.code "Unix";
+  Jvm.Code.aastore state.code;
+  Jvm.Code.dup state.code;
+  Jvm.Code.ldc_int state.code 1;
+  Jvm.Code.ldc_int state.code 32;
+  emit_box_int state.code;
+  Jvm.Code.aastore state.code;
+  Jvm.Code.dup state.code;
+  Jvm.Code.ldc_int state.code 2;
+  Jvm.Code.ldc_int state.code 0;
+  emit_box_int state.code;
+  Jvm.Code.aastore state.code;
+  Jvm.Code.invokespecial
+    state.code
+    ~class_:"Block"
+    ~method_:"<init>"
+    ~descriptor:"(I[Ljava/lang/Object;)V";
+  state.acc_live <- true;
+  state.acc_kind <- K_obj
 
 (* [caml_ml_flush(chan)] — flushes any buffered output. *)
 let emit_ml_flush state =

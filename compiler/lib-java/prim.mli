@@ -65,6 +65,16 @@ type prim_handler =
   | P_ml_output
   | P_ml_output_char
   | P_ml_flush
+  | P_sys_get_config
+  | P_sys_const_big_endian
+  | P_sys_const_word_size
+  | P_sys_const_int_size
+  | P_sys_const_max_wosize
+  | P_sys_const_ostype_unix
+  | P_sys_const_ostype_win32
+  | P_sys_const_ostype_cygwin
+  | P_sys_const_backend_type_native
+  | P_sys_const_naked_pointers_checked
   | P_create_bytes
   | P_bytes_length
   | P_bytes_get
