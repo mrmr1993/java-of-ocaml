@@ -9,6 +9,15 @@ val emit_subint : State.state -> unit
 val emit_mulint : State.state -> unit
 val emit_divint : State.state -> unit
 val emit_modint : State.state -> unit
+val emit_andint : State.state -> unit
+val emit_orint : State.state -> unit
+val emit_xorint : State.state -> unit
+val emit_lslint : State.state -> unit
+val emit_lsrint : State.state -> unit
+val emit_asrint : State.state -> unit
+
+val emit_negint : State.state -> unit
+(** [acc <- -acc]. Does not consume a stack slot. *)
 
 val emit_offsetint : State.state -> int -> unit
 (** [acc <- acc + n], used by both [OFFSETINT] and the increment side

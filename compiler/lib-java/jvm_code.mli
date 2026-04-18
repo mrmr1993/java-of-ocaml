@@ -68,6 +68,13 @@ val isub : t -> unit
 val imul : t -> unit
 val idiv : t -> unit
 val irem : t -> unit
+val ineg : t -> unit
+val iand : t -> unit
+val ior : t -> unit
+val ixor : t -> unit
+val ishl : t -> unit
+val ishr : t -> unit
+val iushr : t -> unit
 
 (** {1 Branches} *)
 

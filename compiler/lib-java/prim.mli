@@ -10,6 +10,9 @@ type prim_handler =
   | P_array_get
   | P_array_set
   | P_obj_dup
+  | P_obj_tag
+  | P_obj_block
+  | P_obj_with_tag
   | P_fresh_oo_id
   | P_alloc_dummy
   | P_update_dummy

@@ -31,3 +31,9 @@ val emit_fused_branch
 (** Called when [state.pending_cmp] was set by a nullary comparison
     followed immediately by BRANCHIF / BRANCHIFNOT. Emits a single
     fused [if_icmp<cond>] / [if_acmp<cond>] depending on slot kinds. *)
+
+val flush_pending_cmp : State.state -> unit
+(** If [state.pending_cmp] is set, materialise it into a concrete
+    [0]/[1] value in acc (and clear the pending flag). Called before
+    any op that reads the result of a previous nullary comparison
+    but isn't itself a fusion site (BRANCHIF / BRANCHIFNOT). *)

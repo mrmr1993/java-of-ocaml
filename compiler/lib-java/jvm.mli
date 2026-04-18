@@ -126,6 +126,20 @@ module Code : sig
 
   val irem : t -> unit
 
+  val ineg : t -> unit
+
+  val iand : t -> unit
+
+  val ior : t -> unit
+
+  val ixor : t -> unit
+
+  val ishl : t -> unit
+
+  val ishr : t -> unit
+
+  val iushr : t -> unit
+
   (** {2 Branches}
 
       All variants of [if_icmp<cond>] compare two ints. The semantics follow

@@ -47,8 +47,9 @@ What works end-to-end (each covered by tests under
 `compiler/tests-compiler/`):
 
 - **Values & arithmetic** — ints (boxed as `java.lang.Integer`), the
-  standard integer arithmetic and comparisons, branches, let-bindings,
-  if/else.
+  standard integer arithmetic, bitwise (`land`/`lor`/`lxor`/`lnot`),
+  shifts (`lsl`/`lsr`/`asr`), unary negation, and all the comparisons
+  (`=`/`<>`/`<`/`<=`/`>`/`>=`). Branches, let-bindings, if/else.
 - **Strings** — OCaml strings flow as JVM `String`s.
 - **Functions** — top-level and nested, single- and multi-arg
   (up to 7-ary), tail calls, non-tail calls (`PUSH_RETADDR`),
@@ -72,16 +73,25 @@ What works end-to-end (each covered by tests under
   … in`, `M.(…)`), `include`, functors (single-arg, multi-arg
   curried, generative `()`), `with type` / destructive substitution
   (`with type :=`), `module type of`, first-class modules.
+- **`Obj`** — the inlined externals (`Obj.repr`, `Obj.obj`,
+  `Obj.magic`, `Obj.is_int`, `Obj.size`, `Obj.field`,
+  `Obj.set_field`) plus the C primitives `Obj.tag`, `Obj.new_block`,
+  `Obj.dup`, `Obj.with_tag`.
+- **`Int`** — `neg`, `succ`/`pred`, `add`/`sub`/`mul`/`div`/`rem`,
+  `logand`/`logor`/`logxor`, `shift_left`/`shift_right`/
+  `shift_right_logical`, and the matching infix operators.
 
 What doesn't work yet:
 
-- No `Stdlib` support — `print_endline`, `^`, `@`, `List.iter`, etc.
-  all fall back to Stdlib's compiled bytecode, which isn't yet
-  compiled. Tests use a handful of custom C primitives
-  (`caml_java_print_int`, `caml_java_print_endline`) instead.
+- No general `Stdlib` support — `print_endline`, `^`, `@`,
+  `List.iter`, etc. would fall back to Stdlib's compiled bytecode,
+  which isn't yet compiled. Tests use a handful of custom C
+  primitives (`caml_java_print_int`, `caml_java_print_endline`)
+  instead. Non-inlined `Obj` entry points like `Obj.is_block` follow
+  the same path and are not yet supported.
 - `module rec ... and ...` — needs `CamlinternalMod`'s lazy-
   initialised placeholders.
-- `Lazy.t` / `lazy` / `Lazy.force` — needs `Obj` module support first.
+- `Lazy.t` / `lazy` / `Lazy.force`.
 - Floats.
 - IO, threads, effects, the GC.
 

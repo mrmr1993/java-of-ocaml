@@ -134,6 +134,50 @@ let emit_switch state (ins : instr) =
   state.acc_live <- false;
   state.acc_kind <- K_int
 
+(* Materialise a [pending_cmp] into a concrete 0/1 value in acc. The
+   set of comparison bytecodes (EQ/NEQ/LT/LE/GT/GE) normally runs
+   fused with a following BRANCHIF(NOT); when the OCaml compiler
+   emits a bare comparison followed by any other opcode (e.g. RETURN
+   at the tail of an expression whose value is a boolean), we have
+   to emit the equivalent "if-then-else 1 else 0" here. *)
+let emit_materialize_cmp state ~cmp =
+  let slot = top_slot_local ~state in
+  let slot_kind = kind_of_slot_from_top ~state 0 in
+  ensure_kind state K_int;
+  emit_load_for_kind state.code slot slot_kind;
+  (match slot_kind with
+   | K_int -> ()
+   | K_obj -> emit_unbox_to_kind state.code K_int
+   | _ ->
+     failwith
+       (Printf.sprintf
+          "java_of_ocaml: comparison against non-int slot kind %s"
+          (jvm_type_of_kind slot_kind)));
+  let lbl_true = Jvm.Code.fresh_label state.code in
+  let lbl_end = Jvm.Code.fresh_label state.code in
+  (match cmp with
+   | Eq -> Jvm.Code.if_icmpeq state.code lbl_true
+   | Ne -> Jvm.Code.if_icmpne state.code lbl_true
+   | Lt -> Jvm.Code.if_icmplt state.code lbl_true
+   | Le -> Jvm.Code.if_icmple state.code lbl_true
+   | Gt -> Jvm.Code.if_icmpgt state.code lbl_true
+   | Ge -> Jvm.Code.if_icmpge state.code lbl_true);
+  Jvm.Code.ldc_int state.code 0;
+  Jvm.Code.goto state.code lbl_end;
+  Jvm.Code.mark_label state.code lbl_true;
+  Jvm.Code.ldc_int state.code 1;
+  Jvm.Code.mark_label state.code lbl_end;
+  consume_top state;
+  state.acc_live <- true;
+  state.acc_kind <- K_int
+
+let flush_pending_cmp state =
+  match state.pending_cmp with
+  | None -> ()
+  | Some cmp ->
+    state.pending_cmp <- None;
+    emit_materialize_cmp state ~cmp
+
 let emit_fused_branch state ~cmp ~target_pc ~branch_if_true =
   let slot_kind = kind_of_slot_from_top ~state 0 in
   let slot = top_slot_local ~state in

@@ -32,6 +32,16 @@ let emit_subint state = emit_binop state Jvm.Code.isub
 let emit_mulint state = emit_binop state Jvm.Code.imul
 let emit_divint state = emit_binop state Jvm.Code.idiv
 let emit_modint state = emit_binop state Jvm.Code.irem
+let emit_andint state = emit_binop state Jvm.Code.iand
+let emit_orint state = emit_binop state Jvm.Code.ior
+let emit_xorint state = emit_binop state Jvm.Code.ixor
+let emit_lslint state = emit_binop state Jvm.Code.ishl
+let emit_lsrint state = emit_binop state Jvm.Code.iushr
+let emit_asrint state = emit_binop state Jvm.Code.ishr
+
+let emit_negint state =
+  ensure_kind state K_int;
+  Jvm.Code.ineg state.code
 
 let emit_offsetint state n =
   ensure_kind state K_int;

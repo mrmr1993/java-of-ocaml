@@ -71,6 +71,18 @@ a home-grown one or, preferably, adopting `Code.program` from
   ops). Replacing that requires either our own Stdlib compilation or
   cross-compiled artefacts.
 
+## Known representation gaps
+
+- **Integer width** — our ints run as JVM 32-bit `int`, not OCaml's
+  63-bit tagged int. Arithmetic, shifts, and bitwise ops silently
+  wrap at the JVM boundary. A 64-bit-clean representation would
+  either promote every int to `long` or keep `int` everywhere and
+  add explicit wrap-to-63-bit masks on operations; jsoo takes the
+  first approach for `nativeint`/`int64` but leaves plain `int` as
+  a JS number. We should pick a strategy before either int64
+  arithmetic or Sys.int_size-dependent code (popcount,
+  leading_zeros) starts mattering.
+
 ## Known bugs surfaced but not fixed
 
 Recorded here so they don't get lost; each has a focused repro.
@@ -98,8 +110,15 @@ Recorded here so they don't get lost; each has a focused repro.
 Listed here because each has an analogue in jsoo worth studying when
 implementing:
 
-- `Obj` module support.
-- `Lazy.t` / `lazy` / `Lazy.force` (depends on `Obj`).
+- Non-inlined `Obj` entry points that flow through a closure
+  reference (e.g. `Obj.is_block`, `Obj.Extension_constructor.*`).
+  Those require pulling in the `Obj` module record from
+  `caml_global_data`, which we can't materialise yet because its
+  fields are closures; the inlined externals (`%obj_is_int`,
+  `%obj_size`, `%obj_field`, `%obj_set_field`, `%identity`) work, as
+  do the C primitives `caml_obj_tag`, `caml_obj_block`,
+  `caml_obj_with_tag`, `caml_obj_dup`.
+- `Lazy.t` / `lazy` / `Lazy.force`.
 - `module rec` (jsoo uses `CamlinternalMod`'s lazy-initialised
   placeholders).
 - Floats, IO, threads.

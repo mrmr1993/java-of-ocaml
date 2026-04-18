@@ -36,19 +36,30 @@ Working:
   :=`, `module type of`, first-class modules.
 - **Recursive values** — `let rec a = A (b, b) and b = [|a; a; a|]`
   via `caml_alloc_dummy` / `caml_update_dummy`.
+- **`Obj`** — the inlined externals (`%identity` via `Obj.repr` /
+  `Obj.obj` / `Obj.magic`, `%obj_is_int`, `%obj_size`, `%obj_field`
+  via `Parrayrefu gen_array_kind` → `caml_array_unsafe_get`,
+  `%obj_set_field` → `caml_array_unsafe_set`) and the C primitives
+  `caml_obj_tag`, `caml_obj_block`, `caml_obj_with_tag`,
+  `caml_obj_dup`. Non-inlined entry points like `Obj.is_block` still
+  need the `Obj` module record, which depends on Stdlib compilation.
+- **`Int`** (arithmetic / bitwise / shifts) — `neg`, `succ`, `pred`,
+  `add`/`sub`/`mul`/`div`/`rem`, `logand`/`logor`/`logxor`,
+  `shift_left`/`shift_right`/`shift_right_logical`, and the infix
+  `land`/`lor`/`lxor`/`lsl`/`lsr`/`asr`. Shifts are JVM-int (32-bit),
+  not OCaml's 63-bit, so programs that depend on the width beyond 31
+  bits will diverge — a separate item.
 
 Not yet supported:
 
-- No `Stdlib` — e.g. `print_endline`, `^`, `@`, `List.iter`, etc.
-  all fall back to Stdlib's compiled bytecode, which isn't compiled.
-  Tests use custom C primitives (`caml_java_print_int`,
+- No general `Stdlib` — e.g. `print_endline`, `^`, `@`, `List.iter`
+  would still fall back to Stdlib's compiled bytecode, which isn't
+  compiled. Tests use custom C primitives (`caml_java_print_int`,
   `caml_java_print_endline`) for output.
 - `module rec` — OCaml lowers these via `CamlinternalMod`'s
   lazy-initialised placeholders.
 - `Lazy.t` / `lazy` / `Lazy.force`.
 - Floats, IO, threads, effects.
-
-The user has asked to defer `Obj` and `Lazy` until later.
 
 ### Reference submodules
 
@@ -129,10 +140,13 @@ Each module under `compiler/lib-java/` has a companion `.mli`.
       PUSHCONST*, plus the block-constant materialiser used by
       GETGLOBAL. The core push / acc primitives every other emitter
       composes with.
-    - `emit_arith` — ADDINT / SUBINT / MULINT / DIVINT / MODINT /
-      OFFSETINT.
+    - `emit_arith` — NEGINT, ADDINT, SUBINT, MULINT, DIVINT, MODINT,
+      ANDINT, ORINT, XORINT, LSLINT, LSRINT, ASRINT, OFFSETINT.
     - `emit_branch` — cmp_of_opcode, BEQ/BNEQ/BLTINT/BLEINT/BGTINT/
-      BGEINT, BRANCHIF/NOT-on-K_obj, SWITCH, fused compare-and-branch.
+      BGEINT, BRANCHIF/NOT-on-K_obj, SWITCH, fused compare-and-branch,
+      `flush_pending_cmp` for the comparison-followed-by-non-branch
+      case (e.g. a boolean expression evaluated as an expression
+      tail).
     - `emit_apply` — APPLY / APPLY1..3 / APPTERM / RETURN /
       PUSH_RETADDR, plus the `apply_descriptor_for_nargs` helper.
     - `emit_closure` — CLOSURE / CLOSUREREC, OFFSETCLOSURE{0,3,m3,N},
@@ -141,15 +155,19 @@ Each module under `compiler/lib-java/` has a companion `.mli`.
     - `emit_exception` — RAISE / PUSHTRAP / POPTRAP.
     - `emit_primitive` — the C_CALL handlers
       (`caml_java_print_{int,endline}`, `caml_array_{get,set}_addr`,
-      `caml_obj_dup`, `caml_fresh_oo_id`, `caml_alloc_dummy`,
-      `caml_update_dummy`) plus ISINT.
+      `caml_array_unsafe_{get,set}`, `caml_obj_dup`, `caml_obj_tag`,
+      `caml_obj_block`, `caml_obj_with_tag`, `caml_fresh_oo_id`,
+      `caml_alloc_dummy`, `caml_update_dummy`) plus ISINT. Shared
+      helpers for dynamic block-field read/write back `GETVECTITEM`
+      and `SETVECTITEM` in `emit_instr`.
     - `emit_instr` — the opcode dispatcher. Handles label marking
       (with CamlException-unwrap prelude at try/with handler entry)
       and branch-target state restoration, then dispatches to the
       emit_* modules above. A handful of small opcodes are emitted
-      inline (MAKEBLOCK, GETFIELD, SETFIELD, VECTLENGTH, OFFSETREF,
-      BRANCH, BRANCH(IF/NOT), ASSIGN, BOOLNOT, POP, GETGLOBAL,
-      PUSHGETGLOBAL).
+      inline (MAKEBLOCK, GETFIELD, SETFIELD, VECTLENGTH,
+      GETVECTITEM, SETVECTITEM, OFFSETREF, BRANCH, BRANCH(IF/NOT),
+      ASSIGN, BOOLNOT, POP, GETGLOBAL, PUSHGETGLOBAL,
+      GETGLOBALFIELD, PUSHGETGLOBALFIELD).
 
   Driver:
     - `compile.{ml,mli}` — the compile driver. Reads the bytecode,

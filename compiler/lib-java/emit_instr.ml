@@ -52,6 +52,8 @@ let emit_instr state (ins : instr) =
      state.pending_cmp <- None
    | None -> ());
   let op = ins.opcode in
+  if not (is_cmp_nullary op || op = Bytecode.Op.branchif || op = Bytecode.Op.branchifnot)
+  then Emit_branch.flush_pending_cmp state;
   if is_cmp_nullary op
   then state.pending_cmp <- Some (Emit_branch.cmp_of_opcode op)
   else if op = Bytecode.Op.branchifnot
@@ -294,6 +296,8 @@ let emit_instr state (ins : instr) =
     consume_top state;
     Jvm.Code.ldc_int state.code 0;
     state.acc_kind <- K_int)
+  else if op = Bytecode.Op.getvectitem then Emit_primitive.emit_array_get state
+  else if op = Bytecode.Op.setvectitem then Emit_primitive.emit_array_set state
   else if op = Bytecode.Op.vectlength
   then (
     (match state.acc_kind with
@@ -335,11 +339,18 @@ let emit_instr state (ins : instr) =
     Jvm.Code.pop_top state.code;
     Jvm.Code.ldc_int state.code 0;
     state.acc_kind <- K_int)
+  else if op = Bytecode.Op.negint then Emit_arith.emit_negint state
   else if op = Bytecode.Op.addint then Emit_arith.emit_addint state
   else if op = Bytecode.Op.subint then Emit_arith.emit_subint state
   else if op = Bytecode.Op.mulint then Emit_arith.emit_mulint state
   else if op = Bytecode.Op.divint then Emit_arith.emit_divint state
   else if op = Bytecode.Op.modint then Emit_arith.emit_modint state
+  else if op = Bytecode.Op.andint then Emit_arith.emit_andint state
+  else if op = Bytecode.Op.orint then Emit_arith.emit_orint state
+  else if op = Bytecode.Op.xorint then Emit_arith.emit_xorint state
+  else if op = Bytecode.Op.lslint then Emit_arith.emit_lslint state
+  else if op = Bytecode.Op.lsrint then Emit_arith.emit_lsrint state
+  else if op = Bytecode.Op.asrint then Emit_arith.emit_asrint state
   else if op = Bytecode.Op.push then Emit_stack.emit_push state
   else if op = Bytecode.Op.acc0 then Emit_stack.emit_acc state 0
   else if op = Bytecode.Op.acc1 then Emit_stack.emit_acc state 1
@@ -418,6 +429,44 @@ let emit_instr state (ins : instr) =
             unsupported shape"
            ins.args.(0)
            ins.pc))
+  else if op = Bytecode.Op.getglobalfield || op = Bytecode.Op.pushgetglobalfield
+  then (
+    let g = ins.args.(0) in
+    let f = ins.args.(1) in
+    let field =
+      match inspect_global state.globals g with
+      | G_block (_, fields) when f >= 0 && f < List.length fields ->
+        List.nth fields f
+      | _ ->
+        failwith
+          (Printf.sprintf
+             "java_of_ocaml: %s %d %d at pc %d — global has an \
+              unsupported shape or field index out of range"
+             (Bytecode.opcode_name op)
+             g
+             f
+             ins.pc)
+    in
+    let push_first = op = Bytecode.Op.pushgetglobalfield in
+    let was_live = state.acc_live in
+    if push_first then Emit_stack.emit_push state;
+    let drop_old () = if was_live then Jvm.Code.pop_top state.code in
+    match field with
+    | Gv_int n ->
+      drop_old ();
+      Jvm.Code.ldc_int state.code n;
+      state.acc_live <- true;
+      state.acc_kind <- K_int
+    | Gv_string s ->
+      drop_old ();
+      Jvm.Code.ldc_string state.code s;
+      state.acc_live <- true;
+      state.acc_kind <- K_string
+    | Gv_block (tag, sub_fields) ->
+      drop_old ();
+      Emit_stack.emit_materialise_block_constant state tag sub_fields;
+      state.acc_live <- true;
+      state.acc_kind <- K_block (List.map kind_of_global_field sub_fields))
   else if op = Bytecode.Op.branch
   then (
     let target = ins.pc + ins.args.(0) + 1 in
@@ -468,6 +517,9 @@ let emit_instr state (ins : instr) =
        | P_array_get -> Emit_primitive.emit_array_get state
        | P_array_set -> Emit_primitive.emit_array_set state
        | P_obj_dup -> Emit_primitive.emit_obj_dup state
+       | P_obj_tag -> Emit_primitive.emit_obj_tag state
+       | P_obj_block -> Emit_primitive.emit_obj_block state
+       | P_obj_with_tag -> Emit_primitive.emit_obj_with_tag state
        | P_fresh_oo_id -> Emit_primitive.emit_fresh_oo_id state
        | P_alloc_dummy -> Emit_primitive.emit_alloc_dummy state
        | P_update_dummy -> Emit_primitive.emit_update_dummy state)

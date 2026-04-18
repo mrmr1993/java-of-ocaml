@@ -39,6 +39,8 @@ module Op : sig
   val pop : int
   val getglobal : int
   val pushgetglobal : int
+  val getglobalfield : int
+  val pushgetglobalfield : int
   val c_call1 : int
   val const0 : int
   val const1 : int
@@ -50,11 +52,18 @@ module Op : sig
   val pushconst2 : int
   val pushconst3 : int
   val pushconstint : int
+  val negint : int
   val addint : int
   val subint : int
   val mulint : int
   val divint : int
   val modint : int
+  val andint : int
+  val orint : int
+  val xorint : int
+  val lslint : int
+  val lsrint : int
+  val asrint : int
   val eq : int
   val neq : int
   val ltint : int
@@ -78,6 +87,8 @@ module Op : sig
   val setfield3 : int
   val setfield : int
   val vectlength : int
+  val getvectitem : int
+  val setvectitem : int
   val branch : int
   val branchif : int
   val branchifnot : int

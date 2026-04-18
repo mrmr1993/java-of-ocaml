@@ -278,6 +278,32 @@ let irem t =
   add_u1 t.buf 0x70;
   pop t 1
 
+let ineg t = add_u1 t.buf 0x74
+
+let ishl t =
+  add_u1 t.buf 0x78;
+  pop t 1
+
+let ishr t =
+  add_u1 t.buf 0x7A;
+  pop t 1
+
+let iushr t =
+  add_u1 t.buf 0x7C;
+  pop t 1
+
+let iand t =
+  add_u1 t.buf 0x7E;
+  pop t 1
+
+let ior t =
+  add_u1 t.buf 0x80;
+  pop t 1
+
+let ixor t =
+  add_u1 t.buf 0x82;
+  pop t 1
+
 let emit_branch t lbl opcode ~stack_delta =
   let branch_pc = Buffer.length t.buf in
   add_u1 t.buf opcode;

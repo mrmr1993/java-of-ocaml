@@ -108,6 +108,18 @@
   (pps ppx_expect)))
 
 (library
+ ;; compiler/tests-compiler/int_module.ml
+ (name int_module_15)
+ (enabled_if true)
+ (modules int_module)
+ (libraries unix str java_of_ocaml_expect_tests_helper)
+ (inline_tests
+  (enabled_if true))
+ (flags (:standard -open Java_of_ocaml_expect_tests_helper))
+ (preprocess
+  (pps ppx_expect)))
+
+(library
  ;; compiler/tests-compiler/lists.ml
  (name lists_15)
  (enabled_if true)
@@ -124,6 +136,18 @@
  (name modules_15)
  (enabled_if true)
  (modules modules)
+ (libraries unix str java_of_ocaml_expect_tests_helper)
+ (inline_tests
+  (enabled_if true))
+ (flags (:standard -open Java_of_ocaml_expect_tests_helper))
+ (preprocess
+  (pps ppx_expect)))
+
+(library
+ ;; compiler/tests-compiler/obj_module.ml
+ (name obj_module_15)
+ (enabled_if true)
+ (modules obj_module)
  (libraries unix str java_of_ocaml_expect_tests_helper)
  (inline_tests
   (enabled_if true))

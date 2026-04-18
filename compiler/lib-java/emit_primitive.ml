@@ -65,7 +65,130 @@ let emit_array_get state =
     consume_top state;
     state.acc_live <- true;
     state.acc_kind <- ek
-  | _ -> failwith "java_of_ocaml: caml_array_get_addr on non-block"
+  | K_obj ->
+    Jvm.Code.checkcast state.code "Block";
+    Jvm.Code.getfield
+      state.code
+      ~class_:"Block"
+      ~field:"fields"
+      ~descriptor:"[Ljava/lang/Object;";
+    Jvm.Code.iload state.code idx_slot;
+    Jvm.Code.aaload state.code;
+    consume_top state;
+    state.acc_live <- true;
+    state.acc_kind <- K_obj
+  | _ -> failwith "java_of_ocaml: dynamic field/array read on non-block"
+
+(* caml_obj_tag: return the runtime tag of a value. OCaml reserves
+   tag 1000 for immediates (ints); blocks return [Block.tag]; strings
+   return 252; closures return 247. *)
+let emit_obj_tag state =
+  match state.acc_kind with
+  | K_int ->
+    if state.acc_live then Jvm.Code.pop_top state.code;
+    Jvm.Code.ldc_int state.code 1000;
+    state.acc_live <- true;
+    state.acc_kind <- K_int
+  | K_string ->
+    if state.acc_live then Jvm.Code.pop_top state.code;
+    Jvm.Code.ldc_int state.code 252;
+    state.acc_live <- true;
+    state.acc_kind <- K_int
+  | K_closure _ ->
+    if state.acc_live then Jvm.Code.pop_top state.code;
+    Jvm.Code.ldc_int state.code 247;
+    state.acc_live <- true;
+    state.acc_kind <- K_int
+  | K_block _ ->
+    Jvm.Code.getfield state.code ~class_:"Block" ~field:"tag" ~descriptor:"I";
+    state.acc_kind <- K_int
+  | K_obj ->
+    let l_block = Jvm.Code.fresh_label state.code in
+    let l_end = Jvm.Code.fresh_label state.code in
+    Jvm.Code.dup state.code;
+    Jvm.Code.instanceof_ state.code "Block";
+    Jvm.Code.ifne state.code l_block;
+    Jvm.Code.pop_top state.code;
+    Jvm.Code.ldc_int state.code 1000;
+    Jvm.Code.goto state.code l_end;
+    Jvm.Code.mark_label state.code l_block;
+    Jvm.Code.checkcast state.code "Block";
+    Jvm.Code.getfield state.code ~class_:"Block" ~field:"tag" ~descriptor:"I";
+    Jvm.Code.mark_label state.code l_end;
+    state.acc_kind <- K_int
+
+(* caml_obj_block(tag, size): allocate Block(tag, Object[size]) with
+   fields pre-filled to Val_unit (Integer(0)) to match OCaml's
+   behavior for scannable tags. *)
+let emit_obj_block state =
+  ensure_kind state K_int;
+  let tag_local = allocate_local state in
+  Jvm.Code.istore state.code tag_local;
+  Jvm.Code.new_ state.code "Block";
+  Jvm.Code.dup state.code;
+  Jvm.Code.iload state.code tag_local;
+  let size_slot = List.hd state.slots in
+  emit_load_for_kind state.code size_slot.local size_slot.kind;
+  (match size_slot.kind with
+   | K_int -> ()
+   | K_obj -> emit_unbox_to_kind state.code K_int
+   | _ -> failwith "java_of_ocaml: caml_obj_block: size must be int");
+  Jvm.Code.anewarray state.code "java/lang/Object";
+  Jvm.Code.dup state.code;
+  Jvm.Code.ldc_int state.code 0;
+  emit_box_int state.code;
+  Jvm.Code.invokestatic
+    state.code
+    ~class_:"java/util/Arrays"
+    ~method_:"fill"
+    ~descriptor:"([Ljava/lang/Object;Ljava/lang/Object;)V";
+  Jvm.Code.invokespecial
+    state.code
+    ~class_:"Block"
+    ~method_:"<init>"
+    ~descriptor:"(I[Ljava/lang/Object;)V";
+  pop_slots state 1;
+  state.acc_live <- true;
+  state.acc_kind <- K_obj
+
+(* caml_obj_with_tag(tag, src): like obj_dup but with an explicit new
+   tag. *)
+let emit_obj_with_tag state =
+  ensure_kind state K_int;
+  let tag_local = allocate_local state in
+  Jvm.Code.istore state.code tag_local;
+  let src_slot = List.hd state.slots in
+  emit_load_for_kind state.code src_slot.local src_slot.kind;
+  (match src_slot.kind with
+   | K_block _ -> ()
+   | K_obj -> Jvm.Code.checkcast state.code "Block"
+   | _ -> failwith "java_of_ocaml: caml_obj_with_tag: source must be a block");
+  Jvm.Code.getfield
+    state.code
+    ~class_:"Block"
+    ~field:"fields"
+    ~descriptor:"[Ljava/lang/Object;";
+  Jvm.Code.dup state.code;
+  Jvm.Code.arraylength state.code;
+  Jvm.Code.invokestatic
+    state.code
+    ~class_:"java/util/Arrays"
+    ~method_:"copyOf"
+    ~descriptor:"([Ljava/lang/Object;I)[Ljava/lang/Object;";
+  let arr_local = allocate_local state in
+  Jvm.Code.astore state.code arr_local;
+  Jvm.Code.new_ state.code "Block";
+  Jvm.Code.dup state.code;
+  Jvm.Code.iload state.code tag_local;
+  Jvm.Code.aload state.code arr_local;
+  Jvm.Code.invokespecial
+    state.code
+    ~class_:"Block"
+    ~method_:"<init>"
+    ~descriptor:"(I[Ljava/lang/Object;)V";
+  pop_slots state 1;
+  state.acc_live <- true;
+  state.acc_kind <- K_obj
 
 (* caml_obj_dup: allocate new Block(src.tag, Arrays.copyOf(src.fields,
    src.length)). *)
@@ -197,7 +320,18 @@ let emit_array_set state =
      emit_load_for_kind state.code val_slot_info.local val_slot_info.kind;
      box_if_int state.code val_slot_info.kind;
      Jvm.Code.aastore state.code
-   | _ -> failwith "java_of_ocaml: caml_array_set_addr on non-block");
+   | K_obj ->
+     Jvm.Code.checkcast state.code "Block";
+     Jvm.Code.getfield
+       state.code
+       ~class_:"Block"
+       ~field:"fields"
+       ~descriptor:"[Ljava/lang/Object;";
+     Jvm.Code.iload state.code idx_slot;
+     emit_load_for_kind state.code val_slot_info.local val_slot_info.kind;
+     box_if_int state.code val_slot_info.kind;
+     Jvm.Code.aastore state.code
+   | _ -> failwith "java_of_ocaml: dynamic field/array write on non-block");
   pop_slots state 2;
   Jvm.Code.ldc_int state.code 0;
   state.acc_live <- true;
