@@ -78,7 +78,12 @@ let assemble_class
   let method_layouts =
     List.map
       (fun m ->
-        let bytes = Code.contents m.code in
+        let bytes =
+          try Code.contents m.code with
+          | Failure msg ->
+            failwith
+              (Printf.sprintf "%s (in method %s.%s)" msg class_name m.name)
+        in
         { m
         ; code_bytes = bytes
         ; name_idx = Cp.utf8 cp m.name
