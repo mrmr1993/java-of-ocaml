@@ -366,6 +366,67 @@ let emit_ccall ctx name args =
          ~descriptor:"(I)Ljava/lang/String;";
        Kind.K_string
      | _ -> raise (Unsupported "caml_format_int arity"))
+  | "caml_string_equal" ->
+    (match args with
+     | [ Pv a; Pv b ] ->
+       as_string a;
+       as_string b;
+       Jvm.Code.invokevirtual
+         ctx.code
+         ~class_:"java/lang/String"
+         ~method_:"equals"
+         ~descriptor:"(Ljava/lang/Object;)Z";
+       Kind.K_int
+     | _ -> raise (Unsupported "caml_string_equal arity"))
+  | "caml_string_notequal" ->
+    (match args with
+     | [ Pv a; Pv b ] ->
+       as_string a;
+       as_string b;
+       Jvm.Code.invokevirtual
+         ctx.code
+         ~class_:"java/lang/String"
+         ~method_:"equals"
+         ~descriptor:"(Ljava/lang/Object;)Z";
+       Jvm.Code.ldc_int ctx.code 1;
+       Jvm.Code.ixor ctx.code;
+       Kind.K_int
+     | _ -> raise (Unsupported "caml_string_notequal arity"))
+  | "caml_bytes_equal" ->
+    (match args with
+     | [ Pv a; Pv b ] ->
+       as_bytes a;
+       as_bytes b;
+       Jvm.Code.invokevirtual
+         ctx.code
+         ~class_:"Bytes"
+         ~method_:"contentEquals"
+         ~descriptor:"(LBytes;)Z";
+       Kind.K_int
+     | _ -> raise (Unsupported "caml_bytes_equal arity"))
+  | "caml_ml_output" ->
+    (match args with
+     | [ Pv chan; Pv s; Pv off; Pv len ] ->
+       emit_load ctx chan;
+       Jvm.Code.checkcast ctx.code "Channel";
+       as_string s;
+       as_int off;
+       as_int len;
+       Jvm.Code.invokevirtual
+         ctx.code
+         ~class_:"Channel"
+         ~method_:"output"
+         ~descriptor:"(Ljava/lang/String;II)V";
+       Jvm.Code.ldc_int ctx.code 0;
+       Kind.K_int
+     | _ -> raise (Unsupported "caml_ml_output arity"))
+  | "caml_ml_close_channel" ->
+    (match args with
+     | [ Pv _ch ] ->
+       (* No-op; JVM GC handles cleanup. *)
+       Jvm.Code.ldc_int ctx.code 0;
+       Kind.K_int
+     | _ -> raise (Unsupported "caml_ml_close_channel arity"))
   | "caml_obj_tag" ->
     (* Arg 0: Block. Return: tag (int). *)
     (match args with
@@ -486,6 +547,66 @@ let emit_prim ctx (p : Code.prim) (args : Code.prim_arg list) : Kind.kind =
       with Not_found -> raise (Unsupported ("ccall_" ^ string_of_int idx))
     in
     emit_ccall ctx name args'
+  | Vectlength, [ a ] ->
+    let _ = emit_prim_arg ctx a in
+    Jvm.Code.checkcast ctx.code "Block";
+    Jvm.Code.getfield
+      ctx.code
+      ~class_:"Block"
+      ~field:"fields"
+      ~descriptor:"[Ljava/lang/Object;";
+    Jvm.Code.arraylength ctx.code;
+    K_int
+  | Extern "set_byte", [ s; i; v ] ->
+    (* s.set(i, v); returns unit = 0 *)
+    let ks = emit_prim_arg ctx s in
+    (match ks with
+     | _ -> Jvm.Code.checkcast ctx.code "Bytes");
+    let ki = emit_prim_arg ctx i in
+    ensure_int ctx ki;
+    let kv = emit_prim_arg ctx v in
+    ensure_int ctx kv;
+    Jvm.Code.invokevirtual
+      ctx.code
+      ~class_:"Bytes"
+      ~method_:"set"
+      ~descriptor:"(II)V";
+    Jvm.Code.ldc_int ctx.code 0;
+    K_int
+  | Extern "get_byte", [ a; b ] ->
+    (* Read a byte from a Bytes/String at an int index. *)
+    let ka = emit_prim_arg ctx a in
+    (match ka with
+     | K_string -> ()
+     | _ ->
+       (* fall-back: checkcast Bytes and invoke get(int) *)
+       Jvm.Code.checkcast ctx.code "Bytes");
+    let kb = emit_prim_arg ctx b in
+    ensure_int ctx kb;
+    (match ka with
+     | K_string ->
+       Jvm.Code.invokevirtual
+         ctx.code
+         ~class_:"java/lang/String"
+         ~method_:"charAt"
+         ~descriptor:"(I)C"
+     | _ ->
+       Jvm.Code.invokevirtual
+         ctx.code
+         ~class_:"Bytes"
+         ~method_:"get"
+         ~descriptor:"(I)I");
+    K_int
+  | Extern "getmethod", [ Pv meth; Pv obj ] ->
+    (* Methods are looked up via the class-dispatch table. For now
+       defer to a runtime helper (to be added). *)
+    let _ = meth in
+    let _ = obj in
+    raise (Unsupported "getmethod (needs runtime helper)")
+  | Extern "getpubmet", [ Pv _a; Pc (Int _tag) ] ->
+    raise (Unsupported "getpubmet (needs runtime helper)")
+  | Extern "getdynmet", [ Pv _a; Pv _obj ] ->
+    raise (Unsupported "getdynmet (needs runtime helper)")
   | Extern "get_global", [ Pc (Int idx) ] ->
     Jvm.Code.getstatic
       ctx.code
@@ -535,7 +656,18 @@ let emit_prim ctx (p : Code.prim) (args : Code.prim_arg list) : Kind.kind =
      | _ ->
        Jvm.Code.instanceof_ ctx.code "java/lang/Integer";
        K_int)
-  | _ -> raise (Unsupported "prim (unsupported)")
+  | p, _ ->
+    let p_str =
+      match p with
+      | Code.Extern s -> "Extern " ^ s
+      | Vectlength -> "Vectlength"
+      | Array_get -> "Array_get"
+      | Not -> "Not"
+      | IsInt -> "IsInt"
+      | Eq -> "Eq" | Neq -> "Neq" | Lt -> "Lt" | Le -> "Le"
+      | Gt -> "Gt" | Ge -> "Ge" | Ult -> "Ult" | Uge -> "Uge"
+    in
+    raise (Unsupported ("prim " ^ p_str))
 
 (* Load a Var, then box primitives to Object so the value can be
    passed to an apply method or stored into a closure-ctor arg. *)
