@@ -873,6 +873,85 @@ let%expect_test "partial application: 3-arg function called with 2 args then 1" 
     103
     8 |}]
 
+let%expect_test "instantiation currying: each call to [f ()] yields its own mutable state" =
+  compile_and_run
+    {| external caml_java_print_int : int -> unit = "caml_java_print_int"
+       let f () =
+         let counter = ref 0 in
+         fun x ->
+           counter := !counter + x;
+           !counter
+       let () =
+         let acc = f () in
+         caml_java_print_int (acc 1);
+         caml_java_print_int (acc 10);
+         caml_java_print_int (acc 100);
+         let acc2 = f () in
+         caml_java_print_int (acc2 5);
+         caml_java_print_int (acc 0);
+         caml_java_print_int (acc2 5) |};
+  [%expect {|
+    1
+    11
+    111
+    5
+    111
+    10 |}]
+
+let%expect_test "instantiation currying: sibling closures share one mutable cell" =
+  compile_and_run
+    {| external caml_java_print_int : int -> unit = "caml_java_print_int"
+       let make_pair () =
+         let counter = ref 0 in
+         let bump x = counter := !counter + x; !counter in
+         let peek () = !counter in
+         (bump, peek)
+       let () =
+         let (bump, peek) = make_pair () in
+         caml_java_print_int (bump 3);
+         caml_java_print_int (bump 7);
+         caml_java_print_int (peek ());
+         let (bump2, peek2) = make_pair () in
+         caml_java_print_int (bump2 100);
+         caml_java_print_int (peek ());
+         caml_java_print_int (peek2 ()) |};
+  [%expect {|
+    3
+    10
+    10
+    100
+    10
+    100 |}]
+
+let%expect_test "instantiation currying: nested closures with shared-outer, fresh-inner refs" =
+  compile_and_run
+    {| external caml_java_print_int : int -> unit = "caml_java_print_int"
+       let f () =
+         let outer = ref 0 in
+         fun seed ->
+           outer := !outer + seed;
+           let inner = ref !outer in
+           fun bump ->
+             inner := !inner + bump;
+             (!outer, !inner)
+       let () =
+         let g = f () in
+         let h1 = g 10 in
+         let h2 = g 1 in
+         let (o, i) = h1 100 in
+         caml_java_print_int o; caml_java_print_int i;
+         let (o, i) = h2 200 in
+         caml_java_print_int o; caml_java_print_int i;
+         let (o, i) = h1 0 in
+         caml_java_print_int o; caml_java_print_int i |};
+  [%expect {|
+    11
+    110
+    11
+    211
+    11
+    110 |}]
+
 let%expect_test "partial application: 4-arg function applied in several stages" =
   compile_and_run
     {| external caml_java_print_int : int -> unit = "caml_java_print_int"
