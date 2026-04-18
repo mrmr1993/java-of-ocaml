@@ -2,16 +2,27 @@ open Kind
 open Instr
 open State
 
+(* Re-export so [emit_instr] can reach the helper via [Emit_branch]. *)
+let normalize_acc_for_branch = State.normalize_acc_for_branch
+
 let emit_cmp_jump state (ins : instr) =
   let imm = ins.args.(0) in
   let target_pc = ins.pc + ins.args.(1) + 2 in
   let lbl = label_at state target_pc in
-  ensure_kind state K_int;
   (* [BEQ] / [BNEQ] / [B{LT,LE,GT,GE}INT] preserve acc per OCaml's
-     bytecode semantics — the comparison reads acc but leaves it for
-     a caller. Duplicate acc so the [if_icmp<cond>] consumption
-     doesn't destroy it. *)
+     bytecode semantics. Box acc to [Object] first so every edge
+     (taken and fall-through) leaves the same JVM type on the
+     operand stack. Then [dup] the Object, [checkcast Integer],
+     unbox to int, compare with [imm], branch. The dup keeps the
+     Object on the stack across the consumption by [if_icmp]. *)
+  normalize_acc_for_branch state;
   Jvm.Code.dup state.code;
+  Jvm.Code.checkcast state.code "java/lang/Integer";
+  Jvm.Code.invokevirtual
+    state.code
+    ~class_:"java/lang/Integer"
+    ~method_:"intValue"
+    ~descriptor:"()I";
   Jvm.Code.ldc_int state.code imm;
   (match ins.opcode with
    | 131 -> Jvm.Code.if_icmpeq state.code lbl
@@ -24,7 +35,7 @@ let emit_cmp_jump state (ins : instr) =
      failwith
        (Printf.sprintf "java_of_ocaml: unexpected cmp_jump opcode %d" other));
   record_branch_target state target_pc
-  (* acc stays live as K_int on both paths. *)
+  (* acc stays live as [K_obj] on both paths. *)
 
 let cmp_of_opcode op =
   if op = Bytecode.Op.eq then Eq
@@ -265,59 +276,7 @@ let flush_pending_cmp state =
     state.pending_cmp <- None;
     emit_materialize_cmp state ~cmp
 
-let emit_fused_branch state ~cmp ~target_pc ~branch_if_true =
-  let slot_kind = kind_of_slot_from_top ~state 0 in
-  let slot = top_slot_local ~state in
-  let is_ref_kind = function
-    | K_int | K_float | K_obj -> false
-    | K_string | K_block _ | K_closure _ -> true
-  in
-  let lbl = label_at state target_pc in
-  let branch_cond =
-    if branch_if_true
-    then cmp
-    else
-      match cmp with
-      | Eq -> Ne
-      | Ne -> Eq
-      | Lt -> Ge
-      | Le -> Gt
-      | Gt -> Le
-      | Ge -> Lt
-  in
-  if is_ref_kind state.acc_kind || is_ref_kind slot_kind
-  then (
-    emit_load_for_kind state.code slot slot_kind;
-    (match branch_cond with
-     | Eq -> Jvm.Code.if_acmpeq state.code lbl
-     | Ne -> Jvm.Code.if_acmpne state.code lbl
-     | _ ->
-       failwith
-         (Printf.sprintf
-            "java_of_ocaml: ordering comparison on reference kinds \
-             (%s vs %s) at pc %d"
-            (jvm_type_of_kind state.acc_kind)
-            (jvm_type_of_kind slot_kind)
-            target_pc)))
-  else (
-    ensure_kind state K_int;
-    emit_load_for_kind state.code slot slot_kind;
-    (match slot_kind with
-     | K_int -> ()
-     | K_obj -> emit_unbox_to_kind state.code K_int
-     | other ->
-       failwith
-         (Printf.sprintf
-            "java_of_ocaml: fused branch on non-int slot kind %s"
-            (jvm_type_of_kind other)));
-    match branch_cond with
-    | Eq -> Jvm.Code.if_icmpeq state.code lbl
-    | Ne -> Jvm.Code.if_icmpne state.code lbl
-    | Lt -> Jvm.Code.if_icmplt state.code lbl
-    | Le -> Jvm.Code.if_icmple state.code lbl
-    | Gt -> Jvm.Code.if_icmpgt state.code lbl
-    | Ge -> Jvm.Code.if_icmpge state.code lbl);
-  consume_top state;
-  record_branch_target state target_pc;
-  state.acc_live <- false;
-  state.acc_kind <- K_int
+(* [emit_fused_branch] has been retired — cmp+branch fusion
+   conflicted with acc-preservation discipline. All BRANCHIF /
+   BRANCHIFNOT now flow through [flush_pending_cmp] then the
+   regular branch arm in [emit_instr]. *)

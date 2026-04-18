@@ -73,50 +73,54 @@ let emit_instr state (ins : instr) =
   else if op = Bytecode.Op.branchifnot
   then (
     let target_pc = ins.pc + ins.args.(0) + 1 in
-    (* BRANCHIFNOT preserves acc per OCaml semantics. Every arm
-       below has to leave acc on the JVM stack on both the taken
-       and fall-through edges, so a caller label's snapshot and
-       our fall-through walker state agree on acc_live=true. *)
-    (match state.acc_kind with
-     | K_int ->
-       Jvm.Code.dup state.code;
-       Jvm.Code.ldc_int state.code 0;
-       Jvm.Code.if_icmpeq state.code (label_at state target_pc)
-     | K_obj ->
-       Emit_branch.emit_branch_on_val_int_zero
-         state
-         ~target_pc
-         ~branch_if_zero:true
-     | K_block _ | K_closure _ | K_string ->
-       (* Reference kinds are never [Val_false] (= Integer 0), so
-          BRANCHIFNOT never takes; fall through keeping acc on the
-          stack. Record a caller anyway in case another path
-          reaches it. *)
-       ()
-     | K_float ->
-       failwith "java_of_ocaml: BRANCHIFNOT on a float acc");
-    record_branch_target state target_pc)
+    if not state.acc_live
+    then
+      (* Dead-acc branch — usually unreachable after a terminator;
+         just record and skip. *)
+      record_branch_target state target_pc
+    else (
+      (* BRANCHIFNOT preserves acc per OCaml semantics. Box
+         primitives to [Object] first so every edge leaves a
+         uniform JVM stack type. *)
+      Emit_branch.normalize_acc_for_branch state;
+      (match state.acc_kind with
+       | K_obj ->
+         Emit_branch.emit_branch_on_val_int_zero
+           state
+           ~target_pc
+           ~branch_if_zero:true
+       | K_block _ | K_closure _ | K_string ->
+         (* Reference kinds are never [Val_false] (= Integer 0),
+            so BRANCHIFNOT never takes; fall through keeping acc
+            on the stack. *)
+         ()
+       | K_int | K_float ->
+         failwith
+           "java_of_ocaml: BRANCHIFNOT: normalize should have \
+            boxed to K_obj");
+      record_branch_target state target_pc))
   else if op = Bytecode.Op.branchif
   then (
     let target_pc = ins.pc + ins.args.(0) + 1 in
-    (match state.acc_kind with
-     | K_int ->
-       Jvm.Code.dup state.code;
-       Jvm.Code.ldc_int state.code 0;
-       Jvm.Code.if_icmpne state.code (label_at state target_pc)
-     | K_obj ->
-       Emit_branch.emit_branch_on_val_int_zero
-         state
-         ~target_pc
-         ~branch_if_zero:false
-     | K_block _ | K_closure _ | K_string ->
-       (* Reference kinds are never Val_false; BRANCHIF always
-          takes. Preserve acc on the way to a caller via a
-          plain goto. *)
-       Jvm.Code.goto state.code (label_at state target_pc)
-     | K_float ->
-       failwith "java_of_ocaml: BRANCHIF on a float acc");
-    record_branch_target state target_pc)
+    if not state.acc_live
+    then record_branch_target state target_pc
+    else (
+      Emit_branch.normalize_acc_for_branch state;
+      (match state.acc_kind with
+       | K_obj ->
+         Emit_branch.emit_branch_on_val_int_zero
+           state
+           ~target_pc
+           ~branch_if_zero:false
+       | K_block _ | K_closure _ | K_string ->
+         (* Reference kinds are never Val_false; BRANCHIF always
+            takes. *)
+         Jvm.Code.goto state.code (label_at state target_pc)
+       | K_int | K_float ->
+         failwith
+           "java_of_ocaml: BRANCHIF: normalize should have boxed \
+            to K_obj");
+      record_branch_target state target_pc))
   else if op = Bytecode.Op.switch
   then Emit_branch.emit_switch state ins
   else if op = Bytecode.Op.pushtrap
@@ -524,6 +528,7 @@ let emit_instr state (ins : instr) =
   else if op = Bytecode.Op.branch
   then (
     let target = ins.pc + ins.args.(0) + 1 in
+    Emit_branch.normalize_acc_for_branch state;
     Jvm.Code.goto state.code (label_at state target);
     record_branch_target state target)
   else if is_cmp_jump op then Emit_branch.emit_cmp_jump state ins
@@ -773,22 +778,29 @@ let emit_instr state (ins : instr) =
   then emit_throw_unsupported state "OCaml 5 effect handlers are not supported"
   else if op = Bytecode.Op.bultint || op = Bytecode.Op.bugeint
   then (
-    (* Fused unsigned compare-and-branch: the immediate is in args.(0),
-       the displacement in args.(1). Implemented as: compute the
-       unsigned compare into acc, then branch on zero/non-zero. *)
+    (* Fused unsigned compare-and-branch with an int immediate.
+       OCaml preserves acc across the branch; box to [Object] up
+       front, then [dup; checkcast; intValue] to pull out a copy
+       for the [ixor]-based unsigned compare, leaving acc itself
+       on the stack at both outgoing edges. *)
     let imm = ins.args.(0) in
     let target_pc = ins.pc + ins.args.(1) + 2 in
-    ensure_kind state K_int;
+    Emit_branch.normalize_acc_for_branch state;
+    Jvm.Code.dup state.code;
+    Jvm.Code.checkcast state.code "java/lang/Integer";
+    Jvm.Code.invokevirtual
+      state.code
+      ~class_:"java/lang/Integer"
+      ~method_:"intValue"
+      ~descriptor:"()I";
     Jvm.Code.ldc_int state.code min_int;
     Jvm.Code.ixor state.code;
     Jvm.Code.ldc_int state.code (imm lxor min_int);
     let lbl = label_at state target_pc in
-    if op = Bytecode.Op.bultint
-    then Jvm.Code.if_icmplt state.code lbl
-    else Jvm.Code.if_icmpge state.code lbl;
-    record_branch_target state target_pc;
-    state.acc_live <- false;
-    state.acc_kind <- K_int)
+    (if op = Bytecode.Op.bultint
+     then Jvm.Code.if_icmplt state.code lbl
+     else Jvm.Code.if_icmpge state.code lbl);
+    record_branch_target state target_pc)
   else if is_c_call op
   then (
     let prim_idx, consumed_on_stack =

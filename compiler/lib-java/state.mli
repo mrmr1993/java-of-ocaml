@@ -73,6 +73,13 @@ val ensure_kind : state -> kind -> unit
     no-op. If it's an incompatible specific kind, fail — that's a
     compiler-internal bug. *)
 
+val normalize_acc_for_branch : state -> unit
+(** Box a live primitive acc ([K_int] / [K_float]) to its reference
+    form. Used before every [record_branch_target] so every
+    incoming edge to a label leaves acc in a uniform JVM type
+    ([Object]). [ensure_kind] at the next use unboxes on demand.
+    No-op for reference kinds or a dead acc. *)
+
 val record_branch_target : state -> int -> unit
 
 val stack_slot_local : state:state -> int -> int

@@ -62,6 +62,26 @@ let ensure_kind state target =
            (jvm_type_of_kind state.acc_kind)
            (jvm_type_of_kind target))
 
+(* Box a live primitive acc to its reference form, leaving
+   [acc_kind = K_obj]. Dead accs are untouched. Used at branch
+   sites so every incoming edge to a label leaves acc in the same
+   JVM type (Object) — resolving the class of bugs where one path
+   leaves an [int] on the operand stack and another leaves an
+   [Object], tripping the JVM verifier's "Mismatched stack types".
+   Downstream ops pay the [ensure_kind] unbox cost on first use,
+   which is negligible. *)
+let normalize_acc_for_branch state =
+  if state.acc_live
+  then
+    match state.acc_kind with
+    | K_int ->
+      emit_box_int state.code;
+      state.acc_kind <- K_obj
+    | K_float ->
+      emit_box_float state.code;
+      state.acc_kind <- K_obj
+    | K_string | K_block _ | K_closure _ | K_obj -> ()
+
 (* First-write-wins: subsequent branches to the same label must agree
    with the snapshot we've already recorded. Capturing [acc_live] /
    [acc_kind] alongside the OCaml-stack state means the label

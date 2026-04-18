@@ -22,15 +22,12 @@ val emit_branch_on_val_int_zero
 
 val emit_switch : State.state -> Instr.instr -> unit
 
-val emit_fused_branch
-  :  State.state
-  -> cmp:State.cmp_op
-  -> target_pc:int
-  -> branch_if_true:bool
-  -> unit
-(** Called when [state.pending_cmp] was set by a nullary comparison
-    followed immediately by BRANCHIF / BRANCHIFNOT. Emits a single
-    fused [if_icmp<cond>] / [if_acmp<cond>] depending on slot kinds. *)
+(* [emit_fused_branch] has been retired; see emit_branch.ml. *)
+
+val normalize_acc_for_branch : State.state -> unit
+(** Re-export of [State.normalize_acc_for_branch] for use in the
+    emit_instr dispatcher. Box primitive accs to Object so every
+    outgoing branch edge leaves a uniform JVM stack type. *)
 
 val flush_pending_cmp : State.state -> unit
 (** If [state.pending_cmp] is set, materialise it into a concrete
