@@ -10,8 +10,8 @@ type ctx =
   { code : Jvm.Code.t
   ; typing : Jvm_typing.t
   ; var_local : (int, int) Hashtbl.t
-      (* Code.Var.idx → JVM local index. *)
   ; labels : (Code.Addr.t, Jvm.Code.label) Hashtbl.t
+  ; name_of_body : int -> string
   ; mutable next_local : int
   }
 
@@ -168,6 +168,15 @@ let emit_prim ctx (p : Code.prim) (args : Code.prim_arg list) : Kind.kind =
     Jvm.Code.ldc_int ctx.code 1;
     Jvm.Code.mark_label ctx.code l_end;
     K_int
+  | Extern "offsetclosure", [ Pv _env; Pc (Int _k) ] ->
+    (* For single-closure blocks and offsetclosure 0, the env is the
+       closure itself. Without the enclosing-fn group context, the
+       honest answer is Unsupported — the legacy emitter has a
+       dedicated sibling_N field lookup for the multi-function
+       case. Defer. *)
+    raise (Unsupported "offsetclosure (needs enclosing-fn context)")
+  | Extern s, _ when String.length s > 6 && String.sub s 0 6 = "ccall_" ->
+    raise (Unsupported ("C primitive " ^ s))
   | Extern "get_global", [ Pc (Int idx) ] ->
     Jvm.Code.getstatic
       ctx.code
@@ -219,11 +228,36 @@ let emit_prim ctx (p : Code.prim) (args : Code.prim_arg list) : Kind.kind =
        K_int)
   | _ -> raise (Unsupported "prim (unsupported)")
 
+(* Load a Var, then box primitives to Object so the value can be
+   passed to an apply method or stored into a closure-ctor arg. *)
+let emit_load_as_obj ctx v =
+  emit_load ctx v;
+  match kind_of ctx v with
+  | K_int -> Kind.emit_box_int ctx.code
+  | K_float -> Kind.emit_box_float ctx.code
+  | _ -> ()
+
+let apply_descriptor_for_nargs = Emit_apply.apply_descriptor_for_nargs
+
 let emit_expr ctx (e : Code.expr) : Kind.kind =
   match e with
   | Constant c -> emit_constant ctx c
   | Prim (p, args) -> emit_prim ctx p args
-  | Apply _ -> raise (Unsupported "Apply")
+  | Apply { f; args; exact = _ } ->
+    let nargs = List.length args in
+    if nargs < 1 || nargs > 7
+    then raise (Unsupported (Printf.sprintf "Apply arity %d" nargs));
+    emit_load ctx f;
+    (match kind_of ctx f with
+     | K_closure _ -> ()
+     | _ -> Jvm.Code.checkcast ctx.code "Closure");
+    List.iter (fun a -> emit_load_as_obj ctx a) args;
+    Jvm.Code.invokevirtual
+      ctx.code
+      ~class_:"Closure"
+      ~method_:(Printf.sprintf "apply%d" nargs)
+      ~descriptor:(apply_descriptor_for_nargs nargs);
+    K_obj
   | Block (tag, fields) ->
     (* new Block(tag, new Object[]{fields...}). *)
     Jvm.Code.new_ ctx.code "Block";
@@ -262,7 +296,26 @@ let emit_expr ctx (e : Code.expr) : Kind.kind =
        Jvm.Code.aaload ctx.code;
        K_obj
      | _ -> raise (Unsupported "Field on non-block kind"))
-  | Closure _ -> raise (Unsupported "Closure")
+  | Closure { captures; body = body_pc, _ } ->
+    let class_name =
+      try ctx.name_of_body body_pc
+      with Not_found ->
+        raise
+          (Unsupported
+             (Printf.sprintf "no class for closure body pc %d" body_pc))
+    in
+    Jvm.Code.new_ ctx.code class_name;
+    Jvm.Code.dup ctx.code;
+    List.iter (fun v -> emit_load_as_obj ctx v) captures;
+    let cap_desc =
+      String.concat "" (List.map (fun _ -> "Ljava/lang/Object;") captures)
+    in
+    Jvm.Code.invokespecial
+      ctx.code
+      ~class_:class_name
+      ~method_:"<init>"
+      ~descriptor:(Printf.sprintf "(%s)V" cap_desc);
+    K_closure { name = class_name; captures = [] }
 
 let emit_instr ctx (i : Code.instr) =
   match i with
@@ -338,7 +391,16 @@ let emit_last ctx prog (l : Code.last) =
      | K_float -> Kind.emit_box_float ctx.code; Jvm.Code.areturn ctx.code
      | _ -> Jvm.Code.areturn ctx.code)
   | Stop -> Jvm.Code.return_void ctx.code
-  | Raise _ -> raise (Unsupported "Raise")
+  | Raise v ->
+    Jvm.Code.new_ ctx.code "CamlException";
+    Jvm.Code.dup ctx.code;
+    emit_load_as_obj ctx v;
+    Jvm.Code.invokespecial
+      ctx.code
+      ~class_:"CamlException"
+      ~method_:"<init>"
+      ~descriptor:"(Ljava/lang/Object;)V";
+    Jvm.Code.athrow ctx.code
   | Branch c -> emit_cont ctx prog c
   | Cond (v, c_then, c_else) ->
     emit_load ctx v;
@@ -356,9 +418,64 @@ let emit_last ctx prog (l : Code.last) =
     emit_cont ctx prog c_then;
     Jvm.Code.mark_label ctx.code l_else;
     emit_cont ctx prog c_else
-  | Switch _ -> raise (Unsupported "Switch")
-  | Pushtrap _ -> raise (Unsupported "Pushtrap")
-  | Poptrap _ -> raise (Unsupported "Poptrap")
+  | Switch (v, cases) ->
+    let n = Array.length cases in
+    if n = 0 then raise (Unsupported "empty Switch");
+    let kv = kind_of ctx v in
+    let load_selector () =
+      emit_load ctx v;
+      match kv with
+      | K_int -> ()
+      | _ ->
+        Jvm.Code.checkcast ctx.code "java/lang/Integer";
+        Jvm.Code.invokevirtual
+          ctx.code
+          ~class_:"java/lang/Integer"
+          ~method_:"intValue"
+          ~descriptor:"()I"
+    in
+    let case_labels =
+      Array.init n (fun _ -> Jvm.Code.fresh_label ctx.code)
+    in
+    for i = 0 to n - 2 do
+      load_selector ();
+      Jvm.Code.ldc_int ctx.code i;
+      Jvm.Code.if_icmpeq ctx.code case_labels.(i)
+    done;
+    Jvm.Code.goto ctx.code case_labels.(n - 1);
+    Array.iteri
+      (fun i c ->
+        Jvm.Code.mark_label ctx.code case_labels.(i);
+        emit_cont ctx prog c)
+      cases
+  | Pushtrap (body_c, exn_var, handler_c) ->
+    let start_lbl = Jvm.Code.fresh_label ctx.code in
+    let end_lbl = Jvm.Code.fresh_label ctx.code in
+    let handler_lbl = Jvm.Code.fresh_label ctx.code in
+    Jvm.Code.add_exception_handler
+      ctx.code
+      ~start_lbl
+      ~end_lbl
+      ~handler_lbl
+      ~catch_class:(Some "CamlException");
+    Jvm.Code.mark_label ctx.code start_lbl;
+    emit_cont ctx prog body_c;
+    Jvm.Code.mark_label ctx.code end_lbl;
+    (* Handler prelude: unwrap CamlException → exn value, store into
+       exn_var's local, then move to handler cont. *)
+    Jvm.Code.mark_label ctx.code handler_lbl;
+    Jvm.Code.handler_stack_prelude ctx.code;
+    Jvm.Code.getfield
+      ctx.code
+      ~class_:"CamlException"
+      ~field:"value"
+      ~descriptor:"Ljava/lang/Object;";
+    emit_store ctx exn_var ~from:K_obj;
+    emit_cont ctx prog handler_c
+  | Poptrap c ->
+    (* POPTRAP at the IR level is just a branch: the JVM exception
+       table entry was closed at end_lbl in the enclosing Pushtrap. *)
+    emit_cont ctx prog c
 
 let emit_block ctx prog addr (b : Code.block) =
   (* Ensure each param has a local allocated. *)
@@ -367,12 +484,13 @@ let emit_block ctx prog addr (b : Code.block) =
   List.iter (fun i -> emit_instr ctx i) b.body;
   emit_last ctx prog b.branch
 
-let emit_program ~code ~typing (prog : Code.program) =
+let emit_program ~code ~typing ~name_of_body (prog : Code.program) =
   let ctx =
     { code
     ; typing
     ; var_local = Hashtbl.create 64
     ; labels = Hashtbl.create 32
+    ; name_of_body
     ; next_local = 1
     }
   in

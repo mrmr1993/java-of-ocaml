@@ -10,7 +10,17 @@
 
 exception Unsupported of string
 
-(** [emit_program ~code ~typing prog] emits bytecode for [prog] into
-    the given [Jvm.Code.t]. *)
+(** [emit_program ~code ~typing ~name_of_body prog] emits bytecode
+    for [prog] into the given [Jvm.Code.t].
+
+    [name_of_body pc] resolves a bytecode PC (the body entry of a
+    CLOSURE / CLOSUREREC) to the generated JVM class name for that
+    closure body, so [Let (x, Closure ...)] can emit [new
+    <name>(captures)]. If unknown, raise Not_found and the emitter
+    will raise [Unsupported]. *)
 val emit_program :
-  code:Jvm.Code.t -> typing:Jvm_typing.t -> Code.program -> unit
+     code:Jvm.Code.t
+  -> typing:Jvm_typing.t
+  -> name_of_body:(int -> string)
+  -> Code.program
+  -> unit

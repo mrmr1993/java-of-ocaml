@@ -17,7 +17,11 @@ let debug_ir_gen = Debug.find "ir_gen"
    logged under the [ir] debug flag and otherwise silent; opcodes we
    haven't ported yet (CLOSURE, PUSHTRAP, SWITCH, ENVACC, ...) raise
    [Not_supported], which is expected. *)
-let ir_smoke_function arr (fi : Function_info.function_info) =
+let ir_smoke_function
+    arr
+    ~(name_of_body : int -> string)
+    (fi : Function_info.function_info)
+  =
   if not (debug_ir ())
   then ()
   else (
@@ -39,11 +43,11 @@ let ir_smoke_function arr (fi : Function_info.function_info) =
         let cp = Jvm.Cp.create () in
         let code = Jvm.Code.create cp in
         let typing = Jvm_typing.infer prog in
-        try
-          Jvm_generate.emit_program ~code ~typing prog;
-          Format.eprintf "[ir_gen] %s: emitted ok@." fi.name
-        with Jvm_generate.Unsupported msg ->
-          Format.eprintf "[ir_gen] %s: Unsupported — %s@." fi.name msg)
+        (try
+           Jvm_generate.emit_program ~code ~typing ~name_of_body prog;
+           Format.eprintf "[ir_gen] %s: emitted ok@." fi.name
+         with Jvm_generate.Unsupported msg ->
+           Format.eprintf "[ir_gen] %s: Unsupported — %s@." fi.name msg))
     with
     | Parse_bytecode.Not_supported msg ->
       Format.eprintf "[ir] %s: Not_supported — %s@." fi.name msg
@@ -53,7 +57,8 @@ let ir_smoke_function arr (fi : Function_info.function_info) =
         fi.name
         (Printexc.to_string exn))
 
-let ir_smoke_main arr ~fn_body_pcs =
+let ir_smoke_main arr ~name_of_body ~fn_body_pcs =
+  let _ = name_of_body in
   if not (debug_ir ())
   then ()
   else (
@@ -342,8 +347,18 @@ let compile ~bc ~out_dir =
     !func_list;
   if debug_ir ()
   then (
-    ir_smoke_main arr ~fn_body_pcs;
-    List.iter (fun fi -> ir_smoke_function arr fi) !func_list);
+    let body_pc_to_name = Hashtbl.create 64 in
+    List.iter
+      (fun (fi : function_info) ->
+        Hashtbl.replace body_pc_to_name fi.body_pc fi.name)
+      !func_list;
+    let name_of_body pc =
+      match Hashtbl.find_opt body_pc_to_name pc with
+      | Some n -> n
+      | None -> raise Not_found
+    in
+    ir_smoke_main arr ~name_of_body ~fn_body_pcs;
+    List.iter (fun fi -> ir_smoke_function arr ~name_of_body fi) !func_list);
   time_phase "kind-inference" (fun () ->
     List.iter
       (fun (fi : function_info) ->
