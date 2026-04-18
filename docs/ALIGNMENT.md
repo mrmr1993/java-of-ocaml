@@ -94,14 +94,14 @@ study when implementing:
 Items from the original alignment plan that are still open but don't
 need an IR:
 
-- **Further `compile.ml` split** — the mutable `state` record and its
-  helpers are now in `State`, but the ~1700 LoC of `emit_*` functions
-  plus the `compile` driver still share one file. They're
-  mutually-recursive through `state` + label resolution, so the split
-  wants a thought-out decomposition (probably one `.ml` per opcode
-  family, with emit_instr left as the dispatch surface). Parallel to
-  how `js_of_ocaml/compiler/lib/generate.ml` is still ~2500 LoC in
-  jsoo, this is not an easy cleanup.
+- **Further `compile.ml` split** — completed: the `emit_*` functions
+  are now in per-topic modules (`emit_stack`, `emit_arith`,
+  `emit_branch`, `emit_apply`, `emit_closure`, `emit_exception`,
+  `emit_primitive`) and `emit_instr` is the dispatch hub.
+  `compile.ml` is down to ~420 LoC of driver (user-range detection,
+  function discovery, kind inference, main-method + per-function
+  emission, class-file output). This is a meaningful floor — what
+  remains is genuinely one orchestration concern.
 - **Per-pass Debug printers** — `Debug` is wired and three flags are
   live (`times`, `primitives`, `functions`). Missing: a flag that
   dumps `state.slots` / `state.acc_kind` at each emitted opcode,
@@ -121,10 +121,13 @@ structural alignments already made in-tree:
   itself, but the same public API jsoo uses.)
 - **Module granularity** — jsoo's "one concern per file" discipline.
   `jvm.ml` was split into `jvm_bin` / `jvm_constant_pool` / `jvm_code`
-  / `jvm_class_file` / `jvm_runtime`. `compile.ml` had seven concerns
-  extracted (`global_view`, `instr`, `kind`, `function_info`, `prim`,
-  `inference`, `state`); the old 2972-LoC monolith is now ~2080 LoC of
-  emit_* + driver, plus those seven siblings.
+  / `jvm_class_file` / `jvm_runtime`. `compile.ml` (2972 LoC) has
+  been cleaved all the way down to a 420-LoC driver plus: seven
+  analysis/data siblings (`global_view`, `instr`, `kind`,
+  `function_info`, `prim`, `inference`, `state`), seven per-topic
+  emitters (`emit_stack`, `emit_arith`, `emit_branch`, `emit_apply`,
+  `emit_closure`, `emit_exception`, `emit_primitive`), and the
+  `emit_instr` dispatcher.
 - **`.mli` discipline** — every newly-extracted module has a
   comprehensive `.mli`. `compile.mli` is still a minimal 4-line
   export; upgrading it is coupled to the emit_* split above.

@@ -109,13 +109,27 @@ java -cp out_dir Main
       emitter state (OCaml stack, JVM locals, pending cmp, pending
       retaddrs, open traps, ...); `inference` runs the pre-passes that
       populate `function_info.{return_kind,arg_kinds}`.
-    - `compile.{ml,mli}` — the remaining emit_* dispatch + compile
-      driver. Locates the user range via seed primitives
-      (`caml_java_print_*`, array ops — NOT `caml_fresh_oo_id`, which
-      appears in Stdlib init), walks the bytecode instruction-by-
-      instruction, emits per-instruction JVM code, generates one class
-      per OCaml function, wires Debug/Timer. The `.mli` is still
-      minimal.
+    - `emit_stack` / `emit_arith` / `emit_branch` / `emit_apply` /
+      `emit_closure` / `emit_exception` / `emit_primitive` — per-topic
+      opcode emitters. Each takes `state` and emits into
+      `state.code`. `emit_stack` holds the core push / acc / pushacc /
+      constant primitives every other emitter composes with.
+    - `emit_instr` — the opcode dispatcher. For each decoded
+      [Instr.instr], it marks the JVM label at that PC (with a
+      CamlException-unwrap prelude if it's a try/with handler entry),
+      restores state from the branch snapshot, then dispatches to one
+      of the emit_* modules above, with a handful of small opcodes
+      emitted inline (MAKEBLOCK, GETFIELD, SETFIELD, VECTLENGTH,
+      OFFSETREF, BRANCH, BRANCH(IF/NOT), ASSIGN, BOOLNOT, POP, GETGLOBAL,
+      PUSHGETGLOBAL).
+    - `compile.{ml,mli}` — the remaining compile driver. Locates the
+      user range via seed primitives (`caml_java_print_*`, array ops
+      — NOT `caml_fresh_oo_id`, which appears in Stdlib init), does the
+      CLOSURE/CLOSUREREC pre-scan, runs kind inference, builds the
+      initial state, calls `emit_instr` over each bytecode instruction
+      in turn, then generates one class file per OCaml function +
+      Main.class. Wires Debug/Timer for opt-in tracing. The `.mli` is
+      minimal (one `compile : bc:string -> out_dir:string -> unit`).
     - `debug` / `timer` — opt-in per-pass tracing/timing. Enable via
       `JAVA_OF_OCAML_DEBUG=times,primitives,functions`.
 - `compiler/bin-java_of_ocaml/` — the `java_of_ocaml.exe` CLI binary.
