@@ -2,43 +2,7 @@ open Global_view
 open Instr
 open Kind
 open Function_info
-
-(* -------------------------------------------------------------------------- *)
-(* Supported primitives. Each has a known JVM emission pattern. *)
-
-type prim_handler =
-  | P_println_int
-  | P_println_string
-  | P_array_get
-  | P_array_set
-  | P_obj_dup
-  | P_fresh_oo_id
-  | P_alloc_dummy
-  | P_update_dummy
-
-(* Primitives we know how to emit. The [seed] flag marks those we use to
-   anchor the "user code" range via [supported_call_indices]: picking a
-   seed that only appears in user source (the print-* family, the array
-   ops, [caml_obj_dup]) keeps the range-walker from reaching back into
-   Stdlib init. [caml_fresh_oo_id] is called by every module that
-   defines an exception — including Stdlib — so it would be a terrible
-   seed. *)
-type prim_entry =
-  { name : string
-  ; handler : prim_handler
-  ; seed : bool
-  }
-
-let primitives : prim_entry list =
-  [ { name = "caml_java_print_endline"; handler = P_println_string; seed = true }
-  ; { name = "caml_java_print_int"; handler = P_println_int; seed = true }
-  ; { name = "caml_array_get_addr"; handler = P_array_get; seed = true }
-  ; { name = "caml_array_set_addr"; handler = P_array_set; seed = true }
-  ; { name = "caml_obj_dup"; handler = P_obj_dup; seed = true }
-  ; { name = "caml_fresh_oo_id"; handler = P_fresh_oo_id; seed = false }
-  ; { name = "caml_alloc_dummy"; handler = P_alloc_dummy; seed = true }
-  ; { name = "caml_update_dummy"; handler = P_update_dummy; seed = true }
-  ]
+open Prim
 
 (* [ensure_kind] is defined below, after the [state] record type is
    available — it needs to read [state.acc_kind] and emit into
@@ -206,16 +170,6 @@ let pop_slots state n =
   in
   state.slots <- drop state.slots n;
   state.oc_stack_depth <- state.oc_stack_depth - n
-
-let find_supported_prims bc =
-  let table = Hashtbl.create 4 in
-  List.iter
-    (fun { name; handler; seed } ->
-      match Bytecode.prim_index bc name with
-      | Some idx -> Hashtbl.add table idx (name, handler, seed)
-      | None -> ())
-    primitives;
-  table
 
 let label_at state pc =
   Hashtbl.find state.pc_to_label pc
@@ -1943,206 +1897,8 @@ let emit_instr state (ins : instr) =
 (* -------------------------------------------------------------------------- *)
 (* Range selection. *)
 
-let supported_call_indices arr ~prim_table =
-  let n = Array.length arr in
-  let is_seed_call ins =
-    is_c_call ins.opcode
-    &&
-    match Hashtbl.find_opt prim_table ins.args.(0) with
-    | Some (_, _, seed) -> seed
-    | None -> false
-  in
-  let rec find_first i =
-    if i >= n then None
-    else if is_seed_call arr.(i) then Some i
-    else find_first (i + 1)
-  in
-  let rec find_last i =
-    if i < 0 then None
-    else if is_seed_call arr.(i) then Some i
-    else find_last (i - 1)
-  in
-  match find_first 0, find_last (n - 1) with
-  | Some f, Some l -> Some (f, l)
-  | _ -> None
-
-let walk_back_user_start arr start_idx =
-  let rec loop i =
-    if i < 0 then 0
-    else if is_user_op arr.(i)
-    then loop (i - 1)
-    else i + 1
-  in
-  loop (start_idx - 1)
-
-(* -------------------------------------------------------------------------- *)
-(* Return-kind inference.
-
-   Before compiling [main] (and the function bodies), we need to know what
-   each function returns, so APPLY can emit the right unboxing for the
-   result. A full analysis would do abstract-interpretation over every
-   instruction; for now we use a coarser heuristic that suffices for the
-   patterns the test suite exercises:
-
-     - If the instruction immediately preceding a RETURN / APPTERM is a
-       CLOSURE / CLOSUREREC / OFFSETCLOSURE0 / PUSHOFFSETCLOSURE0, the
-       return kind is K_closure (of a caller function).
-     - Otherwise default to K_int.
-
-   Multiple returns in one function must agree, or we fall back to K_int.
-
-   This doesn't handle:
-     - Returns of block references (MAKEBLOCK).
-     - Returns through an APPLY (callee whose return kind we don't yet
-       know).
-   Those remain future work; a proper implementation would iterate to a
-   fixed point over the whole call graph. *)
-
-let find_function_by_body_pc func_list body_pc =
-  List.find_opt
-    (fun fi -> fi.body_pc = body_pc)
-    func_list
-
-let classify_return_kind_at arr i func_list (current_fn : function_info) =
-  if i = 0
-  then K_int
-  else
-    let prev = arr.(i - 1) in
-    if prev.opcode = closure_op
-    then (
-      let body_pc = prev.pc + prev.args.(1) + 2 in
-      match find_function_by_body_pc func_list body_pc with
-      | Some (fi : function_info) -> K_closure { name = fi.name; captures = [] }
-      | None -> K_int)
-    else if prev.opcode = closurerec_op
-    then (
-      let body_pc = prev.pc + 3 + prev.args.(2) in
-      match find_function_by_body_pc func_list body_pc with
-      | Some (fi : function_info) -> K_closure { name = fi.name; captures = [] }
-      | None -> K_int)
-    else if prev.opcode = offsetclosure0_op
-         || prev.opcode = pushoffsetclosure0_op
-    then K_closure { name = current_fn.name; captures = [] }
-    else if prev.opcode = Bytecode.Op.makeblock
-         || prev.opcode = Bytecode.Op.makeblock1
-         || prev.opcode = Bytecode.Op.makeblock2
-         || prev.opcode = Bytecode.Op.makeblock3
-    then
-      (* Body ends with a MAKEBLOCK: the function returns a heap block (a
-         cons cell, tuple, record, variant-with-payload, etc.). We don't
-         know the exact field shape without more analysis, so classify as
-         K_obj and let callers unbox lazily. *)
-      K_obj
-    else if
-      (* Ops that unambiguously produce a JVM int. Everything else
-         (notably ACC / ENVACC / GETFIELD / APPLY-return) could be a
-         reference, so default to K_obj and let callers use
-         ensure_kind lazily. *)
-      let op = prev.opcode in
-      op = Bytecode.Op.const0
-      || op = Bytecode.Op.const1
-      || op = Bytecode.Op.const2
-      || op = Bytecode.Op.const3
-      || op = Bytecode.Op.constint
-      || op = Bytecode.Op.pushconst0
-      || op = Bytecode.Op.pushconst1
-      || op = Bytecode.Op.pushconst2
-      || op = Bytecode.Op.pushconst3
-      || op = Bytecode.Op.pushconstint
-      || op = Bytecode.Op.offsetint
-      || op = Bytecode.Op.addint
-      || op = Bytecode.Op.subint
-      || op = Bytecode.Op.mulint
-      || op = Bytecode.Op.divint
-      || op = Bytecode.Op.modint
-      || op = Bytecode.Op.vectlength
-      || op = Bytecode.Op.isint
-      || is_cmp_nullary op
-    then K_int
-    else K_obj
-
-let kinds_agree a b =
-  match a, b with
-  | K_int, K_int -> true
-  | K_string, K_string -> true
-  | K_closure _, K_closure _ -> true
-  | K_block _, K_block _ -> true
-  | _ -> false
-
-(* Infer the kind of each argument to a function by scanning its body for
-   specific use-patterns. Today we detect only one non-default case: an
-   arg that's passed directly into [caml_java_print_endline] via ACC k at
-   function entry. We default to K_int for everything else, which is
-   almost always what our test programs want. *)
-let infer_arg_kinds arr prim_table (fi : function_info) =
-  let kinds = Array.make fi.nargs K_int in
-  let is_print_endline_prim idx =
-    match Hashtbl.find_opt prim_table idx with
-    | Some (_, P_println_string, _) -> true
-    | _ -> false
-  in
-  let acc_arg_index op args =
-    if op >= Bytecode.Op.acc0 && op <= Bytecode.Op.acc7
-    then Some (op - Bytecode.Op.acc0)
-    else if op = Bytecode.Op.acc
-    then Some args.(0)
-    else None
-  in
-  for i = fi.body_start_idx to fi.body_end_idx do
-    let ins = arr.(i) in
-    if ins.opcode = Bytecode.Op.c_call1
-       && is_print_endline_prim ins.args.(0)
-       && i > fi.body_start_idx
-    then (
-      let prev = arr.(i - 1) in
-      match acc_arg_index prev.opcode prev.args with
-      | Some k when k < fi.nargs ->
-        (* ACC k at function entry reads slot k from top, which is the
-           (k+1)-th-from-first source-order arg. In our arg-index
-           convention, that's [kinds.(k)]. *)
-        kinds.(k) <- K_string
-      | _ -> ())
-  done;
-  Array.to_list kinds
-
-let infer_return_kind arr (func_list : function_info list) (fi : function_info) =
-  let is_return op =
-    op = return_op
-    || op = appterm_op
-    || op = appterm1_op
-    || op = appterm2_op
-    || op = appterm3_op
-  in
-  let observed = ref [] in
-  for i = fi.body_start_idx to fi.body_end_idx do
-    if is_return arr.(i).opcode
-    then observed := classify_return_kind_at arr i func_list fi :: !observed
-  done;
-  match !observed with
-  | [] -> K_int
-  | k :: rest when List.for_all (kinds_agree k) rest -> k
-  | _ ->
-    (* Observations disagree — typically a variant-returning function
-       whose cases return an immediate in one branch (K_int from [Nil],
-       [None], etc.) and a heap block in another (K_obj from
-       [Cons (_, _)], [Some _], etc.). K_obj is the common super-kind:
-       callers won't unbox and will ensure_kind at each point of use. *)
-    K_obj
-
-let walk_forward_user_end arr end_idx =
-  let n = Array.length arr in
-  let rec loop i =
-    if i >= n then n - 1
-    else if is_user_op arr.(i)
-    then loop (i + 1)
-    else i - 1
-  in
-  loop (end_idx + 1)
-
 (* -------------------------------------------------------------------------- *)
 (* Compile-wide driver. *)
-
-let find_supported_prims_map = find_supported_prims
 
 let collect_pc_to_label
     code
@@ -2173,7 +1929,7 @@ let emit_range state arr (lo, hi) ~skip_pcs =
 
 let compile ~bc ~out_dir =
   let parsed = Bytecode.read_exe bc in
-  let prim_table = find_supported_prims_map parsed in
+  let prim_table = Prim.find_supported_prims parsed in
   if Hashtbl.length prim_table = 0
   then
     failwith
@@ -2182,13 +1938,13 @@ let compile ~bc ~out_dir =
   let instrs = decode_all parsed in
   let arr = Array.of_list instrs in
   let first_idx, last_idx =
-    match supported_call_indices arr ~prim_table with
+    match Inference.supported_call_indices arr ~prim_table with
     | Some p -> p
     | None ->
       failwith "java_of_ocaml: no supported primitive calls found"
   in
-  let start_idx = walk_back_user_start arr first_idx in
-  let end_idx = walk_forward_user_end arr last_idx in
+  let start_idx = Inference.walk_back_user_start arr first_idx in
+  let end_idx = Inference.walk_forward_user_end arr last_idx in
   (* Pre-scan for CLOSUREREC within the user range. *)
   let functions = Hashtbl.create 2 in
   let func_list = ref [] in
@@ -2262,8 +2018,8 @@ let compile ~bc ~out_dir =
     !func_list;
   List.iter
     (fun (fi : function_info) ->
-      fi.return_kind := infer_return_kind arr !func_list fi;
-      fi.arg_kinds := infer_arg_kinds arr prim_table fi)
+      fi.return_kind := Inference.infer_return_kind arr !func_list fi;
+      fi.arg_kinds := Inference.infer_arg_kinds arr prim_table fi)
     !func_list;
   let cp = Jvm.Cp.create () in
   (* Emit main first so that CLOSURE/CLOSUREREC sites can fill in each
