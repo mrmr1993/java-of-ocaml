@@ -105,6 +105,9 @@ with no custom externals):
   / `caml_string_of_bytes` backed by the `Bytes` runtime class —
   `StringBuilder`-wrapped mutable byte buffer).
 - `List.length` / `List.fold_left` / `List.sort` / `List.iter`.
+- `invalid_arg` / `failwith` / `raise Not_found` etc. round-trip
+  through `try … with Invalid_argument _ | Failure _ | Not_found`.
+  User-defined exceptions with args also match correctly.
 
 Remaining gaps on the path to `Printf.printf` and the fuller
 Stdlib surface:

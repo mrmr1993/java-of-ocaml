@@ -78,6 +78,15 @@ Working:
 - **Real Stdlib List** — `List.length`, `List.fold_left`,
   `List.iter`, `List.sort` run through their compiled Stdlib
   bodies under whole-bytecode.
+- **Real Stdlib exception helpers** — `invalid_arg s` /
+  `failwith s` / `raise Not_found` all round-trip through
+  `try … with Invalid_argument _ | Failure _ | Not_found ->`.
+  User-defined `exception E of …` constructors with args also
+  match correctly. Requires predefined exception constructors
+  to preserve reference identity across every `GETGLOBAL` /
+  `GETGLOBALFIELD` load (routed through `Main.GLOBALS`), and
+  the JVM exception-table entry to be installed even when
+  OCaml elides `POPTRAP` (closed at the handler-label prelude).
 
 Not yet supported:
 
@@ -85,9 +94,9 @@ Not yet supported:
   capture N out of range` during emission of the printf-dispatch
   closures; closure-analysis bug when a nested ENVACC chain sees
   the wrong `ncaps` count.
-- `Stdlib.invalid_arg` / `Stdlib.failwith` / `Stdlib.raise` of
-  specific constructors — the exception values live in the
-  `Stdlib` module record and aren't materialised end-to-end.
+- `String.sub`, `String.uppercase_ascii`, and most of the wider
+  `String` module — caller NPEs at runtime because an I/O-side
+  primitive stub returns `null`. Narrow investigation needed.
 - `module rec` — OCaml lowers these via `CamlinternalMod`'s
   lazy-initialised placeholders.
 - `Lazy.t` / `lazy` / `Lazy.force`.
