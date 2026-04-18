@@ -81,6 +81,11 @@ module Op : sig
   val branchif : int
   val branchifnot : int
   val switch : int
+  val pushtrap : int
+  val poptrap : int
+  val raise_ : int
+  val reraise : int
+  val raise_notrace : int
   val stop : int
   val apply : int
   val apply1 : int

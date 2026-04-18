@@ -127,6 +127,14 @@ module Code = struct
     ; id : int
     }
 
+  type exception_entry =
+    { start_lbl : label
+    ; end_lbl : label
+    ; handler_lbl : label
+    ; catch_cp_idx : int (* constant pool index of the catch class, or 0 for
+                             "finally"-style [any] *)
+    }
+
   type t =
     { cp : Cp.t
     ; buf : Buffer.t
@@ -135,6 +143,7 @@ module Code = struct
     ; mutable max_locals : int
     ; mutable next_label_id : int
     ; mutable labels : label list
+    ; mutable exceptions : exception_entry list
     }
 
   let create cp =
@@ -145,7 +154,25 @@ module Code = struct
     ; max_locals = 1 (* slot 0 for the String[] args parameter *)
     ; next_label_id = 0
     ; labels = []
+    ; exceptions = []
     }
+
+  let add_exception_handler t ~start_lbl ~end_lbl ~handler_lbl ~catch_class =
+    let idx =
+      match catch_class with
+      | None -> 0
+      | Some name -> Cp.class_ t.cp name
+    in
+    t.exceptions <-
+      { start_lbl; end_lbl; handler_lbl; catch_cp_idx = idx }
+      :: t.exceptions
+
+  (* Handler entries are installed into the JVM at serialisation time; the
+     verifier expects a single Throwable on the operand stack at handler
+     entry. The handler code path starts with [stack = 1]. *)
+  let handler_stack_prelude t =
+    t.stack <- 1;
+    if t.stack > t.max_stack then t.max_stack <- t.stack
 
   let note_local t index =
     if index + 1 > t.max_locals then t.max_locals <- index + 1
@@ -409,6 +436,9 @@ module Code = struct
   let ifeq t lbl = emit_branch t lbl 0x99 ~stack_delta:(-1)
   let ifne t lbl = emit_branch t lbl 0x9A ~stack_delta:(-1)
 
+  let if_acmpeq t lbl = emit_branch t lbl 0xA5 ~stack_delta:(-2)
+  let if_acmpne t lbl = emit_branch t lbl 0xA6 ~stack_delta:(-2)
+
   let goto t lbl = emit_branch t lbl 0xA7 ~stack_delta:0
 
   let instanceof_ t class_name =
@@ -416,6 +446,11 @@ module Code = struct
     add_u1 t.buf 0xC1;
     add_u2 t.buf idx
     (* pops ref, pushes int — net 0 *)
+
+  let athrow t =
+    add_u1 t.buf 0xBF;
+    t.stack <- 0
+    (* pops the thrown reference; control leaves the frame. *)
 
   let getstatic t ~class_ ~field ~descriptor =
     let idx = Cp.fieldref t.cp ~class_ ~field ~descriptor in
@@ -494,6 +529,21 @@ module Code = struct
   let max_stack t = t.max_stack
 
   let max_locals t = t.max_locals
+
+  (* After [contents] has run (label resolution is complete), each
+     exception_entry's labels have their final byte offsets. Surface
+     them as 4-tuples the class-file emitter can write directly. *)
+  let exception_entries t =
+    List.rev_map
+      (fun e ->
+        let target lbl =
+          match lbl.target with
+          | Some off -> off
+          | None ->
+            failwith "jvm: exception_entry references an unmarked label"
+        in
+        target e.start_lbl, target e.end_lbl, target e.handler_lbl, e.catch_cp_idx)
+      t.exceptions
 end
 
 (* --- Class assembly --- *)
@@ -524,18 +574,27 @@ type method_layout =
 
 let emit_method_info out (l : method_layout) =
   let code_len = String.length l.code_bytes in
+  let entries = Code.exception_entries l.m.code in
+  let n_entries = List.length entries in
   add_u2 out l.m.access_flags;
   add_u2 out l.name_idx;
   add_u2 out l.desc_idx;
   add_u2 out 1 (* one Code attribute *);
   add_u2 out l.code_attr_idx;
-  let attr_len = 2 + 2 + 4 + code_len + 2 + 2 in
+  let attr_len = 2 + 2 + 4 + code_len + 2 + (8 * n_entries) + 2 in
   add_u4 out attr_len;
   add_u2 out (Code.max_stack l.m.code);
   add_u2 out (Code.max_locals l.m.code);
   add_u4 out code_len;
   Buffer.add_string out l.code_bytes;
-  add_u2 out 0 (* exception_table_length *);
+  add_u2 out n_entries;
+  List.iter
+    (fun (start_pc, end_pc, handler_pc, catch_type) ->
+      add_u2 out start_pc;
+      add_u2 out end_pc;
+      add_u2 out handler_pc;
+      add_u2 out catch_type)
+    entries;
   add_u2 out 0 (* nested attributes_count *)
 
 type field_layout =
@@ -759,6 +818,48 @@ let block_class_bytes () =
       [ { name = "<init>"
         ; descriptor = "(I[Ljava/lang/Object;)V"
         ; access_flags = 0x0001 (* ACC_PUBLIC *)
+        ; code
+        }
+      ]
+    ~access_flags:0x0031 (* ACC_PUBLIC | ACC_SUPER | ACC_FINAL *)
+
+(* Wrapper [RuntimeException] whose single public field [value] carries
+   the OCaml exception value. Raised by OCaml's [raise] instruction and
+   caught by the JVM exception handler installed at each [PUSHTRAP]. *)
+let camlexception_class_bytes () =
+  let cp = Cp.create () in
+  let code = Code.create cp in
+  Code.set_min_locals code 2;
+  (* super-ctor: aload_0; invokespecial RuntimeException.<init>()V *)
+  Code.aload code 0;
+  Code.invokespecial
+    code
+    ~class_:"java/lang/RuntimeException"
+    ~method_:"<init>"
+    ~descriptor:"()V";
+  (* this.value = arg1 *)
+  Code.aload code 0;
+  Code.aload code 1;
+  Code.putfield
+    code
+    ~class_:"CamlException"
+    ~field:"value"
+    ~descriptor:"Ljava/lang/Object;";
+  Code.return_void code;
+  assemble_class
+    ~class_name:"CamlException"
+    ~super_name:"java/lang/RuntimeException"
+    ~cp
+    ~fields:
+      [ { name = "value"
+        ; descriptor = "Ljava/lang/Object;"
+        ; access_flags = 0x0011 (* ACC_PUBLIC | ACC_FINAL *)
+        }
+      ]
+    ~methods:
+      [ { name = "<init>"
+        ; descriptor = "(Ljava/lang/Object;)V"
+        ; access_flags = 0x0001
         ; code
         }
       ]

@@ -7,13 +7,28 @@ type prim_handler =
   | P_array_get
   | P_array_set
   | P_obj_dup
+  | P_fresh_oo_id
 
-let primitives : (string * prim_handler) list =
-  [ "caml_java_print_endline", P_println_string
-  ; "caml_java_print_int", P_println_int
-  ; "caml_array_get_addr", P_array_get
-  ; "caml_array_set_addr", P_array_set
-  ; "caml_obj_dup", P_obj_dup
+(* Primitives we know how to emit. The [seed] flag marks those we use to
+   anchor the "user code" range via [supported_call_indices]: picking a
+   seed that only appears in user source (the print-* family, the array
+   ops, [caml_obj_dup]) keeps the range-walker from reaching back into
+   Stdlib init. [caml_fresh_oo_id] is called by every module that
+   defines an exception — including Stdlib — so it would be a terrible
+   seed. *)
+type prim_entry =
+  { name : string
+  ; handler : prim_handler
+  ; seed : bool
+  }
+
+let primitives : prim_entry list =
+  [ { name = "caml_java_print_endline"; handler = P_println_string; seed = true }
+  ; { name = "caml_java_print_int"; handler = P_println_int; seed = true }
+  ; { name = "caml_array_get_addr"; handler = P_array_get; seed = true }
+  ; { name = "caml_array_set_addr"; handler = P_array_set; seed = true }
+  ; { name = "caml_obj_dup"; handler = P_obj_dup; seed = true }
+  ; { name = "caml_fresh_oo_id"; handler = P_fresh_oo_id; seed = false }
   ]
 
 (* -------------------------------------------------------------------------- *)
@@ -140,6 +155,11 @@ let is_user_op (ins : instr) =
   || op = Bytecode.Op.branchif
   || op = Bytecode.Op.branchifnot
   || op = Bytecode.Op.switch
+  || op = Bytecode.Op.pushtrap
+  || op = Bytecode.Op.poptrap
+  || op = Bytecode.Op.raise_
+  || op = Bytecode.Op.reraise
+  || op = Bytecode.Op.raise_notrace
   || is_cmp_jump op
   || is_c_call op
   || op = closurerec_op
@@ -247,6 +267,7 @@ let branch_target (ins : instr) =
   if op = Bytecode.Op.branch
      || op = Bytecode.Op.branchif
      || op = Bytecode.Op.branchifnot
+     || op = Bytecode.Op.pushtrap
   then Some (ins.pc + ins.args.(0) + 1)
   else if is_cmp_jump op
   then Some (ins.pc + ins.args.(1) + 2)
@@ -457,7 +478,10 @@ let find_function_body_range arr body_pc =
          || ins.opcode = appterm1_op
          || ins.opcode = appterm2_op
          || ins.opcode = appterm3_op
-         || ins.opcode = Bytecode.Op.stop)
+         || ins.opcode = Bytecode.Op.stop
+         || ins.opcode = Bytecode.Op.raise_
+         || ins.opcode = Bytecode.Op.reraise
+         || ins.opcode = Bytecode.Op.raise_notrace)
         && Int_set.is_empty !outstanding
       in
       if ends_here then i else loop (i + 1)
@@ -484,7 +508,10 @@ type branch_snapshot =
 type state =
   { code : Jvm.Code.t
   ; globals : Obj.t array
-  ; supported_prims : (int, string * prim_handler) Hashtbl.t
+  ; supported_prims : (int, string * prim_handler * bool) Hashtbl.t
+      (* Prim-table value: (name, handler, is_seed) — the seed flag is
+         ignored at emission time but consulted by the user-range
+         detector to reject stdlib-internal primitives as range seeds. *)
   ; functions : (int, function_info) Hashtbl.t
       (* closure{,rec}_pc -> function_info *)
   ; fn_by_name : (string, function_info) Hashtbl.t
@@ -519,6 +546,21 @@ type state =
   ; enclosing_function_name : string option
       (* [None] when emitting [main]; [Some name] inside a function body.
          OFFSETCLOSURE0 uses this to tag acc as the self-closure. *)
+  ; pending_handlers : (int, Jvm.Code.label) Hashtbl.t
+      (* Bytecode PC of a try/with handler -> JVM label where the JVM-level
+         prelude (unwrap the caught [CamlException]) should be emitted
+         just before the OCaml handler's own label. *)
+  ; mutable open_traps :
+      (Jvm.Code.label * Jvm.Code.label) list
+      (* Stack of (try-region-start label, JVM prelude label for the
+         handler). A [PUSHTRAP] pushes an entry; the matching [POPTRAP]
+         pops it and registers the exception-table entry spanning the
+         region between them. *)
+  ; fresh_oo_id_counter : int ref
+      (* Monotonically-increasing counter for [caml_fresh_oo_id] —
+         OCaml's runtime gives each exception / object type a unique
+         int at module init. Module init runs once per program start,
+         so a compile-time counter is stable enough for our purposes. *)
   }
 
 (* Slot lookups go through [state.slots], which records per-slot the kind
@@ -607,9 +649,9 @@ let pop_slots state n =
 let find_supported_prims bc =
   let table = Hashtbl.create 4 in
   List.iter
-    (fun (name, handler) ->
+    (fun { name; handler; seed } ->
       match Bytecode.prim_index bc name with
-      | Some idx -> Hashtbl.add table idx (name, handler)
+      | Some idx -> Hashtbl.add table idx (name, handler, seed)
       | None -> ())
     primitives;
   table
@@ -1085,6 +1127,19 @@ let emit_obj_dup state =
     ~descriptor:"(I[Ljava/lang/Object;)V"
   (* acc_kind unchanged *)
 
+(* [caml_fresh_oo_id]: returns a fresh int. OCaml's runtime increments a
+   process-global counter; we inline a compile-time counter, which is
+   stable enough because module init — the only site that calls this —
+   runs exactly once at [Main.main] entry. Acc (the passed-in dummy arg)
+   is discarded, replaced with the freshly-assigned int. *)
+let emit_fresh_oo_id state =
+  let n = !(state.fresh_oo_id_counter) in
+  state.fresh_oo_id_counter := n + 1;
+  if state.acc_live then Jvm.Code.pop_top state.code;
+  Jvm.Code.ldc_int state.code n;
+  state.acc_live <- true;
+  state.acc_kind <- K_int
+
 (* caml_array_set_addr: C_CALL3 — args acc=block, stack[0]=index,
    stack[1]=value, result=unit. *)
 let emit_array_set state =
@@ -1188,6 +1243,98 @@ let emit_apply state ~nargs =
 
 let emit_apply1 state = emit_apply state ~nargs:1
 
+(* Box acc's value into an Object on the JVM op stack, so it can be used
+   as the [Object] return from an [apply] method or as a capture /
+   exception payload. *)
+let box_acc_to_object state =
+  match state.acc_kind with
+  | K_int -> emit_box_int state.code
+  | K_string | K_block _ | K_closure _ | K_obj ->
+    () (* already a reference *)
+
+(* OCaml [RAISE]: box acc into a [CamlException] and [athrow].
+
+   Leaves the OCaml-level state dead: after the throw, control exits the
+   method, so anything the linear walker emits after this point is
+   unreachable from normal flow (only the JVM exception handler at a
+   pushtrap can jump back in). *)
+let emit_raise state =
+  box_acc_to_object state;
+  let exc_val_local = allocate_local state in
+  Jvm.Code.astore state.code exc_val_local;
+  Jvm.Code.new_ state.code "CamlException";
+  Jvm.Code.dup state.code;
+  Jvm.Code.aload state.code exc_val_local;
+  Jvm.Code.invokespecial
+    state.code
+    ~class_:"CamlException"
+    ~method_:"<init>"
+    ~descriptor:"(Ljava/lang/Object;)V";
+  Jvm.Code.athrow state.code;
+  state.acc_live <- false;
+  state.acc_kind <- K_int;
+  state.oc_stack_depth <- 0;
+  state.slots <- []
+
+(* OCaml [PUSHTRAP L]: opens a try region whose handler lives at bytecode
+   PC [L].
+
+   - Snapshot the current OCaml-side state so when we later materialise
+     the handler label we can restore [slots] / [oc_stack_depth] to their
+     pre-pushtrap values (OCaml's [RAISE] unwinds the trap frame and
+     resumes at the handler with the stack it had before PUSHTRAP).
+   - Inflate [oc_stack_depth] by 4 with dummy slots so any following
+     [acc K] / [push] in the protected body resolves to the right index
+     (OCaml's interpreter pushes 4 trap-frame words at PUSHTRAP).
+   - Mark a fresh JVM label at the current byte offset: this is the
+     [start_pc] of the JVM exception-table entry the matching POPTRAP
+     will install.
+   - Allocate a fresh JVM label [prelude_lbl] and record it in
+     [pending_handlers] keyed by the bytecode PC [L]. When [emit_instr]
+     reaches that PC it will emit the JVM-side prelude (unwrap the
+     caught [CamlException]) at [prelude_lbl] before continuing into the
+     OCaml handler's own bytecode. *)
+let emit_pushtrap state (ins : instr) =
+  let handler_pc = ins.pc + ins.args.(0) + 1 in
+  record_branch_target state handler_pc;
+  let prelude_lbl =
+    match Hashtbl.find_opt state.pending_handlers handler_pc with
+    | Some lbl -> lbl
+    | None ->
+      let lbl = Jvm.Code.fresh_label state.code in
+      Hashtbl.add state.pending_handlers handler_pc lbl;
+      lbl
+  in
+  let start_lbl = Jvm.Code.fresh_label state.code in
+  Jvm.Code.mark_label state.code start_lbl;
+  for _ = 1 to 4 do
+    let local = allocate_local state in
+    push_slot state K_obj local
+  done;
+  state.open_traps <- (start_lbl, prelude_lbl) :: state.open_traps
+
+(* OCaml [POPTRAP]: closes the innermost try region and installs the JVM
+   exception-table entry. Pops the 4 dummy trap slots we inflated at the
+   matching [PUSHTRAP]. Emits no JVM bytes — the [end_lbl] marks the
+   current byte offset as the exclusive end of the protected range. *)
+let emit_poptrap state =
+  match state.open_traps with
+  | [] ->
+    failwith
+      "java_of_ocaml: POPTRAP without a matching PUSHTRAP — \
+       exception-scope tracking is broken"
+  | (start_lbl, prelude_lbl) :: rest ->
+    state.open_traps <- rest;
+    let end_lbl = Jvm.Code.fresh_label state.code in
+    Jvm.Code.mark_label state.code end_lbl;
+    Jvm.Code.add_exception_handler
+      state.code
+      ~start_lbl
+      ~end_lbl
+      ~handler_lbl:prelude_lbl
+      ~catch_class:(Some "CamlException");
+    pop_slots state 4
+
 (* APPTERM_N: tail call — same as APPLY followed by return. Because the
    callee's result and our method's return type are both [Object], we
    don't unbox; we pass the Object straight to areturn. *)
@@ -1198,14 +1345,6 @@ let emit_appterm state ~nargs =
   state.acc_kind <- K_int;
   state.oc_stack_depth <- 0;
   state.slots <- []
-
-(* Box acc's value into an Object on the JVM op stack, so it can be used as
-   the [Object] return from an [apply] method or as a capture argument. *)
-let box_acc_to_object state =
-  match state.acc_kind with
-  | K_int -> emit_box_int state.code
-  | K_string | K_block _ | K_closure _ | K_obj ->
-    () (* already a reference *)
 
 let emit_return state =
   (* We're returning from a JVM [apply] method whose signature returns
@@ -1381,22 +1520,18 @@ let emit_switch state (ins : instr) =
   state.acc_kind <- K_int
 
 let emit_fused_branch state ~cmp ~target_pc ~branch_if_true =
-  (* acc (value1) is on the JVM op stack. Unbox it to int if it's still an
-     Object reference (e.g. an apply-method arg that hasn't been touched by
-     an arithmetic op yet). Then push the slot (value2) and likewise unbox
-     if the slot holds K_obj. *)
-  ensure_kind state K_int;
-  let slot = top_slot_local ~state in
+  (* acc (value1) is on the JVM op stack; the OCaml-stack top is value2.
+     Dispatch on kinds: two [K_int]s (or [K_obj]s that unbox cleanly)
+     compare as ints; two references compare as identities. OCaml's
+     [eqint] / [neqint] are reference-equality when applied to block-
+     tagged values (e.g. exception descriptors), so we need both
+     paths. *)
   let slot_kind = kind_of_slot_from_top ~state 0 in
-  emit_load_for_kind state.code slot slot_kind;
-  (match slot_kind with
-   | K_int -> ()
-   | K_obj -> emit_unbox_to_kind state.code K_int
-   | other ->
-     failwith
-       (Printf.sprintf
-          "java_of_ocaml: fused branch on non-int slot kind %s"
-          (jvm_type_of_kind other)));
+  let slot = top_slot_local ~state in
+  let is_ref_kind = function
+    | K_int | K_obj -> false
+    | K_string | K_block _ | K_closure _ -> true
+  in
   let lbl = label_at state target_pc in
   let branch_cond =
     if branch_if_true
@@ -1410,13 +1545,40 @@ let emit_fused_branch state ~cmp ~target_pc ~branch_if_true =
       | Gt -> Le
       | Ge -> Lt
   in
-  (match branch_cond with
-   | Eq -> Jvm.Code.if_icmpeq state.code lbl
-   | Ne -> Jvm.Code.if_icmpne state.code lbl
-   | Lt -> Jvm.Code.if_icmplt state.code lbl
-   | Le -> Jvm.Code.if_icmple state.code lbl
-   | Gt -> Jvm.Code.if_icmpgt state.code lbl
-   | Ge -> Jvm.Code.if_icmpge state.code lbl);
+  (* Reference-equality path. Only [Eq] / [Ne] are meaningful on refs;
+     ordering compares on references would be nonsensical. *)
+  if is_ref_kind state.acc_kind || is_ref_kind slot_kind
+  then (
+    emit_load_for_kind state.code slot slot_kind;
+    (match branch_cond with
+     | Eq -> Jvm.Code.if_acmpeq state.code lbl
+     | Ne -> Jvm.Code.if_acmpne state.code lbl
+     | _ ->
+       failwith
+         (Printf.sprintf
+            "java_of_ocaml: ordering comparison on reference kinds \
+             (%s vs %s) at pc %d"
+            (jvm_type_of_kind state.acc_kind)
+            (jvm_type_of_kind slot_kind)
+            target_pc)))
+  else (
+    ensure_kind state K_int;
+    emit_load_for_kind state.code slot slot_kind;
+    (match slot_kind with
+     | K_int -> ()
+     | K_obj -> emit_unbox_to_kind state.code K_int
+     | other ->
+       failwith
+         (Printf.sprintf
+            "java_of_ocaml: fused branch on non-int slot kind %s"
+            (jvm_type_of_kind other)));
+    match branch_cond with
+    | Eq -> Jvm.Code.if_icmpeq state.code lbl
+    | Ne -> Jvm.Code.if_icmpne state.code lbl
+    | Lt -> Jvm.Code.if_icmplt state.code lbl
+    | Le -> Jvm.Code.if_icmple state.code lbl
+    | Gt -> Jvm.Code.if_icmpgt state.code lbl
+    | Ge -> Jvm.Code.if_icmpge state.code lbl);
   consume_top state;
   record_branch_target state target_pc;
   state.acc_live <- false;
@@ -1425,6 +1587,23 @@ let emit_fused_branch state ~cmp ~target_pc ~branch_if_true =
 let emit_instr state (ins : instr) =
   (match Hashtbl.find_opt state.pc_to_label ins.pc with
    | Some lbl ->
+     (* If this PC is a try/with handler target, emit the JVM-level
+        prelude first (unwrap the caught [CamlException] into its
+        [value]). The JVM exception handler's handler_pc points at the
+        prelude label, not at the OCaml handler label directly — the
+        prelude converts the handler-entry state (one [Throwable] on
+        the op stack) into our acc-live convention. *)
+     (match Hashtbl.find_opt state.pending_handlers ins.pc with
+      | Some prelude_lbl ->
+        Jvm.Code.mark_label state.code prelude_lbl;
+        Jvm.Code.handler_stack_prelude state.code;
+        Jvm.Code.checkcast state.code "CamlException";
+        Jvm.Code.getfield
+          state.code
+          ~class_:"CamlException"
+          ~field:"value"
+          ~descriptor:"Ljava/lang/Object;"
+      | None -> ());
      Jvm.Code.mark_label state.code lbl;
      (* Reset state to the snapshot taken at the first branch into this
         target. Any linear-walk mutations between here and the preceding
@@ -1435,8 +1614,16 @@ let emit_instr state (ins : instr) =
         state.oc_stack_depth <- snap.s_oc_stack_depth;
         state.slots <- snap.s_slots
       | None -> ());
-     state.acc_live <- false;
-     state.acc_kind <- K_int;
+     (* A handler target arrives with acc live (the caught value on the
+        JVM op stack) — don't clobber it. For normal branch targets acc
+        is always consumed before the branch, so it's dead on entry. *)
+     if Hashtbl.mem state.pending_handlers ins.pc
+     then (
+       state.acc_live <- true;
+       state.acc_kind <- K_obj)
+     else (
+       state.acc_live <- false;
+       state.acc_kind <- K_int);
      state.pending_cmp <- None
    | None -> ());
   let op = ins.opcode in
@@ -1496,6 +1683,14 @@ let emit_instr state (ins : instr) =
       state.acc_kind <- K_int)
   else if op = Bytecode.Op.switch
   then emit_switch state ins
+  else if op = Bytecode.Op.pushtrap
+  then emit_pushtrap state ins
+  else if op = Bytecode.Op.poptrap
+  then emit_poptrap state
+  else if op = Bytecode.Op.raise_
+       || op = Bytecode.Op.reraise
+       || op = Bytecode.Op.raise_notrace
+  then emit_raise state
   else if op = Bytecode.Op.const0 then emit_int_const state 0
   else if op = Bytecode.Op.const1 then emit_int_const state 1
   else if op = Bytecode.Op.const2 then emit_int_const state 2
@@ -1850,13 +2045,14 @@ let emit_instr state (ins : instr) =
   else if is_c_call op
   then (
     match Hashtbl.find_opt state.supported_prims ins.args.(0) with
-    | Some (_name, handler) ->
+    | Some (_name, handler, _seed) ->
       (match handler with
        | P_println_int -> emit_println state ~int_arg:true
        | P_println_string -> emit_println state ~int_arg:false
        | P_array_get -> emit_array_get state
        | P_array_set -> emit_array_set state
-       | P_obj_dup -> emit_obj_dup state)
+       | P_obj_dup -> emit_obj_dup state
+       | P_fresh_oo_id -> emit_fresh_oo_id state)
     | None ->
       failwith
         (Printf.sprintf
@@ -1876,18 +2072,21 @@ let emit_instr state (ins : instr) =
 
 let supported_call_indices arr ~prim_table =
   let n = Array.length arr in
+  let is_seed_call ins =
+    is_c_call ins.opcode
+    &&
+    match Hashtbl.find_opt prim_table ins.args.(0) with
+    | Some (_, _, seed) -> seed
+    | None -> false
+  in
   let rec find_first i =
     if i >= n then None
-    else if is_c_call arr.(i).opcode
-         && Hashtbl.mem prim_table arr.(i).args.(0)
-    then Some i
+    else if is_seed_call arr.(i) then Some i
     else find_first (i + 1)
   in
   let rec find_last i =
     if i < 0 then None
-    else if is_c_call arr.(i).opcode
-         && Hashtbl.mem prim_table arr.(i).args.(0)
-    then Some i
+    else if is_seed_call arr.(i) then Some i
     else find_last (i - 1)
   in
   match find_first 0, find_last (n - 1) with
@@ -1980,7 +2179,7 @@ let infer_arg_kinds arr prim_table (fi : function_info) =
   let kinds = Array.make fi.nargs K_int in
   let is_print_endline_prim idx =
     match Hashtbl.find_opt prim_table idx with
-    | Some (_, P_println_string) -> true
+    | Some (_, P_println_string, _) -> true
     | _ -> false
   in
   let acc_arg_index op args =
@@ -2172,6 +2371,7 @@ let compile ~bc ~out_dir =
      function's [capture_kinds] from the kinds of values captured at the
      call site. Function bodies are then emitted with that information. *)
   let main_code = Jvm.Code.create cp in
+  let fresh_oo_id_counter = ref 0 in
   let post_end_pc =
     if end_idx + 1 < Array.length arr then arr.(end_idx + 1).pc else max_int
   in
@@ -2201,6 +2401,9 @@ let compile ~bc ~out_dir =
     ; ncaps = 0
     ; capture_kinds = []
     ; enclosing_function_name = None
+    ; pending_handlers = Hashtbl.create 2
+    ; open_traps = []
+    ; fresh_oo_id_counter
     }
   in
   emit_range state arr (start_idx, end_idx) ~skip_pcs:fn_body_pcs;
@@ -2305,6 +2508,9 @@ let compile ~bc ~out_dir =
           ; ncaps
           ; capture_kinds = cap_kinds
           ; enclosing_function_name = Some fn_info.name
+          ; pending_handlers = Hashtbl.create 2
+          ; open_traps = []
+          ; fresh_oo_id_counter
           }
         in
         emit_range
@@ -2356,4 +2562,5 @@ let compile ~bc ~out_dir =
   write_class "Main" main_class_bytes;
   write_class "Block" (Jvm.block_class_bytes ());
   write_class "Closure" (Jvm.closure_class_bytes ());
+  write_class "CamlException" (Jvm.camlexception_class_bytes ());
   List.iter (fun (name, bytes) -> write_class name bytes) closure_class_files

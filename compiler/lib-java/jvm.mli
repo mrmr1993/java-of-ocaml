@@ -146,11 +146,41 @@ module Code : sig
   val ifne : t -> label -> unit
   (** Branch if the top int on the stack is non-zero (JVM [ifne]). *)
 
+  val if_acmpeq : t -> label -> unit
+  (** Branch if the top two references on the stack are equal (JVM
+      [if_acmpeq]). *)
+
+  val if_acmpne : t -> label -> unit
+  (** Branch if the top two references on the stack differ (JVM
+      [if_acmpne]). *)
+
   val goto : t -> label -> unit
 
   val instanceof_ : t -> string -> unit
   (** Pop a reference, push 1 if it's an instance of the named class, else
       0 (JVM [instanceof]). *)
+
+  val athrow : t -> unit
+  (** Pop a [Throwable] and raise it up the JVM stack (JVM [athrow]). *)
+
+  val add_exception_handler :
+    t
+    -> start_lbl:label
+    -> end_lbl:label
+    -> handler_lbl:label
+    -> catch_class:string option
+    -> unit
+  (** Register a JVM exception handler: any [Throwable] of [catch_class]
+      raised while the method's PC is in \[[start_lbl], [end_lbl]) is
+      delivered at [handler_lbl]. [catch_class = None] installs a
+      catch-any entry. Must be called after the labels are fresh but
+      before [contents] — labels are resolved when the code is finalised. *)
+
+  val handler_stack_prelude : t -> unit
+  (** Reset the operand-stack tracker to depth 1, matching the JVM's
+      invariant that an exception handler starts executing with the
+      thrown [Throwable] on the op stack. Call this at the first
+      instruction of a handler, before emitting handler code. *)
 
   (** {2 Static/virtual dispatch} *)
 
@@ -207,6 +237,11 @@ val block_class_bytes : unit -> string
     instance fields ([int tag], [Object[] fields]) and a two-argument
     constructor that assigns them. Callers should write this alongside
     [Main.class] so the JVM can load it when [Main] references it. *)
+
+val camlexception_class_bytes : unit -> string
+(** Bytes of a [CamlException] class file. Extends [RuntimeException] and
+    holds the OCaml exception value in a public [Object] field [value].
+    Used as the JVM-level carrier for [raise] / [try … with …]. *)
 
 val closure_class_bytes : unit -> string
 (** Bytes of a [Closure] base class file. Has virtual [applyN] methods
