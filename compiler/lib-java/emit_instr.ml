@@ -27,6 +27,33 @@ let emit_instr state (ins : instr) =
    | Some lbl ->
      (match Hashtbl.find_opt state.pending_handlers ins.pc with
       | Some prelude_lbl ->
+        (* Close any open trap whose handler is this prelude — OCaml
+           elides POPTRAP whenever the try body provably always
+           raises, so the try region's end is wherever the handler
+           label sits. Without this the JVM exception-table entry
+           never gets installed and the athrow escapes uncaught. *)
+        let closing, remaining =
+          List.partition
+            (fun (_, p) -> p == prelude_lbl)
+            state.open_traps
+        in
+        List.iter
+          (fun (start_lbl, _) ->
+            let end_lbl = Jvm.Code.fresh_label state.code in
+            Jvm.Code.mark_label state.code end_lbl;
+            Jvm.Code.add_exception_handler
+              state.code
+              ~start_lbl
+              ~end_lbl
+              ~handler_lbl:prelude_lbl
+              ~catch_class:(Some "CamlException"))
+          closing;
+        if closing <> []
+        then
+          (* The OCaml-side slot cleanup happened when RAISE reset
+             [slots]/[oc_stack_depth]; only the JVM-side trap list
+             needs updating. *)
+          state.open_traps <- remaining;
         Jvm.Code.mark_label state.code prelude_lbl;
         Jvm.Code.handler_stack_prelude state.code;
         Jvm.Code.checkcast state.code "CamlException";
@@ -429,15 +456,15 @@ let emit_instr state (ins : instr) =
       Jvm.Code.ldc_double state.code d;
       state.acc_live <- true;
       state.acc_kind <- K_float
-    | G_block (tag, fields) ->
-      drop_live_acc state;
-      Emit_stack.emit_materialise_block_constant state tag fields;
-      state.acc_live <- true;
-      state.acc_kind <- K_block (List.map kind_of_global_field fields)
-    | G_unsupported ->
-      (* Fall back to the runtime [Main.GLOBALS] table — the value
-         will be whatever module-init's SETGLOBAL stored, or whatever
-         the DATA section materialiser put there at startup. *)
+    | G_block _ | G_unsupported ->
+      (* Route every block-valued global through [Main.GLOBALS],
+         so that predefined exception constructors (Invalid_argument,
+         Failure, Not_found, ...) preserve reference identity across
+         loads — pattern matching on exceptions uses [if_acmpeq]
+         and would otherwise always fail against a freshly
+         materialised block. Strings / floats can still use
+         literal emission since [String] interning / double
+         equality semantics don't depend on identity. *)
       drop_live_acc state;
       Jvm.Code.getstatic
         state.code
@@ -459,13 +486,7 @@ let emit_instr state (ins : instr) =
       Jvm.Code.ldc_double state.code d;
       state.acc_live <- true;
       state.acc_kind <- K_float
-    | G_block (tag, fields) ->
-      Emit_stack.emit_push state;
-      drop_live_acc state;
-      Emit_stack.emit_materialise_block_constant state tag fields;
-      state.acc_live <- true;
-      state.acc_kind <- K_block (List.map kind_of_global_field fields)
-    | G_unsupported ->
+    | G_block _ | G_unsupported ->
       Emit_stack.emit_push state;
       drop_live_acc state;
       Jvm.Code.getstatic
@@ -506,12 +527,7 @@ let emit_instr state (ins : instr) =
       Jvm.Code.ldc_double state.code d;
       state.acc_live <- true;
       state.acc_kind <- K_float
-    | Some (Gv_block (tag, sub_fields)) ->
-      drop_old ();
-      Emit_stack.emit_materialise_block_constant state tag sub_fields;
-      state.acc_live <- true;
-      state.acc_kind <- K_block (List.map kind_of_global_field sub_fields)
-    | None ->
+    | Some (Gv_block _) | None ->
       (* Runtime lookup: GLOBALS[g].fields[f]. For the common case
          (module record = Block), this is one getfield + aaload. *)
       drop_old ();
