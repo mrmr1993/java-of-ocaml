@@ -96,30 +96,58 @@ let emit_branch_on_val_int_zero state ~target_pc ~branch_if_zero =
   (* Fall-through: restore acc on the stack too. *)
   Jvm.Code.aload state.code v_local
 
-(* Stash the scrutinee into a JVM local, then for each case iload + ldc +
-   if_icmpeq. This keeps the JVM stack balanced across the dispatch and
-   never leaves a dangling [pop] after a [goto] — the [Jvm.Code]
-   max-stack tracker only observes straight-line code, so any such
-   dangling pop silently under-declares [max_stack] downstream.
+(* Dispatch on an int scrutinee, preserving acc on the JVM operand
+   stack throughout so every outgoing edge has the same shape as
+   acc-preserving branches like BEQ / BULTINT — which the OCaml
+   interpreter semantics agree on (SWITCH does NOT consume accu;
+   [ocaml/runtime/interp.c] just reads it for the jump-table
+   index). The chain:
 
-   SWITCH consumes its scrutinee per OCaml semantics, so every edge
-   out of this case chain starts with [acc_live=false] on both the
-   tracker and the JVM side. We update [state.acc_live] up-front so
-   [record_branch_target] captures the right snapshot. *)
+     - Call site has [acc] on stack as Object (post-normalise). We
+       stash it in [v_local] as a reference and separately unbox
+       an [int] copy into [v_int] for the comparisons.
+     - For each case: [aload v_local; emit_edge_spill; iload v_int;
+       ldc case; if_icmpeq target]. The acc goes on stack *for each
+       iteration*, is spilled into a caller block's params, and
+       sits there for the [if_icmpeq] to fall through without
+       consuming it — the whole stack effect of the case block is
+       [+1 Object ; if taken, target gets 1 Object; if not,
+        next iteration pushes its own copy afresh].
+     - Leaving the chain: [aload v_local] once more so fall-through
+       state is "acc on stack, K_obj". *)
 let emit_int_case_chain state ~cases ~to_target_pc =
   let v_local = allocate_local state in
-  Jvm.Code.istore state.code v_local;
-  state.acc_live <- false;
-  state.acc_kind <- K_int;
+  let v_int = allocate_local state in
+  (* acc is on the operand stack as an int at this point (callers
+     either unboxed from Integer or extracted [Block.tag]). Stash
+     both a boxed and an unboxed copy. *)
+  Jvm.Code.dup state.code;
+  Jvm.Code.istore state.code v_int;
+  emit_box_int state.code;
+  Jvm.Code.astore state.code v_local;
+  state.acc_live <- true;
+  state.acc_kind <- K_obj;
   List.iter
     (fun case_index ->
       let target_pc = to_target_pc case_index in
+      Jvm.Code.aload state.code v_local;
       emit_edge_spill state target_pc;
-      Jvm.Code.iload state.code v_local;
+      Jvm.Code.iload state.code v_int;
       Jvm.Code.ldc_int state.code case_index;
-      Jvm.Code.if_icmpeq state.code (label_at state target_pc);
+      let taken_lbl = label_at state target_pc in
+      let next_lbl = Jvm.Code.fresh_label state.code in
+      Jvm.Code.if_icmpne state.code next_lbl;
+      Jvm.Code.goto state.code taken_lbl;
+      Jvm.Code.mark_label state.code next_lbl;
+      (* We left a duplicate acc on stack for the (now-dropped)
+         if_icmpeq taken edge; pop it so the next iteration
+         starts with the same stack height as the last. *)
+      Jvm.Code.pop_top state.code;
       record_branch_target state target_pc)
-    cases
+    cases;
+  (* Fall-through after the chain: re-push acc so callers see
+     [acc_live=true, acc on stack]. *)
+  Jvm.Code.aload state.code v_local
 
 let emit_switch state (ins : instr) =
   let sizes = ins.args.(0) in
@@ -178,8 +206,10 @@ let emit_switch state (ins : instr) =
        (Printf.sprintf
           "java_of_ocaml: SWITCH on unsupported kind %s"
           (jvm_type_of_kind other)));
-  state.acc_live <- false;
-  state.acc_kind <- K_int
+  (* Per OCaml interp semantics SWITCH preserves accu, and the
+     case-chain leaves acc on the operand stack as K_obj. *)
+  state.acc_live <- true;
+  state.acc_kind <- K_obj
 
 (* Materialise a [pending_cmp] into a concrete 0/1 value in acc. The
    set of comparison bytecodes (EQ/NEQ/LT/LE/GT/GE) normally runs

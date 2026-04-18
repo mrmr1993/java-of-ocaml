@@ -430,8 +430,19 @@ let emit_instr state (ins : instr) =
     then
       failwith
         (Printf.sprintf "java_of_ocaml: ASSIGN with dead acc at pc %d" ins.pc);
-    let target = (List.nth state.slots k).local in
-    Jvm.Code.istore state.code target;
+    (* Allocate a fresh JVM local for the new slot value — the old
+       slot's local had a specific JVM type (I / D / L...) and
+       reusing it with a different-typed store would fail the
+       verifier. Monotonic allocation is fine here because OCaml
+       functions are short and we've never seen register pressure
+       be a problem. *)
+    let new_local = allocate_local_for_kind state state.acc_kind in
+    emit_store_for_kind state.code new_local state.acc_kind;
+    let new_kind = state.acc_kind in
+    state.slots <-
+      List.mapi
+        (fun i s -> if i = k then { kind = new_kind; local = new_local } else s)
+        state.slots;
     Jvm.Code.ldc_int state.code 0;
     state.acc_live <- true;
     state.acc_kind <- K_int)
