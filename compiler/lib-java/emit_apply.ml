@@ -18,14 +18,14 @@ let emit_apply_invoke state ~nargs =
      Jvm.Code.checkcast state.code "Closure";
      state.acc_kind <- K_closure { name = "Closure"; captures = [] }
    | K_int ->
-     (* Inference occasionally mis-labels a K_obj return as K_int
-        (e.g. when the callee was inferred to return K_int but the
-        real value at runtime is a closure — common inside Stdlib
-        code that flows values through polymorphic dispatch). Box
-        the int to Integer and checkcast to Closure: this either
-        succeeds at runtime or produces a ClassCastException with a
-        readable message, rather than a compile-time failure that
-        blocks every Stdlib-bearing program. *)
+     (* Inference can still land on K_int for a value that's
+        actually a closure at runtime — happens for polymorphic
+        dispatch and for indirection through closures whose body
+        we haven't fully analysed. Box + checkcast defers the
+        mismatch to a runtime ClassCastException rather than a
+        compile-time abort. Path-unioning inference (Phase 2)
+        reduced the frequency of this fall-back but didn't
+        eliminate it. *)
      emit_box_int state.code;
      Jvm.Code.checkcast state.code "Closure";
      state.acc_kind <- K_closure { name = "Closure"; captures = [] }
