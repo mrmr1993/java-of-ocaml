@@ -179,20 +179,37 @@ let is_user_op (ins : instr) =
 type global_field_value =
   | Gv_int of int
   | Gv_string of string
+  | Gv_block of int * global_field_value list
+      (* Nested block (e.g. the tail of a list literal). Fields recurse
+         through the same classification. *)
 
 type global_view =
   | G_string of string
   | G_block of int * global_field_value list
-      (* tag + per-field values. We only materialise blocks whose fields
-         are themselves ints or strings; nested blocks are [G_unsupported]
-         for now. *)
+      (* tag + per-field values. Fields may themselves be ints, strings,
+         or nested blocks — deep list / tree constants are materialised
+         by recursion. *)
   | G_unsupported
 
-let classify_field (f : Obj.t) =
+let rec classify_field (f : Obj.t) =
   if Obj.is_block f
   then (
     if Obj.tag f = Obj.string_tag
     then Some (Gv_string (Obj.magic f : string))
+    else if Obj.tag f < Obj.no_scan_tag
+    then (
+      let size = Obj.size f in
+      let rec gather i acc =
+        if i >= size
+        then Some (List.rev acc)
+        else
+          match classify_field (Obj.field f i) with
+          | Some fv -> gather (i + 1) (fv :: acc)
+          | None -> None
+      in
+      match gather 0 [] with
+      | None -> None
+      | Some fields -> Some (Gv_block (Obj.tag f, fields)))
     else None)
   else Some (Gv_int (Obj.magic f : int))
 
@@ -303,9 +320,10 @@ and closure_ref =
          fields on [this], so the list is often empty. *)
   }
 
-let kind_of_global_field = function
+let rec kind_of_global_field = function
   | Gv_int _ -> K_int
   | Gv_string _ -> K_string
+  | Gv_block (_, fields) -> K_block (List.map kind_of_global_field fields)
 
 let jvm_type_of_kind = function
   | K_int -> "I"
@@ -619,7 +637,14 @@ let emit_string_const state s =
    on top of the op stack. Each field that's an int gets boxed as Integer;
    string fields are loaded via [ldc] and stored as-is. Does not modify
    [state.acc_live] / [state.acc_kind]; callers handle those. *)
-let emit_materialise_block_constant state tag fields =
+let rec emit_materialise_value state = function
+  | Gv_int n ->
+    Jvm.Code.ldc_int state.code n;
+    emit_box_int state.code
+  | Gv_string s -> Jvm.Code.ldc_string state.code s
+  | Gv_block (tag, fields) -> emit_materialise_block_constant state tag fields
+
+and emit_materialise_block_constant state tag fields =
   let fields_local = allocate_local state in
   let size = List.length fields in
   Jvm.Code.ldc_int state.code size;
@@ -629,11 +654,7 @@ let emit_materialise_block_constant state tag fields =
     (fun i fv ->
       Jvm.Code.aload state.code fields_local;
       Jvm.Code.ldc_int state.code i;
-      (match fv with
-       | Gv_int n ->
-         Jvm.Code.ldc_int state.code n;
-         emit_box_int state.code
-       | Gv_string s -> Jvm.Code.ldc_string state.code s);
+      emit_materialise_value state fv;
       Jvm.Code.aastore state.code)
     fields;
   Jvm.Code.new_ state.code "Block";
@@ -1247,12 +1268,18 @@ let cmp_of_opcode op =
    handles both shapes at runtime. Assumes acc is already on the JVM
    operand stack. *)
 let emit_branch_on_val_int_zero state ~target_pc ~branch_if_zero =
-  let l_non_integer = Jvm.Code.fresh_label state.code in
+  (* Stash acc to a local so every JVM path leaves the op stack empty —
+     the [Jvm.Code] max-stack tracker is linear-only and a dangling
+     [pop_top] on an unreachable path would silently desync it. *)
+  let v_local = allocate_local state in
+  let l_not_int = Jvm.Code.fresh_label state.code in
   let l_end = Jvm.Code.fresh_label state.code in
   let target_lbl = label_at state target_pc in
-  Jvm.Code.dup state.code;
+  Jvm.Code.astore state.code v_local;
+  Jvm.Code.aload state.code v_local;
   Jvm.Code.instanceof_ state.code "java/lang/Integer";
-  Jvm.Code.ifeq state.code l_non_integer;
+  Jvm.Code.ifeq state.code l_not_int;
+  Jvm.Code.aload state.code v_local;
   Jvm.Code.checkcast state.code "java/lang/Integer";
   Jvm.Code.invokevirtual
     state.code
@@ -1263,29 +1290,33 @@ let emit_branch_on_val_int_zero state ~target_pc ~branch_if_zero =
    then Jvm.Code.ifeq state.code target_lbl
    else Jvm.Code.ifne state.code target_lbl);
   Jvm.Code.goto state.code l_end;
-  Jvm.Code.mark_label state.code l_non_integer;
-  Jvm.Code.pop_top state.code;
+  Jvm.Code.mark_label state.code l_not_int;
   if not branch_if_zero then Jvm.Code.goto state.code target_lbl;
   Jvm.Code.mark_label state.code l_end
 
 (* Compile a [(case_value, target_pc)] table to a dispatch chain. Each
    target is reached with the JVM operand stack empty (the scrutinee has
-   been popped). Fall-through after the chain also leaves the stack empty.
-   The scrutinee must be on the op stack as a raw int at entry. *)
+   been consumed). Fall-through after the chain also leaves the stack
+   empty. The scrutinee must be on the op stack as a raw int at entry.
+
+   Implementation: stash the scrutinee into a JVM local, then for each case
+   iload + ldc + if_icmpeq. This keeps the JVM stack balanced across the
+   dispatch and, critically, never leaves a dangling [pop] on an
+   unreachable linear path — the [Jvm.Code] max-stack tracker only
+   observes straight-line code, so every dangling [pop] after a [goto]
+   silently decrements its view of the stack and causes it to
+   under-declare [max_stack] downstream. *)
 let emit_int_case_chain state ~cases ~to_target_pc =
+  let v_local = allocate_local state in
+  Jvm.Code.istore state.code v_local;
   List.iter
     (fun case_index ->
       let target_pc = to_target_pc case_index in
-      let l_skip = Jvm.Code.fresh_label state.code in
-      Jvm.Code.dup state.code;
+      Jvm.Code.iload state.code v_local;
       Jvm.Code.ldc_int state.code case_index;
-      Jvm.Code.if_icmpne state.code l_skip;
-      Jvm.Code.pop_top state.code;
-      Jvm.Code.goto state.code (label_at state target_pc);
-      Jvm.Code.mark_label state.code l_skip;
+      Jvm.Code.if_icmpeq state.code (label_at state target_pc);
       record_branch_target state target_pc)
-    cases;
-  Jvm.Code.pop_top state.code
+    cases
 
 let emit_switch state (ins : instr) =
   let sizes = ins.args.(0) in
@@ -1315,12 +1346,15 @@ let emit_switch state (ins : instr) =
        Jvm.Code.getfield state.code ~class_:"Block" ~field:"tag" ~descriptor:"I";
        emit_int_case_chain state ~cases:tag_cases ~to_target_pc:tag_target)
      else (
+       (* Stash acc so the JVM op stack is empty at both label targets. *)
+       let v_local = allocate_local state in
        let l_is_block = Jvm.Code.fresh_label state.code in
        let l_end = Jvm.Code.fresh_label state.code in
-       Jvm.Code.dup state.code;
+       Jvm.Code.astore state.code v_local;
+       Jvm.Code.aload state.code v_local;
        Jvm.Code.instanceof_ state.code "Block";
        Jvm.Code.ifne state.code l_is_block;
-       (* Immediate path: unbox Integer and dispatch on value. *)
+       Jvm.Code.aload state.code v_local;
        Jvm.Code.checkcast state.code "java/lang/Integer";
        Jvm.Code.invokevirtual
          state.code
@@ -1330,6 +1364,7 @@ let emit_switch state (ins : instr) =
        emit_int_case_chain state ~cases:int_cases ~to_target_pc:int_target;
        Jvm.Code.goto state.code l_end;
        Jvm.Code.mark_label state.code l_is_block;
+       Jvm.Code.aload state.code v_local;
        Jvm.Code.checkcast state.code "Block";
        Jvm.Code.getfield state.code ~class_:"Block" ~field:"tag" ~descriptor:"I";
        emit_int_case_chain state ~cases:tag_cases ~to_target_pc:tag_target;
@@ -1916,6 +1951,16 @@ let classify_return_kind_at arr i func_list current_fn =
     else if prev.opcode = offsetclosure0_op
          || prev.opcode = pushoffsetclosure0_op
     then K_closure { name = current_fn.name; captures = [] }
+    else if prev.opcode = Bytecode.Op.makeblock
+         || prev.opcode = Bytecode.Op.makeblock1
+         || prev.opcode = Bytecode.Op.makeblock2
+         || prev.opcode = Bytecode.Op.makeblock3
+    then
+      (* Body ends with a MAKEBLOCK: the function returns a heap block (a
+         cons cell, tuple, record, variant-with-payload, etc.). We don't
+         know the exact field shape without more analysis, so classify as
+         K_obj and let callers unbox lazily. *)
+      K_obj
     else K_int
 
 let kinds_agree a b =
@@ -1978,7 +2023,13 @@ let infer_return_kind arr (func_list : function_info list) (fi : function_info) 
   match !observed with
   | [] -> K_int
   | k :: rest when List.for_all (kinds_agree k) rest -> k
-  | _ -> K_int
+  | _ ->
+    (* Observations disagree — typically a variant-returning function
+       whose cases return an immediate in one branch (K_int from [Nil],
+       [None], etc.) and a heap block in another (K_obj from
+       [Cons (_, _)], [Some _], etc.). K_obj is the common super-kind:
+       callers won't unbox and will ensure_kind at each point of use. *)
+    K_obj
 
 let walk_forward_user_end arr end_idx =
   let n = Array.length arr in
