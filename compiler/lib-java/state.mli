@@ -19,6 +19,11 @@ type branch_snapshot =
   ; s_acc_kind : kind
   }
 
+type block_params =
+  { p_slot_locals : int array
+  ; p_acc_local : int option
+  }
+
 type state =
   { code : Jvm.Code.t
   ; globals : Obj.t array
@@ -38,6 +43,13 @@ type state =
   ; pc_to_label : (int, Jvm.Code.label) Hashtbl.t
   ; branch_target_state : (int, branch_snapshot) Hashtbl.t
       (** Target PC → state to restore when its label is marked. *)
+  ; cfg : Cfg.t option
+      (** Per-function CFG. [None] disables the block-param path
+          (the emitter falls back to [branch_target_state]
+          snapshots). *)
+  ; block_params : (int, block_params) Hashtbl.t
+      (** Join blocks' reserved entry-param locals, keyed by block
+          id. Allocated on first spill into a join target. *)
   ; mutable acc_live : bool
   ; mutable acc_kind : kind
   ; mutable slots : slot_info list
@@ -65,6 +77,9 @@ type state =
       (** Number of [PUSH_RETADDR]s whose matching [APPLY] is still
           outstanding. Each bumps and un-bumps this counter so the
           three sentinel slots get popped post-APPLY. *)
+  ; mutable last_was_terminator : bool
+      (** Set after each [emit_instr]. Used by label prologues to
+          distinguish fall-through entries from jump-only entries. *)
   }
 
 val ensure_kind : state -> kind -> unit
@@ -81,6 +96,30 @@ val normalize_acc_for_branch : state -> unit
     No-op for reference kinds or a dead acc. *)
 
 val record_branch_target : state -> int -> unit
+
+val spill_to_block_params : state -> int -> unit
+(** Non-consuming spill: copy each OCaml-stack slot and the live acc
+    (if any) into a caller block's reserved param locals. Leaves
+    the JVM operand stack unchanged — safe to call before a
+    conditional [if_*] that preserves acc, and before a
+    [drop_live_acc] + [goto]. *)
+
+val reload_from_block_params : state -> int -> unit
+(** Block prologue: populate [state.slots] from the reserved param
+    locals and [aload] acc onto the JVM operand stack (if this block
+    had any incoming edge with a live acc). No-op if the block never
+    had a spill — leaves [state] as-is. *)
+
+val emit_edge_spill : state -> int -> unit
+(** Called at every branch-site edge whose target is a block. If the
+    target is a join block in the current CFG, normalise the acc
+    and spill the in-flight state into a caller's reserved param
+    locals. No-op for non-join targets or when the state has no CFG. *)
+
+val target_block_if_join : state -> int -> int option
+(** If [target_pc] starts a join block (>1 incoming edges) in the
+    current function's CFG, return its block id. Otherwise [None].
+    Always [None] when the state has no CFG (e.g. [main]). *)
 
 val stack_slot_local : state:state -> int -> int
 

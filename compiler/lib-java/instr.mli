@@ -75,6 +75,11 @@ val branch_target : instr -> int option
     BRANCHIFNOT, PUSHTRAP, the compare-and-branch family); [None]
     otherwise. *)
 
+val is_terminator : int -> bool
+(** True for opcodes that don't fall through to the following PC:
+    BRANCH, RETURN, RAISE / RERAISE / RAISE_NOTRACE, STOP, APPTERM*.
+    Used to distinguish fall-through vs jump entries at a label. *)
+
 val branch_targets : instr -> int list
 (** Every bytecode PC that [ins] might transfer control to. SWITCH
     expands to all of its cases; other branches wrap [branch_target]. *)

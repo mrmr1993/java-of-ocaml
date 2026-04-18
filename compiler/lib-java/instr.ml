@@ -175,6 +175,18 @@ let is_user_op (ins : instr) =
   || op = break_op
   || op = 92 (* CHECK_SIGNALS — no-op at our level *)
 
+let is_terminator op =
+  op = Bytecode.Op.branch
+  || op = Bytecode.Op.return
+  || op = Bytecode.Op.raise_
+  || op = Bytecode.Op.raise_notrace
+  || op = Bytecode.Op.reraise
+  || op = Bytecode.Op.stop
+  || op = appterm_op
+  || op = appterm1_op
+  || op = appterm2_op
+  || op = appterm3_op
+
 let branch_target (ins : instr) =
   let op = ins.opcode in
   if op = Bytecode.Op.branch

@@ -16,6 +16,7 @@ let emit_cmp_jump state (ins : instr) =
      unbox to int, compare with [imm], branch. The dup keeps the
      Object on the stack across the consumption by [if_icmp]. *)
   normalize_acc_for_branch state;
+  emit_edge_spill state target_pc;
   Jvm.Code.dup state.code;
   Jvm.Code.checkcast state.code "java/lang/Integer";
   Jvm.Code.invokevirtual
@@ -79,8 +80,9 @@ let emit_branch_on_val_int_zero state ~target_pc ~branch_if_zero =
   (if branch_if_zero
    then Jvm.Code.ifne state.code l_end (* ifne: stay when non-zero *)
    else Jvm.Code.ifeq state.code l_end);
-  (* Taken path: push acc and branch. *)
+  (* Taken path: push acc, spill to target's params if join, then branch. *)
   Jvm.Code.aload state.code v_local;
+  emit_edge_spill state target_pc;
   Jvm.Code.goto state.code target_lbl;
   Jvm.Code.mark_label state.code l_not_int;
   (* Non-Integer acc: always takes on BRANCHIF (value is truthy),
@@ -88,6 +90,7 @@ let emit_branch_on_val_int_zero state ~target_pc ~branch_if_zero =
   if not branch_if_zero
   then (
     Jvm.Code.aload state.code v_local;
+    emit_edge_spill state target_pc;
     Jvm.Code.goto state.code target_lbl);
   Jvm.Code.mark_label state.code l_end;
   (* Fall-through: restore acc on the stack too. *)
@@ -111,6 +114,7 @@ let emit_int_case_chain state ~cases ~to_target_pc =
   List.iter
     (fun case_index ->
       let target_pc = to_target_pc case_index in
+      emit_edge_spill state target_pc;
       Jvm.Code.iload state.code v_local;
       Jvm.Code.ldc_int state.code case_index;
       Jvm.Code.if_icmpeq state.code (label_at state target_pc);

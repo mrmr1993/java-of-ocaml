@@ -36,33 +36,49 @@ let emit_instr state (ins : instr) =
           ~field:"value"
           ~descriptor:"Ljava/lang/Object;"
       | None -> ());
-     Jvm.Code.mark_label state.code lbl;
-     (* Label prologue: restore the full emitter context from the
-        snapshot taken at the first branch to this target. The
-        pending-handler path is special — the handler starts with
-        the [CamlException.value] on the JVM stack (already pushed
-        above), so acc_live=true / acc_kind=K_obj regardless of
-        what any snapshot says. *)
-     if Hashtbl.mem state.pending_handlers ins.pc
-     then (
-       (match Hashtbl.find_opt state.branch_target_state ins.pc with
-        | Some snap ->
-          state.oc_stack_depth <- snap.s_oc_stack_depth;
-          state.slots <- snap.s_slots
-        | None -> ());
-       state.acc_live <- true;
-       state.acc_kind <- K_obj)
-     else (
-       match Hashtbl.find_opt state.branch_target_state ins.pc with
-       | Some snap ->
-         state.oc_stack_depth <- snap.s_oc_stack_depth;
-         state.slots <- snap.s_slots;
-         state.acc_live <- snap.s_acc_live;
-         state.acc_kind <- snap.s_acc_kind
-       | None ->
-         (* Label reached only via fall-through — no snapshot, state
-            is already whatever the previous instruction left it. *)
-         ());
+     let is_handler = Hashtbl.mem state.pending_handlers ins.pc in
+     let join_block_id =
+       if is_handler
+       then None
+       else
+         match state.cfg with
+         | None -> None
+         | Some cfg ->
+           (match Hashtbl.find_opt cfg.by_start_pc ins.pc with
+            | Some bid when Cfg.is_join cfg bid -> Some bid
+            | _ -> None)
+     in
+     (match join_block_id with
+      | Some block_id ->
+        (* Fall-through edges into a join block: spill the in-flight
+           state into a caller's params before we mark the label,
+           so that when control reaches the label, the operand stack
+           and param locals look the same as on any jump edge. *)
+        if not state.last_was_terminator
+        then (
+          State.normalize_acc_for_branch state;
+          State.spill_to_block_params state block_id);
+        Jvm.Code.mark_label state.code lbl;
+        State.reload_from_block_params state block_id
+      | None ->
+        Jvm.Code.mark_label state.code lbl;
+        if is_handler
+        then (
+          (match Hashtbl.find_opt state.branch_target_state ins.pc with
+           | Some snap ->
+             state.oc_stack_depth <- snap.s_oc_stack_depth;
+             state.slots <- snap.s_slots
+           | None -> ());
+          state.acc_live <- true;
+          state.acc_kind <- K_obj)
+        else (
+          match Hashtbl.find_opt state.branch_target_state ins.pc with
+          | Some snap ->
+            state.oc_stack_depth <- snap.s_oc_stack_depth;
+            state.slots <- snap.s_slots;
+            state.acc_live <- snap.s_acc_live;
+            state.acc_kind <- snap.s_acc_kind
+          | None -> ()));
      state.pending_cmp <- None
    | None -> ());
   let op = ins.opcode in
@@ -529,6 +545,7 @@ let emit_instr state (ins : instr) =
   then (
     let target = ins.pc + ins.args.(0) + 1 in
     Emit_branch.normalize_acc_for_branch state;
+    emit_edge_spill state target;
     Jvm.Code.goto state.code (label_at state target);
     record_branch_target state target)
   else if is_cmp_jump op then Emit_branch.emit_cmp_jump state ins
@@ -786,6 +803,7 @@ let emit_instr state (ins : instr) =
     let imm = ins.args.(0) in
     let target_pc = ins.pc + ins.args.(1) + 2 in
     Emit_branch.normalize_acc_for_branch state;
+    emit_edge_spill state target_pc;
     Jvm.Code.dup state.code;
     Jvm.Code.checkcast state.code "java/lang/Integer";
     Jvm.Code.invokevirtual
@@ -896,4 +914,5 @@ let emit_instr state (ins : instr) =
          "java_of_ocaml: unsupported opcode %s (%d) at pc %d"
          (Bytecode.opcode_name op)
          op
-         ins.pc)
+         ins.pc);
+  state.last_was_terminator <- is_terminator op

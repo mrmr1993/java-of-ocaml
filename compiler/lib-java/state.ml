@@ -12,6 +12,22 @@ type branch_snapshot =
   ; s_acc_kind : kind
   }
 
+(* Block parameters for a JOIN block (one with >1 incoming edges).
+   Each OCaml-stack slot at block entry has a reserved Object-typed
+   JVM local; the acc (if any incoming path has it live) has its
+   own reserved Object local too. Every branch edge to this block
+   stores the outgoing state into these locals; the block prologue
+   loads from them. Shape-based merging — no type-lattice fixpoint
+   needed — adapted from jsoo's block [params]. *)
+type block_params =
+  { p_slot_locals : int array
+        (** Local index for each OCaml-stack slot at block entry,
+            indexed 0 = top of stack. *)
+  ; p_acc_local : int option
+        (** Local index for the incoming acc. [None] means the
+            first branch that recorded saw [acc_live=false]. *)
+  }
+
 type state =
   { code : Jvm.Code.t
   ; globals : Obj.t array
@@ -21,6 +37,16 @@ type state =
   ; fn_by_name : (string, function_info) Hashtbl.t
   ; pc_to_label : (int, Jvm.Code.label) Hashtbl.t
   ; branch_target_state : (int, branch_snapshot) Hashtbl.t
+  ; cfg : Cfg.t option
+        (** Per-function control-flow graph. When present, join
+            blocks get block-parameter locals and every edge into
+            them materialises state into those locals, making
+            cross-block type merging structural instead of
+            inference-based. [None] for [main] (we haven't needed
+            the machinery there yet). *)
+  ; block_params : (int, block_params) Hashtbl.t
+        (** Block id → reserved param locals. Allocated lazily on
+            first branch to a join block. *)
   ; mutable acc_live : bool
   ; mutable acc_kind : kind
   ; mutable slots : slot_info list
@@ -35,6 +61,14 @@ type state =
   ; mutable open_traps : (Jvm.Code.label * Jvm.Code.label) list
   ; fresh_oo_id_counter : int ref
   ; mutable pending_retaddrs : int
+  ; mutable last_was_terminator : bool
+        (** True immediately after emitting a terminator opcode
+            (BRANCH, RETURN, RAISE, STOP, APPTERM/1/2/3). Used by the
+            label prologue to tell fall-through entries (spill
+            in-flight state first) from jump-only entries (spills
+            already happened at the branch sites). Initialised to
+            [true] at function entry — no fall-through into the
+            first instruction. *)
   }
 
 let ensure_kind state target =
@@ -62,6 +96,105 @@ let ensure_kind state target =
            (jvm_type_of_kind state.acc_kind)
            (jvm_type_of_kind target))
 
+(* Reserve param locals for a join block. Called lazily on the
+   first edge into the block: the first caller's state determines
+   the shape (depth + acc-live). OCaml's bytecode guarantees all
+   edges into the same join agree on shape, so subsequent callers
+   don't re-check — but we do keep a single entry keyed by block
+   id, so any later disagreement becomes visible as a misuse at
+   spill time. *)
+let reserve_block_params state block_id ~at_depth ~acc_live =
+  match Hashtbl.find_opt state.block_params block_id with
+  | Some p -> p
+  | None ->
+    let p_slot_locals =
+      Array.init at_depth (fun _ ->
+        let l = state.next_local in
+        state.next_local <- l + 1;
+        l)
+    in
+    let p_acc_local =
+      if acc_live
+      then (
+        let l = state.next_local in
+        state.next_local <- l + 1;
+        Some l)
+      else None
+    in
+    let p = { p_slot_locals; p_acc_local } in
+    Hashtbl.add state.block_params block_id p;
+    p
+
+(* Non-consuming spill: copy each slot's value and acc (if live)
+   into a caller block's param locals, leaving the JVM operand
+   stack unchanged. Acc on stack: duplicated (dup / dup2 for
+   K_float), boxed, astore'd. Slots: read from their current local,
+   written to a caller's param local — no operand-stack touch.
+
+   Safe to call multiple times per edge (e.g. to both the
+   branch target and the fall-through target of a conditional
+   branch), and safe before a consuming comparison — after the
+   comparison consumes acc, each outgoing edge's target block
+   prologue reloads acc from its own param local. *)
+let spill_to_block_params state block_id =
+  let p =
+    reserve_block_params
+      state
+      block_id
+      ~at_depth:state.oc_stack_depth
+      ~acc_live:state.acc_live
+  in
+  List.iteri
+    (fun i (slot : slot_info) ->
+      if i < Array.length p.p_slot_locals
+      then (
+        emit_load_for_kind state.code slot.local slot.kind;
+        box_if_int state.code slot.kind;
+        Jvm.Code.astore state.code p.p_slot_locals.(i)))
+    state.slots;
+  match p.p_acc_local, state.acc_live with
+  | Some acc_local, true ->
+    (match state.acc_kind with
+     | K_int ->
+       Jvm.Code.dup state.code;
+       emit_box_int state.code;
+       Jvm.Code.astore state.code acc_local
+     | K_float ->
+       Jvm.Code.dup2 state.code;
+       emit_box_float state.code;
+       Jvm.Code.astore state.code acc_local
+     | K_string | K_block _ | K_closure _ | K_obj ->
+       Jvm.Code.dup state.code;
+       Jvm.Code.astore state.code acc_local)
+  | None, _ | _, false -> ()
+
+(* Design B reload. Acc is already on the JVM operand stack
+   (boxed to [Object] by every incoming edge's
+   [normalize_acc_for_branch] + non-consuming spill). The reload
+   only updates the tracker: replace [state.slots] with fresh
+   slot_infos that refer to the block's reserved param locals,
+   and set [acc_live] / [acc_kind] according to whether the
+   block has an acc param. The operand stack is untouched. *)
+let reload_from_block_params state block_id =
+  match Hashtbl.find_opt state.block_params block_id with
+  | None -> ()
+  | Some p ->
+    state.oc_stack_depth <- Array.length p.p_slot_locals;
+    state.slots <-
+      (let rec loop i =
+         if i >= Array.length p.p_slot_locals
+         then []
+         else { kind = K_obj; local = p.p_slot_locals.(i) } :: loop (i + 1)
+       in
+       loop 0);
+    (match p.p_acc_local with
+     | Some _ ->
+       state.acc_live <- true;
+       state.acc_kind <- K_obj
+     | None ->
+       state.acc_live <- false;
+       state.acc_kind <- K_int)
+
 (* Box a live primitive acc to its reference form, leaving
    [acc_kind = K_obj]. Dead accs are untouched. Used at branch
    sites so every incoming edge to a label leaves acc in the same
@@ -81,6 +214,39 @@ let normalize_acc_for_branch state =
       emit_box_float state.code;
       state.acc_kind <- K_obj
     | K_string | K_block _ | K_closure _ | K_obj -> ()
+
+(* Edge discipline: before a jump into a join block, normalise the
+   acc and copy the current state into a caller's param locals
+   so a caller's prologue's [reload_from_block_params] sees a
+   consistent shape across every incoming edge. The spill is non-
+   consuming (dup+astore for acc, local-to-local copies for slots),
+   so the caller's subsequent comparison or branch sequence can keep
+   using the operand stack as before. No-op when a caller is not
+   a join, or when there is no CFG. *)
+let emit_edge_spill state target_pc =
+  match
+    match state.cfg with
+    | None -> None
+    | Some cfg ->
+      (match Hashtbl.find_opt cfg.by_start_pc target_pc with
+       | Some bid when Cfg.is_join cfg bid -> Some bid
+       | _ -> None)
+  with
+  | None -> ()
+  | Some block_id ->
+    normalize_acc_for_branch state;
+    spill_to_block_params state block_id
+
+(* Return whether [target_pc] is the start of a join block in the
+   current function's CFG. If no CFG is set (e.g. for [main]),
+   every edge falls back to the snapshot mechanism. *)
+let target_block_if_join state target_pc =
+  match state.cfg with
+  | None -> None
+  | Some cfg ->
+    (match Hashtbl.find_opt cfg.by_start_pc target_pc with
+     | Some block_id when Cfg.is_join cfg block_id -> Some block_id
+     | _ -> None)
 
 (* First-write-wins: subsequent branches to the same label must agree
    with the snapshot we've already recorded. Capturing [acc_live] /

@@ -103,6 +103,8 @@ let emit_globals_init code globals =
         ; fn_by_name = Hashtbl.create 0
         ; pc_to_label = Hashtbl.create 0
         ; branch_target_state = Hashtbl.create 0
+        ; cfg = None
+        ; block_params = Hashtbl.create 0
         ; acc_live = false
         ; acc_kind = K_int
         ; slots = []
@@ -117,6 +119,7 @@ let emit_globals_init code globals =
         ; open_traps = []
         ; fresh_oo_id_counter = ref 0
         ; pending_retaddrs = 0
+        ; last_was_terminator = true
         }
       in
       Emit_stack.emit_materialise_block_constant throwaway_state tag fields;
@@ -285,6 +288,8 @@ let compile ~bc ~out_dir =
     ; fn_by_name
     ; pc_to_label
     ; branch_target_state = Hashtbl.create 4
+    ; cfg = None
+    ; block_params = Hashtbl.create 0
     ; acc_live = false
     ; acc_kind = K_int
     ; slots = []
@@ -299,6 +304,7 @@ let compile ~bc ~out_dir =
     ; open_traps = []
     ; fresh_oo_id_counter
     ; pending_retaddrs = 0
+        ; last_was_terminator = true
     }
   in
   time_phase "emit-main" (fun () ->
@@ -379,6 +385,12 @@ let compile ~bc ~out_dir =
               (arr.(fn_info.body_start_idx).pc, arr.(fn_info.body_end_idx).pc)
             ~skip_pcs:(Hashtbl.create 0)
         in
+        let cfg =
+          Cfg.build
+            arr
+            ~body_start:fn_info.body_start_idx
+            ~body_end:fn_info.body_end_idx
+        in
         let state =
           { code = apply_code
           ; globals = parsed.globals
@@ -388,6 +400,8 @@ let compile ~bc ~out_dir =
           ; fn_by_name
           ; pc_to_label
           ; branch_target_state = Hashtbl.create 4
+          ; cfg = Some cfg
+          ; block_params = Hashtbl.create 4
           ; acc_live = false
           ; acc_kind = K_int
           ; slots = initial_slots
@@ -402,6 +416,7 @@ let compile ~bc ~out_dir =
           ; open_traps = []
           ; fresh_oo_id_counter
           ; pending_retaddrs = 0
+        ; last_was_terminator = true
           }
         in
         emit_range
