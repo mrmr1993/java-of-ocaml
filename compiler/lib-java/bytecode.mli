@@ -79,6 +79,16 @@ module Op : sig
   val closurerec : int
   val offsetclosure0 : int
   val pushoffsetclosure0 : int
+  val envacc1 : int
+  val envacc2 : int
+  val envacc3 : int
+  val envacc4 : int
+  val envacc : int
+  val pushenvacc1 : int
+  val pushenvacc2 : int
+  val pushenvacc3 : int
+  val pushenvacc4 : int
+  val pushenvacc : int
   val event : int
   val break : int
 end

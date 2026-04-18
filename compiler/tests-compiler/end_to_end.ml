@@ -182,3 +182,38 @@ let%expect_test "recursive power" =
        let rec pow base n = if n = 0 then 1 else base * pow base (n - 1)
        let () = caml_java_print_int (pow 2 10) |};
   [%expect {| 1024 |}]
+
+let%expect_test "closure with a single capture" =
+  compile_and_run
+    {| external caml_java_print_int : int -> unit = "caml_java_print_int"
+       let () =
+         let x = 42 in
+         let f y = x + y in
+         caml_java_print_int (f 3);
+         caml_java_print_int (f 100) |};
+  [%expect {|
+    45
+    142 |}]
+
+let%expect_test "recursive closure with a capture" =
+  compile_and_run
+    {| external caml_java_print_int : int -> unit = "caml_java_print_int"
+       let () =
+         let x = 42 in
+         let rec f n = if n = 0 then x else f (n - 1) + x in
+         caml_java_print_int (f 5) |};
+  [%expect {| 252 |}]
+
+let%expect_test "closure with multiple captures" =
+  compile_and_run
+    {| external caml_java_print_int : int -> unit = "caml_java_print_int"
+       let () =
+         let a = 3 in
+         let b = 7 in
+         let c = 11 in
+         let f n = a * n + b * n + c * n in
+         caml_java_print_int (f 2);
+         caml_java_print_int (f 10) |};
+  [%expect {|
+    42
+    210 |}]

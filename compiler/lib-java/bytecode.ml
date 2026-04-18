@@ -69,6 +69,16 @@ module Op = struct
   let closurerec = 44
   let offsetclosure0 = 46
   let pushoffsetclosure0 = 50
+  let envacc1 = 21
+  let envacc2 = 22
+  let envacc3 = 23
+  let envacc4 = 24
+  let envacc = 25
+  let pushenvacc1 = 26
+  let pushenvacc2 = 27
+  let pushenvacc3 = 28
+  let pushenvacc4 = 29
+  let pushenvacc = 30
   let event = 144
   let break = 145
 end
