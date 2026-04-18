@@ -1047,8 +1047,9 @@ let process_block state start_pc next_starts addr_map =
 let parse_generic_with_stack instrs ~start_pc ~end_pc ~initial_stack ~env =
   let starts = block_starts instrs ~start_pc ~end_pc in
   let addr_map = build_addr_map instrs in
+  let start_accu = Var.fresh () in
   let state =
-    { accu = V (Var.fresh ())
+    { accu = V start_accu
     ; stack = List.map (fun v -> V v) initial_stack
     ; body = []
     ; target_params = Hashtbl.create 32
@@ -1057,6 +1058,13 @@ let parse_generic_with_stack instrs ~start_pc ~end_pc ~initial_stack ~env =
     ; current_block_start = start_pc
     }
   in
+  (* Pre-register the entry block's params so [process_block] reuses
+     the caller-provided [initial_stack] Vars instead of minting
+     fresh ones that nobody's bound to JVM locals 1..N. *)
+  Hashtbl.add
+    state.target_params
+    start_pc
+    (start_accu :: initial_stack);
   (* DFS from [start_pc] so every block's canonical params are
      registered by a predecessor's [make_cont] before we process the
      block itself. Blocks unreachable from [start_pc] (usually none,
@@ -1114,15 +1122,15 @@ let parse_function instrs ~start_pc ~end_pc ~nargs ~ncaps =
   let arg_vars = List.init nargs (fun _ -> Var.fresh ()) in
   let cap_vars = List.init ncaps (fun _ -> Var.fresh ()) in
   let params = arg_vars @ cap_vars in
-  (* OCaml bytecode enters a function body with args on the OCaml
-     stack: arg[nargs-1] at bottom, arg[0] on top (ACC0 reads the
-     first argument). The caller hands us [arg_vars] in declaration
-     order (arg[0] first), so we reverse-then-push to leave arg[0]
-     at the top. *)
+  (* OCaml enters a function body with args on the stack: arg[0] at
+     top (stack[0] = arg[0] → ACC0 reads arg[0]), arg[nargs-1] at
+     bottom. [arg_vars] is in declaration order ([v0; v1; ...]);
+     [state.stack]'s head is the top of the stack, so feed arg_vars
+     through as-is — no reverse. *)
   let env_var = Var.fresh () in
   let _ = cap_vars in
   let prog =
-    let initial_stack = List.rev arg_vars in
+    let initial_stack = arg_vars in
     parse_generic_with_stack
       instrs
       ~start_pc

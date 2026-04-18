@@ -10,6 +10,12 @@ let debug_functions = Debug.find "functions"
 let debug_labels = Debug.find "labels"
 let debug_ir = Debug.find "ir"
 let debug_ir_gen = Debug.find "ir_gen"
+let debug_ir_emit = Debug.find "ir_emit"
+
+let ir_emit_enabled () =
+  match Sys.getenv_opt "JAVA_OF_OCAML_IR" with
+  | Some ("1" | "true" | "TRUE") -> true
+  | _ -> false
 
 (* Attempt to lower a function body (or the main init range) to the new
    Code IR via [Parse_bytecode]. This is a smoke pass for Phase 1 — the
@@ -574,6 +580,87 @@ let compile ~bc ~out_dir =
           arr
           (fn_info.body_start_idx, fn_info.body_end_idx)
           ~skip_pcs:(Hashtbl.create 0);
+        (* If JAVA_OF_OCAML_IR=1, attempt to regenerate the apply
+           body via the IR path and swap it in if successful. The
+           legacy emitter still runs first to populate
+           [fn_info.capture_kinds] (set by CLOSURE/CLOSUREREC at
+           *allocation sites* in other functions, but may also be
+           touched by recursion / ENVACC during this fn's own
+           emission). Legacy code is discarded on IR success. *)
+        let apply_code =
+          if not (ir_emit_enabled ())
+          then apply_code
+          else (
+            let body_pc = arr.(fn_info.body_start_idx).pc in
+            let end_pc = arr.(fn_info.body_end_idx).pc in
+            try
+              let prog, params, env_var =
+                Parse_bytecode.parse_function
+                  (Array.to_list arr)
+                  ~start_pc:body_pc
+                  ~end_pc:(end_pc + 1)
+                  ~nargs:fn_info.nargs
+                  ~ncaps
+              in
+              let arg_vars =
+                let rec take n = function
+                  | _ when n = 0 -> []
+                  | [] -> []
+                  | x :: xs -> x :: take (n - 1) xs
+                in
+                take fn_info.nargs params
+              in
+              let ir_code = Jvm.Code.create fn_cp in
+              Jvm.Code.set_min_locals ir_code (1 + fn_info.nargs);
+              let typing = Jvm_typing.infer prog in
+              let body_pc_to_name = Hashtbl.create 64 in
+              Hashtbl.iter
+                (fun _name fi ->
+                  Hashtbl.replace
+                    body_pc_to_name
+                    fi.Function_info.body_pc
+                    fi.Function_info.name)
+                fn_by_name;
+              let name_of_body pc =
+                match Hashtbl.find_opt body_pc_to_name pc with
+                | Some n -> n
+                | None -> raise Not_found
+              in
+              let prim_name idx =
+                if idx < 0 || idx >= Array.length parsed.prims
+                then raise Not_found
+                else parsed.prims.(idx)
+              in
+              Jvm_generate.emit_program
+                ~code:ir_code
+                ~typing
+                ~name_of_body
+                ~prim_name
+                ~arg_vars
+                ~enclosing:(fn_info, env_var)
+                prog;
+              if debug_ir_emit ()
+              then
+                Format.eprintf "[ir_emit] %s: used IR@." fn_info.name;
+              ir_code
+            with
+            | Parse_bytecode.Not_supported msg ->
+              if debug_ir_emit ()
+              then
+                Format.eprintf
+                  "[ir_emit] %s: legacy (parse: %s)@."
+                  fn_info.name
+                  msg;
+              apply_code
+            | Jvm_generate.Unsupported msg ->
+              if debug_ir_emit ()
+              then
+                Format.eprintf
+                  "[ir_emit] %s: legacy (gen: %s)@."
+                  fn_info.name
+                  msg;
+              apply_code)
+        in
         let cap_fields =
           List.mapi
             (fun i k ->

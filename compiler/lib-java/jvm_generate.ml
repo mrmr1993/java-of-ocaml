@@ -1008,7 +1008,8 @@ let emit_block ctx prog addr (b : Code.block) =
   emit_last ctx prog b.branch
 
 let emit_program
-    ~code ~typing ~name_of_body ~prim_name ?enclosing (prog : Code.program)
+    ~code ~typing ~name_of_body ~prim_name ?(arg_vars = []) ?enclosing
+    (prog : Code.program)
   =
   let ctx =
     { code
@@ -1021,6 +1022,40 @@ let emit_program
     ; next_local = 1
     }
   in
+  (* Apply-method locals 1..N are the formal args by JVM calling
+     convention. Pin each arg Var to its local before block emission
+     so [emit_load arg_i] reads from the right slot. Args are all
+     [K_obj] in the apply signature; we coerce to arg_vars' typed
+     kinds on first use via the normal emit_load path. *)
+  List.iteri
+    (fun i v ->
+      Hashtbl.replace ctx.var_local (Code.Var.idx v) (i + 1);
+      if ctx.next_local <= i + 1 then ctx.next_local <- i + 2)
+    arg_vars;
+  Jvm.Code.set_min_locals ctx.code ctx.next_local;
+  (* Initialise every entry-block param that isn't a pre-bound
+     apply-method arg to [null]. This covers the "start_accu" Var
+     (the entry block's nominal accu, which in OCaml's bytecode is
+     undefined on function entry) plus any leftover stack slots
+     that the caller of parse_function populated as initial_stack
+     but didn't bind to JVM locals — typically none for functions,
+     but being safe for robustness. Without this, the verifier
+     sees aload-on-uninitialized-local at the first read. *)
+  (let entry = Code.Addr.Map.find prog.start prog.blocks in
+   let arg_set =
+     List.fold_left
+       (fun s v -> Code.Var.Set.add v s)
+       Code.Var.Set.empty
+       arg_vars
+   in
+   List.iter
+     (fun v ->
+       if not (Code.Var.Set.mem v arg_set)
+       then (
+         let l = local_of ctx v in
+         Jvm.Code.aconst_null ctx.code;
+         Jvm.Code.astore ctx.code l))
+     entry.params);
   (* Emit start block first so control-flow fall-through matches
      block-address order. Then other blocks in sorted address order. *)
   let start_block = Code.Addr.Map.find prog.start prog.blocks in
