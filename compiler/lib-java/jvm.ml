@@ -132,6 +132,7 @@ module Code = struct
     ; buf : Buffer.t
     ; mutable stack : int
     ; mutable max_stack : int
+    ; mutable max_locals : int
     ; mutable next_label_id : int
     ; mutable labels : label list
     }
@@ -141,9 +142,13 @@ module Code = struct
     ; buf = Buffer.create 64
     ; stack = 0
     ; max_stack = 0
+    ; max_locals = 1 (* slot 0 for the String[] args parameter *)
     ; next_label_id = 0
     ; labels = []
     }
+
+  let note_local t index =
+    if index + 1 > t.max_locals then t.max_locals <- index + 1
 
   let fresh_label t =
     let lbl = { target = None; refs = []; id = t.next_label_id } in
@@ -234,6 +239,32 @@ module Code = struct
     add_u1 t.buf 0x5F
     (* stack depth unchanged *)
 
+  let istore t n =
+    (if n >= 0 && n <= 3
+     then add_u1 t.buf (0x3B + n) (* istore_0 .. istore_3 *)
+     else if n < 256
+     then (
+       add_u1 t.buf 0x36;
+       add_u1 t.buf n)
+     else
+       failwith
+         (Printf.sprintf "jvm: istore index %d exceeds 1-byte range" n));
+    note_local t n;
+    pop t 1
+
+  let iload t n =
+    (if n >= 0 && n <= 3
+     then add_u1 t.buf (0x1A + n) (* iload_0 .. iload_3 *)
+     else if n < 256
+     then (
+       add_u1 t.buf 0x15;
+       add_u1 t.buf n)
+     else
+       failwith
+         (Printf.sprintf "jvm: iload index %d exceeds 1-byte range" n));
+    note_local t n;
+    push t 1
+
   let iadd t =
     add_u1 t.buf 0x60;
     pop t 1
@@ -323,6 +354,8 @@ module Code = struct
     Buffer.contents t.buf
 
   let max_stack t = t.max_stack
+
+  let max_locals t = t.max_locals
 end
 
 (* --- Class assembly --- *)
@@ -365,7 +398,7 @@ let assemble_main_class build =
   in
   add_u4 out attr_len;
   add_u2 out (Code.max_stack code);
-  add_u2 out 1 (* max_locals: just the String[] args slot *);
+  add_u2 out (Code.max_locals code);
   add_u4 out code_len;
   Buffer.add_string out code_bytes;
   add_u2 out 0 (* exception_table_length *);

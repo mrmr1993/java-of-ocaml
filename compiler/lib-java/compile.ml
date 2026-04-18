@@ -41,25 +41,36 @@ let decode_all bc =
   loop 0 []
 
 (* -------------------------------------------------------------------------- *)
-(* "User-code" range detection.
-
-   The compiled bytecode contains a large preamble (Stdlib init) that we
-   don't translate. We identify the user module by walking outward from the
-   first supported primitive call, including only op-classes that appear in
-   our user code (value producers, comparisons, branches, C_CALLs) and
-   stopping at anything else (SETGLOBAL, STOP, MAKEBLOCK, APPLY, CLOSURE,
-   etc.). This is a heuristic, but it's robust for the straight-line +
-   if/else programs we currently handle. *)
+(* Opcode classification. *)
 
 let is_cmp_jump op =
   op = 131 (* BEQ *) || op = 132 (* BNEQ *) || op = 133 (* BLTINT *)
   || op = 134 (* BLEINT *) || op = 135 (* BGTINT *) || op = 136 (* BGEINT *)
 
+let is_cmp_nullary op =
+  op = Bytecode.Op.eq
+  || op = Bytecode.Op.neq
+  || op = Bytecode.Op.ltint
+  || op = Bytecode.Op.leint
+  || op = Bytecode.Op.gtint
+  || op = Bytecode.Op.geint
+
 let is_c_call op = op >= 93 && op <= 98
+
+let is_acc op =
+  (op >= Bytecode.Op.acc0 && op <= Bytecode.Op.acc7)
+  || op = Bytecode.Op.acc
+
+let is_pushacc op =
+  (op >= Bytecode.Op.pushacc0 && op <= Bytecode.Op.pushacc7)
+  || op = Bytecode.Op.pushacc
 
 let is_user_op (ins : instr) =
   let op = ins.opcode in
   op = Bytecode.Op.push
+  || op = Bytecode.Op.pop
+  || is_acc op
+  || is_pushacc op
   || op = Bytecode.Op.const0
   || op = Bytecode.Op.const1
   || op = Bytecode.Op.const2
@@ -74,11 +85,12 @@ let is_user_op (ins : instr) =
   || op = Bytecode.Op.addint
   || op = Bytecode.Op.subint
   || op = Bytecode.Op.mulint
+  || is_cmp_nullary op
   || op = Bytecode.Op.getglobal
   || op = Bytecode.Op.pushgetglobal
-  || op = 84 (* BRANCH *)
-  || op = 85 (* BRANCHIF *)
-  || op = 86 (* BRANCHIFNOT *)
+  || op = Bytecode.Op.branch
+  || op = Bytecode.Op.branchif
+  || op = Bytecode.Op.branchifnot
   || is_cmp_jump op
   || is_c_call op
 
@@ -98,37 +110,71 @@ let string_of_global (globals : Obj.t array) n =
   else Some (Obj.magic v : string)
 
 (* -------------------------------------------------------------------------- *)
-(* Branch target arithmetic.
+(* Branch-target arithmetic.
 
-   OCaml bytecode branch offsets are relative to the instruction position,
-   plus a fixed constant depending on the opcode kind (number of arg slots
-   past the opcode). See js_of_ocaml's parse_bytecode.ml:
+   Offsets are relative to the opcode position; the constant added depends on
+   the opcode's kind (number of arg slots already consumed when the branch
+   is taken in the interpreter).
      KJump / KCond_jump: target = pc + offset + 1
-     KCmp_jump          : target = pc + offset + 2
+     KCmp_jump         : target = pc + offset + 2
 *)
 
 let branch_target (ins : instr) =
   let op = ins.opcode in
-  if op = 84 || op = 85 || op = 86
+  if op = Bytecode.Op.branch
+     || op = Bytecode.Op.branchif
+     || op = Bytecode.Op.branchifnot
   then Some (ins.pc + ins.args.(0) + 1)
   else if is_cmp_jump op
   then Some (ins.pc + ins.args.(1) + 2)
   else None
 
 (* -------------------------------------------------------------------------- *)
-(* Forward emitter. *)
+(* Forward emitter.
+
+   Model: the OCaml accumulator is kept on top of the JVM operand stack
+   (when [acc_live = true]). The OCaml bytecode stack is mirrored in JVM
+   locals: local [local_base + i] holds the i-th element (bottom-indexed)
+   of the OCaml stack. [local_base = 1] (slot 0 holds the method's
+   [String[] args] parameter).
+
+   PUSH is [dup ; istore N]: the operand stack keeps acc intact on top, and
+   the freshly-stored local serves as the saved OCaml-stack entry. Later
+   arithmetic/ACC ops [iload N] to recover the saved value, and decrement
+   [oc_stack_depth] if they consume it. *)
+
+type cmp_op = Eq | Ne | Lt | Le | Gt | Ge
 
 type state =
   { code : Jvm.Code.t
   ; globals : Obj.t array
   ; supported_prims : (int, string * arg_kind) Hashtbl.t
   ; pc_to_label : (int, Jvm.Code.label) Hashtbl.t
-      (* OCaml PC -> JVM label, populated ahead of time for every branch
-         target that lies within the user range. *)
   ; mutable acc_live : bool
-      (* Does the top of the JVM operand stack currently represent OCaml's
-         accumulator? Toggled by ops that produce/consume values. *)
+  ; mutable oc_stack_depth : int
+  ; mutable pending_cmp : cmp_op option
+      (* A comparison opcode was just seen; we haven't emitted anything yet
+         because we want to fuse it with the next branch if possible. *)
   }
+
+let local_base = 1 (* slot 0 is for [String[] args] *)
+
+(* Local assigned to the k-th-from-top OCaml stack slot, given the current
+   depth. *)
+let stack_slot_local ~oc_stack_depth k =
+  if k < 0 || k >= oc_stack_depth
+  then
+    failwith
+      (Printf.sprintf
+         "java_of_ocaml: stack slot %d out of range (depth %d)"
+         k
+         oc_stack_depth);
+  local_base + (oc_stack_depth - 1 - k)
+
+(* Local assigned to the TOP of the OCaml stack, used by arithmetic and
+   comparison ops that pop one value. *)
+let top_slot_local ~oc_stack_depth =
+  stack_slot_local ~oc_stack_depth 0
 
 let find_supported_prims bc =
   let table = Hashtbl.create 4 in
@@ -143,32 +189,98 @@ let find_supported_prims bc =
 let label_at state pc =
   Hashtbl.find state.pc_to_label pc
 
-let emit_overwrite_value state emit =
+(* Push a fresh int onto the operand stack as the new acc, popping any
+   stale acc first. *)
+let emit_int_const state n =
   if state.acc_live then Jvm.Code.pop_top state.code;
-  emit ();
+  Jvm.Code.ldc_int state.code n;
   state.acc_live <- true
 
-let emit_int_const state n =
-  emit_overwrite_value state (fun () -> Jvm.Code.ldc_int state.code n)
-
 let emit_string_const state s =
-  emit_overwrite_value state (fun () -> Jvm.Code.ldc_string state.code s)
+  if state.acc_live then Jvm.Code.pop_top state.code;
+  Jvm.Code.ldc_string state.code s;
+  state.acc_live <- true
+
+(* OCaml PUSH: save current acc onto the OCaml stack (a fresh JVM local).
+   The operand stack retains the original acc on top thanks to [dup]. *)
+let emit_push state =
+  if not state.acc_live
+  then
+    (* A PUSH immediately after a C_CALL is a save-PUSH that would stash
+       the return value for later; our compile stops before any op that
+       would read it back, so skip. *)
+    ()
+  else (
+    let slot = local_base + state.oc_stack_depth in
+    Jvm.Code.dup state.code;
+    Jvm.Code.istore state.code slot;
+    state.oc_stack_depth <- state.oc_stack_depth + 1)
+
+let emit_acc state k =
+  let slot = stack_slot_local ~oc_stack_depth:state.oc_stack_depth k in
+  if state.acc_live then Jvm.Code.pop_top state.code;
+  Jvm.Code.iload state.code slot;
+  state.acc_live <- true
+
+let emit_pushacc state k =
+  emit_push state;
+  (* After PUSH the depth grew by one; ACC reads from the extended stack. *)
+  emit_acc state k
 
 let emit_int_push state n =
-  (* OCaml PUSHCONST-style fused op: with acc already live, loading the new
-     value just pushes on top while the old acc slides down to become a
-     saved OCaml-stack entry. *)
+  (* PUSHCONSTi / PUSHCONSTINT n: semantic [PUSH ; CONST n]. If acc was
+     live, [emit_push] duplicated it and stored the copy in a local; we
+     then pop the original off the op stack and push the new constant. If
+     acc wasn't live (e.g. immediately after a C_CALL return), [emit_push]
+     is a no-op and we just push the new constant. *)
+  let was_live = state.acc_live in
+  emit_push state;
+  if was_live then Jvm.Code.pop_top state.code;
   Jvm.Code.ldc_int state.code n;
   state.acc_live <- true
 
 let emit_string_push state s =
+  let was_live = state.acc_live in
+  emit_push state;
+  if was_live then Jvm.Code.pop_top state.code;
   Jvm.Code.ldc_string state.code s;
   state.acc_live <- true
 
+let consume_top state =
+  state.oc_stack_depth <- state.oc_stack_depth - 1
+
+(* Arithmetic ops — OCaml semantics (from runtime/interp.c):
+     ADDINT: acc := acc + stack.pop()    (commutative)
+     SUBINT: acc := acc - stack.pop()    (non-commutative, acc on the left)
+     MULINT: acc := acc * stack.pop()    (commutative)
+   Our JVM state has acc on top of the operand stack; the popped value lives
+   in the local for [stack[0] from top]. Loading it puts it above acc, so
+   for JVM's [isub] which computes [value1 - value2] (value1 below, value2
+   top), we get [acc - sp] naturally. No swap needed. *)
+
+let emit_addint state =
+  let slot = top_slot_local ~oc_stack_depth:state.oc_stack_depth in
+  Jvm.Code.iload state.code slot;
+  Jvm.Code.iadd state.code;
+  consume_top state
+
+let emit_subint state =
+  let slot = top_slot_local ~oc_stack_depth:state.oc_stack_depth in
+  Jvm.Code.iload state.code slot;
+  Jvm.Code.isub state.code;
+  consume_top state
+
+let emit_mulint state =
+  let slot = top_slot_local ~oc_stack_depth:state.oc_stack_depth in
+  Jvm.Code.iload state.code slot;
+  Jvm.Code.imul state.code;
+  consume_top state
+
+let emit_offsetint state n =
+  Jvm.Code.ldc_int state.code n;
+  Jvm.Code.iadd state.code
+
 let emit_c_call state ~kind =
-  (* Stack enters with [..., arg] (acc on top). Push System.out above,
-     swap so it becomes the receiver below the arg, invoke. Stack exits
-     with [...] (void return). *)
   Jvm.Code.getstatic
     state.code
     ~class_:"java/lang/System"
@@ -187,25 +299,29 @@ let emit_c_call state ~kind =
     ~descriptor:desc;
   state.acc_live <- false
 
-(* Emit a fused Cmp_jump + target: the OCaml [Bxxx imm offset] opcodes pop
-   the pushed value from the OCaml stack and compare it with the immediate
-   inline. In JVM terms, we already have the compared value on the operand
-   stack as [..., stack_val, acc]; we push the immediate and use if_icmp
-   with the corresponding predicate. *)
+(* Fused Cmp_jump opcode (BEQ/BNEQ/BLTINT/…) taking an immediate and a
+   branch offset. OCaml semantics: branch iff [imm TST acc]. *)
 let emit_cmp_jump state (ins : instr) =
   let imm = ins.args.(0) in
   let target_pc = ins.pc + ins.args.(1) + 2 in
   let lbl = label_at state target_pc in
   Jvm.Code.ldc_int state.code imm;
-  (* Now stack top is imm, below is acc. JVM's if_icmp<cond> compares
-     value1 (below = acc) <cond> value2 (top = imm). *)
+  (* Now value1 = acc (below), value2 = imm (top). JVM's if_icmp<cond>
+     evaluates [value1 <cond> value2 = acc <cond> imm]. Translate each
+     fused op's "[imm TST acc]" to "[acc (inverse TST) imm]". *)
   (match ins.opcode with
-   | 131 (* BEQ    imm==acc -> acc==imm *)         -> Jvm.Code.if_icmpeq state.code lbl
-   | 132 (* BNEQ   imm!=acc -> acc!=imm *)         -> Jvm.Code.if_icmpne state.code lbl
-   | 133 (* BLTINT imm<acc  -> acc>imm *)          -> Jvm.Code.if_icmpgt state.code lbl
-   | 134 (* BLEINT imm<=acc -> acc>=imm *)         -> Jvm.Code.if_icmpge state.code lbl
-   | 135 (* BGTINT imm>acc  -> acc<imm *)          -> Jvm.Code.if_icmplt state.code lbl
-   | 136 (* BGEINT imm>=acc -> acc<=imm *)         -> Jvm.Code.if_icmple state.code lbl
+   | 131 (* BEQ:    imm == acc ↔ acc == imm *) ->
+     Jvm.Code.if_icmpeq state.code lbl
+   | 132 (* BNEQ:   imm != acc ↔ acc != imm *) ->
+     Jvm.Code.if_icmpne state.code lbl
+   | 133 (* BLTINT: imm  < acc ↔ acc  > imm *) ->
+     Jvm.Code.if_icmpgt state.code lbl
+   | 134 (* BLEINT: imm <= acc ↔ acc >= imm *) ->
+     Jvm.Code.if_icmpge state.code lbl
+   | 135 (* BGTINT: imm  > acc ↔ acc  < imm *) ->
+     Jvm.Code.if_icmplt state.code lbl
+   | 136 (* BGEINT: imm >= acc ↔ acc <= imm *) ->
+     Jvm.Code.if_icmple state.code lbl
    | other ->
      failwith
        (Printf.sprintf
@@ -213,14 +329,89 @@ let emit_cmp_jump state (ins : instr) =
           other));
   state.acc_live <- false
 
+(* Non-fused comparison (EQ/NEQ/LTINT/…): stored as [pending_cmp] and
+   consumed on the next BRANCHIF/BRANCHIFNOT. We raise if a comparison
+   isn't immediately followed by a branch — materialising a 0/1 boolean
+   on the stack is possible but not yet exercised by any test. *)
+
+let cmp_of_opcode op =
+  if op = Bytecode.Op.eq then Eq
+  else if op = Bytecode.Op.neq then Ne
+  else if op = Bytecode.Op.ltint then Lt
+  else if op = Bytecode.Op.leint then Le
+  else if op = Bytecode.Op.gtint then Gt
+  else if op = Bytecode.Op.geint then Ge
+  else
+    failwith
+      (Printf.sprintf
+         "java_of_ocaml: cmp_of_opcode on non-comparison %d"
+         op)
+
+let emit_fused_branch state ~cmp ~target_pc ~branch_if_true =
+  (* OCaml GTINT etc. semantics: [acc := acc OP stack.pop()] where [OP]
+     names the predicate (Gt/Lt/...). On JVM, acc is already on top; we
+     load the top-of-stack local, placing it ABOVE the acc, so the JVM
+     if_icmp<cond> sees [value1 = acc ; value2 = stack.pop()]. OCaml's
+     [acc OP value2] is the condition we want to branch on (for
+     BRANCHIF) or whose negation we want to branch on (for BRANCHIFNOT). *)
+  let slot = top_slot_local ~oc_stack_depth:state.oc_stack_depth in
+  Jvm.Code.iload state.code slot;
+  let lbl = label_at state target_pc in
+  let branch_cond =
+    if branch_if_true
+    then cmp
+    else
+      match cmp with
+      | Eq -> Ne
+      | Ne -> Eq
+      | Lt -> Ge
+      | Le -> Gt
+      | Gt -> Le
+      | Ge -> Lt
+  in
+  (match branch_cond with
+   | Eq -> Jvm.Code.if_icmpeq state.code lbl
+   | Ne -> Jvm.Code.if_icmpne state.code lbl
+   | Lt -> Jvm.Code.if_icmplt state.code lbl
+   | Le -> Jvm.Code.if_icmple state.code lbl
+   | Gt -> Jvm.Code.if_icmpgt state.code lbl
+   | Ge -> Jvm.Code.if_icmpge state.code lbl);
+  consume_top state;
+  state.acc_live <- false
+
 let emit_instr state (ins : instr) =
-  (* Mark any label pinned to this PC first. Subsequent bytes are the
-     target of whatever branched here. *)
+  (* Pin the label for this PC if there is one. *)
   (match Hashtbl.find_opt state.pc_to_label ins.pc with
    | Some lbl -> Jvm.Code.mark_label state.code lbl
    | None -> ());
   let op = ins.opcode in
-  if op = Bytecode.Op.const0 then emit_int_const state 0
+  if is_cmp_nullary op
+  then state.pending_cmp <- Some (cmp_of_opcode op)
+  else if op = Bytecode.Op.branchifnot
+  then
+    match state.pending_cmp with
+    | Some cmp ->
+      let target_pc = ins.pc + ins.args.(0) + 1 in
+      emit_fused_branch state ~cmp ~target_pc ~branch_if_true:false;
+      state.pending_cmp <- None
+    | None ->
+      let target_pc = ins.pc + ins.args.(0) + 1 in
+      Jvm.Code.ldc_int state.code 0;
+      Jvm.Code.if_icmpeq state.code (label_at state target_pc);
+      state.acc_live <- false
+  else if op = Bytecode.Op.branchif
+  then
+    match state.pending_cmp with
+    | Some cmp ->
+      let target_pc = ins.pc + ins.args.(0) + 1 in
+      emit_fused_branch state ~cmp ~target_pc ~branch_if_true:true;
+      state.pending_cmp <- None
+    | None ->
+      let target_pc = ins.pc + ins.args.(0) + 1 in
+      Jvm.Code.ldc_int state.code 0;
+      Jvm.Code.if_icmpne state.code (label_at state target_pc);
+      state.acc_live <- false
+  else if op = Bytecode.Op.const0 then emit_int_const state 0
   else if op = Bytecode.Op.const1 then emit_int_const state 1
   else if op = Bytecode.Op.const2 then emit_int_const state 2
   else if op = Bytecode.Op.const3 then emit_int_const state 3
@@ -231,21 +422,32 @@ let emit_instr state (ins : instr) =
   else if op = Bytecode.Op.pushconst3 then emit_int_push state 3
   else if op = Bytecode.Op.pushconstint
   then emit_int_push state ins.args.(0)
-  else if op = Bytecode.Op.offsetint
-  then (
-    Jvm.Code.ldc_int state.code ins.args.(0);
-    Jvm.Code.iadd state.code)
-  else if op = Bytecode.Op.addint then Jvm.Code.iadd state.code
-  else if op = Bytecode.Op.subint then Jvm.Code.isub state.code
-  else if op = Bytecode.Op.mulint then Jvm.Code.imul state.code
-  else if op = Bytecode.Op.push then
-    if state.acc_live
-    then Jvm.Code.dup state.code
-    else
-      (* PUSH with no live acc is a "save PUSH" immediately after a C_CALL
-         at a statement boundary. Skip it; subsequent ops will set up a
-         fresh acc on top. *)
-      ()
+  else if op = Bytecode.Op.offsetint then emit_offsetint state ins.args.(0)
+  else if op = Bytecode.Op.addint then emit_addint state
+  else if op = Bytecode.Op.subint then emit_subint state
+  else if op = Bytecode.Op.mulint then emit_mulint state
+  else if op = Bytecode.Op.push then emit_push state
+  else if op = Bytecode.Op.acc0 then emit_acc state 0
+  else if op = Bytecode.Op.acc1 then emit_acc state 1
+  else if op = Bytecode.Op.acc2 then emit_acc state 2
+  else if op = Bytecode.Op.acc3 then emit_acc state 3
+  else if op = Bytecode.Op.acc4 then emit_acc state 4
+  else if op = Bytecode.Op.acc5 then emit_acc state 5
+  else if op = Bytecode.Op.acc6 then emit_acc state 6
+  else if op = Bytecode.Op.acc7 then emit_acc state 7
+  else if op = Bytecode.Op.acc then emit_acc state ins.args.(0)
+  else if op = Bytecode.Op.pushacc0 then emit_pushacc state 0
+  else if op = Bytecode.Op.pushacc1 then emit_pushacc state 1
+  else if op = Bytecode.Op.pushacc2 then emit_pushacc state 2
+  else if op = Bytecode.Op.pushacc3 then emit_pushacc state 3
+  else if op = Bytecode.Op.pushacc4 then emit_pushacc state 4
+  else if op = Bytecode.Op.pushacc5 then emit_pushacc state 5
+  else if op = Bytecode.Op.pushacc6 then emit_pushacc state 6
+  else if op = Bytecode.Op.pushacc7 then emit_pushacc state 7
+  else if op = Bytecode.Op.pushacc then emit_pushacc state ins.args.(0)
+  else if op = Bytecode.Op.pop
+  then
+    state.oc_stack_depth <- state.oc_stack_depth - ins.args.(0)
   else if op = Bytecode.Op.getglobal
   then
     match string_of_global state.globals ins.args.(0) with
@@ -268,24 +470,10 @@ let emit_instr state (ins : instr) =
             are currently supported"
            ins.args.(0)
            ins.pc)
-  else if op = 84 (* BRANCH *)
+  else if op = Bytecode.Op.branch
   then
     let target = ins.pc + ins.args.(0) + 1 in
     Jvm.Code.goto state.code (label_at state target)
-  else if op = 85 (* BRANCHIF *)
-  then (
-    (* Branch if acc is non-zero. Consume acc; assume the OCaml bytecode
-       won't expect a live acc on either side of the branch. *)
-    let target = ins.pc + ins.args.(0) + 1 in
-    Jvm.Code.ldc_int state.code 0;
-    Jvm.Code.if_icmpne state.code (label_at state target);
-    state.acc_live <- false)
-  else if op = 86 (* BRANCHIFNOT *)
-  then (
-    let target = ins.pc + ins.args.(0) + 1 in
-    Jvm.Code.ldc_int state.code 0;
-    Jvm.Code.if_icmpeq state.code (label_at state target);
-    state.acc_live <- false)
   else if is_cmp_jump op then emit_cmp_jump state ins
   else if is_c_call op
   then (
@@ -294,8 +482,8 @@ let emit_instr state (ins : instr) =
     | None ->
       failwith
         (Printf.sprintf
-           "java_of_ocaml: unsupported primitive call %s at pc %d"
-           (if ins.args.(0) < 0 then "<?>" else "<#" ^ string_of_int ins.args.(0) ^ ">")
+           "java_of_ocaml: unsupported primitive call #%d at pc %d"
+           ins.args.(0)
            ins.pc))
   else
     failwith
@@ -308,36 +496,27 @@ let emit_instr state (ins : instr) =
 (* -------------------------------------------------------------------------- *)
 (* Range selection. *)
 
-(* Find the first and last indices in [arr] of supported-primitive C_CALLs. *)
 let supported_call_indices arr ~prim_table =
   let n = Array.length arr in
   let rec find_first i =
-    if i >= n
-    then None
-    else
-      let ins = arr.(i) in
-      if is_c_call ins.opcode
-         && Hashtbl.mem prim_table ins.args.(0)
-      then Some i
-      else find_first (i + 1)
+    if i >= n then None
+    else if is_c_call arr.(i).opcode
+         && Hashtbl.mem prim_table arr.(i).args.(0)
+    then Some i
+    else find_first (i + 1)
   in
   let rec find_last i =
-    if i < 0
-    then None
-    else
-      let ins = arr.(i) in
-      if is_c_call ins.opcode
-         && Hashtbl.mem prim_table ins.args.(0)
-      then Some i
-      else find_last (i - 1)
+    if i < 0 then None
+    else if is_c_call arr.(i).opcode
+         && Hashtbl.mem prim_table arr.(i).args.(0)
+    then Some i
+    else find_last (i - 1)
   in
   match find_first 0, find_last (n - 1) with
   | Some f, Some l -> Some (f, l)
   | _ -> None
 
 let walk_back_user_start arr start_idx =
-  (* Walk backward while instructions classify as user-ops. Stop index is the
-     first instruction (lowest index) still in the run. *)
   let rec loop i =
     if i < 0 then 0
     else if is_user_op arr.(i)
@@ -379,9 +558,6 @@ let compile ~bc ~out_dir =
   let end_idx = walk_forward_user_end arr last_idx in
   let class_bytes =
     Jvm.assemble_main_class (fun _cp code ->
-      (* Pre-create labels for every branch target that lands inside the
-         user range (or immediately past its end, which is common for the
-         merge point of an if/else). *)
       let pc_to_label = Hashtbl.create 4 in
       let post_end_pc =
         if end_idx + 1 < Array.length arr
@@ -406,16 +582,14 @@ let compile ~bc ~out_dir =
         ; supported_prims = prim_table
         ; pc_to_label
         ; acc_live = false
+        ; oc_stack_depth = 0
+        ; pending_cmp = None
         }
       in
       for i = start_idx to end_idx do
         emit_instr state arr.(i)
       done;
-      (* Any label whose OCaml target sits beyond the last emitted
-         instruction (typically the merge-point at the PUSH that starts the
-         module's cleanup) gets pinned to the current JVM position. *)
-      let pinned_here_pc = post_end_pc in
-      (match Hashtbl.find_opt pc_to_label pinned_here_pc with
+      (match Hashtbl.find_opt pc_to_label post_end_pc with
        | Some lbl -> Jvm.Code.mark_label code lbl
        | None -> ());
       Jvm.Code.return_void code)

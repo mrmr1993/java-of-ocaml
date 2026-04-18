@@ -5,7 +5,26 @@ type t =
   }
 
 module Op = struct
+  let acc0 = 0
+  let acc1 = 1
+  let acc2 = 2
+  let acc3 = 3
+  let acc4 = 4
+  let acc5 = 5
+  let acc6 = 6
+  let acc7 = 7
+  let acc = 8
   let push = 9
+  let pushacc0 = 10
+  let pushacc1 = 11
+  let pushacc2 = 12
+  let pushacc3 = 13
+  let pushacc4 = 14
+  let pushacc5 = 15
+  let pushacc6 = 16
+  let pushacc7 = 17
+  let pushacc = 18
+  let pop = 19
   let getglobal = 53
   let pushgetglobal = 54
   let c_call1 = 93
@@ -22,7 +41,16 @@ module Op = struct
   let addint = 110
   let subint = 111
   let mulint = 112
+  let eq = 121
+  let neq = 122
+  let ltint = 123
+  let leint = 124
+  let gtint = 125
+  let geint = 126
   let offsetint = 127
+  let branch = 84
+  let branchif = 85
+  let branchifnot = 86
   let stop = 143
 end
 

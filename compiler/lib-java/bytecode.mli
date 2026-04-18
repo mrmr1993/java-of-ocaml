@@ -15,7 +15,26 @@ val prim_index : t -> string -> int option
 
 (** Opcode numbers. Extend as new tests demand. *)
 module Op : sig
+  val acc0 : int
+  val acc1 : int
+  val acc2 : int
+  val acc3 : int
+  val acc4 : int
+  val acc5 : int
+  val acc6 : int
+  val acc7 : int
+  val acc : int
   val push : int
+  val pushacc0 : int
+  val pushacc1 : int
+  val pushacc2 : int
+  val pushacc3 : int
+  val pushacc4 : int
+  val pushacc5 : int
+  val pushacc6 : int
+  val pushacc7 : int
+  val pushacc : int
+  val pop : int
   val getglobal : int
   val pushgetglobal : int
   val c_call1 : int
@@ -32,7 +51,16 @@ module Op : sig
   val addint : int
   val subint : int
   val mulint : int
+  val eq : int
+  val neq : int
+  val ltint : int
+  val leint : int
+  val gtint : int
+  val geint : int
   val offsetint : int
+  val branch : int
+  val branchif : int
+  val branchifnot : int
   val stop : int
 end
 

@@ -61,6 +61,16 @@ module Code : sig
 
   val swap : t -> unit
 
+  (** {2 Integer locals}
+
+      [istore]/[iload] operate on a JVM local variable slot by index. The
+      builder automatically tracks [max_locals] so the enclosing class file
+      declares enough space. *)
+
+  val istore : t -> int -> unit
+
+  val iload : t -> int -> unit
+
   (** {2 Arithmetic (int)} *)
 
   val iadd : t -> unit
