@@ -96,15 +96,39 @@ let capture_kind_at state cap_index =
          cap_index
          state.ncaps)
 
+(* OCaml's closure block layout (per [CLOSUREREC] in interp.c):
+   - [nfuncs = 1] (plain CLOSURE): [code; closinfo; cap0; cap1; …]
+     captures at offset [envofs = 2].
+   - [nfuncs > 1] (recursive group of [M] functions): the block is
+     [code0; closinfo0; infix1; code1; closinfo1; infix2; code2;
+     closinfo2; …; cap0; cap1; …]. Each sibling's env is an INFIX
+     pointer at a different offset into this shared block — fn_0's
+     env starts at field 0, fn_1's env starts at field 3, fn_2's
+     at field 6, and so on. Relative to each sibling's env, the
+     captures begin at [3 * (nfuncs - group_idx) - 1]. The formula
+     collapses to [2] for [nfuncs = 1 / group_idx = 0] (the plain
+     CLOSURE case). *)
+let enclosing_envofs state =
+  match state.enclosing_function_name with
+  | None -> 2
+  | Some name ->
+    (match Hashtbl.find_opt state.fn_by_name name with
+     | Some fi ->
+       let nfuncs = Array.length fi.group in
+       (3 * (nfuncs - fi.group_idx)) - 1
+     | None -> 2)
+
 let emit_envacc state k =
-  if k < 2
+  let envofs = enclosing_envofs state in
+  if k < envofs
   then
     failwith
       (Printf.sprintf
-         "java_of_ocaml: ENVACC %d (field <2) not supported — closure \
-          info fields aren't modelled"
-         k);
-  let cap_index = k - 2 in
+         "java_of_ocaml: ENVACC %d (field <envofs=%d) not supported — \
+          closure-info / sibling fields aren't modelled"
+         k
+         envofs);
+  let cap_index = k - envofs in
   let kind = capture_kind_at state cap_index in
   let fname = Printf.sprintf "cap%d" cap_index in
   let desc = jvm_type_of_kind kind in
@@ -120,12 +144,20 @@ let emit_envacc state k =
   state.acc_kind <- kind
 
 let emit_pushenvacc state k =
+  let envofs = enclosing_envofs state in
   Emit_stack.emit_push state;
-  if k < 2
+  if k < envofs
   then
     failwith
-      (Printf.sprintf "java_of_ocaml: PUSHENVACC %d (field <2) not supported" k);
-  let cap_index = k - 2 in
+      (Printf.sprintf
+         "java_of_ocaml: PUSHENVACC %d (field <envofs=%d) not supported \
+          (in_fn=%s)"
+         k
+         envofs
+         (match state.enclosing_function_name with
+          | Some n -> n
+          | None -> "<main>"));
+  let cap_index = k - envofs in
   let kind = capture_kind_at state cap_index in
   let fname = Printf.sprintf "cap%d" cap_index in
   let desc = jvm_type_of_kind kind in

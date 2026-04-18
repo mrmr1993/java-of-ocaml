@@ -37,7 +37,15 @@ let emit_method_info out (l : method_layout) =
   add_u2 out l.code_attr_idx;
   let attr_len = 2 + 2 + 4 + code_len + 2 + (8 * n_entries) + 2 in
   add_u4 out attr_len;
-  add_u2 out (Code.max_stack l.m.code);
+  (* Our stack tracker is forward-walk-only — at a label reached
+     by a branch with a deeper outgoing stack, we carry the deeper
+     count forward into a caller (over-estimate). But branches
+     that NARROW the stack (fused compares, switches) can leave
+     the tracker below the actual high-water mark. Add a safety
+     margin; the JVM only cares that [max_stack] >= observed
+     runtime max. 16 is generous but cheap. *)
+  let declared_max_stack = min 65535 (Code.max_stack l.m.code + 16) in
+  add_u2 out declared_max_stack;
   add_u2 out (Code.max_locals l.m.code);
   add_u4 out code_len;
   Buffer.add_string out l.code_bytes;

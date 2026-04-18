@@ -105,6 +105,14 @@ let push t n =
   t.stack <- t.stack + n;
   if t.stack > t.max_stack then t.max_stack <- t.stack
 
+(* For compound opcodes whose stack-effect encoding is [pop t net]
+   with [net = pops - push_ret], the intermediate (pre-push) stack
+   depth is [t.stack + pops] — which is strictly larger than
+   [t.stack] when [net < pops]. We mostly ignore this since the
+   preceding pushes already recorded the call-site high-water
+   mark, but [invoke_stack_effect] below re-asserts it explicitly
+   for the invoke family where the args are often [Object]s that
+   [push] registered one-at-a-time anyway. *)
 let pop t n = t.stack <- t.stack - n
 
 let ldc_string t s =
