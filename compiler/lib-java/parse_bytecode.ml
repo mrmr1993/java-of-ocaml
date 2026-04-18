@@ -1130,7 +1130,7 @@ let parse_function instrs ~start_pc ~end_pc ~nargs ~ncaps =
       ~initial_stack
       ~env:(Some env_var)
   in
-  (prog, params)
+  (prog, params, env_var)
 
 let parse_main instrs ~start_pc ~end_pc =
   Var.reset ();

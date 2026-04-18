@@ -22,5 +22,10 @@ val emit_program :
      code:Jvm.Code.t
   -> typing:Jvm_typing.t
   -> name_of_body:(int -> string)
+  -> prim_name:(int -> string)
+      (* Look up the C primitive name from its bytecode-table index;
+         used to resolve [Extern "ccall_N"] prims. Raise Not_found
+         for unknown indices. *)
+  -> ?enclosing:Function_info.function_info * Code.Var.t
   -> Code.program
   -> unit

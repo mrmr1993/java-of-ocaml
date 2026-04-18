@@ -27,7 +27,10 @@ val parse_function :
   -> end_pc:int
   -> nargs:int
   -> ncaps:int
-  -> Code.program * Code.Var.t list (* params (args then captures) *)
+  -> Code.program
+     * Code.Var.t list (* params (args then captures) *)
+     * Code.Var.t (* env Var — the closure self-ref used by ENVACC /
+                      OFFSETCLOSURE *)
 
 (** [parse_main instrs ~start_pc ~end_pc] is for the top-level init code
     (no args, no captures). *)

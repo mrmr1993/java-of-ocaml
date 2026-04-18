@@ -20,6 +20,7 @@ let debug_ir_gen = Debug.find "ir_gen"
 let ir_smoke_function
     arr
     ~(name_of_body : int -> string)
+    ~(prim_name : int -> string)
     (fi : Function_info.function_info)
   =
   if not (debug_ir ())
@@ -29,7 +30,7 @@ let ir_smoke_function
     let end_pc = arr.(fi.body_end_idx).pc in
     let instrs = Array.to_list arr in
     try
-      let prog, _params =
+      let prog, _params, env_var =
         Parse_bytecode.parse_function
           instrs
           ~start_pc:body_pc
@@ -44,7 +45,13 @@ let ir_smoke_function
         let code = Jvm.Code.create cp in
         let typing = Jvm_typing.infer prog in
         (try
-           Jvm_generate.emit_program ~code ~typing ~name_of_body prog;
+           Jvm_generate.emit_program
+             ~code
+             ~typing
+             ~name_of_body
+             ~prim_name
+             ~enclosing:(fi, env_var)
+             prog;
            Format.eprintf "[ir_gen] %s: emitted ok@." fi.name
          with Jvm_generate.Unsupported msg ->
            Format.eprintf "[ir_gen] %s: Unsupported — %s@." fi.name msg))
@@ -57,8 +64,9 @@ let ir_smoke_function
         fi.name
         (Printexc.to_string exn))
 
-let ir_smoke_main arr ~name_of_body ~fn_body_pcs =
+let ir_smoke_main arr ~name_of_body ~prim_name ~fn_body_pcs =
   let _ = name_of_body in
+  let _ = prim_name in
   if not (debug_ir ())
   then ()
   else (
@@ -357,8 +365,15 @@ let compile ~bc ~out_dir =
       | Some n -> n
       | None -> raise Not_found
     in
-    ir_smoke_main arr ~name_of_body ~fn_body_pcs;
-    List.iter (fun fi -> ir_smoke_function arr ~name_of_body fi) !func_list);
+    let prim_name idx =
+      if idx < 0 || idx >= Array.length parsed.prims
+      then raise Not_found
+      else parsed.prims.(idx)
+    in
+    ir_smoke_main arr ~name_of_body ~prim_name ~fn_body_pcs;
+    List.iter
+      (fun fi -> ir_smoke_function arr ~name_of_body ~prim_name fi)
+      !func_list);
   time_phase "kind-inference" (fun () ->
     List.iter
       (fun (fi : function_info) ->

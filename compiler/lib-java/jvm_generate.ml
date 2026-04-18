@@ -12,6 +12,8 @@ type ctx =
   ; var_local : (int, int) Hashtbl.t
   ; labels : (Code.Addr.t, Jvm.Code.label) Hashtbl.t
   ; name_of_body : int -> string
+  ; prim_name : int -> string
+  ; enclosing : (Function_info.function_info * Code.Var.t) option
   ; mutable next_local : int
   }
 
@@ -37,11 +39,16 @@ let label_of ctx addr =
     Hashtbl.add ctx.labels addr l;
     l
 
-(* Load Var v onto the JVM operand stack. *)
+(* Load Var v onto the JVM operand stack. The env Var (if any) maps
+   to [aload 0] — in an apply method, local 0 is [this]. *)
 let emit_load ctx v =
-  let k = kind_of ctx v in
-  let l = local_of ctx v in
-  Kind.emit_load_for_kind ctx.code l k
+  match ctx.enclosing with
+  | Some (_, env_var) when Code.Var.equal v env_var ->
+    Jvm.Code.aload ctx.code 0
+  | _ ->
+    let k = kind_of ctx v in
+    let l = local_of ctx v in
+    Kind.emit_load_for_kind ctx.code l k
 
 (* Store top of JVM operand stack into Var v's local, coercing if the
    producing kind differs from v's declared kind. *)
@@ -112,6 +119,285 @@ let ensure_int ctx k =
       ~descriptor:"()I"
   | _ -> raise (Unsupported "ensure_int: unexpected kind")
 
+(* Emit a C primitive call by name. Args have already been parsed
+   into [prim_arg list]; they're all Pv or Pc. The handler dispatches
+   on known primitive names and emits specialised bytecode.
+   Unknown names raise [Unsupported]. *)
+let emit_ccall ctx name args =
+  let load_args_obj () =
+    List.iter
+      (fun pa ->
+        match (pa : Code.prim_arg) with
+        | Pv v ->
+          emit_load ctx v;
+          (match kind_of ctx v with
+           | K_int -> Kind.emit_box_int ctx.code
+           | K_float -> Kind.emit_box_float ctx.code
+           | _ -> ())
+        | Pc c -> ignore (emit_constant ctx c))
+      args
+  in
+  let _ = load_args_obj in
+  let as_string v =
+    emit_load ctx v;
+    match kind_of ctx v with
+    | K_string -> ()
+    | _ -> Jvm.Code.checkcast ctx.code "java/lang/String"
+  in
+  let as_bytes v =
+    emit_load ctx v;
+    match kind_of ctx v with
+    | _ -> Jvm.Code.checkcast ctx.code "Bytes"
+  in
+  let as_block v =
+    emit_load ctx v;
+    match kind_of ctx v with
+    | K_block _ -> ()
+    | _ -> Jvm.Code.checkcast ctx.code "Block"
+  in
+  let as_int v =
+    emit_load ctx v;
+    match kind_of ctx v with
+    | K_int -> ()
+    | _ ->
+      Jvm.Code.checkcast ctx.code "java/lang/Integer";
+      Jvm.Code.invokevirtual
+        ctx.code
+        ~class_:"java/lang/Integer"
+        ~method_:"intValue"
+        ~descriptor:"()I"
+  in
+  match name with
+  | "caml_ml_string_length" | "caml_string_length" ->
+    (match args with
+     | [ Pv s ] ->
+       as_string s;
+       Jvm.Code.invokevirtual
+         ctx.code
+         ~class_:"java/lang/String"
+         ~method_:"length"
+         ~descriptor:"()I";
+       Kind.K_int
+     | _ -> raise (Unsupported "caml_string_length arity"))
+  | "caml_ml_bytes_length" | "caml_bytes_length" ->
+    (match args with
+     | [ Pv b ] ->
+       as_bytes b;
+       Jvm.Code.invokevirtual
+         ctx.code
+         ~class_:"Bytes"
+         ~method_:"length"
+         ~descriptor:"()I";
+       Kind.K_int
+     | _ -> raise (Unsupported "caml_bytes_length arity"))
+  | "caml_string_get" ->
+    (match args with
+     | [ Pv s; Pv i ] ->
+       as_string s;
+       as_int i;
+       Jvm.Code.invokevirtual
+         ctx.code
+         ~class_:"java/lang/String"
+         ~method_:"charAt"
+         ~descriptor:"(I)C";
+       Kind.K_int
+     | _ -> raise (Unsupported "caml_string_get arity"))
+  | "caml_bytes_get" ->
+    (match args with
+     | [ Pv b; Pv i ] ->
+       as_bytes b;
+       as_int i;
+       Jvm.Code.invokevirtual
+         ctx.code
+         ~class_:"Bytes"
+         ~method_:"get"
+         ~descriptor:"(I)I";
+       Kind.K_int
+     | _ -> raise (Unsupported "caml_bytes_get arity"))
+  | "caml_bytes_set" ->
+    (match args with
+     | [ Pv b; Pv i; Pv v ] ->
+       as_bytes b;
+       as_int i;
+       as_int v;
+       Jvm.Code.invokevirtual
+         ctx.code
+         ~class_:"Bytes"
+         ~method_:"set"
+         ~descriptor:"(II)V";
+       Jvm.Code.ldc_int ctx.code 0;
+       Kind.K_int
+     | _ -> raise (Unsupported "caml_bytes_set arity"))
+  | "caml_create_bytes" ->
+    (match args with
+     | [ Pv n ] ->
+       Jvm.Code.new_ ctx.code "Bytes";
+       Jvm.Code.dup ctx.code;
+       as_int n;
+       Jvm.Code.invokespecial
+         ctx.code
+         ~class_:"Bytes"
+         ~method_:"<init>"
+         ~descriptor:"(I)V";
+       Kind.K_obj
+     | _ -> raise (Unsupported "caml_create_bytes arity"))
+  | "caml_ml_flush" ->
+    (match args with
+     | [ Pv chan ] ->
+       emit_load ctx chan;
+       Jvm.Code.checkcast ctx.code "Channel";
+       Jvm.Code.invokevirtual
+         ctx.code
+         ~class_:"Channel"
+         ~method_:"flush"
+         ~descriptor:"()V";
+       Jvm.Code.ldc_int ctx.code 0;
+       Kind.K_int
+     | _ -> raise (Unsupported "caml_ml_flush arity"))
+  | "caml_ml_output_char" ->
+    (match args with
+     | [ Pv chan; Pv c ] ->
+       emit_load ctx chan;
+       Jvm.Code.checkcast ctx.code "Channel";
+       as_int c;
+       Jvm.Code.invokevirtual
+         ctx.code
+         ~class_:"Channel"
+         ~method_:"outputChar"
+         ~descriptor:"(I)V";
+       Jvm.Code.ldc_int ctx.code 0;
+       Kind.K_int
+     | _ -> raise (Unsupported "caml_ml_output_char arity"))
+  | "caml_array_unsafe_get" | "caml_array_get" ->
+    (match args with
+     | [ Pv a; Pv i ] ->
+       as_block a;
+       Jvm.Code.getfield
+         ctx.code
+         ~class_:"Block"
+         ~field:"fields"
+         ~descriptor:"[Ljava/lang/Object;";
+       as_int i;
+       Jvm.Code.aaload ctx.code;
+       Kind.K_obj
+     | _ -> raise (Unsupported "caml_array_get arity"))
+  | "caml_array_unsafe_set" | "caml_array_set" ->
+    (match args with
+     | [ Pv a; Pv i; Pv v ] ->
+       as_block a;
+       Jvm.Code.getfield
+         ctx.code
+         ~class_:"Block"
+         ~field:"fields"
+         ~descriptor:"[Ljava/lang/Object;";
+       as_int i;
+       emit_load ctx v;
+       (match kind_of ctx v with
+        | K_int -> Kind.emit_box_int ctx.code
+        | K_float -> Kind.emit_box_float ctx.code
+        | _ -> ());
+       Jvm.Code.aastore ctx.code;
+       Jvm.Code.ldc_int ctx.code 0;
+       Kind.K_int
+     | _ -> raise (Unsupported "caml_array_set arity"))
+  | "caml_string_of_bytes" ->
+    (match args with
+     | [ Pv b ] ->
+       as_bytes b;
+       Jvm.Code.invokevirtual
+         ctx.code
+         ~class_:"Bytes"
+         ~method_:"asString"
+         ~descriptor:"()Ljava/lang/String;";
+       Kind.K_string
+     | _ -> raise (Unsupported "caml_string_of_bytes arity"))
+  | "caml_bytes_of_string" ->
+    (match args with
+     | [ Pv s ] ->
+       as_string s;
+       Jvm.Code.invokestatic
+         ctx.code
+         ~class_:"Bytes"
+         ~method_:"ofString"
+         ~descriptor:"(Ljava/lang/String;)LBytes;";
+       Kind.K_obj
+     | _ -> raise (Unsupported "caml_bytes_of_string arity"))
+  | "caml_blit_string" ->
+    (match args with
+     | [ Pv s; Pv si; Pv b; Pv bi; Pv n ] ->
+       as_bytes b;
+       as_int bi;
+       as_string s;
+       as_int si;
+       as_int n;
+       Jvm.Code.invokevirtual
+         ctx.code
+         ~class_:"Bytes"
+         ~method_:"blitString"
+         ~descriptor:"(ILjava/lang/String;II)V";
+       Jvm.Code.ldc_int ctx.code 0;
+       Kind.K_int
+     | _ -> raise (Unsupported "caml_blit_string arity"))
+  | "caml_blit_bytes" ->
+    (match args with
+     | [ Pv s; Pv si; Pv b; Pv bi; Pv n ] ->
+       as_bytes b;
+       as_int bi;
+       as_bytes s;
+       as_int si;
+       as_int n;
+       Jvm.Code.invokevirtual
+         ctx.code
+         ~class_:"Bytes"
+         ~method_:"blitBytes"
+         ~descriptor:"(ILBytes;II)V";
+       Jvm.Code.ldc_int ctx.code 0;
+       Kind.K_int
+     | _ -> raise (Unsupported "caml_blit_bytes arity"))
+  | "caml_format_int" ->
+    (match args with
+     | [ Pv _fmt; Pv n ] ->
+       (* Ignore format string; use Integer.toString for now. *)
+       as_int n;
+       Jvm.Code.invokestatic
+         ctx.code
+         ~class_:"java/lang/Integer"
+         ~method_:"toString"
+         ~descriptor:"(I)Ljava/lang/String;";
+       Kind.K_string
+     | _ -> raise (Unsupported "caml_format_int arity"))
+  | "caml_obj_tag" ->
+    (* Arg 0: Block. Return: tag (int). *)
+    (match args with
+     | [ Pv v ] ->
+       emit_load ctx v;
+       Jvm.Code.checkcast ctx.code "Block";
+       Jvm.Code.getfield
+         ctx.code
+         ~class_:"Block"
+         ~field:"tag"
+         ~descriptor:"I";
+       Kind.K_int
+     | _ -> raise (Unsupported "caml_obj_tag arity"))
+  | "caml_obj_dup" ->
+    (match args with
+     | [ Pv v ] ->
+       emit_load ctx v;
+       (* Block.dup() returns a shallow-copy Block. *)
+       Jvm.Code.checkcast ctx.code "Block";
+       Jvm.Code.invokevirtual
+         ctx.code
+         ~class_:"Block"
+         ~method_:"dup"
+         ~descriptor:"()LBlock;";
+       Kind.K_obj
+     | _ -> raise (Unsupported "caml_obj_dup arity"))
+  | "caml_fresh_oo_id" ->
+    (* OCaml runtime counter; increment and return. We use a static
+       counter on Main for simplicity. *)
+    raise (Unsupported "caml_fresh_oo_id (needs Main counter)")
+  | _ -> raise (Unsupported ("C primitive " ^ name))
+
 let emit_int_binop ctx op a b =
   let ka = emit_prim_arg ctx a in
   ensure_int ctx ka;
@@ -168,15 +454,38 @@ let emit_prim ctx (p : Code.prim) (args : Code.prim_arg list) : Kind.kind =
     Jvm.Code.ldc_int ctx.code 1;
     Jvm.Code.mark_label ctx.code l_end;
     K_int
-  | Extern "offsetclosure", [ Pv _env; Pc (Int _k) ] ->
-    (* For single-closure blocks and offsetclosure 0, the env is the
-       closure itself. Without the enclosing-fn group context, the
-       honest answer is Unsupported — the legacy emitter has a
-       dedicated sibling_N field lookup for the multi-function
-       case. Defer. *)
-    raise (Unsupported "offsetclosure (needs enclosing-fn context)")
-  | Extern s, _ when String.length s > 6 && String.sub s 0 6 = "ccall_" ->
-    raise (Unsupported ("C primitive " ^ s))
+  | Extern "offsetclosure", [ Pv env_arg; Pc (Int k) ] ->
+    (match ctx.enclosing with
+     | None -> raise (Unsupported "offsetclosure: no enclosing fn")
+     | Some (fi, env_var) ->
+       if not (Code.Var.equal env_arg env_var)
+       then raise (Unsupported "offsetclosure on non-env var");
+       let self_idx = fi.Function_info.group_idx in
+       let target_idx = self_idx + (k / 3) in
+       let group_len = Array.length fi.Function_info.group in
+       if group_len <= 1 && k = 0
+       then (
+         (* Single closure, self-ref: just aload 0. *)
+         Jvm.Code.aload ctx.code 0;
+         K_closure { name = fi.name; captures = [] })
+       else if target_idx < 0 || target_idx >= group_len
+       then raise (Unsupported "offsetclosure: target out of group")
+       else (
+         let target = fi.Function_info.group.(target_idx) in
+         Jvm.Code.aload ctx.code 0;
+         Jvm.Code.getfield
+           ctx.code
+           ~class_:fi.name
+           ~field:(Printf.sprintf "sibling_%d" target_idx)
+           ~descriptor:"LClosure;";
+         K_closure { name = target.name; captures = [] }))
+  | Extern s, args' when String.length s > 6 && String.sub s 0 6 = "ccall_" ->
+    let idx = int_of_string (String.sub s 6 (String.length s - 6)) in
+    let name =
+      try ctx.prim_name idx
+      with Not_found -> raise (Unsupported ("ccall_" ^ string_of_int idx))
+    in
+    emit_ccall ctx name args'
   | Extern "get_global", [ Pc (Int idx) ] ->
     Jvm.Code.getstatic
       ctx.code
@@ -283,19 +592,50 @@ let emit_expr ctx (e : Code.expr) : Kind.kind =
       ~descriptor:"(I[Ljava/lang/Object;)V";
     K_obj
   | Field (v, i) ->
-    emit_load ctx v;
-    (match kind_of ctx v with
-     | K_block _ | K_obj ->
-       Jvm.Code.checkcast ctx.code "Block";
+    (* Field(env, i) — ENVACC-style capture read. Resolve via the
+       enclosing function's [cap_<idx>] field; cap index is
+       [i - envofs] where envofs is the OCaml closure offset
+       (function of group size and group_idx). *)
+    (match ctx.enclosing with
+     | Some (fi, env_var) when Code.Var.equal v env_var ->
+       let nfuncs = Array.length fi.Function_info.group in
+       let envofs = (3 * (nfuncs - fi.group_idx)) - 1 in
+       if i < envofs
+       then
+         raise
+           (Unsupported
+              (Printf.sprintf
+                 "Field(env,%d) below envofs=%d (closure-info/sibling \
+                  field)"
+                 i
+                 envofs));
+       let cap_index = i - envofs in
+       let cap_kinds = !(fi.Function_info.capture_kinds) in
+       let k =
+         try List.nth cap_kinds cap_index
+         with _ -> Kind.K_obj
+       in
+       Jvm.Code.aload ctx.code 0;
        Jvm.Code.getfield
          ctx.code
-         ~class_:"Block"
-         ~field:"fields"
-         ~descriptor:"[Ljava/lang/Object;";
-       Jvm.Code.ldc_int ctx.code i;
-       Jvm.Code.aaload ctx.code;
-       K_obj
-     | _ -> raise (Unsupported "Field on non-block kind"))
+         ~class_:fi.name
+         ~field:(Printf.sprintf "cap%d" cap_index)
+         ~descriptor:(Kind.jvm_type_of_kind k);
+       k
+     | _ ->
+       emit_load ctx v;
+       (match kind_of ctx v with
+        | K_block _ | K_obj ->
+          Jvm.Code.checkcast ctx.code "Block";
+          Jvm.Code.getfield
+            ctx.code
+            ~class_:"Block"
+            ~field:"fields"
+            ~descriptor:"[Ljava/lang/Object;";
+          Jvm.Code.ldc_int ctx.code i;
+          Jvm.Code.aaload ctx.code;
+          K_obj
+        | _ -> raise (Unsupported "Field on non-block kind")))
   | Closure { captures; body = body_pc, _ } ->
     let class_name =
       try ctx.name_of_body body_pc
@@ -340,8 +680,59 @@ let emit_instr ctx (i : Code.instr) =
      | K_float -> Kind.emit_box_float ctx.code
      | _ -> ());
     Jvm.Code.aastore ctx.code
-  | Offset_ref _ | Array_set _ ->
-    raise (Unsupported "Offset_ref/Array_set")
+  | Offset_ref (v, n) ->
+    (* arr = v.fields; arr[0] = Integer.valueOf(((Integer)arr[0]).intValue() + n).
+       Use a fresh local to hold the array cleanly. *)
+    let tmp = ctx.next_local in
+    ctx.next_local <- tmp + 1;
+    Jvm.Code.set_min_locals ctx.code ctx.next_local;
+    emit_load ctx v;
+    Jvm.Code.checkcast ctx.code "Block";
+    Jvm.Code.getfield
+      ctx.code
+      ~class_:"Block"
+      ~field:"fields"
+      ~descriptor:"[Ljava/lang/Object;";
+    Jvm.Code.astore ctx.code tmp;
+    Jvm.Code.aload ctx.code tmp;
+    Jvm.Code.ldc_int ctx.code 0;
+    Jvm.Code.aload ctx.code tmp;
+    Jvm.Code.ldc_int ctx.code 0;
+    Jvm.Code.aaload ctx.code;
+    Jvm.Code.checkcast ctx.code "java/lang/Integer";
+    Jvm.Code.invokevirtual
+      ctx.code
+      ~class_:"java/lang/Integer"
+      ~method_:"intValue"
+      ~descriptor:"()I";
+    Jvm.Code.ldc_int ctx.code n;
+    Jvm.Code.iadd ctx.code;
+    Kind.emit_box_int ctx.code;
+    Jvm.Code.aastore ctx.code
+  | Array_set (a, i, v) ->
+    emit_load ctx a;
+    Jvm.Code.checkcast ctx.code "Block";
+    Jvm.Code.getfield
+      ctx.code
+      ~class_:"Block"
+      ~field:"fields"
+      ~descriptor:"[Ljava/lang/Object;";
+    emit_load ctx i;
+    (match kind_of ctx i with
+     | K_int -> ()
+     | _ ->
+       Jvm.Code.checkcast ctx.code "java/lang/Integer";
+       Jvm.Code.invokevirtual
+         ctx.code
+         ~class_:"java/lang/Integer"
+         ~method_:"intValue"
+         ~descriptor:"()I");
+    emit_load ctx v;
+    (match kind_of ctx v with
+     | K_int -> Kind.emit_box_int ctx.code
+     | K_float -> Kind.emit_box_float ctx.code
+     | _ -> ());
+    Jvm.Code.aastore ctx.code
 
 (* Emit a branch edge: parallel-rename the [args] into a caller's
    [param] locals, then [goto] a caller's entry label. To avoid
@@ -484,13 +875,17 @@ let emit_block ctx prog addr (b : Code.block) =
   List.iter (fun i -> emit_instr ctx i) b.body;
   emit_last ctx prog b.branch
 
-let emit_program ~code ~typing ~name_of_body (prog : Code.program) =
+let emit_program
+    ~code ~typing ~name_of_body ~prim_name ?enclosing (prog : Code.program)
+  =
   let ctx =
     { code
     ; typing
     ; var_local = Hashtbl.create 64
     ; labels = Hashtbl.create 32
     ; name_of_body
+    ; prim_name
+    ; enclosing
     ; next_local = 1
     }
   in
