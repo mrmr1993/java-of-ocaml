@@ -181,9 +181,10 @@ Each module under `compiler/lib-java/` has a companion `.mli`.
       `caml_fresh_oo_id`, `caml_alloc_dummy`, `caml_update_dummy`,
       float arithmetic `caml_{add,sub,mul,div}_float`,
       `caml_{neg,abs}_float`, the six `caml_{eq,neq,lt,le,gt,ge}_float`
-      comparisons, and `caml_int_of_float` / `caml_float_of_int`)
-      plus ISINT. Shared helpers for dynamic block-field read/write
-      back `GETVECTITEM` and `SETVECTITEM` in `emit_instr`.
+      comparisons, `caml_int_of_float` / `caml_float_of_int`,
+      `caml_int_of_string` / `caml_format_int`) plus ISINT. Shared
+      helpers for dynamic block-field read/write back `GETVECTITEM`
+      and `SETVECTITEM` in `emit_instr`.
     - `emit_instr` — the opcode dispatcher. Handles label marking
       (with CamlException-unwrap prelude at try/with handler entry)
       and branch-target state restoration, then dispatches to the

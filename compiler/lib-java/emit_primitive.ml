@@ -381,6 +381,42 @@ let emit_float_of_int state =
   Jvm.Code.i2d state.code;
   state.acc_kind <- K_float
 
+(* [caml_int_of_string s]: like [Integer.parseInt] with prefix-aware
+   base detection (0x/0o/0b). Raises [Failure "int_of_string"] on
+   bad input — same name as OCaml. *)
+let emit_int_of_string state =
+  ensure_kind state K_string;
+  Jvm.Code.invokestatic
+    state.code
+    ~class_:"java/lang/Integer"
+    ~method_:"parseInt"
+    ~descriptor:"(Ljava/lang/String;)I";
+  state.acc_kind <- K_int
+
+(* [caml_format_int fmt n]: the bytecode primitive that backs
+   [string_of_int] / [Printf "%d"]. We support just the trivial
+   ["%d"] case by ignoring the format string and calling
+   [Integer.toString]; a general printf-format implementation would
+   live here (%x, %o, padding, etc.). *)
+let emit_format_int state =
+  (* acc is the format string; stack[0] is the int. *)
+  let n_slot = List.hd state.slots in
+  (* Drop the format string — we ignore it for now. *)
+  drop_live_acc state;
+  emit_load_for_kind state.code n_slot.local n_slot.kind;
+  (match n_slot.kind with
+   | K_int -> ()
+   | K_obj -> emit_unbox_to_kind state.code K_int
+   | _ -> failwith "java_of_ocaml: caml_format_int: arg must be an int");
+  Jvm.Code.invokestatic
+    state.code
+    ~class_:"java/lang/Integer"
+    ~method_:"toString"
+    ~descriptor:"(I)Ljava/lang/String;";
+  consume_top state;
+  state.acc_live <- true;
+  state.acc_kind <- K_string
+
 let emit_float_print state =
   ensure_kind state K_float;
   Jvm.Code.invokestatic

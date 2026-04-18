@@ -24,6 +24,17 @@ val emit_array_blit : State.state -> unit
 val emit_array_fill : State.state -> unit
 val emit_array_append : State.state -> unit
 
+val emit_int_of_string : State.state -> unit
+(** [caml_int_of_string]: parse a string as an int via
+    [Integer.parseInt]. Does not yet support OCaml's "0x" / "0o" /
+    "0b" base prefixes or trailing [l]/[L]/[n] suffixes — the bare
+    decimal case only. *)
+
+val emit_format_int : State.state -> unit
+(** [caml_format_int]: format an int as a string. Ignores the format
+    string argument and always does [Integer.toString]. Sufficient
+    for ["%d"] but not ["%x"] / ["%5d"] / etc. *)
+
 val emit_obj_dup : State.state -> unit
 val emit_obj_tag : State.state -> unit
 val emit_obj_block : State.state -> unit

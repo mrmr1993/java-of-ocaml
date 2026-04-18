@@ -826,7 +826,9 @@ let emit_instr state (ins : instr) =
        | P_array_sub -> Emit_primitive.emit_array_sub state
        | P_array_blit -> Emit_primitive.emit_array_blit state
        | P_array_fill -> Emit_primitive.emit_array_fill state
-       | P_array_append -> Emit_primitive.emit_array_append state)
+       | P_array_append -> Emit_primitive.emit_array_append state
+       | P_int_of_string -> Emit_primitive.emit_int_of_string state
+       | P_format_int -> Emit_primitive.emit_format_int state)
     | None ->
       let name =
         if prim_idx >= 0 && prim_idx < Array.length state.prims

@@ -168,6 +168,18 @@
   (pps ppx_expect)))
 
 (library
+ ;; compiler/tests-compiler/number_strings.ml
+ (name number_strings_15)
+ (enabled_if true)
+ (modules number_strings)
+ (libraries unix str java_of_ocaml_expect_tests_helper)
+ (inline_tests
+  (enabled_if true))
+ (flags (:standard -open Java_of_ocaml_expect_tests_helper))
+ (preprocess
+  (pps ppx_expect)))
+
+(library
  ;; compiler/tests-compiler/obj_module.ml
  (name obj_module_15)
  (enabled_if true)

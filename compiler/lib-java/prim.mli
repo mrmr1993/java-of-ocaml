@@ -36,6 +36,8 @@ type prim_handler =
   | P_array_blit
   | P_array_fill
   | P_array_append
+  | P_int_of_string
+  | P_format_int
 
 type prim_entry =
   { name : string
