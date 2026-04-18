@@ -97,15 +97,28 @@ Not yet supported:
 - `String.sub`, `String.uppercase_ascii`, and most of the wider
   `String` module — caller NPEs at runtime because an I/O-side
   primitive stub returns `null`. Narrow investigation needed.
-- `module rec` — partial progress. The underlying
-  `caml_alloc_dummy` / `caml_update_dummy` primitives work
-  (covered by the existing recursive-value tests), and several
-  Stdlib-level prerequisites are now in place (Sys.* consts,
-  SETBYTESCHAR / GETBYTESCHAR, K_int-at-APPLY fallback restored,
-  SWITCH-preserves-acc, type-safe ASSIGN). CamlinternalMod's
-  module-update path still trips a JVM verifier "Mismatched
-  stack types" in an inner `apply3` — more edge-shape work on
-  the block-params mechanism needed.
+- `module rec` — partial progress. Several Stdlib-level
+  prerequisites are now in place along the path:
+  * `caml_alloc_dummy` / `caml_update_dummy` primitives work.
+  * Sys.* constants return correct-typed values (not `null`).
+  * `SETBYTESCHAR` / `GETBYTESCHAR` emit real Bytes ops.
+  * Relaxed `GETFIELD` / `APPLY` / `caml_obj_dup` kind checks
+    to box+checkcast (reinstating the K_int-at-APPLY fallback).
+  * `emit_switch` now preserves acc (matching OCaml interp
+    semantics) so SWITCH-case targets have the same edge shape
+    as acc-preserving branches.
+  * `ASSIGN` allocates a fresh JVM local for the new slot value
+    instead of reusing one with a different type.
+  * Fall-through label prologues (snapshot path) normalise acc
+    to Object so the JVM stack shape matches the box-at-joins
+    invariant the branch sites all establish.
+  CamlinternalMod's module-update path now gets further but
+  still trips a verifier error ("Register N contains wrong
+  type") in a deep inner function — likely an ASSIGN or slot-
+  aliasing issue where different paths to the same join have
+  different JVM-local indices for the "same" OCaml stack slot.
+  Needs snapshot/block-params to track per-path local
+  assignments at merges.
 - `Lazy.t` / `lazy` / `Lazy.force`.
 - Threads, effects.
 
