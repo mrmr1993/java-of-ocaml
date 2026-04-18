@@ -70,8 +70,11 @@ type state =
       (** Bytecode PC of a try-with handler → JVM label where the
           [CamlException] unwrap prelude must be emitted just before
           the user's own handler label. *)
-  ; mutable open_traps : (Jvm.Code.label * Jvm.Code.label) list
-      (** Stack of [(try-region-start, handler-prelude-label)]. *)
+  ; mutable open_traps :
+      (Jvm.Code.label * Jvm.Code.label * Jvm.Code.label) list
+      (** Stack of [(start_lbl, end_lbl, prelude_lbl)] for every open
+          try region. The JVM exception-table entry is installed eagerly
+          at PUSHTRAP; POPTRAP / handler prelude just marks [end_lbl]. *)
   ; fresh_oo_id_counter : int ref
   ; mutable pending_retaddrs : int
       (** Number of [PUSH_RETADDR]s whose matching [APPLY] is still

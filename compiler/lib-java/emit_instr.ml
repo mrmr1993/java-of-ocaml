@@ -27,33 +27,22 @@ let emit_instr state (ins : instr) =
    | Some lbl ->
      (match Hashtbl.find_opt state.pending_handlers ins.pc with
       | Some prelude_lbl ->
-        (* Close any open trap whose handler is this prelude — OCaml
-           elides POPTRAP whenever the try body provably always
-           raises, so the try region's end is wherever the handler
-           label sits. Without this the JVM exception-table entry
-           never gets installed and the athrow escapes uncaught. *)
+        (* If OCaml elided POPTRAP (because the try body always
+           raises), the open trap for this handler is still on
+           [state.open_traps]. Mark its [end_lbl] here so the JVM
+           exception-table entry — already installed eagerly at
+           PUSHTRAP — resolves its end position to just before the
+           handler's prelude. The OCaml-side slot cleanup already
+           happened when RAISE reset [slots]/[oc_stack_depth]. *)
         let closing, remaining =
           List.partition
-            (fun (_, p) -> p == prelude_lbl)
+            (fun (_, _, p) -> p == prelude_lbl)
             state.open_traps
         in
         List.iter
-          (fun (start_lbl, _) ->
-            let end_lbl = Jvm.Code.fresh_label state.code in
-            Jvm.Code.mark_label state.code end_lbl;
-            Jvm.Code.add_exception_handler
-              state.code
-              ~start_lbl
-              ~end_lbl
-              ~handler_lbl:prelude_lbl
-              ~catch_class:(Some "CamlException"))
+          (fun (_, end_lbl, _) -> Jvm.Code.mark_label state.code end_lbl)
           closing;
-        if closing <> []
-        then
-          (* The OCaml-side slot cleanup happened when RAISE reset
-             [slots]/[oc_stack_depth]; only the JVM-side trap list
-             needs updating. *)
-          state.open_traps <- remaining;
+        if closing <> [] then state.open_traps <- remaining;
         Jvm.Code.mark_label state.code prelude_lbl;
         Jvm.Code.handler_stack_prelude state.code;
         Jvm.Code.checkcast state.code "CamlException";

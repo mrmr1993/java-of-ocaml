@@ -58,7 +58,14 @@ type state =
   ; capture_kinds : kind list [@warning "-69"]
   ; enclosing_function_name : string option
   ; pending_handlers : (int, Jvm.Code.label) Hashtbl.t
-  ; mutable open_traps : (Jvm.Code.label * Jvm.Code.label) list
+  ; mutable open_traps :
+      (Jvm.Code.label * Jvm.Code.label * Jvm.Code.label) list
+        (** Each open try region carries [(start_lbl, end_lbl, prelude_lbl)].
+            The JVM exception-table entry is installed eagerly at PUSHTRAP
+            using all three labels; POPTRAP (or the handler-label prelude
+            if POPTRAP was elided) marks [end_lbl] at its position. Mirrors
+            jsoo's structural Pushtrap-IR approach: the region's existence
+            doesn't depend on seeing POPTRAP in the instruction stream. *)
   ; fresh_oo_id_counter : int ref
   ; mutable pending_retaddrs : int
   ; mutable last_was_terminator : bool
