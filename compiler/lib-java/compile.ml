@@ -28,474 +28,6 @@ let rec string_of_kind = function
   | K_closure { name; _ } -> Printf.sprintf "closure<%s>" name
   | K_obj -> "obj"
 
-let emit_int_const state n =
-  overwrite_acc state K_int (fun () -> Jvm.Code.ldc_int state.code n)
-
-let emit_string_const state s =
-  overwrite_acc
-    state
-    K_string
-    (fun () -> Jvm.Code.ldc_string state.code s)
-
-(* Materialise a block constant (from the DATA section) as a Block instance
-   on top of the op stack. Each field that's an int gets boxed as Integer;
-   string fields are loaded via [ldc] and stored as-is. Does not modify
-   [state.acc_live] / [state.acc_kind]; callers handle those. *)
-let rec emit_materialise_value state = function
-  | Gv_int n ->
-    Jvm.Code.ldc_int state.code n;
-    emit_box_int state.code
-  | Gv_string s -> Jvm.Code.ldc_string state.code s
-  | Gv_block (tag, fields) -> emit_materialise_block_constant state tag fields
-
-and emit_materialise_block_constant state tag fields =
-  let fields_local = allocate_local state in
-  let size = List.length fields in
-  Jvm.Code.ldc_int state.code size;
-  Jvm.Code.anewarray state.code "java/lang/Object";
-  Jvm.Code.astore state.code fields_local;
-  List.iteri
-    (fun i fv ->
-      Jvm.Code.aload state.code fields_local;
-      Jvm.Code.ldc_int state.code i;
-      emit_materialise_value state fv;
-      Jvm.Code.aastore state.code)
-    fields;
-  Jvm.Code.new_ state.code "Block";
-  Jvm.Code.dup state.code;
-  Jvm.Code.ldc_int state.code tag;
-  Jvm.Code.aload state.code fields_local;
-  Jvm.Code.invokespecial
-    state.code
-    ~class_:"Block"
-    ~method_:"<init>"
-    ~descriptor:"(I[Ljava/lang/Object;)V"
-
-(* OCaml PUSH: stack := stack++[acc]; acc unchanged. On JVM, dup acc so the
-   operand stack still has acc on top; the dup'd copy becomes a named local
-   for later ACC access. *)
-let emit_push state =
-  if not state.acc_live
-  then
-    (* A PUSH immediately after a C_CALL is a save-PUSH for its return value.
-       Our compile stops before anything would read it back, so skip. *)
-    ()
-  else (
-    let local = allocate_local state in
-    Jvm.Code.dup state.code;
-    emit_store_for_kind state.code local state.acc_kind;
-    push_slot state state.acc_kind local)
-
-let emit_acc state k =
-  if k >= state.oc_stack_depth
-  then
-    (* ACC past the end of our tracked OCaml stack — the compiler emits such
-       an access in the module-init trailer to fetch the top-level binding
-       for MAKEBLOCK. Our emission stops before MAKEBLOCK, so this access
-       is dead; skip it. *)
-    ()
-  else (
-    let slot = stack_slot_local ~state k in
-    let new_kind = kind_of_slot_from_top ~state k in
-    if state.acc_live then Jvm.Code.pop_top state.code;
-    emit_load_for_kind state.code slot new_kind;
-    state.acc_live <- true;
-    state.acc_kind <- new_kind)
-
-let emit_pushacc state k =
-  if not state.acc_live
-  then
-    (* A PUSHACC at a "dead" point — the most common example is right after
-       a C_CALL returning unit, used by the module-init trailer to stash
-       the return value and then load a binding for MAKEBLOCK. We don't
-       emit MAKEBLOCK, so skipping this is correct. *)
-    ()
-  else (
-    emit_push state;
-    emit_acc state k)
-
-let emit_int_push state n =
-  let was_live = state.acc_live in
-  emit_push state;
-  if was_live then Jvm.Code.pop_top state.code;
-  Jvm.Code.ldc_int state.code n;
-  state.acc_live <- true;
-  state.acc_kind <- K_int
-
-let emit_string_push state s =
-  let was_live = state.acc_live in
-  emit_push state;
-  if was_live then Jvm.Code.pop_top state.code;
-  Jvm.Code.ldc_string state.code s;
-  state.acc_live <- true;
-  state.acc_kind <- K_string
-
-let self_closure_ref state =
-  match state.enclosing_function_name with
-  | None ->
-    failwith
-      "java_of_ocaml: OFFSETCLOSURE0/PUSHOFFSETCLOSURE0 outside a function"
-  | Some fname ->
-    (* Self-closure: the captures aren't in separate locals anymore — they
-       live as instance fields on [this]. We don't need to re-list them;
-       what we need is a [closure_ref] whose [name] matches this method's
-       class so APPLY emits the right [invokevirtual]. The [captures]
-       list is left empty because the runtime representation of "self" is
-       just [this] (no extra locals to load). *)
-    { name = fname; captures = [] }
-
-let emit_offsetclosure0 state =
-  let cref = self_closure_ref state in
-  (* Emit [this] onto the op stack. *)
-  if state.acc_live then Jvm.Code.pop_top state.code;
-  Jvm.Code.aload state.code 0;
-  state.acc_live <- true;
-  state.acc_kind <- K_closure cref
-
-let emit_pushoffsetclosure0 state =
-  let cref = self_closure_ref state in
-  let was_live = state.acc_live in
-  emit_push state;
-  if was_live then Jvm.Code.pop_top state.code;
-  Jvm.Code.aload state.code 0;
-  state.acc_live <- true;
-  state.acc_kind <- K_closure cref
-
-(* Resolve [OFFSETCLOSURE N] to the sibling within the enclosing
-   function's CLOSUREREC group. OCaml lays out each function's code
-   pointer 3 words apart in the shared closure block, so offset N
-   corresponds to moving [N/3] sibling positions. *)
-let resolve_sibling state offset =
-  let self_fi =
-    match state.enclosing_function_name with
-    | None -> failwith "java_of_ocaml: OFFSETCLOSURE outside a function"
-    | Some name ->
-      (match Hashtbl.find_opt state.fn_by_name name with
-       | Some fi -> fi
-       | None ->
-         failwith
-           (Printf.sprintf
-              "java_of_ocaml: enclosing function %s not registered"
-              name))
-  in
-  let target_idx = self_fi.group_idx + (offset / 3) in
-  if target_idx < 0 || target_idx >= Array.length self_fi.group
-  then
-    failwith
-      (Printf.sprintf
-         "java_of_ocaml: OFFSETCLOSURE %d out of range for group of %d"
-         offset
-         (Array.length self_fi.group));
-  self_fi, self_fi.group.(target_idx), target_idx
-
-let emit_offsetclosure state offset =
-  if offset = 0 then emit_offsetclosure0 state
-  else (
-    let self_fi, target_fi, target_idx = resolve_sibling state offset in
-    if state.acc_live then Jvm.Code.pop_top state.code;
-    Jvm.Code.aload state.code 0;
-    Jvm.Code.getfield
-      state.code
-      ~class_:self_fi.name
-      ~field:(Printf.sprintf "sibling_%d" target_idx)
-      ~descriptor:"LClosure;";
-    state.acc_live <- true;
-    state.acc_kind <- K_closure { name = target_fi.name; captures = [] })
-
-let emit_pushoffsetclosure state offset =
-  if offset = 0 then emit_pushoffsetclosure0 state
-  else (
-    let self_fi, target_fi, target_idx = resolve_sibling state offset in
-    let was_live = state.acc_live in
-    emit_push state;
-    if was_live then Jvm.Code.pop_top state.code;
-    Jvm.Code.aload state.code 0;
-    Jvm.Code.getfield
-      state.code
-      ~class_:self_fi.name
-      ~field:(Printf.sprintf "sibling_%d" target_idx)
-      ~descriptor:"LClosure;";
-    state.acc_live <- true;
-    state.acc_kind <- K_closure { name = target_fi.name; captures = [] })
-
-(* ENVACC k accesses the k-th field of the closure's environment. OCaml 5.x
-   closure layout: field 0 = code, field 1 = closinfo, fields 2..ncaps+1 =
-   captures in order. ENVACC k for k >= 2 = capture (k-2), at JVM local
-   (k-2); its kind comes from [state.capture_kinds]. *)
-let capture_kind_at state cap_index =
-  try List.nth state.capture_kinds cap_index with
-  | _ ->
-    failwith
-      (Printf.sprintf
-         "java_of_ocaml: ENVACC capture index %d out of range (ncaps=%d)"
-         cap_index
-         state.ncaps)
-
-(* ENVACC k reads field [k] of the closure environment. In our representation,
-   captures live as instance fields on the closure object named [capN]
-   (where N = k - 2). We load [this], then read the field. *)
-
-let emit_envacc state k =
-  if k < 2
-  then
-    failwith
-      (Printf.sprintf
-         "java_of_ocaml: ENVACC %d (field <2) not supported — closure \
-          info fields aren't modelled"
-         k);
-  let cap_index = k - 2 in
-  let kind = capture_kind_at state cap_index in
-  let fname = Printf.sprintf "cap%d" cap_index in
-  let desc = jvm_type_of_kind kind in
-  let class_ =
-    match state.enclosing_function_name with
-    | Some n -> n
-    | None -> failwith "java_of_ocaml: ENVACC outside a function"
-  in
-  if state.acc_live then Jvm.Code.pop_top state.code;
-  Jvm.Code.aload state.code 0 (* this *);
-  Jvm.Code.getfield state.code ~class_ ~field:fname ~descriptor:desc;
-  state.acc_live <- true;
-  state.acc_kind <- kind
-
-let emit_pushenvacc state k =
-  let was_live = state.acc_live in
-  emit_push state;
-  if k < 2
-  then
-    failwith
-      (Printf.sprintf "java_of_ocaml: PUSHENVACC %d (field <2) not supported" k);
-  let cap_index = k - 2 in
-  let kind = capture_kind_at state cap_index in
-  let fname = Printf.sprintf "cap%d" cap_index in
-  let desc = jvm_type_of_kind kind in
-  let class_ =
-    match state.enclosing_function_name with
-    | Some n -> n
-    | None -> failwith "java_of_ocaml: PUSHENVACC outside a function"
-  in
-  if was_live then Jvm.Code.pop_top state.code;
-  Jvm.Code.aload state.code 0;
-  Jvm.Code.getfield state.code ~class_ ~field:fname ~descriptor:desc;
-  state.acc_live <- true;
-  state.acc_kind <- kind
-
-(* Build a JVM constructor descriptor for a closure class given the kinds
-   of its captures in field order. *)
-let ctor_descriptor_for_captures cap_kinds =
-  let buf = Buffer.create 16 in
-  Buffer.add_char buf '(';
-  List.iter (fun k -> Buffer.add_string buf (jvm_type_of_kind k)) cap_kinds;
-  Buffer.add_string buf ")V";
-  Buffer.contents buf
-
-(* CLOSURE / CLOSUREREC: allocate a fresh [Closure_<name>] instance whose
-   constructor takes the captures. The result flows as a JVM reference (the
-   new instance is on the op stack).
-
-   OCaml semantics for nvars > 0: [field(closure, 2..) = sp[0..nvars-1]]
-   with the implicit [sp.push(acc)] at the start. The first capture is
-   therefore acc at closure-creation time; the rest come from the top N-1
-   OCaml-stack slots in top-first order. *)
-let emit_closure_creation state (fn_info : function_info) ~nvars ~is_rec =
-  let captures =
-    if nvars = 0
-    then []
-    else (
-      if not state.acc_live
-      then
-        failwith
-          "java_of_ocaml: CLOSURE/CLOSUREREC with nvars>0 requires a \
-           live acc";
-      emit_push state;
-      let rec loop k acc =
-        if k >= nvars
-        then List.rev acc
-        else (
-          let slot = List.nth state.slots k in
-          loop (k + 1) ((slot.local, slot.kind) :: acc))
-      in
-      let caps = loop 0 [] in
-      pop_slots state nvars;
-      caps)
-  in
-  let collected_kinds = List.map snd captures in
-  (match !(fn_info.capture_kinds) with
-   | [] -> fn_info.capture_kinds := collected_kinds
-   | existing when List.length existing = List.length collected_kinds
-     && List.for_all2
-          (fun a b ->
-            match a, b with
-            | K_int, K_int -> true
-            | K_string, K_string -> true
-            | K_block _, K_block _ -> true
-            | K_closure _, K_closure _ -> true
-            | _ -> false)
-          existing
-          collected_kinds ->
-     ()
-   | _ ->
-     failwith
-       (Printf.sprintf
-          "java_of_ocaml: inconsistent capture kinds for function %s"
-          fn_info.name));
-  let cref = { name = fn_info.name; captures } in
-  (* Pop any stale acc, allocate instance, invoke constructor with capture
-     values in field order. *)
-  if state.acc_live then Jvm.Code.pop_top state.code;
-  Jvm.Code.new_ state.code fn_info.name;
-  Jvm.Code.dup state.code;
-  List.iter
-    (fun (local, kind) -> emit_load_for_kind state.code local kind)
-    captures;
-  Jvm.Code.invokespecial
-    state.code
-    ~class_:fn_info.name
-    ~method_:"<init>"
-    ~descriptor:(ctor_descriptor_for_captures collected_kinds);
-  state.acc_live <- true;
-  state.acc_kind <- K_closure cref;
-  if is_rec
-  then (
-    let local = allocate_local state in
-    Jvm.Code.dup state.code;
-    Jvm.Code.astore state.code local;
-    push_slot state state.acc_kind local)
-
-let emit_closure state (ins : instr) =
-  let fn_info =
-    try Hashtbl.find state.functions ins.pc with
-    | Not_found ->
-      failwith
-        (Printf.sprintf
-           "java_of_ocaml: CLOSURE at pc %d not registered"
-           ins.pc)
-  in
-  let nvars = ins.args.(0) in
-  emit_closure_creation state fn_info ~nvars ~is_rec:false
-
-let emit_closurerec state (ins : instr) =
-  let nfuncs = ins.args.(0) in
-  let nvars = ins.args.(1) in
-  let head_fi =
-    try Hashtbl.find state.functions ins.pc with
-    | Not_found ->
-      failwith
-        (Printf.sprintf
-           "java_of_ocaml: CLOSUREREC at pc %d not registered"
-           ins.pc)
-  in
-  if nfuncs = 1
-  then emit_closure_creation state head_fi ~nvars ~is_rec:true
-  else (
-    (* Multi-function group: allocate all N closures up-front (each
-       constructed with its captures), then patch the [sibling_K]
-       cross-reference fields on every instance. The captures are
-       consumed once, not once per function. *)
-    let group = head_fi.group in
-    let n = Array.length group in
-    (* Snapshot capture locals + kinds before we pop them — every
-       function in the group shares this set. *)
-    let captures =
-      if nvars = 0
-      then []
-      else (
-        if not state.acc_live
-        then
-          failwith
-            "java_of_ocaml: CLOSUREREC with nvars>0 requires a live acc";
-        emit_push state;
-        let rec loop k acc =
-          if k >= nvars
-          then List.rev acc
-          else (
-            let slot = List.nth state.slots k in
-            loop (k + 1) ((slot.local, slot.kind) :: acc))
-        in
-        let caps = loop 0 [] in
-        pop_slots state nvars;
-        caps)
-    in
-    let cap_kinds = List.map snd captures in
-    Array.iter
-      (fun (fi : function_info) ->
-        (match !(fi.capture_kinds) with
-         | [] -> fi.capture_kinds := cap_kinds
-         | existing
-           when List.length existing = List.length cap_kinds
-                && List.for_all2
-                     (fun a b ->
-                       match a, b with
-                       | K_int, K_int -> true
-                       | K_string, K_string -> true
-                       | K_block _, K_block _ -> true
-                       | K_closure _, K_closure _ -> true
-                       | _ -> false)
-                     existing
-                     cap_kinds ->
-           ()
-         | _ ->
-           failwith
-             (Printf.sprintf
-                "java_of_ocaml: inconsistent capture kinds for function %s"
-                fi.name)))
-      group;
-    if state.acc_live then Jvm.Code.pop_top state.code;
-    (* Allocate each closure into its own JVM local. *)
-    let instance_locals = Array.make n 0 in
-    for k = 0 to n - 1 do
-      let fi = group.(k) in
-      Jvm.Code.new_ state.code fi.name;
-      Jvm.Code.dup state.code;
-      List.iter
-        (fun (local, kind) -> emit_load_for_kind state.code local kind)
-        captures;
-      Jvm.Code.invokespecial
-        state.code
-        ~class_:fi.name
-        ~method_:"<init>"
-        ~descriptor:(ctor_descriptor_for_captures cap_kinds);
-      let l = allocate_local state in
-      Jvm.Code.astore state.code l;
-      instance_locals.(k) <- l
-    done;
-    (* Patch cross-references: for each instance i, set sibling_j = inst_j. *)
-    for i = 0 to n - 1 do
-      for j = 0 to n - 1 do
-        Jvm.Code.aload state.code instance_locals.(i);
-        Jvm.Code.aload state.code instance_locals.(j);
-        Jvm.Code.putfield
-          state.code
-          ~class_:group.(i).name
-          ~field:(Printf.sprintf "sibling_%d" j)
-          ~descriptor:"LClosure;"
-      done
-    done;
-    (* OCaml's CLOSUREREC leaves its N functions on the OCaml stack
-       with the LAST-defined function at the top: stack layout from
-       top = [f_{n-1}; f_{n-2}; ...; f_0]. acc also holds f_{n-1}. *)
-    let last = n - 1 in
-    Jvm.Code.aload state.code instance_locals.(last);
-    state.acc_live <- true;
-    state.acc_kind <- K_closure { name = group.(last).name; captures = [] };
-    for k = 0 to n - 1 do
-      let local = instance_locals.(k) in
-      push_slot state
-        (K_closure { name = group.(k).name; captures = [] })
-        local
-    done;
-    ignore ins)
-
-(* APPLY{1,2,3,N}: OCaml-stack slots [0..n-1] from top are the args in
-   source order (stack[0 from top] = first source-order arg). The closure
-   sentinel sits on top of the JVM operand stack in acc. Captures (if any)
-   are loaded from the JVM locals the closure recorded when it was created,
-   each using its kind's corresponding load opcode. We emit captures first,
-   then args, then invokestatic. *)
-(* APPLY: acc holds a [Closure] subclass instance. We need to call
-   [acc.applyN(arg0, arg1, ...)] where each arg is boxed to [Object].
-   Small arities (1/2/3) use the [applyN] overloads on [Closure]. *)
-
 let emit_instr state (ins : instr) =
   if debug_emit ()
   then
@@ -636,17 +168,17 @@ let emit_instr state (ins : instr) =
     Jvm.Code.swap state.code;
     Jvm.Code.isub state.code;
     state.acc_kind <- K_int)
-  else if op = Bytecode.Op.const0 then emit_int_const state 0
-  else if op = Bytecode.Op.const1 then emit_int_const state 1
-  else if op = Bytecode.Op.const2 then emit_int_const state 2
-  else if op = Bytecode.Op.const3 then emit_int_const state 3
-  else if op = Bytecode.Op.constint then emit_int_const state ins.args.(0)
-  else if op = Bytecode.Op.pushconst0 then emit_int_push state 0
-  else if op = Bytecode.Op.pushconst1 then emit_int_push state 1
-  else if op = Bytecode.Op.pushconst2 then emit_int_push state 2
-  else if op = Bytecode.Op.pushconst3 then emit_int_push state 3
+  else if op = Bytecode.Op.const0 then Emit_stack.emit_int_const state 0
+  else if op = Bytecode.Op.const1 then Emit_stack.emit_int_const state 1
+  else if op = Bytecode.Op.const2 then Emit_stack.emit_int_const state 2
+  else if op = Bytecode.Op.const3 then Emit_stack.emit_int_const state 3
+  else if op = Bytecode.Op.constint then Emit_stack.emit_int_const state ins.args.(0)
+  else if op = Bytecode.Op.pushconst0 then Emit_stack.emit_int_push state 0
+  else if op = Bytecode.Op.pushconst1 then Emit_stack.emit_int_push state 1
+  else if op = Bytecode.Op.pushconst2 then Emit_stack.emit_int_push state 2
+  else if op = Bytecode.Op.pushconst3 then Emit_stack.emit_int_push state 3
   else if op = Bytecode.Op.pushconstint
-  then emit_int_push state ins.args.(0)
+  then Emit_stack.emit_int_push state ins.args.(0)
   else if op = Bytecode.Op.offsetint then Emit_arith.emit_offsetint state ins.args.(0)
   else if op = Bytecode.Op.makeblock
        || op = Bytecode.Op.makeblock1
@@ -877,25 +409,25 @@ let emit_instr state (ins : instr) =
   else if op = Bytecode.Op.mulint then Emit_arith.emit_mulint state
   else if op = Bytecode.Op.divint then Emit_arith.emit_divint state
   else if op = Bytecode.Op.modint then Emit_arith.emit_modint state
-  else if op = Bytecode.Op.push then emit_push state
-  else if op = Bytecode.Op.acc0 then emit_acc state 0
-  else if op = Bytecode.Op.acc1 then emit_acc state 1
-  else if op = Bytecode.Op.acc2 then emit_acc state 2
-  else if op = Bytecode.Op.acc3 then emit_acc state 3
-  else if op = Bytecode.Op.acc4 then emit_acc state 4
-  else if op = Bytecode.Op.acc5 then emit_acc state 5
-  else if op = Bytecode.Op.acc6 then emit_acc state 6
-  else if op = Bytecode.Op.acc7 then emit_acc state 7
-  else if op = Bytecode.Op.acc then emit_acc state ins.args.(0)
-  else if op = Bytecode.Op.pushacc0 then emit_pushacc state 0
-  else if op = Bytecode.Op.pushacc1 then emit_pushacc state 1
-  else if op = Bytecode.Op.pushacc2 then emit_pushacc state 2
-  else if op = Bytecode.Op.pushacc3 then emit_pushacc state 3
-  else if op = Bytecode.Op.pushacc4 then emit_pushacc state 4
-  else if op = Bytecode.Op.pushacc5 then emit_pushacc state 5
-  else if op = Bytecode.Op.pushacc6 then emit_pushacc state 6
-  else if op = Bytecode.Op.pushacc7 then emit_pushacc state 7
-  else if op = Bytecode.Op.pushacc then emit_pushacc state ins.args.(0)
+  else if op = Bytecode.Op.push then Emit_stack.emit_push state
+  else if op = Bytecode.Op.acc0 then Emit_stack.emit_acc state 0
+  else if op = Bytecode.Op.acc1 then Emit_stack.emit_acc state 1
+  else if op = Bytecode.Op.acc2 then Emit_stack.emit_acc state 2
+  else if op = Bytecode.Op.acc3 then Emit_stack.emit_acc state 3
+  else if op = Bytecode.Op.acc4 then Emit_stack.emit_acc state 4
+  else if op = Bytecode.Op.acc5 then Emit_stack.emit_acc state 5
+  else if op = Bytecode.Op.acc6 then Emit_stack.emit_acc state 6
+  else if op = Bytecode.Op.acc7 then Emit_stack.emit_acc state 7
+  else if op = Bytecode.Op.acc then Emit_stack.emit_acc state ins.args.(0)
+  else if op = Bytecode.Op.pushacc0 then Emit_stack.emit_pushacc state 0
+  else if op = Bytecode.Op.pushacc1 then Emit_stack.emit_pushacc state 1
+  else if op = Bytecode.Op.pushacc2 then Emit_stack.emit_pushacc state 2
+  else if op = Bytecode.Op.pushacc3 then Emit_stack.emit_pushacc state 3
+  else if op = Bytecode.Op.pushacc4 then Emit_stack.emit_pushacc state 4
+  else if op = Bytecode.Op.pushacc5 then Emit_stack.emit_pushacc state 5
+  else if op = Bytecode.Op.pushacc6 then Emit_stack.emit_pushacc state 6
+  else if op = Bytecode.Op.pushacc7 then Emit_stack.emit_pushacc state 7
+  else if op = Bytecode.Op.pushacc then Emit_stack.emit_pushacc state ins.args.(0)
   else if op = Bytecode.Op.pop
   then (
     (* The module-init trailer emits POP 2 / POP N where N may exceed what
@@ -929,10 +461,10 @@ let emit_instr state (ins : instr) =
   else if op = Bytecode.Op.getglobal
   then (
     match inspect_global state.globals ins.args.(0) with
-    | G_string s -> emit_string_const state s
+    | G_string s -> Emit_stack.emit_string_const state s
     | G_block (tag, fields) ->
       if state.acc_live then Jvm.Code.pop_top state.code;
-      emit_materialise_block_constant state tag fields;
+      Emit_stack.emit_materialise_block_constant state tag fields;
       state.acc_live <- true;
       state.acc_kind <- K_block (List.map kind_of_global_field fields)
     | G_unsupported ->
@@ -946,12 +478,12 @@ let emit_instr state (ins : instr) =
   else if op = Bytecode.Op.pushgetglobal
   then (
     match inspect_global state.globals ins.args.(0) with
-    | G_string s -> emit_string_push state s
+    | G_string s -> Emit_stack.emit_string_push state s
     | G_block (tag, fields) ->
       let was_live = state.acc_live in
-      emit_push state;
+      Emit_stack.emit_push state;
       if was_live then Jvm.Code.pop_top state.code;
-      emit_materialise_block_constant state tag fields;
+      Emit_stack.emit_materialise_block_constant state tag fields;
       state.acc_live <- true;
       state.acc_kind <- K_block (List.map kind_of_global_field fields)
     | G_unsupported ->
@@ -967,27 +499,27 @@ let emit_instr state (ins : instr) =
     Jvm.Code.goto state.code (label_at state target);
     record_branch_target state target)
   else if is_cmp_jump op then Emit_branch.emit_cmp_jump state ins
-  else if op = closurerec_op then emit_closurerec state ins
-  else if op = closure_op then emit_closure state ins
-  else if op = Bytecode.Op.envacc1 then emit_envacc state 1
-  else if op = Bytecode.Op.envacc2 then emit_envacc state 2
-  else if op = Bytecode.Op.envacc3 then emit_envacc state 3
-  else if op = Bytecode.Op.envacc4 then emit_envacc state 4
-  else if op = Bytecode.Op.envacc then emit_envacc state ins.args.(0)
-  else if op = Bytecode.Op.pushenvacc1 then emit_pushenvacc state 1
-  else if op = Bytecode.Op.pushenvacc2 then emit_pushenvacc state 2
-  else if op = Bytecode.Op.pushenvacc3 then emit_pushenvacc state 3
-  else if op = Bytecode.Op.pushenvacc4 then emit_pushenvacc state 4
-  else if op = Bytecode.Op.pushenvacc then emit_pushenvacc state ins.args.(0)
-  else if op = offsetclosure0_op then emit_offsetclosure0 state
-  else if op = pushoffsetclosure0_op then emit_pushoffsetclosure0 state
-  else if op = offsetclosurem3_op then emit_offsetclosure state (-3)
-  else if op = offsetclosure3_op then emit_offsetclosure state 3
-  else if op = offsetclosure_op then emit_offsetclosure state ins.args.(0)
-  else if op = pushoffsetclosurem3_op then emit_pushoffsetclosure state (-3)
-  else if op = pushoffsetclosure3_op then emit_pushoffsetclosure state 3
+  else if op = closurerec_op then Emit_closure.emit_closurerec state ins
+  else if op = closure_op then Emit_closure.emit_closure state ins
+  else if op = Bytecode.Op.envacc1 then Emit_closure.emit_envacc state 1
+  else if op = Bytecode.Op.envacc2 then Emit_closure.emit_envacc state 2
+  else if op = Bytecode.Op.envacc3 then Emit_closure.emit_envacc state 3
+  else if op = Bytecode.Op.envacc4 then Emit_closure.emit_envacc state 4
+  else if op = Bytecode.Op.envacc then Emit_closure.emit_envacc state ins.args.(0)
+  else if op = Bytecode.Op.pushenvacc1 then Emit_closure.emit_pushenvacc state 1
+  else if op = Bytecode.Op.pushenvacc2 then Emit_closure.emit_pushenvacc state 2
+  else if op = Bytecode.Op.pushenvacc3 then Emit_closure.emit_pushenvacc state 3
+  else if op = Bytecode.Op.pushenvacc4 then Emit_closure.emit_pushenvacc state 4
+  else if op = Bytecode.Op.pushenvacc then Emit_closure.emit_pushenvacc state ins.args.(0)
+  else if op = offsetclosure0_op then Emit_closure.emit_offsetclosure0 state
+  else if op = pushoffsetclosure0_op then Emit_closure.emit_pushoffsetclosure0 state
+  else if op = offsetclosurem3_op then Emit_closure.emit_offsetclosure state (-3)
+  else if op = offsetclosure3_op then Emit_closure.emit_offsetclosure state 3
+  else if op = offsetclosure_op then Emit_closure.emit_offsetclosure state ins.args.(0)
+  else if op = pushoffsetclosurem3_op then Emit_closure.emit_pushoffsetclosure state (-3)
+  else if op = pushoffsetclosure3_op then Emit_closure.emit_pushoffsetclosure state 3
   else if op = pushoffsetclosure_op
-  then emit_pushoffsetclosure state ins.args.(0)
+  then Emit_closure.emit_pushoffsetclosure state ins.args.(0)
   else if op = apply1_op then Emit_apply.emit_apply1 state
   else if op = apply2_op then Emit_apply.emit_apply state ~nargs:2
   else if op = apply3_op then Emit_apply.emit_apply state ~nargs:3
@@ -1388,7 +920,7 @@ let compile ~bc ~out_dir =
         let fields = cap_fields @ sibling_fields in
         let ctor =
           { Jvm.name = "<init>"
-          ; descriptor = ctor_descriptor_for_captures cap_kinds
+          ; descriptor = Emit_closure.ctor_descriptor_for_captures cap_kinds
           ; access_flags = 0x0001 (* ACC_PUBLIC *)
           ; code = ctor_code
           }
