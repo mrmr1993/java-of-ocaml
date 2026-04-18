@@ -48,6 +48,13 @@ type prim_handler =
   | P_atomic_exchange
   | P_atomic_fetch_add
   | P_int_compare
+  | P_poly_compare
+  | P_poly_equal
+  | P_poly_notequal
+  | P_poly_lessthan
+  | P_poly_lessequal
+  | P_poly_greaterthan
+  | P_poly_greaterequal
     (* Stub: 1 arg, returns a dummy K_float (0.0). For Int64/Int32 bit
        conversions we don't implement yet; Stdlib init calls them to
        set up infinity / nan / max_float, which would be wrong but at
@@ -147,6 +154,17 @@ let primitives : prim_entry list =
   ; { name = "caml_atomic_exchange"; handler = P_atomic_exchange; seed = false }
   ; { name = "caml_atomic_fetch_add"; handler = P_atomic_fetch_add; seed = false }
   ; { name = "caml_int_compare"; handler = P_int_compare; seed = false }
+  (* Polymorphic comparison: compare / = / <> / < / <= / > / >=.
+     The implementation walks the structural form (ints as Integer,
+     blocks recursively, strings lex). Covers the cases OCaml's
+     Stdlib reaches at init time. *)
+  ; { name = "caml_compare"; handler = P_poly_compare; seed = false }
+  ; { name = "caml_equal"; handler = P_poly_equal; seed = false }
+  ; { name = "caml_notequal"; handler = P_poly_notequal; seed = false }
+  ; { name = "caml_lessthan"; handler = P_poly_lessthan; seed = false }
+  ; { name = "caml_lessequal"; handler = P_poly_lessequal; seed = false }
+  ; { name = "caml_greaterthan"; handler = P_poly_greaterthan; seed = false }
+  ; { name = "caml_greaterequal"; handler = P_poly_greaterequal; seed = false }
   ]
 
 type table = (int, string * prim_handler * bool) Hashtbl.t

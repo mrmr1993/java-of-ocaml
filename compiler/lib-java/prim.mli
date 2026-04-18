@@ -54,6 +54,13 @@ type prim_handler =
   | P_atomic_exchange
   | P_atomic_fetch_add
   | P_int_compare
+  | P_poly_compare
+  | P_poly_equal
+  | P_poly_notequal
+  | P_poly_lessthan
+  | P_poly_lessequal
+  | P_poly_greaterthan
+  | P_poly_greaterequal
 
 type prim_entry =
   { name : string

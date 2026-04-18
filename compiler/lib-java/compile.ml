@@ -306,6 +306,12 @@ let compile ~bc ~out_dir =
     (match Hashtbl.find_opt pc_to_label post_end_pc with
      | Some lbl -> Jvm.Code.mark_label main_code lbl
      | None -> ());
+    (* Drop any live acc left behind by a trailing expression
+       (usually a Val_unit from the last top-level let). [return]
+       expects an empty operand stack, otherwise the verifier
+       rejects the class with "Mismatched stack types" /
+       "Unable to pop operand off an empty stack". *)
+    drop_live_acc state;
     Jvm.Code.return_void main_code);
   let main_method =
     { Jvm.name = "main"
@@ -473,6 +479,7 @@ let compile ~bc ~out_dir =
     write_class "Closure" (Jvm.closure_class_bytes ());
     write_class "CamlException" (Jvm.camlexception_class_bytes ());
     write_class "PartialClosure" (Jvm.partial_closure_class_bytes ());
+    write_class "Compare" (Jvm.compare_class_bytes ());
     List.iter (fun (name, bytes) -> write_class name bytes) closure_class_files);
   match total with
   | Some t -> Format.eprintf "[times] total: %a s@." Timer.print t

@@ -3,15 +3,30 @@
  (modules embed_class_bytes))
 
 (rule
- (targets Block.class Closure.class PartialClosure.class CamlException.class)
- (deps Block.java Closure.java PartialClosure.java CamlException.java)
+ (targets
+  Block.class
+  Closure.class
+  PartialClosure.class
+  CamlException.class
+  Compare.class)
+ (deps
+  Block.java
+  Closure.java
+  PartialClosure.java
+  CamlException.java
+  Compare.java)
  (action
   (run javac -d . %{deps})))
 
 (rule
  (targets runtime_bytes.ml)
  (deps
-  (:cls Block.class Closure.class PartialClosure.class CamlException.class))
+  (:cls
+   Block.class
+   Closure.class
+   PartialClosure.class
+   CamlException.class
+   Compare.class))
  (action
   (with-stdout-to
    %{targets}

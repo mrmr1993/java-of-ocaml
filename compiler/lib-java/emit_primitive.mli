@@ -71,6 +71,13 @@ val emit_atomic_fetch_add : State.state -> unit
 val emit_int_compare : State.state -> unit
 (** [caml_int_compare a b]: [Integer.compare(a, b)]. *)
 
+val emit_poly_cmp : State.state -> method_name:string -> unit
+(** Dispatch a polymorphic comparison primitive (caml_compare,
+    caml_equal, ..., caml_greaterequal) to a static method on the
+    [Compare] runtime class. [method_name] is the Java method:
+    ["compare"], ["equal"], ["notequal"], ["lessthan"],
+    ["lessequal"], ["greaterthan"], ["greaterequal"]. *)
+
 val emit_noop_float1 : State.state -> unit
 (** Stub returning [0.0] as a K_float. Used for primitives that take
     an Int32 / Int64 we can't materialise and return a double. *)

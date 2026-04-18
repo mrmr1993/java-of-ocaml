@@ -866,7 +866,21 @@ let emit_instr state (ins : instr) =
        | P_atomic_cas -> Emit_primitive.emit_atomic_cas state
        | P_atomic_exchange -> Emit_primitive.emit_atomic_exchange state
        | P_atomic_fetch_add -> Emit_primitive.emit_atomic_fetch_add state
-       | P_int_compare -> Emit_primitive.emit_int_compare state)
+       | P_int_compare -> Emit_primitive.emit_int_compare state
+       | P_poly_compare ->
+         Emit_primitive.emit_poly_cmp state ~method_name:"compare"
+       | P_poly_equal ->
+         Emit_primitive.emit_poly_cmp state ~method_name:"equal"
+       | P_poly_notequal ->
+         Emit_primitive.emit_poly_cmp state ~method_name:"notequal"
+       | P_poly_lessthan ->
+         Emit_primitive.emit_poly_cmp state ~method_name:"lessthan"
+       | P_poly_lessequal ->
+         Emit_primitive.emit_poly_cmp state ~method_name:"lessequal"
+       | P_poly_greaterthan ->
+         Emit_primitive.emit_poly_cmp state ~method_name:"greaterthan"
+       | P_poly_greaterequal ->
+         Emit_primitive.emit_poly_cmp state ~method_name:"greaterequal")
     | None ->
       let name =
         if prim_idx >= 0 && prim_idx < Array.length state.prims

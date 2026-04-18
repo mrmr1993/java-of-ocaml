@@ -16,3 +16,8 @@ val partial_closure_class_bytes : unit -> string
 val camlexception_class_bytes : unit -> string
 (** [RuntimeException] carrier for the OCaml exception value. Used by
     [raise] / [try ... with] to cross JVM call boundaries. *)
+
+val compare_class_bytes : unit -> string
+(** Static methods for polymorphic structural comparison on the
+    runtime-value shapes our compiler emits — used by
+    [caml_compare] / [caml_equal] / [caml_lessthan] / etc. *)

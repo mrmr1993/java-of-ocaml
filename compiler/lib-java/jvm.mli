@@ -298,6 +298,10 @@ val camlexception_class_bytes : unit -> string
     holds the OCaml exception value in a public [Object] field [value].
     Used as the JVM-level carrier for [raise] / [try … with …]. *)
 
+val compare_class_bytes : unit -> string
+(** Bytes of the [Compare] class — polymorphic structural compare /
+    equal / lessthan / … helpers. *)
+
 val closure_class_bytes : unit -> string
 
 val partial_closure_class_bytes : unit -> string

@@ -540,6 +540,25 @@ let emit_atomic_exchange state =
   state.acc_live <- true;
   state.acc_kind <- K_obj
 
+(* Polymorphic compare family: dispatches to [Compare.<fn>] static
+   methods on a hand-authored runtime class. [a] comes in via acc,
+   [b] on top of the OCaml stack; box both to Object, invoke, and
+   return the int result. Returns a [K_int] result ([0]/[1] for
+   the boolean variants, negative/0/positive for [compare]). *)
+let emit_poly_cmp state ~method_name =
+  box_acc_to_object state;
+  let b_slot = List.hd state.slots in
+  emit_load_for_kind state.code b_slot.local b_slot.kind;
+  box_if_int state.code b_slot.kind;
+  Jvm.Code.invokestatic
+    state.code
+    ~class_:"Compare"
+    ~method_:method_name
+    ~descriptor:"(Ljava/lang/Object;Ljava/lang/Object;)I";
+  consume_top state;
+  state.acc_live <- true;
+  state.acc_kind <- K_int
+
 (* [caml_int_compare a b]: [Integer.compare(a, b)]. Signed, returns
    negative / 0 / positive. Used by [List.sort compare] on int
    lists and by polymorphic [compare] through Stdlib specialisation. *)
