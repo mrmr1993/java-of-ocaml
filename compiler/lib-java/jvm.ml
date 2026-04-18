@@ -703,17 +703,36 @@ let assemble_main_class build =
 
      public class Closure {
          public Closure() { super(); }
-         public Object apply1(Object a1) { throw new RuntimeException(...); }
-         public Object apply2(Object a1, Object a2) { throw ...; }
-         public Object apply3(Object a1, Object a2, Object a3) { throw ...; }
+         public int arity()   { return 0; }  // subclasses override
+         public Object apply1(Object a1)              { return under(1, args); }
+         public Object apply2(Object a1, Object a2)   { return under(2, args); }
+         ...
+         public Object apply7(...) { return under(7, args); }
+         protected final Object under(int n, Object[] args) {
+           int a = this.arity();
+           if (a > n) return new PartialClosure(this, args, a);
+           throw new RuntimeException("closure arity mismatch");
+         }
      }
 
-   OCaml functions are compiled to subclasses that override the apply
-   method matching their arity. *)
+   OCaml functions are compiled to subclasses that override [arity] and
+   the apply method matching their arity. Calling applyN on a K-arg
+   subclass where K > N builds a [PartialClosure] capturing the passed
+   args; calling applyN where K == N hits the subclass's own override. *)
+
+let apply_descriptor n =
+  let buf = Buffer.create 16 in
+  Buffer.add_char buf '(';
+  for _ = 1 to n do
+    Buffer.add_string buf "Ljava/lang/Object;"
+  done;
+  Buffer.add_string buf ")Ljava/lang/Object;";
+  Buffer.contents buf
+
+let max_supported_arity = 7
 
 let closure_class_bytes () =
   let cp = Cp.create () in
-  (* <init>() — just calls Object.<init>. *)
   let ctor = Code.create cp in
   Code.set_min_locals ctor 1;
   Code.aload ctor 0;
@@ -723,41 +742,91 @@ let closure_class_bytes () =
     ~method_:"<init>"
     ~descriptor:"()V";
   Code.return_void ctor;
-  (* Throwing-body helper: builds a method that does
-       new RuntimeException("arity mismatch");
-       athrow
-     with enough locals for the declared args. *)
-  let throw_body ~nargs =
+  (* Default [arity()] returns 0; subclasses override. *)
+  let arity_body = Code.create cp in
+  Code.set_min_locals arity_body 1;
+  Code.ldc_int arity_body 0;
+  Code.ireturn arity_body;
+  (* Shared fallback used by every applyN: if [this.arity()] > n build a
+     [PartialClosure], else throw. Returns Object. Signature:
+       protected Object under(int n, Object[] args)
+     We emit this as a regular public method (JVM [under]) so subclasses
+     can invoke it via invokespecial / invokevirtual. *)
+  let under_body = Code.create cp in
+  Code.set_min_locals under_body 3;
+  (* compare: iload_1 (n) with this.arity() *)
+  Code.aload under_body 0;
+  Code.invokevirtual
+    under_body
+    ~class_:"Closure"
+    ~method_:"arity"
+    ~descriptor:"()I";
+  Code.iload under_body 1;
+  let l_throw = Code.fresh_label under_body in
+  Code.if_icmple under_body l_throw;
+  (* arity > n: build PartialClosure(this, args, this.arity()) *)
+  Code.new_ under_body "PartialClosure";
+  Code.dup under_body;
+  Code.aload under_body 0;
+  Code.aload under_body 2;
+  Code.aload under_body 0;
+  Code.invokevirtual
+    under_body
+    ~class_:"Closure"
+    ~method_:"arity"
+    ~descriptor:"()I";
+  Code.invokespecial
+    under_body
+    ~class_:"PartialClosure"
+    ~method_:"<init>"
+    ~descriptor:"(LClosure;[Ljava/lang/Object;I)V";
+  Code.areturn under_body;
+  Code.mark_label under_body l_throw;
+  Code.new_ under_body "java/lang/RuntimeException";
+  Code.dup under_body;
+  Code.ldc_string under_body "closure arity mismatch";
+  Code.invokespecial
+    under_body
+    ~class_:"java/lang/RuntimeException"
+    ~method_:"<init>"
+    ~descriptor:"(Ljava/lang/String;)V";
+  Code.athrow under_body;
+  (* apply<N> body: build new Object[n] from args and tail-call under(n, arr). *)
+  let make_apply_stub n =
     let body = Code.create cp in
-    Code.set_min_locals body (1 + nargs);
-    (* Push throw-message + throw. We use String constant via ldc. *)
-    Code.new_ body "java/lang/RuntimeException";
-    Code.dup body;
-    Code.ldc_string body "closure arity mismatch";
-    Code.invokespecial
+    Code.set_min_locals body (1 + n);
+    (* Build args array. *)
+    Code.ldc_int body n;
+    Code.anewarray body "java/lang/Object";
+    for k = 0 to n - 1 do
+      Code.dup body;
+      Code.ldc_int body k;
+      Code.aload body (1 + k);
+      Code.aastore body
+    done;
+    (* Stack: [args_array]. Need: aload_0 (this); iload n; aload args. *)
+    let arr_local = 1 + n in
+    Code.astore body arr_local;
+    Code.aload body 0;
+    Code.ldc_int body n;
+    Code.aload body arr_local;
+    Code.invokevirtual
       body
-      ~class_:"java/lang/RuntimeException"
-      ~method_:"<init>"
-      ~descriptor:"(Ljava/lang/String;)V";
-    (* Stack: [..., exception]. athrow (0xBF). *)
-    add_u1 body.buf 0xBF;
-    body
-  in
-  let make_apply n =
-    let desc =
-      let buf = Buffer.create 16 in
-      Buffer.add_char buf '(';
-      for _ = 1 to n do
-        Buffer.add_string buf "Ljava/lang/Object;"
-      done;
-      Buffer.add_string buf ")Ljava/lang/Object;";
-      Buffer.contents buf
-    in
+      ~class_:"Closure"
+      ~method_:"under"
+      ~descriptor:"(I[Ljava/lang/Object;)Ljava/lang/Object;";
+    Code.areturn body;
     { name = Printf.sprintf "apply%d" n
-    ; descriptor = desc
-    ; access_flags = 0x0001 (* ACC_PUBLIC *)
-    ; code = throw_body ~nargs:n
+    ; descriptor = apply_descriptor n
+    ; access_flags = 0x0001
+    ; code = body
     }
+  in
+  let applies =
+    let rec loop n =
+      if n > max_supported_arity then [] else make_apply_stub n :: loop (n + 1)
+    in
+    loop 1
   in
   assemble_class
     ~class_name:"Closure"
@@ -765,16 +834,264 @@ let closure_class_bytes () =
     ~cp
     ~fields:[]
     ~methods:
-      [ { name = "<init>"
-        ; descriptor = "()V"
-        ; access_flags = 0x0001
-        ; code = ctor
-        }
-      ; make_apply 1
-      ; make_apply 2
-      ; make_apply 3
-      ]
+      ({ name = "<init>"
+       ; descriptor = "()V"
+       ; access_flags = 0x0001
+       ; code = ctor
+       }
+      :: { name = "arity"
+         ; descriptor = "()I"
+         ; access_flags = 0x0001
+         ; code = arity_body
+         }
+      :: { name = "under"
+         ; descriptor = "(I[Ljava/lang/Object;)Ljava/lang/Object;"
+         ; access_flags = 0x0001
+         ; code = under_body
+         }
+      :: applies)
     ~access_flags:0x0021 (* ACC_PUBLIC | ACC_SUPER *)
+
+(* -------------------------------------------------------------------------- *)
+(* PartialClosure class
+
+     public final class PartialClosure extends Closure {
+       public final Closure target;
+       public final Object[] captured;
+       public final int targetArity;
+       public PartialClosure(Closure t, Object[] c, int a) { target=t; captured=c; targetArity=a; }
+       public int arity() { return targetArity - captured.length; }
+       public Object apply<N>(...) {
+         Object[] combined = new Object[captured.length + N];
+         System.arraycopy(captured, 0, combined, 0, captured.length);
+         combined[captured.length + 0] = a1; ... combined[captured.length + N-1] = aN;
+         if (combined.length < targetArity) return new PartialClosure(target, combined, targetArity);
+         // saturated — dispatch to target.apply<targetArity>
+         switch (targetArity) {
+           case 1: return target.apply1(combined[0]);
+           case 2: return target.apply2(combined[0], combined[1]);
+           ...
+           case 7: return target.apply7(combined[0], ..., combined[6]);
+         }
+         throw ...;
+       }
+     } *)
+
+let partial_closure_class_bytes () =
+  let cp = Cp.create () in
+  (* Constructor: aload_0; invokespecial Closure.<init>(); set fields. *)
+  let ctor = Code.create cp in
+  Code.set_min_locals ctor 4;
+  Code.aload ctor 0;
+  Code.invokespecial
+    ctor
+    ~class_:"Closure"
+    ~method_:"<init>"
+    ~descriptor:"()V";
+  Code.aload ctor 0;
+  Code.aload ctor 1;
+  Code.putfield ctor ~class_:"PartialClosure" ~field:"target" ~descriptor:"LClosure;";
+  Code.aload ctor 0;
+  Code.aload ctor 2;
+  Code.putfield
+    ctor
+    ~class_:"PartialClosure"
+    ~field:"captured"
+    ~descriptor:"[Ljava/lang/Object;";
+  Code.aload ctor 0;
+  Code.iload ctor 3;
+  Code.putfield ctor ~class_:"PartialClosure" ~field:"targetArity" ~descriptor:"I";
+  Code.return_void ctor;
+  (* arity(): return targetArity - captured.length *)
+  let arity_body = Code.create cp in
+  Code.set_min_locals arity_body 1;
+  Code.aload arity_body 0;
+  Code.getfield arity_body ~class_:"PartialClosure" ~field:"targetArity" ~descriptor:"I";
+  Code.aload arity_body 0;
+  Code.getfield
+    arity_body
+    ~class_:"PartialClosure"
+    ~field:"captured"
+    ~descriptor:"[Ljava/lang/Object;";
+  Code.arraylength arity_body;
+  Code.isub arity_body;
+  Code.ireturn arity_body;
+  (* Dispatch helper: given the combined Object[] on stack, call
+     target.apply<length> with its contents. Emits a switch/chain on
+     the runtime length. Signature:
+       Object dispatchSaturated(Object[] combined)
+     Stack at entry: [this, combined] — pop combined to a local, then
+     do the chain. *)
+  let dispatch_body = Code.create cp in
+  Code.set_min_locals dispatch_body 3;
+  (* local 1 = combined Object[], local 2 = its length *)
+  Code.aload dispatch_body 1;
+  Code.arraylength dispatch_body;
+  Code.istore dispatch_body 2;
+  (* for each supported arity K: if length == K, dispatch to target.applyK. *)
+  let l_throw = Code.fresh_label dispatch_body in
+  for k = 1 to max_supported_arity do
+    let l_next = Code.fresh_label dispatch_body in
+    Code.iload dispatch_body 2;
+    Code.ldc_int dispatch_body k;
+    Code.if_icmpne dispatch_body l_next;
+    Code.aload dispatch_body 0;
+    Code.getfield
+      dispatch_body
+      ~class_:"PartialClosure"
+      ~field:"target"
+      ~descriptor:"LClosure;";
+    for i = 0 to k - 1 do
+      Code.aload dispatch_body 1;
+      Code.ldc_int dispatch_body i;
+      Code.aaload dispatch_body
+    done;
+    Code.invokevirtual
+      dispatch_body
+      ~class_:"Closure"
+      ~method_:(Printf.sprintf "apply%d" k)
+      ~descriptor:(apply_descriptor k);
+    Code.areturn dispatch_body;
+    Code.mark_label dispatch_body l_next
+  done;
+  Code.mark_label dispatch_body l_throw;
+  Code.new_ dispatch_body "java/lang/RuntimeException";
+  Code.dup dispatch_body;
+  Code.ldc_string dispatch_body "unsupported partial-closure arity";
+  Code.invokespecial
+    dispatch_body
+    ~class_:"java/lang/RuntimeException"
+    ~method_:"<init>"
+    ~descriptor:"(Ljava/lang/String;)V";
+  Code.athrow dispatch_body;
+  (* apply<N> body: combine captured + args, then either build a new
+     PartialClosure or call dispatchSaturated. *)
+  let make_apply_impl n =
+    let body = Code.create cp in
+    Code.set_min_locals body (1 + n);
+    (* captured length into local (1+n); total into local (2+n); combined into (3+n). *)
+    let cap_len_local = 1 + n in
+    let total_local = 2 + n in
+    let combined_local = 3 + n in
+    Code.set_min_locals body (combined_local + 1);
+    Code.aload body 0;
+    Code.getfield
+      body
+      ~class_:"PartialClosure"
+      ~field:"captured"
+      ~descriptor:"[Ljava/lang/Object;";
+    Code.arraylength body;
+    Code.istore body cap_len_local;
+    Code.iload body cap_len_local;
+    Code.ldc_int body n;
+    Code.iadd body;
+    Code.istore body total_local;
+    (* combined = new Object[total] *)
+    Code.iload body total_local;
+    Code.anewarray body "java/lang/Object";
+    Code.astore body combined_local;
+    (* System.arraycopy(captured, 0, combined, 0, cap_len) *)
+    Code.aload body 0;
+    Code.getfield
+      body
+      ~class_:"PartialClosure"
+      ~field:"captured"
+      ~descriptor:"[Ljava/lang/Object;";
+    Code.ldc_int body 0;
+    Code.aload body combined_local;
+    Code.ldc_int body 0;
+    Code.iload body cap_len_local;
+    Code.invokestatic
+      body
+      ~class_:"java/lang/System"
+      ~method_:"arraycopy"
+      ~descriptor:"(Ljava/lang/Object;ILjava/lang/Object;II)V";
+    (* combined[cap_len + k] = args[k] for k in 0..n-1 *)
+    for k = 0 to n - 1 do
+      Code.aload body combined_local;
+      Code.iload body cap_len_local;
+      Code.ldc_int body k;
+      Code.iadd body;
+      Code.aload body (1 + k);
+      Code.aastore body
+    done;
+    (* if total < targetArity: new PartialClosure(target, combined, targetArity) *)
+    let l_saturated = Code.fresh_label body in
+    Code.iload body total_local;
+    Code.aload body 0;
+    Code.getfield body ~class_:"PartialClosure" ~field:"targetArity" ~descriptor:"I";
+    Code.if_icmpge body l_saturated;
+    Code.new_ body "PartialClosure";
+    Code.dup body;
+    Code.aload body 0;
+    Code.getfield body ~class_:"PartialClosure" ~field:"target" ~descriptor:"LClosure;";
+    Code.aload body combined_local;
+    Code.aload body 0;
+    Code.getfield body ~class_:"PartialClosure" ~field:"targetArity" ~descriptor:"I";
+    Code.invokespecial
+      body
+      ~class_:"PartialClosure"
+      ~method_:"<init>"
+      ~descriptor:"(LClosure;[Ljava/lang/Object;I)V";
+    Code.areturn body;
+    Code.mark_label body l_saturated;
+    (* else: dispatchSaturated(combined) *)
+    Code.aload body 0;
+    Code.aload body combined_local;
+    Code.invokevirtual
+      body
+      ~class_:"PartialClosure"
+      ~method_:"dispatchSaturated"
+      ~descriptor:"([Ljava/lang/Object;)Ljava/lang/Object;";
+    Code.areturn body;
+    { name = Printf.sprintf "apply%d" n
+    ; descriptor = apply_descriptor n
+    ; access_flags = 0x0001
+    ; code = body
+    }
+  in
+  let applies =
+    let rec loop n =
+      if n > max_supported_arity then [] else make_apply_impl n :: loop (n + 1)
+    in
+    loop 1
+  in
+  assemble_class
+    ~class_name:"PartialClosure"
+    ~super_name:"Closure"
+    ~cp
+    ~fields:
+      [ { name = "target"
+        ; descriptor = "LClosure;"
+        ; access_flags = 0x0011
+        }
+      ; { name = "captured"
+        ; descriptor = "[Ljava/lang/Object;"
+        ; access_flags = 0x0011
+        }
+      ; { name = "targetArity"
+        ; descriptor = "I"
+        ; access_flags = 0x0011
+        }
+      ]
+    ~methods:
+      ({ name = "<init>"
+       ; descriptor = "(LClosure;[Ljava/lang/Object;I)V"
+       ; access_flags = 0x0001
+       ; code = ctor
+       }
+      :: { name = "arity"
+         ; descriptor = "()I"
+         ; access_flags = 0x0001
+         ; code = arity_body
+         }
+      :: { name = "dispatchSaturated"
+         ; descriptor = "([Ljava/lang/Object;)Ljava/lang/Object;"
+         ; access_flags = 0x0001
+         ; code = dispatch_body
+         }
+      :: applies)
+    ~access_flags:0x0031
 
 let block_class_bytes () =
   let cp = Cp.create () in

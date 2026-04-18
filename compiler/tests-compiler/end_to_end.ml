@@ -837,6 +837,60 @@ let%expect_test "extensible type with positional, tuple and inline-record constr
     other
     tag |}]
 
+let%expect_test "4-arg function (PUSH_RETADDR + apply4)" =
+  compile_and_run
+    {| external caml_java_print_int : int -> unit = "caml_java_print_int"
+       let f a b c d = a + b + c + d
+       let () = caml_java_print_int (f 1 2 3 4) |};
+  [%expect {| 10 |}]
+
+let%expect_test "5-, 6-, and 7-arg functions" =
+  compile_and_run
+    {| external caml_java_print_int : int -> unit = "caml_java_print_int"
+       let f5 a b c d e = a + b + c + d + e
+       let f6 a b c d e f = a + b + c + d + e + f
+       let f7 a b c d e f g = a + b + c + d + e + f + g
+       let () =
+         caml_java_print_int (f5 1 2 3 4 5);
+         caml_java_print_int (f6 1 2 3 4 5 6);
+         caml_java_print_int (f7 1 2 3 4 5 6 7) |};
+  [%expect {|
+    15
+    21
+    28 |}]
+
+let%expect_test "partial application: 3-arg function called with 2 args then 1" =
+  compile_and_run
+    {| external caml_java_print_int : int -> unit = "caml_java_print_int"
+       let add3 a b c = a + b + c
+       let inc = add3 1 2
+       let () =
+         caml_java_print_int (add3 10 20 30);
+         caml_java_print_int (inc 100);
+         caml_java_print_int (inc 5) |};
+  [%expect {|
+    60
+    103
+    8 |}]
+
+let%expect_test "partial application: 4-arg function applied in several stages" =
+  compile_and_run
+    {| external caml_java_print_int : int -> unit = "caml_java_print_int"
+       let f a b c d = a * 1000 + b * 100 + c * 10 + d
+       let () =
+         caml_java_print_int (f 1 2 3 4);
+         let g = f 1 in
+         caml_java_print_int (g 2 3 4);
+         let h = g 2 in
+         caml_java_print_int (h 3 4);
+         let k = h 3 in
+         caml_java_print_int (k 4) |};
+  [%expect {|
+    1234
+    1234
+    1234
+    1234 |}]
+
 let%expect_test "extensible type: match falls through to catch-all for a later constructor" =
   compile_and_run
     {| external caml_java_print_int : int -> unit = "caml_java_print_int"

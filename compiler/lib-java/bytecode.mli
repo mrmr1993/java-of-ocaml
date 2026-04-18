@@ -25,6 +25,7 @@ module Op : sig
   val acc7 : int
   val acc : int
   val push : int
+  val push_retaddr : int
   val assign : int
   val pushacc0 : int
   val pushacc1 : int

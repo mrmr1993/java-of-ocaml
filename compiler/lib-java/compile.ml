@@ -112,6 +112,7 @@ let break_op = Bytecode.Op.break
 let is_user_op (ins : instr) =
   let op = ins.opcode in
   op = Bytecode.Op.push
+  || op = Bytecode.Op.push_retaddr
   || op = Bytecode.Op.pop
   || op = Bytecode.Op.assign
   || is_acc op
@@ -559,6 +560,12 @@ type state =
          pops it and registers the exception-table entry spanning the
          region between them. *)
   ; fresh_oo_id_counter : int ref
+  ; mutable pending_retaddrs : int
+      (* Count of [PUSH_RETADDR]s whose matching [APPLY] we haven't yet
+         seen. OCaml's interpreter pushes 3 retaddr words at
+         PUSH_RETADDR; the callee's [RETURN] pops them alongside its
+         own locals. At the JVM level we pop them in the caller after
+         [emit_apply_invoke] returns. *)
       (* Monotonically-increasing counter for [caml_fresh_oo_id] —
          OCaml's runtime gives each exception / object type a unique
          int at module init. Module init runs once per program start,
@@ -1231,13 +1238,12 @@ let emit_apply_invoke state ~nargs =
     emit_load_for_kind state.code slot sk;
     box_if_int state.code sk
   done;
-  if nargs > 3
+  if nargs > 7
   then
     failwith
       (Printf.sprintf
-         "java_of_ocaml: APPLY%d — the base Closure class only has \
-          apply1/2/3 dispatch right now; higher-arity applies aren't \
-          supported yet"
+         "java_of_ocaml: APPLY%d — the base Closure class only \
+          declares apply1..apply7 right now"
          nargs);
   Jvm.Code.invokevirtual
     state.code
@@ -1245,23 +1251,33 @@ let emit_apply_invoke state ~nargs =
     ~method_:(Printf.sprintf "apply%d" nargs)
     ~descriptor:(apply_descriptor_for_nargs nargs);
   pop_slots state nargs;
+  (* If this APPLY is the tail of a [PUSH_RETADDR; …; APPLY] frame,
+     discard the three retaddr sentinels too. OCaml's callee consumed
+     them in its RETURN; at our level we just drop them from the
+     tracked OCaml-stack depth. *)
+  if state.pending_retaddrs > 0
+  then (
+    state.pending_retaddrs <- state.pending_retaddrs - 1;
+    pop_slots state 3);
   state.acc_live <- true
 
 (* Regular APPLY: invoke then cast / unbox based on the callee's return
    kind. [fn_by_name] is a side-table supplied in the state for this. *)
 let emit_apply state ~nargs =
-  let callee_name =
+  let callee_info =
     match state.acc_kind with
-    | K_closure { name; _ } -> Some name
+    | K_closure { name; _ } -> Hashtbl.find_opt state.fn_by_name name
     | _ -> None
   in
   emit_apply_invoke state ~nargs;
   let return_kind =
-    match callee_name with
-    | Some name ->
-      (match Hashtbl.find_opt state.fn_by_name name with
-       | Some fi -> !(fi.return_kind)
-       | None -> K_obj)
+    match callee_info with
+    | Some fi when nargs < fi.nargs ->
+      (* Undersupplied call — the JVM [Closure.apply<nargs>] stub built a
+         [PartialClosure] from the passed args. The result is a closure,
+         not the function's final return. *)
+      K_obj
+    | Some fi -> !(fi.return_kind)
     | None ->
       (* Calling through an opaque closure (e.g. a function arg, or a
          capture whose kind we lost). We can't know the callee's return
@@ -1273,6 +1289,21 @@ let emit_apply state ~nargs =
   state.acc_kind <- return_kind
 
 let emit_apply1 state = emit_apply state ~nargs:1
+
+(* OCaml [PUSH_RETADDR L]: push three retaddr words onto the OCaml stack
+   (return PC, env, extra_args). The callee's [RETURN] pops them along
+   with its own locals. At the JVM level we don't need any of this
+   information (Java's native return takes care of it); we only need to
+   track that the OCaml stack got 3 slots deeper so later [ACC k]
+   resolves to the right slot. After the matching [APPLY] those slots
+   are "popped" by the callee's RETURN — since nothing in our JVM-level
+   emission pushed them, we reconcile by popping 3 slots post-apply. *)
+let emit_push_retaddr state =
+  for _ = 1 to 3 do
+    let local = allocate_local state in
+    push_slot state K_obj local
+  done;
+  state.pending_retaddrs <- state.pending_retaddrs + 1
 
 (* Box acc's value into an Object on the JVM op stack, so it can be used
    as the [Object] return from an [apply] method or as a capture /
@@ -1725,6 +1756,8 @@ let emit_instr state (ins : instr) =
   then emit_raise state
   else if op = Bytecode.Op.isint
   then emit_isint state
+  else if op = Bytecode.Op.push_retaddr
+  then emit_push_retaddr state
   else if op = Bytecode.Op.boolnot
   then (
     (* OCaml bool is Val_int(0) / Val_int(1). Flip via XOR with 1. *)
@@ -2491,6 +2524,7 @@ let compile ~bc ~out_dir =
     ; pending_handlers = Hashtbl.create 2
     ; open_traps = []
     ; fresh_oo_id_counter
+    ; pending_retaddrs = 0
     }
   in
   emit_range state arr (start_idx, end_idx) ~skip_pcs:fn_body_pcs;
@@ -2598,6 +2632,7 @@ let compile ~bc ~out_dir =
           ; pending_handlers = Hashtbl.create 2
           ; open_traps = []
           ; fresh_oo_id_counter
+          ; pending_retaddrs = 0
           }
         in
         emit_range
@@ -2628,13 +2663,27 @@ let compile ~bc ~out_dir =
           ; code = apply_code
           }
         in
+        (* [arity()] override so the base [Closure]'s dispatch (and
+           [PartialClosure]'s saturation check) sees this subclass's
+           actual arity. *)
+        let arity_code = Jvm.Code.create fn_cp in
+        Jvm.Code.set_min_locals arity_code 1;
+        Jvm.Code.ldc_int arity_code fn_info.nargs;
+        Jvm.Code.ireturn arity_code;
+        let arity_method =
+          { Jvm.name = "arity"
+          ; descriptor = "()I"
+          ; access_flags = 0x0001
+          ; code = arity_code
+          }
+        in
         let bytes =
           Jvm.assemble_class
             ~class_name:fn_info.name
             ~super_name:"Closure"
             ~cp:fn_cp
             ~fields
-            ~methods:[ ctor; apply_method ]
+            ~methods:[ ctor; arity_method; apply_method ]
             ~access_flags:0x0031 (* ACC_PUBLIC | ACC_SUPER | ACC_FINAL *)
         in
         fn_info.name, bytes)
@@ -2650,4 +2699,5 @@ let compile ~bc ~out_dir =
   write_class "Block" (Jvm.block_class_bytes ());
   write_class "Closure" (Jvm.closure_class_bytes ());
   write_class "CamlException" (Jvm.camlexception_class_bytes ());
+  write_class "PartialClosure" (Jvm.partial_closure_class_bytes ());
   List.iter (fun (name, bytes) -> write_class name bytes) closure_class_files

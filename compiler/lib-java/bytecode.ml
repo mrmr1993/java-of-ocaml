@@ -15,6 +15,7 @@ module Op = struct
   let acc7 = 7
   let acc = 8
   let push = 9
+  let push_retaddr = 31
   let assign = 20
   let pushacc0 = 10
   let pushacc1 = 11
