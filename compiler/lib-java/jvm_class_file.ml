@@ -37,7 +37,11 @@ let emit_method_info out (l : method_layout) =
   add_u2 out l.code_attr_idx;
   let attr_len = 2 + 2 + 4 + code_len + 2 + (8 * n_entries) + 2 in
   add_u4 out attr_len;
-  add_u2 out (min 65535 (Code.max_stack l.m.code));
+  (* The forward-walk tracker under-declares around spill/reload
+     scaffolding and join-block prologues that re-push acc after
+     a branch already popped it. A small margin keeps the JVM
+     happy while we track down the exact off-by-ones. *)
+  add_u2 out (min 65535 (Code.max_stack l.m.code + 8));
   add_u2 out (Code.max_locals l.m.code);
   add_u4 out code_len;
   Buffer.add_string out l.code_bytes;
