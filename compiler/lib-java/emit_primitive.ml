@@ -455,6 +455,130 @@ let emit_noop_null state ~nargs =
   state.acc_live <- true;
   state.acc_kind <- K_obj
 
+(* [caml_atomic_load ref]: in OCaml, an atomic ref is a Block of
+   size 1 holding the current value at field 0. Single-threaded
+   JVM semantics: just read field 0. *)
+let emit_atomic_load state =
+  (match state.acc_kind with
+   | K_block _ -> ()
+   | K_obj -> Jvm.Code.checkcast state.code "Block"
+   | _ ->
+     failwith "java_of_ocaml: caml_atomic_load on non-block");
+  Jvm.Code.getfield
+    state.code
+    ~class_:"Block"
+    ~field:"fields"
+    ~descriptor:"[Ljava/lang/Object;";
+  Jvm.Code.ldc_int state.code 0;
+  Jvm.Code.aaload state.code;
+  state.acc_kind <- K_obj
+
+(* [caml_atomic_cas ref expected new]: single-threaded — no real
+   atomicity needed. Compare [ref.fields[0]] to [expected]; if
+   equal, set it to [new] and return 1; else return 0. *)
+let emit_atomic_cas state =
+  let expected_slot = List.nth state.slots 0 in
+  let new_slot = List.nth state.slots 1 in
+  (match state.acc_kind with
+   | K_block _ -> ()
+   | K_obj -> Jvm.Code.checkcast state.code "Block"
+   | _ ->
+     failwith "java_of_ocaml: caml_atomic_cas on non-block");
+  Jvm.Code.getfield
+    state.code
+    ~class_:"Block"
+    ~field:"fields"
+    ~descriptor:"[Ljava/lang/Object;";
+  let fields_local = allocate_local state in
+  Jvm.Code.astore state.code fields_local;
+  Jvm.Code.aload state.code fields_local;
+  Jvm.Code.ldc_int state.code 0;
+  Jvm.Code.aaload state.code;
+  emit_load_for_kind state.code expected_slot.local expected_slot.kind;
+  box_if_int state.code expected_slot.kind;
+  let lbl_neq = Jvm.Code.fresh_label state.code in
+  let lbl_end = Jvm.Code.fresh_label state.code in
+  Jvm.Code.if_acmpne state.code lbl_neq;
+  Jvm.Code.aload state.code fields_local;
+  Jvm.Code.ldc_int state.code 0;
+  emit_load_for_kind state.code new_slot.local new_slot.kind;
+  box_if_int state.code new_slot.kind;
+  Jvm.Code.aastore state.code;
+  Jvm.Code.ldc_int state.code 1;
+  Jvm.Code.goto state.code lbl_end;
+  Jvm.Code.mark_label state.code lbl_neq;
+  Jvm.Code.ldc_int state.code 0;
+  Jvm.Code.mark_label state.code lbl_end;
+  pop_slots state 2;
+  state.acc_live <- true;
+  state.acc_kind <- K_int
+
+(* [caml_atomic_exchange ref new]: [old = ref.fields[0]; ref.fields[0] = new; return old]. *)
+let emit_atomic_exchange state =
+  let new_slot = List.nth state.slots 0 in
+  (match state.acc_kind with
+   | K_block _ -> ()
+   | K_obj -> Jvm.Code.checkcast state.code "Block"
+   | _ ->
+     failwith "java_of_ocaml: caml_atomic_exchange on non-block");
+  Jvm.Code.getfield
+    state.code
+    ~class_:"Block"
+    ~field:"fields"
+    ~descriptor:"[Ljava/lang/Object;";
+  Jvm.Code.dup state.code;
+  Jvm.Code.ldc_int state.code 0;
+  Jvm.Code.aaload state.code;
+  let old_local = allocate_local state in
+  Jvm.Code.astore state.code old_local;
+  Jvm.Code.ldc_int state.code 0;
+  emit_load_for_kind state.code new_slot.local new_slot.kind;
+  box_if_int state.code new_slot.kind;
+  Jvm.Code.aastore state.code;
+  Jvm.Code.aload state.code old_local;
+  pop_slots state 1;
+  state.acc_live <- true;
+  state.acc_kind <- K_obj
+
+(* [caml_atomic_fetch_add ref n]: [old = ref.fields[0]; ref.fields[0] = old + n; return old]. *)
+let emit_atomic_fetch_add state =
+  let n_slot = List.nth state.slots 0 in
+  (match state.acc_kind with
+   | K_block _ -> ()
+   | K_obj -> Jvm.Code.checkcast state.code "Block"
+   | _ ->
+     failwith "java_of_ocaml: caml_atomic_fetch_add on non-block");
+  Jvm.Code.getfield
+    state.code
+    ~class_:"Block"
+    ~field:"fields"
+    ~descriptor:"[Ljava/lang/Object;";
+  Jvm.Code.dup state.code;
+  Jvm.Code.ldc_int state.code 0;
+  Jvm.Code.aaload state.code;
+  Jvm.Code.checkcast state.code "java/lang/Integer";
+  Jvm.Code.invokevirtual
+    state.code
+    ~class_:"java/lang/Integer"
+    ~method_:"intValue"
+    ~descriptor:"()I";
+  let old_local = allocate_local state in
+  Jvm.Code.istore state.code old_local;
+  Jvm.Code.ldc_int state.code 0;
+  Jvm.Code.iload state.code old_local;
+  emit_load_for_kind state.code n_slot.local n_slot.kind;
+  (match n_slot.kind with
+   | K_int -> ()
+   | K_obj -> emit_unbox_to_kind state.code K_int
+   | _ -> failwith "java_of_ocaml: caml_atomic_fetch_add: n must be int");
+  Jvm.Code.iadd state.code;
+  emit_box_int state.code;
+  Jvm.Code.aastore state.code;
+  Jvm.Code.iload state.code old_local;
+  pop_slots state 1;
+  state.acc_live <- true;
+  state.acc_kind <- K_int
+
 (* Stubbed primitive that takes 1 arg and returns the float [0.0].
    Obviously wrong but lets Stdlib init finish when it calls
    [float_of_bits] on an int64 / int32 literal we can't yet

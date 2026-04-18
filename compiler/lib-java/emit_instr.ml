@@ -849,7 +849,11 @@ let emit_instr state (ins : instr) =
        | P_noop2 -> Emit_primitive.emit_noop state ~nargs:2
        | P_noop_float1 -> Emit_primitive.emit_noop_float1 state
        | P_noop_null1 -> Emit_primitive.emit_noop_null state ~nargs:1
-       | P_noop_null2 -> Emit_primitive.emit_noop_null state ~nargs:2)
+       | P_noop_null2 -> Emit_primitive.emit_noop_null state ~nargs:2
+       | P_atomic_load -> Emit_primitive.emit_atomic_load state
+       | P_atomic_cas -> Emit_primitive.emit_atomic_cas state
+       | P_atomic_exchange -> Emit_primitive.emit_atomic_exchange state
+       | P_atomic_fetch_add -> Emit_primitive.emit_atomic_fetch_add state)
     | None ->
       let name =
         if prim_idx >= 0 && prim_idx < Array.length state.prims

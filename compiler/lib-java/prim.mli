@@ -49,6 +49,10 @@ type prim_handler =
   | P_noop_float1
   | P_noop_null1
   | P_noop_null2
+  | P_atomic_load
+  | P_atomic_cas
+  | P_atomic_exchange
+  | P_atomic_fetch_add
 
 type prim_entry =
   { name : string

@@ -60,6 +60,14 @@ val emit_noop_null : State.state -> nargs:int -> unit
     closure) — a null cast succeeds, whereas a boxed [0] would
     raise [ClassCastException]. *)
 
+val emit_atomic_load : State.state -> unit
+val emit_atomic_cas : State.state -> unit
+val emit_atomic_exchange : State.state -> unit
+val emit_atomic_fetch_add : State.state -> unit
+(** OCaml's [Atomic] refs are just [Block(0, [| value |])] at the
+    runtime level. On the JVM we're single-threaded, so the
+    primitives reduce to [getfield fields; aaload / aastore]. *)
+
 val emit_noop_float1 : State.state -> unit
 (** Stub returning [0.0] as a K_float. Used for primitives that take
     an Int32 / Int64 we can't materialise and return a double. *)

@@ -43,6 +43,10 @@ type prim_handler =
   | P_noop_float1
   | P_noop_null1
   | P_noop_null2
+  | P_atomic_load
+  | P_atomic_cas
+  | P_atomic_exchange
+  | P_atomic_fetch_add
     (* Stub: 1 arg, returns a dummy K_float (0.0). For Int64/Int32 bit
        conversions we don't implement yet; Stdlib init calls them to
        set up infinity / nan / max_float, which would be wrong but at
@@ -127,20 +131,20 @@ let primitives : prim_entry list =
      ClassCastException at the call site. *)
   ; { name = "caml_ml_open_descriptor_in"; handler = P_noop_null1; seed = false }
   ; { name = "caml_ml_open_descriptor_out"; handler = P_noop_null1; seed = false }
-  ; { name = "caml_ml_out_channels_list"; handler = P_noop_null1; seed = false }
+  (* Returns an OCaml list (nil = Val_int 0). *)
+  ; { name = "caml_ml_out_channels_list"; handler = P_noop1; seed = false }
   ; { name = "caml_channel_descriptor"; handler = P_noop_null1; seed = false }
   ; { name = "caml_sys_get_config"; handler = P_noop_null1; seed = false }
   ; { name = "caml_sys_get_argv"; handler = P_noop_null1; seed = false }
   ; { name = "caml_sys_executable_name"; handler = P_noop_null1; seed = false }
   ; { name = "caml_sys_const_backend_type"; handler = P_noop_null1; seed = false }
-  (* Atomic primitives: we're single-threaded so loads / stores are
-     straightforward, but Stdlib wraps everything in atomic refs
-     whose value is a reference. Stub as null-returning; first
-     real use of the result fails with NullPointerException. *)
-  ; { name = "caml_atomic_load"; handler = P_noop_null1; seed = false }
-  ; { name = "caml_atomic_cas"; handler = P_noop_null2; seed = false }
-  ; { name = "caml_atomic_exchange"; handler = P_noop_null2; seed = false }
-  ; { name = "caml_atomic_fetch_add"; handler = P_noop_null2; seed = false }
+  (* Atomic primitives: we're single-threaded, so OCaml's atomic
+     refs (Block of size 1 holding the current value) lower to
+     plain getfield / aaload / aastore without synchronisation. *)
+  ; { name = "caml_atomic_load"; handler = P_atomic_load; seed = false }
+  ; { name = "caml_atomic_cas"; handler = P_atomic_cas; seed = false }
+  ; { name = "caml_atomic_exchange"; handler = P_atomic_exchange; seed = false }
+  ; { name = "caml_atomic_fetch_add"; handler = P_atomic_fetch_add; seed = false }
   ]
 
 type table = (int, string * prim_handler * bool) Hashtbl.t
