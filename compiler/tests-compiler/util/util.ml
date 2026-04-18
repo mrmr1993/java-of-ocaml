@@ -292,3 +292,36 @@ let normalize_path s =
       | '\\' -> '/'
       | x -> x)
     s
+
+let javap = try Sys.getenv "JAVAP" with Not_found -> exe "javap"
+
+let javap_class file =
+  let path = Filetype.path_of_class_file file in
+  let dir = Filename.dirname path in
+  let classname = Filename.basename path |> Filename.remove_extension in
+  exec_to_string_exn
+    ~fail:true
+    ~cmd:(Format.sprintf "%s -c -cp %s %s" javap dir classname)
+    ()
+
+let compile_and_javap ?(flags = []) ?(ocaml_flags = []) ?debug ?unix s =
+  with_temp_dir ~f:(fun () ->
+    let bytecode_file =
+      s
+      |> Filetype.ocaml_text_of_string
+      |> Filetype.write_ocaml ~name:"test.ml"
+      |> compile_ocaml_to_bc ?debug ?unix ~ocaml_flags
+    in
+    let class_file = compile_bc_to_class ~flags bytecode_file in
+    let listing = javap_class class_file in
+    (* Strip the leading line that names the generated temp dir so the
+       output is stable across runs. *)
+    let lines = String.split_on_char '\n' listing in
+    let lines =
+      List.filter
+        (fun l ->
+          not
+            (String.length l > 13 && String.sub l 0 13 = "Compiled from"))
+        lines
+    in
+    print_endline (String.concat "\n" lines))

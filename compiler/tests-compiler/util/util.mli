@@ -34,3 +34,16 @@ val compile_and_run :
 val compile_and_run_bytecode : ?unix:bool -> string -> unit
 
 val normalize_path : string -> string
+
+val compile_and_javap :
+     ?flags:string list
+  -> ?ocaml_flags:string list
+  -> ?debug:bool
+  -> ?unix:bool
+  -> string
+  -> unit
+(** Compile [s] through to [Main.class], then [javap -c] the result and
+    print the listing. Designed for ppx_expect snapshot tests that pin
+    the emitted JVM bytecode of a representative program, so that
+    emission regressions show up as a diff even when the program's
+    stdout is unchanged. *)

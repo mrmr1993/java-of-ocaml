@@ -36,6 +36,18 @@
   (pps ppx_expect)))
 
 (library
+ ;; compiler/tests-compiler/emission_snapshots.ml
+ (name emission_snapshots_15)
+ (enabled_if true)
+ (modules emission_snapshots)
+ (libraries unix str java_of_ocaml_expect_tests_helper)
+ (inline_tests
+  (enabled_if true))
+ (flags (:standard -open Java_of_ocaml_expect_tests_helper))
+ (preprocess
+  (pps ppx_expect)))
+
+(library
  ;; compiler/tests-compiler/exceptions.ml
  (name exceptions_15)
  (enabled_if true)
