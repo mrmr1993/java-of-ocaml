@@ -443,19 +443,36 @@ let emit_instr state (ins : instr) =
     then
       failwith
         (Printf.sprintf "java_of_ocaml: ASSIGN with dead acc at pc %d" ins.pc);
-    (* Allocate a fresh JVM local for the new slot value — the old
-       slot's local had a specific JVM type (I / D / L...) and
-       reusing it with a different-typed store would fail the
-       verifier. Monotonic allocation is fine here because OCaml
-       functions are short and we've never seen register pressure
-       be a problem. *)
-    let new_local = allocate_local_for_kind state state.acc_kind in
-    emit_store_for_kind state.code new_local state.acc_kind;
-    let new_kind = state.acc_kind in
-    state.slots <-
-      List.mapi
-        (fun i s -> if i = k then { kind = new_kind; local = new_local } else s)
-        state.slots;
+    (* OCaml's ASSIGN is untyped; JVM locals are typed. When the
+       slot's current local has the same kind as [acc], reuse it
+       (preserving snapshot/block-param references). When the
+       kinds differ, allocate a fresh local of the new kind and
+       rebind the slot — callers downstream see the new local
+       through [state.slots]. Mixed-kind slot-local rebinding
+       only shows up in Stdlib paths that re-assign different-
+       shaped values through the same slot; snapshot and block-
+       params still reference the old local, but that local's
+       type is consistent (never rebinded) and its value is
+       whatever the pre-ASSIGN predecessor stored. *)
+    let target_slot = List.nth state.slots k in
+    let kinds_equal a b =
+      match a, b with
+      | K_int, K_int | K_float, K_float | K_string, K_string
+      | K_obj, K_obj -> true
+      | K_block _, K_block _ | K_closure _, K_closure _ -> true
+      | _ -> false
+    in
+    if kinds_equal target_slot.kind state.acc_kind
+    then emit_store_for_kind state.code target_slot.local state.acc_kind
+    else (
+      let new_local = allocate_local_for_kind state state.acc_kind in
+      emit_store_for_kind state.code new_local state.acc_kind;
+      let new_kind = state.acc_kind in
+      state.slots <-
+        List.mapi
+          (fun i s ->
+            if i = k then { kind = new_kind; local = new_local } else s)
+          state.slots);
     Jvm.Code.ldc_int state.code 0;
     state.acc_live <- true;
     state.acc_kind <- K_int)
