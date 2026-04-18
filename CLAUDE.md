@@ -56,6 +56,15 @@ Working:
   apply slots and unboxed via `doubleValue` at point of use. Float
   locals and stack slots are 2-wide — `Kind.local_slots_for_kind` and
   `State.allocate_local_for_kind` reserve the second slot.
+- **`Array`** — `Array.make`, `Array.length`, safe and unsafe
+  indexed get/set, and the `caml_array_sub` / `caml_array_blit` /
+  `caml_array_fill` / `caml_array_append` externals. Arrays are the
+  existing `Block` representation, so `Array` piggybacks on
+  everything we built for `Obj.{field,set_field,size}`. The
+  user-facing `Array.sub` / `Array.blit` / `Array.fill` wrappers in
+  Stdlib call `Stdlib.invalid_arg` for bounds violations, which
+  we can't materialise yet — tests bind the underlying externals
+  directly.
 
 Not yet supported:
 
@@ -164,15 +173,17 @@ Each module under `compiler/lib-java/` has a companion `.mli`.
     - `emit_exception` — RAISE / PUSHTRAP / POPTRAP.
     - `emit_primitive` — the C_CALL handlers
       (`caml_java_print_{int,endline,float}`,
-      `caml_array_{get,set}_addr`, `caml_array_unsafe_{get,set}`,
-      `caml_obj_dup`, `caml_obj_tag`, `caml_obj_block`,
-      `caml_obj_with_tag`, `caml_fresh_oo_id`, `caml_alloc_dummy`,
-      `caml_update_dummy`, float arithmetic
-      `caml_{add,sub,mul,div}_float`, `caml_{neg,abs}_float`, the
-      six `caml_{eq,neq,lt,le,gt,ge}_float` comparisons, and
-      `caml_int_of_float` / `caml_float_of_int`) plus ISINT. Shared
-      helpers for dynamic block-field read/write back `GETVECTITEM`
-      and `SETVECTITEM` in `emit_instr`.
+      `caml_array_{get,set}_addr`, `caml_array_{get,set}`,
+      `caml_array_unsafe_{get,set}`, `caml_array_make` /
+      `caml_make_vect`, `caml_array_sub`, `caml_array_blit`,
+      `caml_array_fill`, `caml_array_append`, `caml_obj_dup`,
+      `caml_obj_tag`, `caml_obj_block`, `caml_obj_with_tag`,
+      `caml_fresh_oo_id`, `caml_alloc_dummy`, `caml_update_dummy`,
+      float arithmetic `caml_{add,sub,mul,div}_float`,
+      `caml_{neg,abs}_float`, the six `caml_{eq,neq,lt,le,gt,ge}_float`
+      comparisons, and `caml_int_of_float` / `caml_float_of_int`)
+      plus ISINT. Shared helpers for dynamic block-field read/write
+      back `GETVECTITEM` and `SETVECTITEM` in `emit_instr`.
     - `emit_instr` — the opcode dispatcher. Handles label marking
       (with CamlException-unwrap prelude at try/with handler entry)
       and branch-target state restoration, then dispatches to the

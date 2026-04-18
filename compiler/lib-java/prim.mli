@@ -31,6 +31,11 @@ type prim_handler =
   | P_float_ge
   | P_int_of_float
   | P_float_of_int
+  | P_array_make
+  | P_array_sub
+  | P_array_blit
+  | P_array_fill
+  | P_array_append
 
 type prim_entry =
   { name : string

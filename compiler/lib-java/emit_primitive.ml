@@ -403,6 +403,268 @@ let emit_float_print state =
   state.acc_live <- true;
   state.acc_kind <- K_int
 
+(* [caml_array_make(size, init)]: allocate [Block(0, Object[size])]
+   and fill every slot with [init]. The result kind is [K_obj] —
+   callers use it through the array primitives, which already handle
+   the opaque-block shape; we intentionally don't synthesise a
+   single-kind [K_block [init_kind]] because [Block]'s field-kind
+   list is sized to match fixed-layout blocks, not dynamic arrays. *)
+let emit_array_make state =
+  ensure_kind state K_int;
+  let size_local = allocate_local state in
+  Jvm.Code.istore state.code size_local;
+  Jvm.Code.iload state.code size_local;
+  Jvm.Code.anewarray state.code "java/lang/Object";
+  let fields_local = allocate_local state in
+  Jvm.Code.astore state.code fields_local;
+  let init_slot = List.hd state.slots in
+  emit_load_for_kind state.code init_slot.local init_slot.kind;
+  box_if_int state.code init_slot.kind;
+  Jvm.Code.aload state.code fields_local;
+  Jvm.Code.swap state.code;
+  Jvm.Code.invokestatic
+    state.code
+    ~class_:"java/util/Arrays"
+    ~method_:"fill"
+    ~descriptor:"([Ljava/lang/Object;Ljava/lang/Object;)V";
+  Jvm.Code.new_ state.code "Block";
+  Jvm.Code.dup state.code;
+  Jvm.Code.ldc_int state.code 0;
+  Jvm.Code.aload state.code fields_local;
+  Jvm.Code.invokespecial
+    state.code
+    ~class_:"Block"
+    ~method_:"<init>"
+    ~descriptor:"(I[Ljava/lang/Object;)V";
+  pop_slots state 1;
+  state.acc_live <- true;
+  state.acc_kind <- K_obj
+
+(* [caml_array_sub(src, ofs, len)]: new [Block(0, copyOfRange)]. *)
+let emit_array_sub state =
+  (match state.acc_kind with
+   | K_block _ -> ()
+   | K_obj -> Jvm.Code.checkcast state.code "Block"
+   | _ ->
+     failwith
+       (Printf.sprintf
+          "java_of_ocaml: caml_array_sub on non-block (%s)"
+          (jvm_type_of_kind state.acc_kind)));
+  Jvm.Code.getfield
+    state.code
+    ~class_:"Block"
+    ~field:"fields"
+    ~descriptor:"[Ljava/lang/Object;";
+  let ofs_slot = List.nth state.slots 0 in
+  let len_slot = List.nth state.slots 1 in
+  emit_load_for_kind state.code ofs_slot.local ofs_slot.kind;
+  (match ofs_slot.kind with
+   | K_int -> ()
+   | K_obj -> emit_unbox_to_kind state.code K_int
+   | _ -> failwith "java_of_ocaml: caml_array_sub: ofs must be int");
+  Jvm.Code.dup state.code;
+  emit_load_for_kind state.code len_slot.local len_slot.kind;
+  (match len_slot.kind with
+   | K_int -> ()
+   | K_obj -> emit_unbox_to_kind state.code K_int
+   | _ -> failwith "java_of_ocaml: caml_array_sub: len must be int");
+  Jvm.Code.iadd state.code;
+  (* stack: [..., fields, ofs, ofs+len] *)
+  Jvm.Code.invokestatic
+    state.code
+    ~class_:"java/util/Arrays"
+    ~method_:"copyOfRange"
+    ~descriptor:"([Ljava/lang/Object;II)[Ljava/lang/Object;";
+  let copy_local = allocate_local state in
+  Jvm.Code.astore state.code copy_local;
+  Jvm.Code.new_ state.code "Block";
+  Jvm.Code.dup state.code;
+  Jvm.Code.ldc_int state.code 0;
+  Jvm.Code.aload state.code copy_local;
+  Jvm.Code.invokespecial
+    state.code
+    ~class_:"Block"
+    ~method_:"<init>"
+    ~descriptor:"(I[Ljava/lang/Object;)V";
+  pop_slots state 2;
+  state.acc_live <- true;
+  state.acc_kind <- K_obj
+
+(* [caml_array_blit(src, sofs, dst, dofs, len)]: System.arraycopy on
+   the underlying Object[]s. *)
+let emit_array_blit state =
+  (match state.acc_kind with
+   | K_block _ -> ()
+   | K_obj -> Jvm.Code.checkcast state.code "Block"
+   | _ ->
+     failwith
+       (Printf.sprintf
+          "java_of_ocaml: caml_array_blit on non-block src (%s)"
+          (jvm_type_of_kind state.acc_kind)));
+  Jvm.Code.getfield
+    state.code
+    ~class_:"Block"
+    ~field:"fields"
+    ~descriptor:"[Ljava/lang/Object;";
+  let sofs = List.nth state.slots 0 in
+  let dst = List.nth state.slots 1 in
+  let dofs = List.nth state.slots 2 in
+  let len = List.nth state.slots 3 in
+  emit_load_for_kind state.code sofs.local sofs.kind;
+  (match sofs.kind with
+   | K_int -> ()
+   | K_obj -> emit_unbox_to_kind state.code K_int
+   | _ -> failwith "java_of_ocaml: caml_array_blit: sofs must be int");
+  emit_load_for_kind state.code dst.local dst.kind;
+  (match dst.kind with
+   | K_block _ -> ()
+   | K_obj -> Jvm.Code.checkcast state.code "Block"
+   | _ -> failwith "java_of_ocaml: caml_array_blit: dst must be a block");
+  Jvm.Code.getfield
+    state.code
+    ~class_:"Block"
+    ~field:"fields"
+    ~descriptor:"[Ljava/lang/Object;";
+  emit_load_for_kind state.code dofs.local dofs.kind;
+  (match dofs.kind with
+   | K_int -> ()
+   | K_obj -> emit_unbox_to_kind state.code K_int
+   | _ -> failwith "java_of_ocaml: caml_array_blit: dofs must be int");
+  emit_load_for_kind state.code len.local len.kind;
+  (match len.kind with
+   | K_int -> ()
+   | K_obj -> emit_unbox_to_kind state.code K_int
+   | _ -> failwith "java_of_ocaml: caml_array_blit: len must be int");
+  Jvm.Code.invokestatic
+    state.code
+    ~class_:"java/lang/System"
+    ~method_:"arraycopy"
+    ~descriptor:"(Ljava/lang/Object;ILjava/lang/Object;II)V";
+  pop_slots state 4;
+  Jvm.Code.ldc_int state.code 0;
+  state.acc_live <- true;
+  state.acc_kind <- K_int
+
+(* [caml_array_fill(arr, ofs, len, v)]: Arrays.fill(arr.fields, ofs,
+   ofs+len, boxed_v). *)
+let emit_array_fill state =
+  (match state.acc_kind with
+   | K_block _ -> ()
+   | K_obj -> Jvm.Code.checkcast state.code "Block"
+   | _ ->
+     failwith
+       (Printf.sprintf
+          "java_of_ocaml: caml_array_fill on non-block (%s)"
+          (jvm_type_of_kind state.acc_kind)));
+  Jvm.Code.getfield
+    state.code
+    ~class_:"Block"
+    ~field:"fields"
+    ~descriptor:"[Ljava/lang/Object;";
+  let ofs = List.nth state.slots 0 in
+  let len = List.nth state.slots 1 in
+  let v = List.nth state.slots 2 in
+  emit_load_for_kind state.code ofs.local ofs.kind;
+  (match ofs.kind with
+   | K_int -> ()
+   | K_obj -> emit_unbox_to_kind state.code K_int
+   | _ -> failwith "java_of_ocaml: caml_array_fill: ofs must be int");
+  Jvm.Code.dup state.code;
+  emit_load_for_kind state.code len.local len.kind;
+  (match len.kind with
+   | K_int -> ()
+   | K_obj -> emit_unbox_to_kind state.code K_int
+   | _ -> failwith "java_of_ocaml: caml_array_fill: len must be int");
+  Jvm.Code.iadd state.code;
+  emit_load_for_kind state.code v.local v.kind;
+  box_if_int state.code v.kind;
+  Jvm.Code.invokestatic
+    state.code
+    ~class_:"java/util/Arrays"
+    ~method_:"fill"
+    ~descriptor:"([Ljava/lang/Object;IILjava/lang/Object;)V";
+  pop_slots state 3;
+  Jvm.Code.ldc_int state.code 0;
+  state.acc_live <- true;
+  state.acc_kind <- K_int
+
+(* [caml_array_append(a, b)]: allocate a new Object[] of length
+   a.length + b.length, arraycopy both halves, wrap in Block(0, _). *)
+let emit_array_append state =
+  (match state.acc_kind with
+   | K_block _ -> ()
+   | K_obj -> Jvm.Code.checkcast state.code "Block"
+   | _ ->
+     failwith
+       (Printf.sprintf
+          "java_of_ocaml: caml_array_append left arg must be an array"));
+  Jvm.Code.getfield
+    state.code
+    ~class_:"Block"
+    ~field:"fields"
+    ~descriptor:"[Ljava/lang/Object;";
+  let a_local = allocate_local state in
+  Jvm.Code.astore state.code a_local;
+  let b = List.hd state.slots in
+  emit_load_for_kind state.code b.local b.kind;
+  (match b.kind with
+   | K_block _ -> ()
+   | K_obj -> Jvm.Code.checkcast state.code "Block"
+   | _ ->
+     failwith "java_of_ocaml: caml_array_append right arg must be an array");
+  Jvm.Code.getfield
+    state.code
+    ~class_:"Block"
+    ~field:"fields"
+    ~descriptor:"[Ljava/lang/Object;";
+  let b_local = allocate_local state in
+  Jvm.Code.astore state.code b_local;
+  Jvm.Code.aload state.code a_local;
+  Jvm.Code.arraylength state.code;
+  Jvm.Code.aload state.code b_local;
+  Jvm.Code.arraylength state.code;
+  Jvm.Code.iadd state.code;
+  Jvm.Code.anewarray state.code "java/lang/Object";
+  let out_local = allocate_local state in
+  Jvm.Code.astore state.code out_local;
+  (* System.arraycopy(a, 0, out, 0, a.length) *)
+  Jvm.Code.aload state.code a_local;
+  Jvm.Code.ldc_int state.code 0;
+  Jvm.Code.aload state.code out_local;
+  Jvm.Code.ldc_int state.code 0;
+  Jvm.Code.aload state.code a_local;
+  Jvm.Code.arraylength state.code;
+  Jvm.Code.invokestatic
+    state.code
+    ~class_:"java/lang/System"
+    ~method_:"arraycopy"
+    ~descriptor:"(Ljava/lang/Object;ILjava/lang/Object;II)V";
+  (* System.arraycopy(b, 0, out, a.length, b.length) *)
+  Jvm.Code.aload state.code b_local;
+  Jvm.Code.ldc_int state.code 0;
+  Jvm.Code.aload state.code out_local;
+  Jvm.Code.aload state.code a_local;
+  Jvm.Code.arraylength state.code;
+  Jvm.Code.aload state.code b_local;
+  Jvm.Code.arraylength state.code;
+  Jvm.Code.invokestatic
+    state.code
+    ~class_:"java/lang/System"
+    ~method_:"arraycopy"
+    ~descriptor:"(Ljava/lang/Object;ILjava/lang/Object;II)V";
+  Jvm.Code.new_ state.code "Block";
+  Jvm.Code.dup state.code;
+  Jvm.Code.ldc_int state.code 0;
+  Jvm.Code.aload state.code out_local;
+  Jvm.Code.invokespecial
+    state.code
+    ~class_:"Block"
+    ~method_:"<init>"
+    ~descriptor:"(I[Ljava/lang/Object;)V";
+  pop_slots state 1;
+  state.acc_live <- true;
+  state.acc_kind <- K_obj
+
 (* ISINT: [acc := Val_bool(Is_long(acc))]. Used by polymorphic-variant
    match bytecode to dispatch between zero-arg cases (tagged ints) and
    data-carrying cases (blocks). *)

@@ -71,6 +71,18 @@ a home-grown one or, preferably, adopting `Code.program` from
   ops). Replacing that requires either our own Stdlib compilation or
   cross-compiled artefacts.
 
+## Stdlib wrapper functions needing `Invalid_argument`
+
+Several Stdlib functions (`Array.sub`, `Array.blit`, `Array.fill`,
+`String.sub`, `Bytes.sub`, `Buffer.*`) are thin OCaml wrappers around
+an `external` primitive that call `Stdlib.invalid_arg` for
+bounds-check failures. The primitive itself works today; the wrapper
+doesn't, because `Stdlib.invalid_arg` is a closure living in the
+`Stdlib` module record, which we can't materialise. Tests route
+around this by binding the underlying `external` directly. Lift
+once Stdlib compilation (or a targeted materialisation of
+`Stdlib.Invalid_argument` / `Stdlib.invalid_arg`) lands.
+
 ## Known representation gaps
 
 - **Integer width** — our ints run as JVM 32-bit `int`, not OCaml's

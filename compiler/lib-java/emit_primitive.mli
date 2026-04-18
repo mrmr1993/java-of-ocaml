@@ -8,12 +8,21 @@ val emit_println : State.state -> int_arg:bool -> unit
 (** [caml_java_print_int] / [caml_java_print_endline]. *)
 
 val emit_array_get : State.state -> unit
-(** [caml_array_get_addr], and [GETVECTITEM] (dynamic block-field read
-    used by [Obj.field] / [%obj_field]). *)
+(** [caml_array_get_addr], [caml_array_get], [caml_array_unsafe_get],
+    and [GETVECTITEM] (dynamic block-field read used by [Obj.field] /
+    [%obj_field]). Bounds-checking is not yet distinct from the
+    unsafe variant. *)
 
 val emit_array_set : State.state -> unit
-(** [caml_array_set_addr], and [SETVECTITEM] (dynamic block-field
-    write used by [Obj.set_field] / [%obj_set_field]). *)
+(** [caml_array_set_addr], [caml_array_set], [caml_array_unsafe_set],
+    and [SETVECTITEM]. Bounds-checking is not yet distinct from the
+    unsafe variant. *)
+
+val emit_array_make : State.state -> unit
+val emit_array_sub : State.state -> unit
+val emit_array_blit : State.state -> unit
+val emit_array_fill : State.state -> unit
+val emit_array_append : State.state -> unit
 
 val emit_obj_dup : State.state -> unit
 val emit_obj_tag : State.state -> unit

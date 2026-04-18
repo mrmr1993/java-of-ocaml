@@ -555,7 +555,12 @@ let emit_instr state (ins : instr) =
        | P_float_gt -> Emit_primitive.emit_float_cmp state ~cmp:Gt
        | P_float_ge -> Emit_primitive.emit_float_cmp state ~cmp:Ge
        | P_int_of_float -> Emit_primitive.emit_int_of_float state
-       | P_float_of_int -> Emit_primitive.emit_float_of_int state)
+       | P_float_of_int -> Emit_primitive.emit_float_of_int state
+       | P_array_make -> Emit_primitive.emit_array_make state
+       | P_array_sub -> Emit_primitive.emit_array_sub state
+       | P_array_blit -> Emit_primitive.emit_array_blit state
+       | P_array_fill -> Emit_primitive.emit_array_fill state
+       | P_array_append -> Emit_primitive.emit_array_append state)
     | None ->
       failwith
         (Printf.sprintf

@@ -25,6 +25,11 @@ type prim_handler =
   | P_float_ge
   | P_int_of_float
   | P_float_of_int
+  | P_array_make
+  | P_array_sub
+  | P_array_blit
+  | P_array_fill
+  | P_array_append
 
 type prim_entry =
   { name : string
@@ -40,6 +45,14 @@ let primitives : prim_entry list =
   ; { name = "caml_array_set_addr"; handler = P_array_set; seed = true }
   ; { name = "caml_array_unsafe_get"; handler = P_array_get; seed = false }
   ; { name = "caml_array_unsafe_set"; handler = P_array_set; seed = false }
+  ; { name = "caml_array_get"; handler = P_array_get; seed = false }
+  ; { name = "caml_array_set"; handler = P_array_set; seed = false }
+  ; { name = "caml_array_make"; handler = P_array_make; seed = false }
+  ; { name = "caml_make_vect"; handler = P_array_make; seed = false }
+  ; { name = "caml_array_sub"; handler = P_array_sub; seed = false }
+  ; { name = "caml_array_blit"; handler = P_array_blit; seed = false }
+  ; { name = "caml_array_fill"; handler = P_array_fill; seed = false }
+  ; { name = "caml_array_append"; handler = P_array_append; seed = false }
   ; { name = "caml_obj_dup"; handler = P_obj_dup; seed = true }
   ; { name = "caml_obj_tag"; handler = P_obj_tag; seed = false }
   ; { name = "caml_obj_block"; handler = P_obj_block; seed = false }

@@ -84,6 +84,13 @@ What works end-to-end (each covered by tests under
   NaN-safe float comparisons, `int_of_float` / `float_of_int`. Float
   values flow as JVM `double` (boxed to `java.lang.Double` when
   crossing into `Object`-typed args).
+- **`Array`** — `Array.make`, `Array.length`, indexed access (`a.(i)`
+  and `a.(i) <- v`, both the safe and unsafe externals),
+  `caml_array_sub` / `caml_array_blit` / `caml_array_fill` /
+  `caml_array_append`. The safe `Array.sub` / `Array.blit` / etc.
+  wrappers in Stdlib fall through to `Stdlib.invalid_arg` on bad
+  bounds, so tests bind the underlying externals directly until we
+  can materialise `Invalid_argument`.
 
 What doesn't work yet:
 
