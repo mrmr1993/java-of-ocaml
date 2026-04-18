@@ -55,3 +55,35 @@ let%expect_test "chained int arithmetic" =
     33
     30
     42 |}]
+
+let%expect_test "if/else with int comparison" =
+  compile_and_run
+    {| external caml_java_print_int : int -> unit = "caml_java_print_int"
+       let () =
+         if 0 < 1 then caml_java_print_int 1
+         else caml_java_print_int 2 |};
+  [%expect {| 1 |}]
+
+let%expect_test "if/else taking the else branch" =
+  compile_and_run
+    {| external caml_java_print_int : int -> unit = "caml_java_print_int"
+       let () =
+         if 5 < 3 then caml_java_print_int 100
+         else caml_java_print_int 200 |};
+  [%expect {| 200 |}]
+
+let%expect_test "if/else with arithmetic in branches" =
+  compile_and_run
+    {| external caml_java_print_int : int -> unit = "caml_java_print_int"
+       let () =
+         if 2 * 3 = 6 then caml_java_print_int (10 + 1)
+         else caml_java_print_int (10 - 1) |};
+  [%expect {| 11 |}]
+
+let%expect_test "if/else with string branches" =
+  compile_and_run
+    {| external caml_java_print_endline : string -> unit = "caml_java_print_endline"
+       let () =
+         if 1 = 1 then caml_java_print_endline "yes"
+         else caml_java_print_endline "no" |};
+  [%expect {| yes |}]

@@ -120,14 +120,46 @@ let stack_effect_of_call_descriptor descriptor ~is_virtual =
   pops - push_ret
 
 module Code = struct
+  type label =
+    { mutable target : int option (* byte offset inside [buf], once marked *)
+    ; mutable refs : (int * int) list
+      (* (branch-opcode pc, pc to encode the offset against) *)
+    ; id : int
+    }
+
   type t =
     { cp : Cp.t
     ; buf : Buffer.t
     ; mutable stack : int
     ; mutable max_stack : int
+    ; mutable next_label_id : int
+    ; mutable labels : label list
     }
 
-  let create cp = { cp; buf = Buffer.create 64; stack = 0; max_stack = 0 }
+  let create cp =
+    { cp
+    ; buf = Buffer.create 64
+    ; stack = 0
+    ; max_stack = 0
+    ; next_label_id = 0
+    ; labels = []
+    }
+
+  let fresh_label t =
+    let lbl = { target = None; refs = []; id = t.next_label_id } in
+    t.next_label_id <- t.next_label_id + 1;
+    t.labels <- lbl :: t.labels;
+    lbl
+
+  let mark_label t lbl =
+    (match lbl.target with
+     | Some _ ->
+       failwith
+         (Printf.sprintf
+            "jvm: label %d marked twice"
+            lbl.id)
+     | None -> ());
+    lbl.target <- Some (Buffer.length t.buf)
 
   let push t n =
     t.stack <- t.stack + n;
@@ -214,6 +246,27 @@ module Code = struct
     add_u1 t.buf 0x68;
     pop t 1
 
+  (* Emit a 2-byte branch instruction and record that its 2-byte offset
+     field needs to be patched once [lbl] is marked. The stack delta is
+     applied before the branch. *)
+  let emit_branch t lbl opcode ~stack_delta =
+    let branch_pc = Buffer.length t.buf in
+    add_u1 t.buf opcode;
+    add_u2 t.buf 0 (* placeholder offset *);
+    lbl.refs <- (branch_pc, branch_pc) :: lbl.refs;
+    (if stack_delta >= 0
+     then push t stack_delta
+     else pop t (-stack_delta))
+
+  let if_icmpeq t lbl = emit_branch t lbl 0x9F ~stack_delta:(-2)
+  let if_icmpne t lbl = emit_branch t lbl 0xA0 ~stack_delta:(-2)
+  let if_icmplt t lbl = emit_branch t lbl 0xA1 ~stack_delta:(-2)
+  let if_icmpge t lbl = emit_branch t lbl 0xA2 ~stack_delta:(-2)
+  let if_icmpgt t lbl = emit_branch t lbl 0xA3 ~stack_delta:(-2)
+  let if_icmple t lbl = emit_branch t lbl 0xA4 ~stack_delta:(-2)
+
+  let goto t lbl = emit_branch t lbl 0xA7 ~stack_delta:0
+
   let getstatic t ~class_ ~field ~descriptor =
     let idx = Cp.fieldref t.cp ~class_ ~field ~descriptor in
     add_u1 t.buf 0xB2;
@@ -233,7 +286,41 @@ module Code = struct
     add_u1 t.buf 0xB1 (* return *);
     t.stack <- 0
 
-  let contents t = Buffer.contents t.buf
+  (* Resolve all forward references: for each label, patch the placeholder
+     u2 at (branch_pc+1, branch_pc+2) with the signed 16-bit offset
+     (target_pc - branch_pc). Buffers aren't mutable in place, so we convert
+     to bytes, patch, and rebuild. *)
+  let resolve t =
+    let bytes = Bytes.of_string (Buffer.contents t.buf) in
+    List.iter
+      (fun lbl ->
+        match lbl.target with
+        | None ->
+          failwith
+            (Printf.sprintf
+               "jvm: label %d referenced but never marked"
+               lbl.id)
+        | Some target ->
+          List.iter
+            (fun (branch_pc, _) ->
+              let offset = target - branch_pc in
+              if offset < -32768 || offset > 32767
+              then
+                failwith
+                  (Printf.sprintf
+                     "jvm: branch offset %d out of signed 16-bit range"
+                     offset);
+              let off = offset land 0xffff in
+              Bytes.set_uint8 bytes (branch_pc + 1) ((off lsr 8) land 0xff);
+              Bytes.set_uint8 bytes (branch_pc + 2) (off land 0xff))
+            lbl.refs)
+      t.labels;
+    Buffer.clear t.buf;
+    Buffer.add_bytes t.buf bytes
+
+  let contents t =
+    resolve t;
+    Buffer.contents t.buf
 
   let max_stack t = t.max_stack
 end
@@ -256,7 +343,9 @@ let assemble_main_class build =
   let out = Buffer.create 512 in
   add_u4 out 0xCAFEBABE;
   add_u2 out 0 (* minor_version *);
-  add_u2 out 52 (* major_version = Java 8 *);
+  add_u2 out 50 (* major_version = Java 6.
+                   Lets the verifier fall back to type inference so we can
+                   emit branches without StackMapTable attributes. *);
   add_u2 out (Cp.count cp + 1);
   Buffer.add_string out (Cp.contents cp);
   add_u2 out 0x0021 (* access_flags: ACC_PUBLIC | ACC_SUPER *);

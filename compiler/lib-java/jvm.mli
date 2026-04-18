@@ -25,11 +25,26 @@ module Cp : sig
     t -> class_:string -> method_:string -> descriptor:string -> int
 end
 
-(** A builder for a method body (the bytes of a [Code] attribute). *)
+(** A builder for a method body (the bytes of a [Code] attribute).
+
+    {b Branching note:} classes are emitted with Java major version 50
+    (Java 6), which permits type-inference verification. That lets us emit
+    branching code without generating [StackMapTable] attributes. When we
+    move on to ranges/switches heavy enough to want the type-checker's
+    guarantees, we'll bump the major version and add frame emission. *)
 module Code : sig
   type t
 
+  (** Opaque forward-reference labels. Create with [fresh_label]; emit
+      references to them with any of the branch ops; pin to the current
+      position with [mark_label]. *)
+  type label
+
   val create : Cp.t -> t
+
+  val fresh_label : t -> label
+
+  val mark_label : t -> label -> unit
 
   (** {2 Loads / stack manipulation} *)
 
@@ -53,6 +68,22 @@ module Code : sig
   val isub : t -> unit
 
   val imul : t -> unit
+
+  (** {2 Branches}
+
+      All variants of [if_icmp<cond>] compare two ints. The semantics follow
+      the JVM spec: the comparison is [value1 <cond> value2], where
+      [value1] was pushed first (sits below) and [value2] is the current
+      top. Branch if the comparison is true. *)
+
+  val if_icmpeq : t -> label -> unit
+  val if_icmpne : t -> label -> unit
+  val if_icmplt : t -> label -> unit
+  val if_icmple : t -> label -> unit
+  val if_icmpgt : t -> label -> unit
+  val if_icmpge : t -> label -> unit
+
+  val goto : t -> label -> unit
 
   (** {2 Static/virtual dispatch} *)
 
