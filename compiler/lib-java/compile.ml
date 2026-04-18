@@ -5,6 +5,28 @@ open Function_info
 open Prim
 open State
 
+(* Debug flags. Enable via [JAVA_OF_OCAML_DEBUG=times,primitives,functions]. *)
+let debug_times = Debug.find "times"
+let debug_primitives = Debug.find "primitives"
+let debug_functions = Debug.find "functions"
+
+let time_phase name f =
+  if not (debug_times ())
+  then f ()
+  else
+    let t = Timer.make () in
+    let r = f () in
+    Format.eprintf "[times] %s: %a s@." name Timer.print t;
+    r
+
+let rec string_of_kind = function
+  | K_int -> "int"
+  | K_string -> "string"
+  | K_block ks ->
+    Printf.sprintf "block[%s]" (String.concat "," (List.map string_of_kind ks))
+  | K_closure { name; _ } -> Printf.sprintf "closure<%s>" name
+  | K_obj -> "obj"
+
 let emit_int_const state n =
   overwrite_acc state K_int (fun () -> Jvm.Code.ldc_int state.code n)
 
@@ -1752,14 +1774,22 @@ let emit_range state arr (lo, hi) ~skip_pcs =
   done
 
 let compile ~bc ~out_dir =
-  let parsed = Bytecode.read_exe bc in
+  let total = if debug_times () then Some (Timer.make ()) else None in
+  let parsed = time_phase "parse-bytecode" (fun () -> Bytecode.read_exe bc) in
   let prim_table = Prim.find_supported_prims parsed in
   if Hashtbl.length prim_table = 0
   then
     failwith
       "java_of_ocaml: bytecode references none of the supported primitives \
        (caml_java_print_endline, caml_java_print_int).";
-  let instrs = decode_all parsed in
+  if debug_primitives ()
+  then (
+    Format.eprintf "[primitives] resolved %d:@." (Hashtbl.length prim_table);
+    Hashtbl.iter
+      (fun idx (name, _, seed) ->
+        Format.eprintf "  %d -> %s%s@." idx name (if seed then " (seed)" else ""))
+      prim_table);
+  let instrs = time_phase "decode" (fun () -> decode_all parsed) in
   let arr = Array.of_list instrs in
   let first_idx, last_idx =
     match Inference.supported_call_indices arr ~prim_table with
@@ -1769,11 +1799,20 @@ let compile ~bc ~out_dir =
   in
   let start_idx = Inference.walk_back_user_start arr first_idx in
   let end_idx = Inference.walk_forward_user_end arr last_idx in
+  if debug_functions ()
+  then
+    Format.eprintf
+      "[functions] user range: idx %d..%d (pc %d..%d)@."
+      start_idx
+      end_idx
+      arr.(start_idx).pc
+      arr.(end_idx).pc;
   (* Pre-scan for CLOSUREREC within the user range. *)
   let functions = Hashtbl.create 2 in
   let func_list = ref [] in
   let fn_body_pcs = Hashtbl.create 4 in
   let fn_count = ref 0 in
+  let fn_scan_timer = if debug_times () then Some (Timer.make ()) else None in
   for i = start_idx to end_idx do
     let ins = arr.(i) in
     if ins.opcode = closurerec_op || ins.opcode = closure_op
@@ -1833,6 +1872,14 @@ let compile ~bc ~out_dir =
       done;
       Array.iter (fun info -> info.group <- group) group)
   done;
+  (match fn_scan_timer with
+   | Some t ->
+     Format.eprintf
+       "[times] function-scan (%d fns): %a s@."
+       !fn_count
+       Timer.print
+       t
+   | None -> ());
   (* Build a name -> function_info index for APPLY return-kind lookup, and
      run a quick pre-pass to seed each function's return_kind from the
      instruction preceding its RETURN / APPTERM. *)
@@ -1840,11 +1887,28 @@ let compile ~bc ~out_dir =
   List.iter
     (fun (fi : function_info) -> Hashtbl.add fn_by_name fi.name fi)
     !func_list;
-  List.iter
-    (fun (fi : function_info) ->
-      fi.return_kind := Inference.infer_return_kind arr !func_list fi;
-      fi.arg_kinds := Inference.infer_arg_kinds arr prim_table fi)
-    !func_list;
+  time_phase "kind-inference" (fun () ->
+    List.iter
+      (fun (fi : function_info) ->
+        fi.return_kind := Inference.infer_return_kind arr !func_list fi;
+        fi.arg_kinds := Inference.infer_arg_kinds arr prim_table fi)
+      !func_list);
+  if debug_functions ()
+  then
+    List.iter
+      (fun (fi : function_info) ->
+        Format.eprintf
+          "[functions] %s: nargs=%d ncaps=%d pc=%d body=[%d..%d] return=%s \
+           args=[%s]@."
+          fi.name
+          fi.nargs
+          fi.ncaps
+          fi.body_pc
+          fi.body_start_idx
+          fi.body_end_idx
+          (string_of_kind !(fi.return_kind))
+          (String.concat "," (List.map string_of_kind !(fi.arg_kinds))))
+      !func_list;
   let cp = Jvm.Cp.create () in
   (* Emit main first so that CLOSURE/CLOSUREREC sites can fill in each
      function's [capture_kinds] from the kinds of values captured at the
@@ -1886,11 +1950,12 @@ let compile ~bc ~out_dir =
     ; pending_retaddrs = 0
     }
   in
-  emit_range state arr (start_idx, end_idx) ~skip_pcs:fn_body_pcs;
-  (match Hashtbl.find_opt pc_to_label post_end_pc with
-   | Some lbl -> Jvm.Code.mark_label main_code lbl
-   | None -> ());
-  Jvm.Code.return_void main_code;
+  time_phase "emit-main" (fun () ->
+    emit_range state arr (start_idx, end_idx) ~skip_pcs:fn_body_pcs;
+    (match Hashtbl.find_opt pc_to_label post_end_pc with
+     | Some lbl -> Jvm.Code.mark_label main_code lbl
+     | None -> ());
+    Jvm.Code.return_void main_code);
   let main_method =
     { Jvm.name = "main"
     ; descriptor = "([Ljava/lang/String;)V"
@@ -1916,7 +1981,7 @@ let compile ~bc ~out_dir =
          with a prologue that unboxes [K_int] args from their [Object]
          parameters, and RETURN/APPTERM that box the result before
          [areturn]. *)
-  let closure_class_files =
+  let closure_class_files = time_phase "emit-closures" (fun () ->
     List.map
       (fun (fn_info : function_info) ->
         let cap_kinds = !(fn_info.capture_kinds) in
@@ -2063,7 +2128,7 @@ let compile ~bc ~out_dir =
             ~access_flags:0x0031 (* ACC_PUBLIC | ACC_SUPER | ACC_FINAL *)
         in
         fn_info.name, bytes)
-      !func_list
+      !func_list)
   in
   let write_class name bytes =
     let path = Filename.concat out_dir (name ^ ".class") in
@@ -2071,9 +2136,13 @@ let compile ~bc ~out_dir =
     output_string oc bytes;
     close_out oc
   in
-  write_class "Main" main_class_bytes;
-  write_class "Block" (Jvm.block_class_bytes ());
-  write_class "Closure" (Jvm.closure_class_bytes ());
-  write_class "CamlException" (Jvm.camlexception_class_bytes ());
-  write_class "PartialClosure" (Jvm.partial_closure_class_bytes ());
-  List.iter (fun (name, bytes) -> write_class name bytes) closure_class_files
+  time_phase "write-classes" (fun () ->
+    write_class "Main" main_class_bytes;
+    write_class "Block" (Jvm.block_class_bytes ());
+    write_class "Closure" (Jvm.closure_class_bytes ());
+    write_class "CamlException" (Jvm.camlexception_class_bytes ());
+    write_class "PartialClosure" (Jvm.partial_closure_class_bytes ());
+    List.iter (fun (name, bytes) -> write_class name bytes) closure_class_files);
+  match total with
+  | Some t -> Format.eprintf "[times] total: %a s@." Timer.print t
+  | None -> ()
