@@ -97,8 +97,15 @@ Not yet supported:
 - `String.sub`, `String.uppercase_ascii`, and most of the wider
   `String` module — caller NPEs at runtime because an I/O-side
   primitive stub returns `null`. Narrow investigation needed.
-- `module rec` — OCaml lowers these via `CamlinternalMod`'s
-  lazy-initialised placeholders.
+- `module rec` — partial progress. The underlying
+  `caml_alloc_dummy` / `caml_update_dummy` primitives work
+  (covered by the existing recursive-value tests), and several
+  Stdlib-level prerequisites are now in place (Sys.* consts,
+  SETBYTESCHAR / GETBYTESCHAR, K_int-at-APPLY fallback restored,
+  SWITCH-preserves-acc, type-safe ASSIGN). CamlinternalMod's
+  module-update path still trips a JVM verifier "Mismatched
+  stack types" in an inner `apply3` — more edge-shape work on
+  the block-params mechanism needed.
 - `Lazy.t` / `lazy` / `Lazy.force`.
 - Threads, effects.
 
