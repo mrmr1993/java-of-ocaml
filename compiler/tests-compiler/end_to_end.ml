@@ -367,3 +367,31 @@ let%expect_test "nested tuples" =
          let ((a, b), c) = outer in
          caml_java_print_int (a + b + c) |};
   [%expect {| 12 |}]
+
+let%expect_test "higher-order: mkadder" =
+  compile_and_run
+    {| external caml_java_print_int : int -> unit = "caml_java_print_int"
+       let mkadder x = (fun y -> x + y)
+       let () =
+         let add10 = mkadder 10 in
+         caml_java_print_int (add10 5);
+         caml_java_print_int (add10 25) |};
+  [%expect {|
+    15
+    35 |}]
+
+let%expect_test "higher-order: composition" =
+  compile_and_run
+    {| external caml_java_print_int : int -> unit = "caml_java_print_int"
+       let mkmul k = (fun x -> k * x)
+       let mkadd d = (fun x -> x + d)
+       let () =
+         let double = mkmul 2 in
+         let plus3 = mkadd 3 in
+         caml_java_print_int (double 7);
+         caml_java_print_int (plus3 7);
+         caml_java_print_int (double (plus3 5)) |};
+  [%expect {|
+    14
+    10
+    16 |}]

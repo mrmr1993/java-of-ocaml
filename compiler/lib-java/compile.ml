@@ -305,11 +305,15 @@ let box_if_int code kind =
 type function_info =
   { name : string
   ; closurerec_pc : int [@warning "-69"]
-  ; body_pc : int [@warning "-69"]
+  ; body_pc : int
   ; body_start_idx : int
   ; body_end_idx : int
   ; nargs : int
   ; ncaps : int [@warning "-69"]
+  ; return_kind : kind ref
+      (* Inferred by a pre-pass before main compilation; APPLY uses it to
+         decide whether the Object result should be unboxed to int or kept
+         as a reference (Closure / Block). *)
   ; capture_kinds : kind list ref
       (* Kinds of the captures passed to this method, in closure-field
          order. Length [ncaps]. Filled in when [emit_closure_creation]
@@ -392,6 +396,9 @@ type state =
   ; supported_prims : (int, string * prim_handler) Hashtbl.t
   ; functions : (int, function_info) Hashtbl.t
       (* closure{,rec}_pc -> function_info *)
+  ; fn_by_name : (string, function_info) Hashtbl.t
+      (* function class name -> function_info (for APPLY return-kind
+         lookup). *)
   ; pc_to_label : (int, Jvm.Code.label) Hashtbl.t
   ; branch_target_state : (int, branch_snapshot) Hashtbl.t
       (* Target PC -> state to restore when we mark that target's label. *)
@@ -970,12 +977,25 @@ let emit_apply_invoke state ~nargs =
           analysis lost the tag?"
          nargs)
 
-(* Regular APPLY: invoke then unbox to int (we assume an int return; see
-   the note on return-kind inference above). *)
+(* Regular APPLY: invoke then cast / unbox based on the callee's return
+   kind. [fn_by_name] is a side-table supplied in the state for this. *)
 let emit_apply state ~nargs =
+  let callee_name =
+    match state.acc_kind with
+    | K_closure { name; _ } -> Some name
+    | _ -> None
+  in
   emit_apply_invoke state ~nargs;
-  emit_unbox_to_kind state.code K_int;
-  state.acc_kind <- K_int
+  let return_kind =
+    match callee_name with
+    | Some name ->
+      (match Hashtbl.find_opt state.fn_by_name name with
+       | Some fi -> !(fi.return_kind)
+       | None -> K_int)
+    | None -> K_int
+  in
+  emit_unbox_to_kind state.code return_kind;
+  state.acc_kind <- return_kind
 
 let emit_apply1 state = emit_apply state ~nargs:1
 
@@ -1559,6 +1579,81 @@ let walk_back_user_start arr start_idx =
   in
   loop (start_idx - 1)
 
+(* -------------------------------------------------------------------------- *)
+(* Return-kind inference.
+
+   Before compiling [main] (and the function bodies), we need to know what
+   each function returns, so APPLY can emit the right unboxing for the
+   result. A full analysis would do abstract-interpretation over every
+   instruction; for now we use a coarser heuristic that suffices for the
+   patterns the test suite exercises:
+
+     - If the instruction immediately preceding a RETURN / APPTERM is a
+       CLOSURE / CLOSUREREC / OFFSETCLOSURE0 / PUSHOFFSETCLOSURE0, the
+       return kind is K_closure (of a caller function).
+     - Otherwise default to K_int.
+
+   Multiple returns in one function must agree, or we fall back to K_int.
+
+   This doesn't handle:
+     - Returns of block references (MAKEBLOCK).
+     - Returns through an APPLY (callee whose return kind we don't yet
+       know).
+   Those remain future work; a proper implementation would iterate to a
+   fixed point over the whole call graph. *)
+
+let find_function_by_body_pc func_list body_pc =
+  List.find_opt
+    (fun fi -> fi.body_pc = body_pc)
+    func_list
+
+let classify_return_kind_at arr i func_list current_fn =
+  if i = 0
+  then K_int
+  else
+    let prev = arr.(i - 1) in
+    if prev.opcode = closure_op
+    then (
+      let body_pc = prev.pc + prev.args.(1) + 2 in
+      match find_function_by_body_pc func_list body_pc with
+      | Some fi -> K_closure { name = fi.name; captures = [] }
+      | None -> K_int)
+    else if prev.opcode = closurerec_op
+    then (
+      let body_pc = prev.pc + 3 + prev.args.(2) in
+      match find_function_by_body_pc func_list body_pc with
+      | Some fi -> K_closure { name = fi.name; captures = [] }
+      | None -> K_int)
+    else if prev.opcode = offsetclosure0_op
+         || prev.opcode = pushoffsetclosure0_op
+    then K_closure { name = current_fn.name; captures = [] }
+    else K_int
+
+let kinds_agree a b =
+  match a, b with
+  | K_int, K_int -> true
+  | K_closure _, K_closure _ -> true
+  | K_block _, K_block _ -> true
+  | _ -> false
+
+let infer_return_kind arr (func_list : function_info list) (fi : function_info) =
+  let is_return op =
+    op = return_op
+    || op = appterm_op
+    || op = appterm1_op
+    || op = appterm2_op
+    || op = appterm3_op
+  in
+  let observed = ref [] in
+  for i = fi.body_start_idx to fi.body_end_idx do
+    if is_return arr.(i).opcode
+    then observed := classify_return_kind_at arr i func_list fi :: !observed
+  done;
+  match !observed with
+  | [] -> K_int
+  | k :: rest when List.for_all (kinds_agree k) rest -> k
+  | _ -> K_int
+
 let walk_forward_user_end arr end_idx =
   let n = Array.length arr in
   let rec loop i =
@@ -1660,6 +1755,7 @@ let compile ~bc ~out_dir =
         ; body_end_idx
         ; nargs
         ; ncaps
+        ; return_kind = ref K_int
         ; capture_kinds = ref []
         ; recursive
         }
@@ -1681,6 +1777,16 @@ let compile ~bc ~out_dir =
         Hashtbl.replace fn_body_pcs arr.(j).pc ()
       done)
   done;
+  (* Build a name -> function_info index for APPLY return-kind lookup, and
+     run a quick pre-pass to seed each function's return_kind from the
+     instruction preceding its RETURN / APPTERM. *)
+  let fn_by_name = Hashtbl.create 4 in
+  List.iter
+    (fun fi -> Hashtbl.add fn_by_name fi.name fi)
+    !func_list;
+  List.iter
+    (fun fi -> fi.return_kind := infer_return_kind arr !func_list fi)
+    !func_list;
   let cp = Jvm.Cp.create () in
   (* Emit main first so that CLOSURE/CLOSUREREC sites can fill in each
      function's [capture_kinds] from the kinds of values captured at the
@@ -1702,6 +1808,7 @@ let compile ~bc ~out_dir =
     ; globals = parsed.globals
     ; supported_prims = prim_table
     ; functions
+    ; fn_by_name
     ; pc_to_label
     ; branch_target_state = Hashtbl.create 4
     ; acc_live = false
@@ -1810,6 +1917,7 @@ let compile ~bc ~out_dir =
           ; globals = parsed.globals
           ; supported_prims = prim_table
           ; functions
+          ; fn_by_name
           ; pc_to_label
           ; branch_target_state = Hashtbl.create 4
           ; acc_live = false
