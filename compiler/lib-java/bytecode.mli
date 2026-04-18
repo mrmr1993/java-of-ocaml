@@ -103,8 +103,14 @@ module Op : sig
   val grab : int
   val closure : int
   val closurerec : int
+  val offsetclosurem3 : int
   val offsetclosure0 : int
+  val offsetclosure3 : int
+  val offsetclosure : int
+  val pushoffsetclosurem3 : int
   val pushoffsetclosure0 : int
+  val pushoffsetclosure3 : int
+  val pushoffsetclosure : int
   val envacc1 : int
   val envacc2 : int
   val envacc3 : int

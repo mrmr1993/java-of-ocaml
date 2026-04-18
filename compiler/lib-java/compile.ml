@@ -8,6 +8,8 @@ type prim_handler =
   | P_array_set
   | P_obj_dup
   | P_fresh_oo_id
+  | P_alloc_dummy
+  | P_update_dummy
 
 (* Primitives we know how to emit. The [seed] flag marks those we use to
    anchor the "user code" range via [supported_call_indices]: picking a
@@ -29,6 +31,8 @@ let primitives : prim_entry list =
   ; { name = "caml_array_set_addr"; handler = P_array_set; seed = true }
   ; { name = "caml_obj_dup"; handler = P_obj_dup; seed = true }
   ; { name = "caml_fresh_oo_id"; handler = P_fresh_oo_id; seed = false }
+  ; { name = "caml_alloc_dummy"; handler = P_alloc_dummy; seed = true }
+  ; { name = "caml_update_dummy"; handler = P_update_dummy; seed = true }
   ]
 
 (* -------------------------------------------------------------------------- *)
@@ -93,6 +97,12 @@ let closurerec_op = Bytecode.Op.closurerec
 let closure_op = Bytecode.Op.closure
 let offsetclosure0_op = Bytecode.Op.offsetclosure0
 let pushoffsetclosure0_op = Bytecode.Op.pushoffsetclosure0
+let offsetclosurem3_op = Bytecode.Op.offsetclosurem3
+let offsetclosure3_op = Bytecode.Op.offsetclosure3
+let offsetclosure_op = Bytecode.Op.offsetclosure
+let pushoffsetclosurem3_op = Bytecode.Op.pushoffsetclosurem3
+let pushoffsetclosure3_op = Bytecode.Op.pushoffsetclosure3
+let pushoffsetclosure_op = Bytecode.Op.pushoffsetclosure
 let apply1_op = Bytecode.Op.apply1
 let apply2_op = Bytecode.Op.apply2
 let apply3_op = Bytecode.Op.apply3
@@ -169,6 +179,12 @@ let is_user_op (ins : instr) =
   || op = closure_op
   || op = offsetclosure0_op
   || op = pushoffsetclosure0_op
+  || op = offsetclosurem3_op
+  || op = offsetclosure3_op
+  || op = offsetclosure_op
+  || op = pushoffsetclosurem3_op
+  || op = pushoffsetclosure3_op
+  || op = pushoffsetclosure_op
   || op = Bytecode.Op.envacc1
   || op = Bytecode.Op.envacc2
   || op = Bytecode.Op.envacc3
@@ -435,6 +451,15 @@ type function_info =
          the body to pick ENVACC load opcodes and to synthesise the method
          descriptor. *)
   ; recursive : bool [@warning "-69"]
+  ; group_idx : int [@warning "-69"]
+      (* Position of this function within its [CLOSUREREC] group; 0 for
+         singleton [CLOSURE] functions. Used by [OFFSETCLOSURE N] to
+         resolve which sibling to load. *)
+  ; mutable group : function_info array
+      (* All functions in the same [CLOSUREREC] group, indexed by
+         [group_idx]. Singleton functions see a one-element array.
+         Populated by the pre-scan after all group members are
+         registered. *)
   }
 
 module Int_set = Set.Make (Int)
@@ -808,6 +833,63 @@ let emit_pushoffsetclosure0 state =
   state.acc_live <- true;
   state.acc_kind <- K_closure cref
 
+(* Resolve [OFFSETCLOSURE N] to the sibling within the enclosing
+   function's CLOSUREREC group. OCaml lays out each function's code
+   pointer 3 words apart in the shared closure block, so offset N
+   corresponds to moving [N/3] sibling positions. *)
+let resolve_sibling state offset =
+  let self_fi =
+    match state.enclosing_function_name with
+    | None -> failwith "java_of_ocaml: OFFSETCLOSURE outside a function"
+    | Some name ->
+      (match Hashtbl.find_opt state.fn_by_name name with
+       | Some fi -> fi
+       | None ->
+         failwith
+           (Printf.sprintf
+              "java_of_ocaml: enclosing function %s not registered"
+              name))
+  in
+  let target_idx = self_fi.group_idx + (offset / 3) in
+  if target_idx < 0 || target_idx >= Array.length self_fi.group
+  then
+    failwith
+      (Printf.sprintf
+         "java_of_ocaml: OFFSETCLOSURE %d out of range for group of %d"
+         offset
+         (Array.length self_fi.group));
+  self_fi, self_fi.group.(target_idx), target_idx
+
+let emit_offsetclosure state offset =
+  if offset = 0 then emit_offsetclosure0 state
+  else (
+    let self_fi, target_fi, target_idx = resolve_sibling state offset in
+    if state.acc_live then Jvm.Code.pop_top state.code;
+    Jvm.Code.aload state.code 0;
+    Jvm.Code.getfield
+      state.code
+      ~class_:self_fi.name
+      ~field:(Printf.sprintf "sibling_%d" target_idx)
+      ~descriptor:"LClosure;";
+    state.acc_live <- true;
+    state.acc_kind <- K_closure { name = target_fi.name; captures = [] })
+
+let emit_pushoffsetclosure state offset =
+  if offset = 0 then emit_pushoffsetclosure0 state
+  else (
+    let self_fi, target_fi, target_idx = resolve_sibling state offset in
+    let was_live = state.acc_live in
+    emit_push state;
+    if was_live then Jvm.Code.pop_top state.code;
+    Jvm.Code.aload state.code 0;
+    Jvm.Code.getfield
+      state.code
+      ~class_:self_fi.name
+      ~field:(Printf.sprintf "sibling_%d" target_idx)
+      ~descriptor:"LClosure;";
+    state.acc_live <- true;
+    state.acc_kind <- K_closure { name = target_fi.name; captures = [] })
+
 (* ENVACC k accesses the k-th field of the closure's environment. OCaml 5.x
    closure layout: field 0 = code, field 1 = closinfo, fields 2..ncaps+1 =
    captures in order. ENVACC k for k >= 2 = capture (k-2), at JVM local
@@ -966,14 +1048,8 @@ let emit_closure state (ins : instr) =
 
 let emit_closurerec state (ins : instr) =
   let nfuncs = ins.args.(0) in
-  if nfuncs <> 1
-  then
-    failwith
-      (Printf.sprintf
-         "java_of_ocaml: CLOSUREREC nfuncs=%d not yet supported (only 1)"
-         nfuncs);
   let nvars = ins.args.(1) in
-  let fn_info =
+  let head_fi =
     try Hashtbl.find state.functions ins.pc with
     | Not_found ->
       failwith
@@ -981,7 +1057,106 @@ let emit_closurerec state (ins : instr) =
            "java_of_ocaml: CLOSUREREC at pc %d not registered"
            ins.pc)
   in
-  emit_closure_creation state fn_info ~nvars ~is_rec:true
+  if nfuncs = 1
+  then emit_closure_creation state head_fi ~nvars ~is_rec:true
+  else (
+    (* Multi-function group: allocate all N closures up-front (each
+       constructed with its captures), then patch the [sibling_K]
+       cross-reference fields on every instance. The captures are
+       consumed once, not once per function. *)
+    let group = head_fi.group in
+    let n = Array.length group in
+    (* Snapshot capture locals + kinds before we pop them — every
+       function in the group shares this set. *)
+    let captures =
+      if nvars = 0
+      then []
+      else (
+        if not state.acc_live
+        then
+          failwith
+            "java_of_ocaml: CLOSUREREC with nvars>0 requires a live acc";
+        emit_push state;
+        let rec loop k acc =
+          if k >= nvars
+          then List.rev acc
+          else (
+            let slot = List.nth state.slots k in
+            loop (k + 1) ((slot.local, slot.kind) :: acc))
+        in
+        let caps = loop 0 [] in
+        pop_slots state nvars;
+        caps)
+    in
+    let cap_kinds = List.map snd captures in
+    Array.iter
+      (fun (fi : function_info) ->
+        (match !(fi.capture_kinds) with
+         | [] -> fi.capture_kinds := cap_kinds
+         | existing
+           when List.length existing = List.length cap_kinds
+                && List.for_all2
+                     (fun a b ->
+                       match a, b with
+                       | K_int, K_int -> true
+                       | K_string, K_string -> true
+                       | K_block _, K_block _ -> true
+                       | K_closure _, K_closure _ -> true
+                       | _ -> false)
+                     existing
+                     cap_kinds ->
+           ()
+         | _ ->
+           failwith
+             (Printf.sprintf
+                "java_of_ocaml: inconsistent capture kinds for function %s"
+                fi.name)))
+      group;
+    if state.acc_live then Jvm.Code.pop_top state.code;
+    (* Allocate each closure into its own JVM local. *)
+    let instance_locals = Array.make n 0 in
+    for k = 0 to n - 1 do
+      let fi = group.(k) in
+      Jvm.Code.new_ state.code fi.name;
+      Jvm.Code.dup state.code;
+      List.iter
+        (fun (local, kind) -> emit_load_for_kind state.code local kind)
+        captures;
+      Jvm.Code.invokespecial
+        state.code
+        ~class_:fi.name
+        ~method_:"<init>"
+        ~descriptor:(ctor_descriptor_for_captures cap_kinds);
+      let l = allocate_local state in
+      Jvm.Code.astore state.code l;
+      instance_locals.(k) <- l
+    done;
+    (* Patch cross-references: for each instance i, set sibling_j = inst_j. *)
+    for i = 0 to n - 1 do
+      for j = 0 to n - 1 do
+        Jvm.Code.aload state.code instance_locals.(i);
+        Jvm.Code.aload state.code instance_locals.(j);
+        Jvm.Code.putfield
+          state.code
+          ~class_:group.(i).name
+          ~field:(Printf.sprintf "sibling_%d" j)
+          ~descriptor:"LClosure;"
+      done
+    done;
+    (* OCaml's CLOSUREREC leaves its N functions on the OCaml stack
+       with the LAST-defined function at the top: stack layout from
+       top = [f_{n-1}; f_{n-2}; ...; f_0]. acc also holds f_{n-1}. *)
+    let last = n - 1 in
+    Jvm.Code.aload state.code instance_locals.(last);
+    state.acc_live <- true;
+    state.acc_kind <- K_closure { name = group.(last).name; captures = [] };
+    for k = 0 to n - 1 do
+      let local = instance_locals.(k) in
+      push_slot state
+        (K_closure { name = group.(k).name; captures = [] })
+        local
+    done;
+    ignore ins)
 
 let consume_top state =
   pop_slots state 1
@@ -1057,7 +1232,13 @@ let emit_println state ~int_arg =
     ~class_:"java/io/PrintStream"
     ~method_:"println"
     ~descriptor:desc;
-  state.acc_live <- false;
+  (* OCaml's [C_CALL1] leaves [acc] live with the result — for a
+     unit-returning call that's [Val_long(0)]. We mirror that so match
+     arms like [| [] -> ()] (which leave [acc_live = true] holding 0)
+     merge cleanly with arms ending in a [C_CALL] — otherwise the JVM
+     stack depth disagrees at the common label. *)
+  Jvm.Code.ldc_int state.code 0;
+  state.acc_live <- true;
   state.acc_kind <- K_int
 
 (* For an array-like block accessed with a dynamic index (Array.get /
@@ -1135,6 +1316,68 @@ let emit_obj_dup state =
     ~method_:"<init>"
     ~descriptor:"(I[Ljava/lang/Object;)V"
   (* acc_kind unchanged *)
+
+(* [caml_alloc_dummy n]: allocate a [Block(0, new Object[n])] — a
+   placeholder whose fields will be backfilled by a matching
+   [caml_update_dummy]. OCaml uses this pair to build recursive
+   values like [let rec a = A (b, b) and b = [|a; a; a|]]: allocate
+   dummies first, build the real shapes referencing the dummies, then
+   overwrite the dummies' contents. *)
+let emit_alloc_dummy state =
+  ensure_kind state K_int;
+  Jvm.Code.anewarray state.code "java/lang/Object";
+  let arr_local = allocate_local state in
+  Jvm.Code.astore state.code arr_local;
+  Jvm.Code.new_ state.code "Block";
+  Jvm.Code.dup state.code;
+  Jvm.Code.ldc_int state.code 0;
+  Jvm.Code.aload state.code arr_local;
+  Jvm.Code.invokespecial
+    state.code
+    ~class_:"Block"
+    ~method_:"<init>"
+    ~descriptor:"(I[Ljava/lang/Object;)V";
+  state.acc_live <- true;
+  state.acc_kind <- K_obj
+
+(* [caml_update_dummy dst src]: copy [src]'s fields into [dst]'s
+   fields. OCaml's runtime also overwrites [dst]'s tag, but our
+   [Block.tag] is [final] — in practice both [dst] and [src] share
+   [tag = 0] for the recursive-value patterns the bytecode compiler
+   emits (records, arrays), so skipping tag overwriting is fine. *)
+let emit_update_dummy state =
+  let src_slot = List.hd state.slots in
+  (* Stack: [dst]. First get dst.fields into a local. *)
+  Jvm.Code.checkcast state.code "Block";
+  Jvm.Code.getfield
+    state.code
+    ~class_:"Block"
+    ~field:"fields"
+    ~descriptor:"[Ljava/lang/Object;";
+  let dst_fields_local = allocate_local state in
+  Jvm.Code.astore state.code dst_fields_local;
+  (* System.arraycopy(src.fields, 0, dst.fields, 0, dst.fields.length) *)
+  emit_load_for_kind state.code src_slot.local src_slot.kind;
+  Jvm.Code.checkcast state.code "Block";
+  Jvm.Code.getfield
+    state.code
+    ~class_:"Block"
+    ~field:"fields"
+    ~descriptor:"[Ljava/lang/Object;";
+  Jvm.Code.ldc_int state.code 0;
+  Jvm.Code.aload state.code dst_fields_local;
+  Jvm.Code.ldc_int state.code 0;
+  Jvm.Code.aload state.code dst_fields_local;
+  Jvm.Code.arraylength state.code;
+  Jvm.Code.invokestatic
+    state.code
+    ~class_:"java/lang/System"
+    ~method_:"arraycopy"
+    ~descriptor:"(Ljava/lang/Object;ILjava/lang/Object;II)V";
+  pop_slots state 1;
+  Jvm.Code.ldc_int state.code 0;
+  state.acc_live <- true;
+  state.acc_kind <- K_int
 
 (* [caml_fresh_oo_id]: returns a fresh int. OCaml's runtime increments a
    process-global counter; we inline a compile-time counter, which is
@@ -2115,6 +2358,13 @@ let emit_instr state (ins : instr) =
   else if op = Bytecode.Op.pushenvacc then emit_pushenvacc state ins.args.(0)
   else if op = offsetclosure0_op then emit_offsetclosure0 state
   else if op = pushoffsetclosure0_op then emit_pushoffsetclosure0 state
+  else if op = offsetclosurem3_op then emit_offsetclosure state (-3)
+  else if op = offsetclosure3_op then emit_offsetclosure state 3
+  else if op = offsetclosure_op then emit_offsetclosure state ins.args.(0)
+  else if op = pushoffsetclosurem3_op then emit_pushoffsetclosure state (-3)
+  else if op = pushoffsetclosure3_op then emit_pushoffsetclosure state 3
+  else if op = pushoffsetclosure_op
+  then emit_pushoffsetclosure state ins.args.(0)
   else if op = apply1_op then emit_apply1 state
   else if op = apply2_op then emit_apply state ~nargs:2
   else if op = apply3_op then emit_apply state ~nargs:3
@@ -2146,7 +2396,9 @@ let emit_instr state (ins : instr) =
        | P_array_get -> emit_array_get state
        | P_array_set -> emit_array_set state
        | P_obj_dup -> emit_obj_dup state
-       | P_fresh_oo_id -> emit_fresh_oo_id state)
+       | P_fresh_oo_id -> emit_fresh_oo_id state
+       | P_alloc_dummy -> emit_alloc_dummy state
+       | P_update_dummy -> emit_update_dummy state)
     | None ->
       failwith
         (Printf.sprintf
@@ -2420,59 +2672,59 @@ let compile ~bc ~out_dir =
     if ins.opcode = closurerec_op || ins.opcode = closure_op
     then (
       let recursive = ins.opcode = closurerec_op in
-      let body_pc, ncaps =
+      let nfuncs, nvars, body_pc_of =
         if recursive
         then (
-          let nfuncs = ins.args.(0) in
-          let nvars = ins.args.(1) in
-          if nfuncs <> 1
-          then
-            failwith
-              (Printf.sprintf
-                 "java_of_ocaml: CLOSUREREC nfuncs=%d at pc %d — only 1 \
-                  is currently supported"
-                 nfuncs
-                 ins.pc);
-          ins.pc + 3 + ins.args.(2), nvars)
+          let nf = ins.args.(0) in
+          let nv = ins.args.(1) in
+          nf, nv, fun k -> ins.pc + 3 + ins.args.(2 + k))
         else (
-          let nvars = ins.args.(0) in
-          ins.pc + ins.args.(1) + 2, nvars)
+          let nv = ins.args.(0) in
+          1, nv, fun _ -> ins.pc + ins.args.(1) + 2)
       in
-      let body_start_idx, body_end_idx, nargs =
-        find_function_body_range arr body_pc
-      in
-      let name = Printf.sprintf "ocaml_fn_%d" !fn_count in
-      incr fn_count;
-      let info =
-        { name
-        ; closurerec_pc = ins.pc
-        ; body_pc
-        ; body_start_idx
-        ; body_end_idx
-        ; nargs
-        ; ncaps
-        ; return_kind = ref K_int
-        ; arg_kinds = ref (List.init nargs (fun _ -> K_int))
-        ; capture_kinds = ref []
-        ; recursive
-        }
-      in
-      Hashtbl.add functions ins.pc info;
-      func_list := info :: !func_list;
-      (* Mark ALL instruction PCs between the original body_pc (including
-         the RESTART / GRAB we skipped) and body_end as part of the
-         function — those should not be re-emitted in main. *)
-      let pre_start =
-        let rec find i =
-          if i >= Array.length arr then i
-          else if arr.(i).pc = body_pc then i
-          else find (i + 1)
+      let group = Array.make nfuncs (Obj.magic () : function_info) in
+      for k = 0 to nfuncs - 1 do
+        let body_pc = body_pc_of k in
+        let body_start_idx, body_end_idx, nargs =
+          find_function_body_range arr body_pc
         in
-        find 0
-      in
-      for j = pre_start to body_end_idx do
-        Hashtbl.replace fn_body_pcs arr.(j).pc ()
-      done)
+        let name = Printf.sprintf "ocaml_fn_%d" !fn_count in
+        incr fn_count;
+        let info =
+          { name
+          ; closurerec_pc = ins.pc
+          ; body_pc
+          ; body_start_idx
+          ; body_end_idx
+          ; nargs
+          ; ncaps = nvars
+          ; return_kind = ref K_int
+          ; arg_kinds = ref (List.init nargs (fun _ -> K_int))
+          ; capture_kinds = ref []
+          ; recursive
+          ; group_idx = k
+          ; group = [||] (* filled in below *)
+          }
+        in
+        group.(k) <- info;
+        (* Main dispatch uses [functions] keyed by closurerec pc to look
+           up the group's first function; nested [OFFSETCLOSURE] uses the
+           [group] field to navigate to siblings. *)
+        if k = 0 then Hashtbl.add functions ins.pc info;
+        func_list := info :: !func_list;
+        let pre_start =
+          let rec find i =
+            if i >= Array.length arr then i
+            else if arr.(i).pc = body_pc then i
+            else find (i + 1)
+          in
+          find 0
+        in
+        for j = pre_start to body_end_idx do
+          Hashtbl.replace fn_body_pcs arr.(j).pc ()
+        done
+      done;
+      Array.iter (fun info -> info.group <- group) group)
   done;
   (* Build a name -> function_info index for APPLY return-kind lookup, and
      run a quick pre-pass to seed each function's return_kind from the
@@ -2640,7 +2892,7 @@ let compile ~bc ~out_dir =
           arr
           (fn_info.body_start_idx, fn_info.body_end_idx)
           ~skip_pcs:(Hashtbl.create 0);
-        let fields =
+        let cap_fields =
           List.mapi
             (fun i k ->
               { Jvm.name = Printf.sprintf "cap%d" i
@@ -2649,6 +2901,23 @@ let compile ~bc ~out_dir =
               })
             cap_kinds
         in
+        (* Sibling fields for CLOSUREREC groups > 1 function. Each
+           function in the group holds [Closure]-typed refs to the
+           others so [OFFSETCLOSURE N] can resolve statically to a
+           [getfield sibling_K]. Mutable so the [CLOSUREREC] emission
+           can allocate all group members and then patch cross-refs. *)
+        let sibling_fields =
+          let n = Array.length fn_info.group in
+          if n <= 1
+          then []
+          else
+            List.init n (fun i ->
+              { Jvm.name = Printf.sprintf "sibling_%d" i
+              ; descriptor = "LClosure;"
+              ; access_flags = 0x0001 (* ACC_PUBLIC, mutable *)
+              })
+        in
+        let fields = cap_fields @ sibling_fields in
         let ctor =
           { Jvm.name = "<init>"
           ; descriptor = ctor_descriptor_for_captures cap_kinds
