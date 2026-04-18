@@ -170,47 +170,39 @@ let pop_top t =
 
 let swap t = add_u1 t.buf 0x5F
 
+(* Locals past index 3 use the 1-byte-index form (up to 255); past 255
+   use the [wide] prefix (0xC4) + 2-byte index. *)
+let emit_local_op t ~short_opcode ~indexed_opcode n =
+  if n >= 0 && n <= 3
+  then add_u1 t.buf (short_opcode + n)
+  else if n < 256
+  then (
+    add_u1 t.buf indexed_opcode;
+    add_u1 t.buf n)
+  else if n < 0x10000
+  then (
+    add_u1 t.buf 0xC4;
+    add_u1 t.buf indexed_opcode;
+    add_u2 t.buf n)
+  else failwith (Printf.sprintf "jvm: local index %d exceeds 2-byte range" n)
+
 let istore t n =
-  (if n >= 0 && n <= 3
-   then add_u1 t.buf (0x3B + n)
-   else if n < 256
-   then (
-     add_u1 t.buf 0x36;
-     add_u1 t.buf n)
-   else failwith (Printf.sprintf "jvm: istore index %d exceeds 1-byte range" n));
+  emit_local_op t ~short_opcode:0x3B ~indexed_opcode:0x36 n;
   note_local t n;
   pop t 1
 
 let iload t n =
-  (if n >= 0 && n <= 3
-   then add_u1 t.buf (0x1A + n)
-   else if n < 256
-   then (
-     add_u1 t.buf 0x15;
-     add_u1 t.buf n)
-   else failwith (Printf.sprintf "jvm: iload index %d exceeds 1-byte range" n));
+  emit_local_op t ~short_opcode:0x1A ~indexed_opcode:0x15 n;
   note_local t n;
   push t 1
 
 let astore t n =
-  (if n >= 0 && n <= 3
-   then add_u1 t.buf (0x4B + n)
-   else if n < 256
-   then (
-     add_u1 t.buf 0x3A;
-     add_u1 t.buf n)
-   else failwith (Printf.sprintf "jvm: astore index %d exceeds 1-byte range" n));
+  emit_local_op t ~short_opcode:0x4B ~indexed_opcode:0x3A n;
   note_local t n;
   pop t 1
 
 let aload t n =
-  (if n >= 0 && n <= 3
-   then add_u1 t.buf (0x2A + n)
-   else if n < 256
-   then (
-     add_u1 t.buf 0x19;
-     add_u1 t.buf n)
-   else failwith (Printf.sprintf "jvm: aload index %d exceeds 1-byte range" n));
+  emit_local_op t ~short_opcode:0x2A ~indexed_opcode:0x19 n;
   note_local t n;
   push t 1
 
@@ -218,24 +210,12 @@ let aload t n =
    slots. All the [d*] helpers reflect that in their push/pop
    accounting and reserve the second local slot via [note_local]. *)
 let dstore t n =
-  (if n >= 0 && n <= 3
-   then add_u1 t.buf (0x47 + n)
-   else if n < 256
-   then (
-     add_u1 t.buf 0x39;
-     add_u1 t.buf n)
-   else failwith (Printf.sprintf "jvm: dstore index %d exceeds 1-byte range" n));
+  emit_local_op t ~short_opcode:0x47 ~indexed_opcode:0x39 n;
   note_local t (n + 1);
   pop t 2
 
 let dload t n =
-  (if n >= 0 && n <= 3
-   then add_u1 t.buf (0x26 + n)
-   else if n < 256
-   then (
-     add_u1 t.buf 0x18;
-     add_u1 t.buf n)
-   else failwith (Printf.sprintf "jvm: dload index %d exceeds 1-byte range" n));
+  emit_local_op t ~short_opcode:0x26 ~indexed_opcode:0x18 n;
   note_local t (n + 1);
   push t 2
 
@@ -428,6 +408,17 @@ let getstatic t ~class_ ~field ~descriptor =
   add_u1 t.buf 0xB2;
   add_u2 t.buf idx;
   push t 1
+
+let putstatic t ~class_ ~field ~descriptor =
+  let idx = Cp.fieldref t.cp ~class_ ~field ~descriptor in
+  add_u1 t.buf 0xB3;
+  add_u2 t.buf idx;
+  let slots =
+    match String.sub descriptor 0 1 with
+    | "D" | "J" -> 2
+    | _ -> 1
+  in
+  pop t slots
 
 let invokevirtual t ~class_ ~method_ ~descriptor =
   let idx = Cp.methodref t.cp ~class_ ~method_ ~descriptor in

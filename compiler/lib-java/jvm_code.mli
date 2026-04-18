@@ -142,6 +142,9 @@ val handler_stack_prelude : t -> unit
 val getstatic :
   t -> class_:string -> field:string -> descriptor:string -> unit
 
+val putstatic :
+  t -> class_:string -> field:string -> descriptor:string -> unit
+
 val invokevirtual :
   t -> class_:string -> method_:string -> descriptor:string -> unit
 

@@ -47,6 +47,82 @@ let emit_range state arr (lo, hi) ~skip_pcs =
     then Emit_instr.emit_instr state arr.(i)
   done
 
+(* Emit code that populates [Main.GLOBALS] from the bytecode's DATA
+   section. Runs first thing in [Main.main] so module init (which
+   SETGLOBALs the dynamic module records) sees a pre-populated table
+   holding the pre-marshalled values (exception descriptors, atom
+   blocks, etc.). Globals whose shape we can't classify statically are
+   left [null]; anything that reads them before a SETGLOBAL writes
+   them will trip NullPointerException at runtime. *)
+let emit_globals_init code globals =
+  let n = Array.length globals in
+  Jvm.Code.ldc_int code n;
+  Jvm.Code.anewarray code "java/lang/Object";
+  Jvm.Code.putstatic
+    code
+    ~class_:"Main"
+    ~field:"GLOBALS"
+    ~descriptor:"[Ljava/lang/Object;";
+  for i = 0 to n - 1 do
+    match Global_view.inspect_global globals i with
+    | G_unsupported -> ()
+    | G_string s ->
+      Jvm.Code.getstatic
+        code
+        ~class_:"Main"
+        ~field:"GLOBALS"
+        ~descriptor:"[Ljava/lang/Object;";
+      Jvm.Code.ldc_int code i;
+      Jvm.Code.ldc_string code s;
+      Jvm.Code.aastore code
+    | G_float d ->
+      Jvm.Code.getstatic
+        code
+        ~class_:"Main"
+        ~field:"GLOBALS"
+        ~descriptor:"[Ljava/lang/Object;";
+      Jvm.Code.ldc_int code i;
+      Jvm.Code.ldc_double code d;
+      emit_box_float code;
+      Jvm.Code.aastore code
+    | G_block (tag, fields) ->
+      Jvm.Code.getstatic
+        code
+        ~class_:"Main"
+        ~field:"GLOBALS"
+        ~descriptor:"[Ljava/lang/Object;";
+      Jvm.Code.ldc_int code i;
+      (* [emit_materialise_block_constant] needs a [state] for its
+         [allocate_local] calls — synthesise a throwaway one. *)
+      let throwaway_state =
+        { code
+        ; globals
+        ; prims = [||]
+        ; supported_prims = Hashtbl.create 0
+        ; functions = Hashtbl.create 0
+        ; fn_by_name = Hashtbl.create 0
+        ; pc_to_label = Hashtbl.create 0
+        ; branch_target_state = Hashtbl.create 0
+        ; acc_live = false
+        ; acc_kind = K_int
+        ; slots = []
+        ; oc_stack_depth = 0
+        ; next_local = 1
+        ; pending_cmp = None
+        ; nargs = 0
+        ; ncaps = 0
+        ; capture_kinds = []
+        ; enclosing_function_name = None
+        ; pending_handlers = Hashtbl.create 0
+        ; open_traps = []
+        ; fresh_oo_id_counter = ref 0
+        ; pending_retaddrs = 0
+        }
+      in
+      Emit_stack.emit_materialise_block_constant throwaway_state tag fields;
+      Jvm.Code.aastore code
+  done
+
 let compile ~bc ~out_dir =
   let total = if debug_times () then Some (Timer.make ()) else None in
   let parsed = time_phase "parse-bytecode" (fun () -> Bytecode.read_exe bc) in
@@ -55,7 +131,7 @@ let compile ~bc ~out_dir =
   then
     failwith
       "java_of_ocaml: bytecode references none of the supported primitives \
-       (caml_java_print_endline, caml_java_print_int).";
+       (caml_java_print_endline, caml_java_print_int, ...).";
   if debug_primitives ()
   then (
     Format.eprintf "[primitives] resolved %d:@." (Hashtbl.length prim_table);
@@ -81,10 +157,10 @@ let compile ~bc ~out_dir =
       end_idx
       arr.(start_idx).pc
       arr.(end_idx).pc;
-  (* Pre-scan for CLOSUREREC within the user range. *)
-  let functions = Hashtbl.create 2 in
+  (* Pre-scan for every CLOSUREREC / CLOSURE in the whole bytecode. *)
+  let functions = Hashtbl.create 64 in
   let func_list = ref [] in
-  let fn_body_pcs = Hashtbl.create 4 in
+  let fn_body_pcs = Hashtbl.create 64 in
   let fn_count = ref 0 in
   let fn_scan_timer = if debug_times () then Some (Timer.make ()) else None in
   for i = start_idx to end_idx do
@@ -123,13 +199,10 @@ let compile ~bc ~out_dir =
           ; capture_kinds = ref []
           ; recursive
           ; group_idx = k
-          ; group = [||] (* filled in below *)
+          ; group = [||]
           }
         in
         group.(k) <- info;
-        (* Main dispatch uses [functions] keyed by closurerec pc to look
-           up the group's first function; nested [OFFSETCLOSURE] uses the
-           [group] field to navigate to siblings. *)
         if k = 0 then Hashtbl.add functions ins.pc info;
         func_list := info :: !func_list;
         let pre_start =
@@ -154,10 +227,7 @@ let compile ~bc ~out_dir =
        Timer.print
        t
    | None -> ());
-  (* Build a name -> function_info index for APPLY return-kind lookup, and
-     run a quick pre-pass to seed each function's return_kind from the
-     instruction preceding its RETURN / APPTERM. *)
-  let fn_by_name = Hashtbl.create 4 in
+  let fn_by_name = Hashtbl.create 64 in
   List.iter
     (fun (fi : function_info) -> Hashtbl.add fn_by_name fi.name fi)
     !func_list;
@@ -184,11 +254,10 @@ let compile ~bc ~out_dir =
           (String.concat "," (List.map string_of_kind !(fi.arg_kinds))))
       !func_list;
   let cp = Jvm.Cp.create () in
-  (* Emit main first so that CLOSURE/CLOSUREREC sites can fill in each
-     function's [capture_kinds] from the kinds of values captured at the
-     call site. Function bodies are then emitted with that information. *)
   let main_code = Jvm.Code.create cp in
   let fresh_oo_id_counter = ref 0 in
+  (* Globals-init prelude. Runs before any other Main.main code. *)
+  emit_globals_init main_code parsed.globals;
   let post_end_pc =
     if end_idx + 1 < Array.length arr then arr.(end_idx + 1).pc else max_int
   in
@@ -203,6 +272,7 @@ let compile ~bc ~out_dir =
   let state =
     { code = main_code
     ; globals = parsed.globals
+    ; prims = parsed.prims
     ; supported_prims = prim_table
     ; functions
     ; fn_by_name
@@ -237,31 +307,27 @@ let compile ~bc ~out_dir =
     ; code = main_code
     }
   in
+  let globals_field =
+    { Jvm.name = "GLOBALS"
+    ; descriptor = "[Ljava/lang/Object;"
+    ; access_flags = 0x0009 (* ACC_PUBLIC | ACC_STATIC *)
+    }
+  in
   let main_class_bytes =
     Jvm.assemble_class
       ~class_name:"Main"
       ~super_name:"java/lang/Object"
       ~cp
-      ~fields:[]
+      ~fields:[ globals_field ]
       ~methods:[ main_method ]
       ~access_flags:0x0021 (* ACC_PUBLIC | ACC_SUPER *)
   in
-  (* Now emit each function as its own concrete [Closure] subclass. Each
-     closure class has:
-       - one instance field per capture, named [capN] (field order).
-       - a constructor taking the captures as args, assigning them to the
-         fields after calling [Closure.<init>()].
-       - an [applyN] method whose body is the OCaml function's bytecode,
-         with a prologue that unboxes [K_int] args from their [Object]
-         parameters, and RETURN/APPTERM that box the result before
-         [areturn]. *)
   let closure_class_files = time_phase "emit-closures" (fun () ->
     List.map
       (fun (fn_info : function_info) ->
         let cap_kinds = !(fn_info.capture_kinds) in
         let ncaps = List.length cap_kinds in
         let fn_cp = Jvm.Cp.create () in
-        (* --- Constructor --- *)
         let ctor_code = Jvm.Code.create fn_cp in
         Jvm.Code.set_min_locals ctor_code (1 + ncaps);
         Jvm.Code.aload ctor_code 0;
@@ -281,17 +347,8 @@ let compile ~bc ~out_dir =
               ~descriptor:(jvm_type_of_kind k))
           cap_kinds;
         Jvm.Code.return_void ctor_code;
-        (* --- apply method body --- *)
         let apply_code = Jvm.Code.create fn_cp in
-        (* Reserve max_locals: [this] + N args. *)
         Jvm.Code.set_min_locals apply_code (1 + fn_info.nargs);
-        (* No prologue: apply method args arrive as [Object], and we keep
-           them that way in their locals. Each op that needs a specific
-           kind (arithmetic → int; println(string) → String; etc.) casts
-           or unboxes on first use via [ensure_kind]. This avoids static
-           arg-kind inference and handles transitive cases like
-           mkgreeter, where the arg's kind is only determined by where
-           it ends up (in this case, a closure capture). *)
         let initial_slots =
           let rec make k =
             if k >= fn_info.nargs
@@ -312,6 +369,7 @@ let compile ~bc ~out_dir =
         let state =
           { code = apply_code
           ; globals = parsed.globals
+          ; prims = parsed.prims
           ; supported_prims = prim_table
           ; functions
           ; fn_by_name
@@ -343,15 +401,10 @@ let compile ~bc ~out_dir =
             (fun i k ->
               { Jvm.name = Printf.sprintf "cap%d" i
               ; descriptor = jvm_type_of_kind k
-              ; access_flags = 0x0011 (* ACC_PUBLIC | ACC_FINAL *)
+              ; access_flags = 0x0011
               })
             cap_kinds
         in
-        (* Sibling fields for CLOSUREREC groups > 1 function. Each
-           function in the group holds [Closure]-typed refs to the
-           others so [OFFSETCLOSURE N] can resolve statically to a
-           [getfield sibling_K]. Mutable so the [CLOSUREREC] emission
-           can allocate all group members and then patch cross-refs. *)
         let sibling_fields =
           let n = Array.length fn_info.group in
           if n <= 1
@@ -360,27 +413,24 @@ let compile ~bc ~out_dir =
             List.init n (fun i ->
               { Jvm.name = Printf.sprintf "sibling_%d" i
               ; descriptor = "LClosure;"
-              ; access_flags = 0x0001 (* ACC_PUBLIC, mutable *)
+              ; access_flags = 0x0001
               })
         in
         let fields = cap_fields @ sibling_fields in
         let ctor =
           { Jvm.name = "<init>"
           ; descriptor = Emit_closure.ctor_descriptor_for_captures cap_kinds
-          ; access_flags = 0x0001 (* ACC_PUBLIC *)
+          ; access_flags = 0x0001
           ; code = ctor_code
           }
         in
         let apply_method =
           { Jvm.name = Printf.sprintf "apply%d" fn_info.nargs
           ; descriptor = Emit_apply.apply_descriptor_for_nargs fn_info.nargs
-          ; access_flags = 0x0001 (* ACC_PUBLIC *)
+          ; access_flags = 0x0001
           ; code = apply_code
           }
         in
-        (* [arity()] override so the base [Closure]'s dispatch (and
-           [PartialClosure]'s saturation check) sees this subclass's
-           actual arity. *)
         let arity_code = Jvm.Code.create fn_cp in
         Jvm.Code.set_min_locals arity_code 1;
         Jvm.Code.ldc_int arity_code fn_info.nargs;
@@ -399,7 +449,7 @@ let compile ~bc ~out_dir =
             ~cp:fn_cp
             ~fields
             ~methods:[ ctor; arity_method; apply_method ]
-            ~access_flags:0x0031 (* ACC_PUBLIC | ACC_SUPER | ACC_FINAL *)
+            ~access_flags:0x0031
         in
         fn_info.name, bytes)
       !func_list)

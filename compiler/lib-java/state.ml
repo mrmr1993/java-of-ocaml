@@ -13,6 +13,7 @@ type branch_snapshot =
 type state =
   { code : Jvm.Code.t
   ; globals : Obj.t array
+  ; prims : string array
   ; supported_prims : Prim.table
   ; functions : (int, function_info) Hashtbl.t
   ; fn_by_name : (string, function_info) Hashtbl.t
@@ -143,3 +144,22 @@ let box_acc_to_object state =
   | K_int -> emit_box_int state.code
   | K_float -> emit_box_float state.code
   | K_string | K_block _ | K_closure _ | K_obj -> ()
+
+(* Emit [throw new java.lang.UnsupportedOperationException(msg)].
+   Used as a placeholder for opcodes we haven't implemented yet; the
+   JVM verifier still accepts unreachable code after [athrow], so
+   surrounding emission can continue as if nothing happened beyond
+   invalidating acc. Callers that take a branch target or otherwise
+   fall through must update [state.acc_*] appropriately afterwards. *)
+let emit_throw_unsupported state msg =
+  Jvm.Code.new_ state.code "java/lang/UnsupportedOperationException";
+  Jvm.Code.dup state.code;
+  Jvm.Code.ldc_string state.code msg;
+  Jvm.Code.invokespecial
+    state.code
+    ~class_:"java/lang/UnsupportedOperationException"
+    ~method_:"<init>"
+    ~descriptor:"(Ljava/lang/String;)V";
+  Jvm.Code.athrow state.code;
+  state.acc_live <- false;
+  state.acc_kind <- K_int

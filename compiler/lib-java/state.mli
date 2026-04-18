@@ -20,6 +20,10 @@ type branch_snapshot =
 type state =
   { code : Jvm.Code.t
   ; globals : Obj.t array
+  ; prims : string array
+      (** The bytecode's PRIM section, indexed by primitive number. Read
+          when dispatching a C_CALL to a primitive we haven't
+          implemented, to produce a readable runtime-error message. *)
   ; supported_prims : Prim.table
       (** Prim-index → (name, handler, is_seed). The seed bit is only
           consulted by the range detector, but it rides along so we can
@@ -107,3 +111,8 @@ val box_acc_to_object : state -> unit
     into an Object reference. Otherwise a no-op. Does not touch
     [state.acc_kind] — callers that care about the resulting kind
     update it themselves. *)
+
+val emit_throw_unsupported : state -> string -> unit
+(** Emit [throw new java.lang.UnsupportedOperationException(msg)].
+    Used as a placeholder for opcodes we haven't implemented yet.
+    Resets [acc_live=false], [acc_kind=K_int]. *)

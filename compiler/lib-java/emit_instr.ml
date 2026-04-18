@@ -400,7 +400,8 @@ let emit_instr state (ins : instr) =
     state.acc_kind <- K_int)
   else if op = Bytecode.Op.getglobal
   then (
-    match inspect_global state.globals ins.args.(0) with
+    let n = ins.args.(0) in
+    match inspect_global state.globals n with
     | G_string s -> Emit_stack.emit_string_const state s
     | G_float d ->
       drop_live_acc state;
@@ -413,16 +414,23 @@ let emit_instr state (ins : instr) =
       state.acc_live <- true;
       state.acc_kind <- K_block (List.map kind_of_global_field fields)
     | G_unsupported ->
-      failwith
-        (Printf.sprintf
-           "java_of_ocaml: GETGLOBAL %d at pc %d — global has an \
-            unsupported shape (nested blocks / abstract values aren't \
-            materialised yet)"
-           ins.args.(0)
-           ins.pc))
+      (* Fall back to the runtime [Main.GLOBALS] table — the value
+         will be whatever module-init's SETGLOBAL stored, or whatever
+         the DATA section materialiser put there at startup. *)
+      drop_live_acc state;
+      Jvm.Code.getstatic
+        state.code
+        ~class_:"Main"
+        ~field:"GLOBALS"
+        ~descriptor:"[Ljava/lang/Object;";
+      Jvm.Code.ldc_int state.code n;
+      Jvm.Code.aaload state.code;
+      state.acc_live <- true;
+      state.acc_kind <- K_obj)
   else if op = Bytecode.Op.pushgetglobal
   then (
-    match inspect_global state.globals ins.args.(0) with
+    let n = ins.args.(0) in
+    match inspect_global state.globals n with
     | G_string s -> Emit_stack.emit_string_push state s
     | G_float d ->
       Emit_stack.emit_push state;
@@ -437,54 +445,72 @@ let emit_instr state (ins : instr) =
       state.acc_live <- true;
       state.acc_kind <- K_block (List.map kind_of_global_field fields)
     | G_unsupported ->
-      failwith
-        (Printf.sprintf
-           "java_of_ocaml: PUSHGETGLOBAL %d at pc %d — global has an \
-            unsupported shape"
-           ins.args.(0)
-           ins.pc))
+      Emit_stack.emit_push state;
+      drop_live_acc state;
+      Jvm.Code.getstatic
+        state.code
+        ~class_:"Main"
+        ~field:"GLOBALS"
+        ~descriptor:"[Ljava/lang/Object;";
+      Jvm.Code.ldc_int state.code n;
+      Jvm.Code.aaload state.code;
+      state.acc_live <- true;
+      state.acc_kind <- K_obj)
   else if op = Bytecode.Op.getglobalfield || op = Bytecode.Op.pushgetglobalfield
   then (
     let g = ins.args.(0) in
     let f = ins.args.(1) in
-    let field =
+    let static_field =
       match inspect_global state.globals g with
       | G_block (_, fields) when f >= 0 && f < List.length fields ->
-        List.nth fields f
-      | _ ->
-        failwith
-          (Printf.sprintf
-             "java_of_ocaml: %s %d %d at pc %d — global has an \
-              unsupported shape or field index out of range"
-             (Bytecode.opcode_name op)
-             g
-             f
-             ins.pc)
+        Some (List.nth fields f)
+      | _ -> None
     in
     let push_first = op = Bytecode.Op.pushgetglobalfield in
     if push_first then Emit_stack.emit_push state;
     let drop_old () = drop_live_acc state in
-    match field with
-    | Gv_int n ->
+    match static_field with
+    | Some (Gv_int n) ->
       drop_old ();
       Jvm.Code.ldc_int state.code n;
       state.acc_live <- true;
       state.acc_kind <- K_int
-    | Gv_string s ->
+    | Some (Gv_string s) ->
       drop_old ();
       Jvm.Code.ldc_string state.code s;
       state.acc_live <- true;
       state.acc_kind <- K_string
-    | Gv_float d ->
+    | Some (Gv_float d) ->
       drop_old ();
       Jvm.Code.ldc_double state.code d;
       state.acc_live <- true;
       state.acc_kind <- K_float
-    | Gv_block (tag, sub_fields) ->
+    | Some (Gv_block (tag, sub_fields)) ->
       drop_old ();
       Emit_stack.emit_materialise_block_constant state tag sub_fields;
       state.acc_live <- true;
-      state.acc_kind <- K_block (List.map kind_of_global_field sub_fields))
+      state.acc_kind <- K_block (List.map kind_of_global_field sub_fields)
+    | None ->
+      (* Runtime lookup: GLOBALS[g].fields[f]. For the common case
+         (module record = Block), this is one getfield + aaload. *)
+      drop_old ();
+      Jvm.Code.getstatic
+        state.code
+        ~class_:"Main"
+        ~field:"GLOBALS"
+        ~descriptor:"[Ljava/lang/Object;";
+      Jvm.Code.ldc_int state.code g;
+      Jvm.Code.aaload state.code;
+      Jvm.Code.checkcast state.code "Block";
+      Jvm.Code.getfield
+        state.code
+        ~class_:"Block"
+        ~field:"fields"
+        ~descriptor:"[Ljava/lang/Object;";
+      Jvm.Code.ldc_int state.code f;
+      Jvm.Code.aaload state.code;
+      state.acc_live <- true;
+      state.acc_kind <- K_obj)
   else if op = Bytecode.Op.branch
   then (
     let target = ins.pc + ins.args.(0) + 1 in
@@ -525,10 +551,250 @@ let emit_instr state (ins : instr) =
   else if op = restart_op || op = grab_op then ()
   else if op = event_op || op = break_op then ()
   else if op = 92 then () (* CHECK_SIGNALS *)
+  else if op = Bytecode.Op.stop
+  then (
+    Jvm.Code.return_void state.code;
+    state.acc_live <- false;
+    state.acc_kind <- K_int)
+  else if op = Bytecode.Op.setglobal
+  then (
+    let n = ins.args.(0) in
+    box_acc_to_object state;
+    let v_local = allocate_local state in
+    Jvm.Code.astore state.code v_local;
+    Jvm.Code.getstatic
+      state.code
+      ~class_:"Main"
+      ~field:"GLOBALS"
+      ~descriptor:"[Ljava/lang/Object;";
+    Jvm.Code.ldc_int state.code n;
+    Jvm.Code.aload state.code v_local;
+    Jvm.Code.aastore state.code;
+    Jvm.Code.ldc_int state.code 0;
+    state.acc_live <- true;
+    state.acc_kind <- K_int)
+  else if op = Bytecode.Op.atom0 || op = Bytecode.Op.atom
+  then (
+    let tag = if op = Bytecode.Op.atom0 then 0 else ins.args.(0) in
+    drop_live_acc state;
+    Jvm.Code.new_ state.code "Block";
+    Jvm.Code.dup state.code;
+    Jvm.Code.ldc_int state.code tag;
+    Jvm.Code.ldc_int state.code 0;
+    Jvm.Code.anewarray state.code "java/lang/Object";
+    Jvm.Code.invokespecial
+      state.code
+      ~class_:"Block"
+      ~method_:"<init>"
+      ~descriptor:"(I[Ljava/lang/Object;)V";
+    state.acc_live <- true;
+    state.acc_kind <- K_block [])
+  else if op = Bytecode.Op.pushatom0 || op = Bytecode.Op.pushatom
+  then (
+    let tag = if op = Bytecode.Op.pushatom0 then 0 else ins.args.(0) in
+    Emit_stack.emit_push state;
+    drop_live_acc state;
+    Jvm.Code.new_ state.code "Block";
+    Jvm.Code.dup state.code;
+    Jvm.Code.ldc_int state.code tag;
+    Jvm.Code.ldc_int state.code 0;
+    Jvm.Code.anewarray state.code "java/lang/Object";
+    Jvm.Code.invokespecial
+      state.code
+      ~class_:"Block"
+      ~method_:"<init>"
+      ~descriptor:"(I[Ljava/lang/Object;)V";
+    state.acc_live <- true;
+    state.acc_kind <- K_block [])
+  else if op = Bytecode.Op.makefloatblock
+  then (
+    let size = ins.args.(0) in
+    if size < 1 then failwith "java_of_ocaml: MAKEFLOATBLOCK with size < 1";
+    (* Layout matches MAKEBLOCK: acc is field 0, stack[0..] are fields
+       1..size-1. All fields are floats, so each needs boxing to
+       Double on the way in. *)
+    ensure_kind state K_float;
+    let acc_local = allocate_local_for_kind state K_float in
+    Jvm.Code.dstore state.code acc_local;
+    let fields_local = allocate_local state in
+    Jvm.Code.ldc_int state.code size;
+    Jvm.Code.anewarray state.code "java/lang/Object";
+    Jvm.Code.astore state.code fields_local;
+    Jvm.Code.aload state.code fields_local;
+    Jvm.Code.ldc_int state.code 0;
+    Jvm.Code.dload state.code acc_local;
+    emit_box_float state.code;
+    Jvm.Code.aastore state.code;
+    for i = 1 to size - 1 do
+      let slot = List.nth state.slots (i - 1) in
+      Jvm.Code.aload state.code fields_local;
+      Jvm.Code.ldc_int state.code i;
+      emit_load_for_kind state.code slot.local slot.kind;
+      box_if_int state.code slot.kind;
+      Jvm.Code.aastore state.code
+    done;
+    Jvm.Code.new_ state.code "Block";
+    Jvm.Code.dup state.code;
+    Jvm.Code.ldc_int state.code 253 (* Double_tag *);
+    Jvm.Code.aload state.code fields_local;
+    Jvm.Code.invokespecial
+      state.code
+      ~class_:"Block"
+      ~method_:"<init>"
+      ~descriptor:"(I[Ljava/lang/Object;)V";
+    pop_slots state (size - 1);
+    state.acc_live <- true;
+    state.acc_kind <- K_obj)
+  else if op = Bytecode.Op.getfloatfield
+  then (
+    let field = ins.args.(0) in
+    (match state.acc_kind with
+     | K_block _ -> ()
+     | K_obj -> Jvm.Code.checkcast state.code "Block"
+     | _ ->
+       failwith
+         (Printf.sprintf
+            "java_of_ocaml: GETFLOATFIELD on non-block at pc %d" ins.pc));
+    Jvm.Code.getfield
+      state.code
+      ~class_:"Block"
+      ~field:"fields"
+      ~descriptor:"[Ljava/lang/Object;";
+    Jvm.Code.ldc_int state.code field;
+    Jvm.Code.aaload state.code;
+    emit_unbox_to_kind state.code K_float;
+    state.acc_kind <- K_float)
+  else if op = Bytecode.Op.setfloatfield
+  then (
+    let field = ins.args.(0) in
+    (match state.acc_kind with
+     | K_block _ -> ()
+     | K_obj -> Jvm.Code.checkcast state.code "Block"
+     | _ ->
+       failwith
+         (Printf.sprintf
+            "java_of_ocaml: SETFLOATFIELD on non-block at pc %d" ins.pc));
+    Jvm.Code.getfield
+      state.code
+      ~class_:"Block"
+      ~field:"fields"
+      ~descriptor:"[Ljava/lang/Object;";
+    Jvm.Code.ldc_int state.code field;
+    let top = List.hd state.slots in
+    emit_load_for_kind state.code top.local top.kind;
+    (match top.kind with
+     | K_float -> emit_box_float state.code
+     | K_obj -> ()
+     | _ ->
+       failwith "java_of_ocaml: SETFLOATFIELD value must be a float");
+    Jvm.Code.aastore state.code;
+    consume_top state;
+    Jvm.Code.ldc_int state.code 0;
+    state.acc_live <- true;
+    state.acc_kind <- K_int)
+  else if op = Bytecode.Op.ultint || op = Bytecode.Op.ugeint
+  then (
+    (* Unsigned compare via sign-bit flip: a <u b  <=>  (a^MIN) <s (b^MIN). *)
+    ensure_kind state K_int;
+    Jvm.Code.ldc_int state.code min_int;
+    Jvm.Code.ixor state.code;
+    let top = List.hd state.slots in
+    emit_load_for_kind state.code top.local top.kind;
+    (match top.kind with
+     | K_int -> ()
+     | K_obj -> emit_unbox_to_kind state.code K_int
+     | _ -> failwith "java_of_ocaml: unsigned compare on non-int slot");
+    Jvm.Code.ldc_int state.code min_int;
+    Jvm.Code.ixor state.code;
+    let lbl_true = Jvm.Code.fresh_label state.code in
+    let lbl_end = Jvm.Code.fresh_label state.code in
+    if op = Bytecode.Op.ultint
+    then Jvm.Code.if_icmplt state.code lbl_true
+    else Jvm.Code.if_icmpge state.code lbl_true;
+    Jvm.Code.ldc_int state.code 0;
+    Jvm.Code.goto state.code lbl_end;
+    Jvm.Code.mark_label state.code lbl_true;
+    Jvm.Code.ldc_int state.code 1;
+    Jvm.Code.mark_label state.code lbl_end;
+    consume_top state;
+    state.acc_live <- true;
+    state.acc_kind <- K_int)
+  else if op = Bytecode.Op.getstringchar || op = Bytecode.Op.getbyteschar
+  then (
+    (* acc is string/bytes, stack[0] is index; result is char code (int). *)
+    (match state.acc_kind with
+     | K_string -> ()
+     | K_obj -> Jvm.Code.checkcast state.code "java/lang/String"
+     | _ ->
+       emit_throw_unsupported
+         state
+         "GETSTRINGCHAR/GETBYTESCHAR on non-string (Bytes not yet a distinct type)");
+    let idx_slot = List.hd state.slots in
+    emit_load_for_kind state.code idx_slot.local idx_slot.kind;
+    (match idx_slot.kind with
+     | K_int -> ()
+     | K_obj -> emit_unbox_to_kind state.code K_int
+     | _ ->
+       failwith
+         "java_of_ocaml: GETSTRINGCHAR index must be int");
+    Jvm.Code.invokevirtual
+      state.code
+      ~class_:"java/lang/String"
+      ~method_:"charAt"
+      ~descriptor:"(I)C";
+    consume_top state;
+    state.acc_live <- true;
+    state.acc_kind <- K_int)
+  else if op = Bytecode.Op.setbyteschar
+  then
+    (* Writing to a String is impossible — needs K_bytes (Phase 2). *)
+    emit_throw_unsupported
+      state
+      "SETBYTESCHAR requires Bytes support (Phase 2)"
+  else if op = Bytecode.Op.getmethod
+       || op = Bytecode.Op.getpubmet
+       || op = Bytecode.Op.getdynmet
+  then
+    emit_throw_unsupported state "OCaml objects / methods are not supported"
+  else if op = Bytecode.Op.perform
+       || op = Bytecode.Op.resume
+       || op = Bytecode.Op.resumeterm
+       || op = Bytecode.Op.reperformterm
+  then emit_throw_unsupported state "OCaml 5 effect handlers are not supported"
+  else if op = Bytecode.Op.bultint || op = Bytecode.Op.bugeint
+  then (
+    (* Fused unsigned compare-and-branch: the immediate is in args.(0),
+       the displacement in args.(1). Implemented as: compute the
+       unsigned compare into acc, then branch on zero/non-zero. *)
+    let imm = ins.args.(0) in
+    let target_pc = ins.pc + ins.args.(1) + 2 in
+    ensure_kind state K_int;
+    Jvm.Code.ldc_int state.code min_int;
+    Jvm.Code.ixor state.code;
+    Jvm.Code.ldc_int state.code (imm lxor min_int);
+    let lbl = label_at state target_pc in
+    if op = Bytecode.Op.bultint
+    then Jvm.Code.if_icmplt state.code lbl
+    else Jvm.Code.if_icmpge state.code lbl;
+    record_branch_target state target_pc;
+    state.acc_live <- false;
+    state.acc_kind <- K_int)
   else if is_c_call op
   then (
-    match Hashtbl.find_opt state.supported_prims ins.args.(0) with
+    let prim_idx, consumed_on_stack =
+      if op = Bytecode.Op.c_calln
+      then
+        let nargs = ins.args.(0) in
+        (* C_CALLN: args.(0) = nargs, args.(1) = prim. nargs-1 slots
+           come off the OCaml stack (the rest is in acc). *)
+        ins.args.(1), nargs - 1
+      else
+        (* C_CALL1..5 → prim idx in args.(0); stack arg count is op-1 from the opcode number. *)
+        ins.args.(0), op - Bytecode.Op.c_call1
+    in
+    match Hashtbl.find_opt state.supported_prims prim_idx with
     | Some (_name, handler, _seed) ->
+      ignore consumed_on_stack;
       (match handler with
        | P_println_int -> Emit_primitive.emit_println state ~int_arg:true
        | P_println_string -> Emit_primitive.emit_println state ~int_arg:false
@@ -562,11 +828,14 @@ let emit_instr state (ins : instr) =
        | P_array_fill -> Emit_primitive.emit_array_fill state
        | P_array_append -> Emit_primitive.emit_array_append state)
     | None ->
-      failwith
-        (Printf.sprintf
-           "java_of_ocaml: unsupported primitive call #%d at pc %d"
-           ins.args.(0)
-           ins.pc))
+      let name =
+        if prim_idx >= 0 && prim_idx < Array.length state.prims
+        then state.prims.(prim_idx)
+        else Printf.sprintf "#%d" prim_idx
+      in
+      emit_throw_unsupported
+        state
+        (Printf.sprintf "C primitive %s is not implemented" name))
   else
     failwith
       (Printf.sprintf

@@ -17,7 +17,19 @@ let emit_apply_invoke state ~nargs =
    | K_obj ->
      Jvm.Code.checkcast state.code "Closure";
      state.acc_kind <- K_closure { name = "Closure"; captures = [] }
-   | K_int | K_float | K_string | K_block _ ->
+   | K_int ->
+     (* Inference occasionally mis-labels a K_obj return as K_int
+        (e.g. when the callee was inferred to return K_int but the
+        real value at runtime is a closure — common inside Stdlib
+        code that flows values through polymorphic dispatch). Box
+        the int to Integer and checkcast to Closure: this either
+        succeeds at runtime or produces a ClassCastException with a
+        readable message, rather than a compile-time failure that
+        blocks every Stdlib-bearing program. *)
+     emit_box_int state.code;
+     Jvm.Code.checkcast state.code "Closure";
+     state.acc_kind <- K_closure { name = "Closure"; captures = [] }
+   | K_float | K_string | K_block _ ->
      failwith
        (Printf.sprintf
           "java_of_ocaml: APPLY%d called on a non-closure value (%s). \

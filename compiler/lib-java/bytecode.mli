@@ -89,6 +89,29 @@ module Op : sig
   val vectlength : int
   val getvectitem : int
   val setvectitem : int
+  val getbyteschar : int
+  val setbyteschar : int
+  val getstringchar : int
+  val makefloatblock : int
+  val getfloatfield : int
+  val setfloatfield : int
+  val setglobal : int
+  val atom0 : int
+  val atom : int
+  val pushatom0 : int
+  val pushatom : int
+  val ultint : int
+  val ugeint : int
+  val bultint : int
+  val bugeint : int
+  val c_calln : int
+  val getmethod : int
+  val getpubmet : int
+  val getdynmet : int
+  val perform : int
+  val resume : int
+  val resumeterm : int
+  val reperformterm : int
   val branch : int
   val branchif : int
   val branchifnot : int
