@@ -679,6 +679,32 @@ let step (state : state) (ins : Instr.instr) : last option =
     (* accu becomes unit (OCaml interp sets it to Val_unit). *)
     const_int state 0;
     None)
+  (* GETMETHOD / GETPUBMET / GETDYNMET — OO method dispatch. Modelled
+     as opaque externs; JVM generator resolves method-table reads
+     later. *)
+  else if op = Bytecode.Op.getmethod
+  then (
+    (* OCaml interp: accu = Lookup(sp[0], accu); stack unchanged. *)
+    let a = var_of state.accu in
+    let obj = var_of (nth_stack state 0) in
+    set_accu_let state (Prim (Extern "getmethod", [ Pv a; Pv obj ]));
+    None)
+  else if op = Bytecode.Op.getpubmet
+  then (
+    (* GETPUBMET tag cache — pushes accu, then looks up method. *)
+    push_elt state state.accu;
+    let a = var_of state.accu in
+    set_accu_let
+      state
+      (Prim (Extern "getpubmet", [ Pv a; Pc (Int args.(0)) ]));
+    None)
+  else if op = Bytecode.Op.getdynmet
+  then (
+    let a = var_of state.accu in
+    let obj = nth_stack state 0 in
+    let obj_v = var_of obj in
+    set_accu_let state (Prim (Extern "getdynmet", [ Pv a; Pv obj_v ]));
+    None)
   (* GRAB / RESTART / CHECK_SIGNALS / EVENT / BREAK — no-ops at the
      IR level. GRAB is used for curried closure partial-application
      runtime check; we handle partial application via Apply's exact
