@@ -214,3 +214,11 @@ each opcode that reads acc, has to decide whether acc's current
   `Symtable.global_map` unless asked — `Obj` traversal of marshalled
   compiler types is fragile across OCaml versions and the user has
   explicitly steered us away from it.
+
+## Future alignment with js_of_ocaml
+
+Structural and API-level alignments with `js_of_ocaml`/`wasm_of_ocaml`
+that have been identified but deferred (typically because they depend on
+introducing an intermediate representation, or only pay off once the
+feature set demands it) are tracked in [`docs/ALIGNMENT.md`](docs/ALIGNMENT.md).
+Add newly spotted items there rather than letting them slip.
