@@ -175,10 +175,25 @@ let is_user_op (ins : instr) =
 
 (* Classification of a global's value so GETGLOBAL can produce the right
    JVM representation. *)
+type global_field_value =
+  | Gv_int of int
+  | Gv_string of string
+
 type global_view =
   | G_string of string
-  | G_int_block of int list (* all fields are small ints *)
+  | G_block of int * global_field_value list
+      (* tag + per-field values. We only materialise blocks whose fields
+         are themselves ints or strings; nested blocks are [G_unsupported]
+         for now. *)
   | G_unsupported
+
+let classify_field (f : Obj.t) =
+  if Obj.is_block f
+  then (
+    if Obj.tag f = Obj.string_tag
+    then Some (Gv_string (Obj.magic f : string))
+    else None)
+  else Some (Gv_int (Obj.magic f : int))
 
 let inspect_global (globals : Obj.t array) n =
   if n < 0 || n >= Array.length globals
@@ -196,15 +211,14 @@ let inspect_global (globals : Obj.t array) n =
     let rec gather i acc =
       if i >= size
       then Some (List.rev acc)
-      else (
-        let f = Obj.field v i in
-        if Obj.is_block f
-        then None
-        else gather (i + 1) ((Obj.magic f : int) :: acc))
+      else
+        match classify_field (Obj.field v i) with
+        | Some fv -> gather (i + 1) (fv :: acc)
+        | None -> None
     in
     match gather 0 [] with
     | None -> G_unsupported
-    | Some ints -> G_int_block ints)
+    | Some fields -> G_block (Obj.tag v, fields))
   else G_unsupported
 
 (* -------------------------------------------------------------------------- *)
@@ -226,6 +240,12 @@ let branch_target (ins : instr) =
 
 (* Every OCaml value has a canonical JVM runtime type:
      - [K_int]       → primitive JVM [int] (for monomorphic int contexts)
+     - [K_string]    → reference to a [java.lang.String]. OCaml's string
+                       type is a byte sequence; for now we use JVM
+                       [String] (UTF-16 internal), which is fine for the
+                       ASCII string literals our tests use. Migration to
+                       a byte[]-backed representation is a future option
+                       when we need byte-level semantics or mutation.
      - [K_block _]   → reference to a [Block] instance
      - [K_closure _] → reference to a [Closure] subclass instance
 
@@ -235,8 +255,16 @@ let branch_target (ins : instr) =
    signatures line up). *)
 type kind =
   | K_int
+  | K_string
   | K_block of kind list
   | K_closure of closure_ref
+  | K_obj
+      (* Opaque [java.lang.Object] reference — used when we haven't
+         statically pinned down the kind yet. Arrives mostly from APPLY
+         method arguments (the apply method always takes Object params)
+         and from places where inference hasn't been implemented. Each
+         op that needs a specific kind casts/unboxes on first use via
+         [ensure_kind]. *)
 
 and closure_ref =
   { name : string
@@ -251,20 +279,28 @@ and closure_ref =
          fields on [this], so the list is often empty. *)
   }
 
+let kind_of_global_field = function
+  | Gv_int _ -> K_int
+  | Gv_string _ -> K_string
+
 let jvm_type_of_kind = function
   | K_int -> "I"
+  | K_string -> "Ljava/lang/String;"
   | K_block _ -> "LBlock;"
   | K_closure { name; _ } -> Printf.sprintf "L%s;" name
+  | K_obj -> "Ljava/lang/Object;"
 
 let emit_store_for_kind code local kind =
   match kind with
   | K_int -> Jvm.Code.istore code local
-  | K_block _ | K_closure _ -> Jvm.Code.astore code local
+  | K_string | K_block _ | K_closure _ | K_obj ->
+    Jvm.Code.astore code local
 
 let emit_load_for_kind code local kind =
   match kind with
   | K_int -> Jvm.Code.iload code local
-  | K_block _ | K_closure _ -> Jvm.Code.aload code local
+  | K_string | K_block _ | K_closure _ | K_obj ->
+    Jvm.Code.aload code local
 
 (* Boxing / unboxing helpers for crossing the int ↔ Object boundary. *)
 let emit_box_int code =
@@ -283,8 +319,10 @@ let emit_unbox_to_kind code kind =
       ~class_:"java/lang/Integer"
       ~method_:"intValue"
       ~descriptor:"()I"
+  | K_string -> Jvm.Code.checkcast code "java/lang/String"
   | K_block _ -> Jvm.Code.checkcast code "Block"
   | K_closure { name; _ } -> Jvm.Code.checkcast code name
+  | K_obj -> () (* already an Object reference *)
 
 (* If [kind] is an int-kind, emit [Integer.valueOf] to box it to an
    Object. Otherwise, the value is already a reference. *)
@@ -292,6 +330,10 @@ let box_if_int code kind =
   match kind with
   | K_int -> emit_box_int code
   | _ -> ()
+
+(* [ensure_kind] is defined below, after the [state] record type is
+   available — it needs to read [state.acc_kind] and emit into
+   [state.code]. *)
 
 (* -------------------------------------------------------------------------- *)
 (* Function discovery + body range.
@@ -314,6 +356,12 @@ type function_info =
       (* Inferred by a pre-pass before main compilation; APPLY uses it to
          decide whether the Object result should be unboxed to int or kept
          as a reference (Closure / Block). *)
+  ; arg_kinds : kind list ref
+      (* Kinds of the function's arguments, in source order (index 0 =
+         first source arg). Filled in by a pre-pass. Used to generate
+         the apply method's arg-unboxing prologue and the initial slot
+         state. Default K_int if inference doesn't find anything
+         specific. *)
   ; capture_kinds : kind list ref
       (* Kinds of the captures passed to this method, in closure-field
          order. Length [ncaps]. Filled in when [emit_closure_creation]
@@ -433,6 +481,34 @@ type state =
 (* Slot lookups go through [state.slots], which records per-slot the kind
    and the JVM local that was assigned at push time. *)
 
+(* If acc is [K_obj] (opaque Object from an apply-method arg), unbox/cast
+   it to [target]. If it's already a compatible specific kind, do nothing.
+   If it's an incompatible specific kind, fail loudly — that indicates a
+   kind-tracking bug in the compiler itself. *)
+let ensure_kind state target =
+  let compatible a b =
+    match a, b with
+    | K_int, K_int -> true
+    | K_string, K_string -> true
+    | K_block _, K_block _ -> true
+    | K_closure _, K_closure _ -> true
+    | K_obj, K_obj -> true
+    | _ -> false
+  in
+  if compatible state.acc_kind target
+  then ()
+  else
+    match state.acc_kind with
+    | K_obj ->
+      emit_unbox_to_kind state.code target;
+      state.acc_kind <- target
+    | _ ->
+      failwith
+        (Printf.sprintf
+           "java_of_ocaml: kind mismatch — have %s, need %s"
+           (jvm_type_of_kind state.acc_kind)
+           (jvm_type_of_kind target))
+
 let record_branch_target state target_pc =
   if not (Hashtbl.mem state.branch_target_state target_pc)
   then
@@ -509,8 +585,41 @@ let emit_int_const state n =
   overwrite_acc state K_int (fun () -> Jvm.Code.ldc_int state.code n)
 
 let emit_string_const state s =
-  overwrite_acc state K_int (* treated as plain reference-as-int for now *)
+  overwrite_acc
+    state
+    K_string
     (fun () -> Jvm.Code.ldc_string state.code s)
+
+(* Materialise a block constant (from the DATA section) as a Block instance
+   on top of the op stack. Each field that's an int gets boxed as Integer;
+   string fields are loaded via [ldc] and stored as-is. Does not modify
+   [state.acc_live] / [state.acc_kind]; callers handle those. *)
+let emit_materialise_block_constant state tag fields =
+  let fields_local = allocate_local state in
+  let size = List.length fields in
+  Jvm.Code.ldc_int state.code size;
+  Jvm.Code.anewarray state.code "java/lang/Object";
+  Jvm.Code.astore state.code fields_local;
+  List.iteri
+    (fun i fv ->
+      Jvm.Code.aload state.code fields_local;
+      Jvm.Code.ldc_int state.code i;
+      (match fv with
+       | Gv_int n ->
+         Jvm.Code.ldc_int state.code n;
+         emit_box_int state.code
+       | Gv_string s -> Jvm.Code.ldc_string state.code s);
+      Jvm.Code.aastore state.code)
+    fields;
+  Jvm.Code.new_ state.code "Block";
+  Jvm.Code.dup state.code;
+  Jvm.Code.ldc_int state.code tag;
+  Jvm.Code.aload state.code fields_local;
+  Jvm.Code.invokespecial
+    state.code
+    ~class_:"Block"
+    ~method_:"<init>"
+    ~descriptor:"(I[Ljava/lang/Object;)V"
 
 (* OCaml PUSH: stack := stack++[acc]; acc unchanged. On JVM, dup acc so the
    operand stack still has acc on top; the dup'd copy becomes a named local
@@ -569,7 +678,7 @@ let emit_string_push state s =
   if was_live then Jvm.Code.pop_top state.code;
   Jvm.Code.ldc_string state.code s;
   state.acc_live <- true;
-  state.acc_kind <- K_int
+  state.acc_kind <- K_string
 
 let self_closure_ref state =
   match state.enclosing_function_name with
@@ -710,7 +819,9 @@ let emit_closure_creation state (fn_info : function_info) ~nvars ~is_rec =
      && List.for_all2
           (fun a b ->
             match a, b with
-            | K_int, K_int | K_block _, K_block _ -> true
+            | K_int, K_int -> true
+            | K_string, K_string -> true
+            | K_block _, K_block _ -> true
             | K_closure _, K_closure _ -> true
             | _ -> false)
           existing
@@ -778,41 +889,65 @@ let emit_closurerec state (ins : instr) =
 let consume_top state =
   pop_slots state 1
 
+(* Load the top OCaml-stack slot as an [int], unboxing from Integer if the
+   slot currently holds an opaque Object. *)
+let emit_iload_top_as_int state =
+  let si = List.hd state.slots in
+  emit_load_for_kind state.code si.local si.kind;
+  match si.kind with
+  | K_int -> ()
+  | K_obj ->
+    Jvm.Code.checkcast state.code "java/lang/Integer";
+    Jvm.Code.invokevirtual
+      state.code
+      ~class_:"java/lang/Integer"
+      ~method_:"intValue"
+      ~descriptor:"()I"
+  | _ ->
+    failwith
+      (Printf.sprintf
+         "java_of_ocaml: arithmetic on non-int slot (%s)"
+         (jvm_type_of_kind si.kind))
+
 let emit_addint state =
-  let slot = top_slot_local ~state in
-  Jvm.Code.iload state.code slot;
+  ensure_kind state K_int;
+  emit_iload_top_as_int state;
   Jvm.Code.iadd state.code;
   consume_top state
 
 let emit_subint state =
-  let slot = top_slot_local ~state in
-  Jvm.Code.iload state.code slot;
+  ensure_kind state K_int;
+  emit_iload_top_as_int state;
   Jvm.Code.isub state.code;
   consume_top state
 
 let emit_mulint state =
-  let slot = top_slot_local ~state in
-  Jvm.Code.iload state.code slot;
+  ensure_kind state K_int;
+  emit_iload_top_as_int state;
   Jvm.Code.imul state.code;
   consume_top state
 
 let emit_divint state =
-  let slot = top_slot_local ~state in
-  Jvm.Code.iload state.code slot;
+  ensure_kind state K_int;
+  emit_iload_top_as_int state;
   Jvm.Code.idiv state.code;
   consume_top state
 
 let emit_modint state =
-  let slot = top_slot_local ~state in
-  Jvm.Code.iload state.code slot;
+  ensure_kind state K_int;
+  emit_iload_top_as_int state;
   Jvm.Code.irem state.code;
   consume_top state
 
 let emit_offsetint state n =
+  ensure_kind state K_int;
   Jvm.Code.ldc_int state.code n;
   Jvm.Code.iadd state.code
 
 let emit_println state ~int_arg =
+  if int_arg
+  then ensure_kind state K_int
+  else ensure_kind state K_string;
   Jvm.Code.getstatic
     state.code
     ~class_:"java/lang/System"
@@ -838,7 +973,9 @@ let element_kind_of_block field_kinds =
   | k :: rest ->
     let compatible a b =
       match a, b with
-      | K_int, K_int | K_block _, K_block _ -> true
+      | K_int, K_int -> true
+      | K_string, K_string -> true
+      | K_block _, K_block _ -> true
       | K_closure _, K_closure _ -> true
       | _ -> false
     in
@@ -947,35 +1084,41 @@ let apply_descriptor_for_nargs nargs =
    [Object] reference on the JVM op stack, consumes the arg slots, and
    updates state accordingly. Does not touch the result's boxedness. *)
 let emit_apply_invoke state ~nargs =
-  match state.acc_kind with
-  | K_closure _ ->
-    for k = 0 to nargs - 1 do
-      let slot = stack_slot_local ~state k in
-      let sk = (List.nth state.slots k).kind in
-      emit_load_for_kind state.code slot sk;
-      box_if_int state.code sk
-    done;
-    if nargs > 3
-    then
-      failwith
-        (Printf.sprintf
-           "java_of_ocaml: APPLY%d — the base Closure class only has \
-            apply1/2/3 dispatch right now; higher-arity applies aren't \
-            supported yet"
-           nargs);
-    Jvm.Code.invokevirtual
-      state.code
-      ~class_:"Closure"
-      ~method_:(Printf.sprintf "apply%d" nargs)
-      ~descriptor:(apply_descriptor_for_nargs nargs);
-    pop_slots state nargs;
-    state.acc_live <- true
-  | K_int | K_block _ ->
+  (* Ensure acc is a Closure reference. K_obj → checkcast Closure;
+     K_closure is already typed. *)
+  (match state.acc_kind with
+   | K_closure _ -> ()
+   | K_obj ->
+     Jvm.Code.checkcast state.code "Closure";
+     state.acc_kind <- K_closure { name = "Closure"; captures = [] }
+   | K_int | K_string | K_block _ ->
+     failwith
+       (Printf.sprintf
+          "java_of_ocaml: APPLY%d called on a non-closure value (%s). \
+           Closure analysis lost the tag?"
+          nargs
+          (jvm_type_of_kind state.acc_kind)));
+  for k = 0 to nargs - 1 do
+    let slot = stack_slot_local ~state k in
+    let sk = (List.nth state.slots k).kind in
+    emit_load_for_kind state.code slot sk;
+    box_if_int state.code sk
+  done;
+  if nargs > 3
+  then
     failwith
       (Printf.sprintf
-         "java_of_ocaml: APPLY%d called on a non-closure value. Closure \
-          analysis lost the tag?"
-         nargs)
+         "java_of_ocaml: APPLY%d — the base Closure class only has \
+          apply1/2/3 dispatch right now; higher-arity applies aren't \
+          supported yet"
+         nargs);
+  Jvm.Code.invokevirtual
+    state.code
+    ~class_:"Closure"
+    ~method_:(Printf.sprintf "apply%d" nargs)
+    ~descriptor:(apply_descriptor_for_nargs nargs);
+  pop_slots state nargs;
+  state.acc_live <- true
 
 (* Regular APPLY: invoke then cast / unbox based on the callee's return
    kind. [fn_by_name] is a side-table supplied in the state for this. *)
@@ -1015,7 +1158,8 @@ let emit_appterm state ~nargs =
 let box_acc_to_object state =
   match state.acc_kind with
   | K_int -> emit_box_int state.code
-  | K_block _ | K_closure _ -> () (* already a reference *)
+  | K_string | K_block _ | K_closure _ | K_obj ->
+    () (* already a reference *)
 
 let emit_return state =
   (* We're returning from a JVM [apply] method whose signature returns
@@ -1036,6 +1180,7 @@ let emit_cmp_jump state (ins : instr) =
   let imm = ins.args.(0) in
   let target_pc = ins.pc + ins.args.(1) + 2 in
   let lbl = label_at state target_pc in
+  ensure_kind state K_int;
   Jvm.Code.ldc_int state.code imm;
   (match ins.opcode with
    | 131 -> Jvm.Code.if_icmpeq state.code lbl
@@ -1069,8 +1214,22 @@ let cmp_of_opcode op =
          op)
 
 let emit_fused_branch state ~cmp ~target_pc ~branch_if_true =
+  (* acc (value1) is on the JVM op stack. Unbox it to int if it's still an
+     Object reference (e.g. an apply-method arg that hasn't been touched by
+     an arithmetic op yet). Then push the slot (value2) and likewise unbox
+     if the slot holds K_obj. *)
+  ensure_kind state K_int;
   let slot = top_slot_local ~state in
-  Jvm.Code.iload state.code slot;
+  let slot_kind = kind_of_slot_from_top ~state 0 in
+  emit_load_for_kind state.code slot slot_kind;
+  (match slot_kind with
+   | K_int -> ()
+   | K_obj -> emit_unbox_to_kind state.code K_int
+   | other ->
+     failwith
+       (Printf.sprintf
+          "java_of_ocaml: fused branch on non-int slot kind %s"
+          (jvm_type_of_kind other)));
   let lbl = label_at state target_pc in
   let branch_cond =
     if branch_if_true
@@ -1125,6 +1284,7 @@ let emit_instr state (ins : instr) =
       state.pending_cmp <- None
     | None ->
       let target_pc = ins.pc + ins.args.(0) + 1 in
+      ensure_kind state K_int;
       Jvm.Code.ldc_int state.code 0;
       Jvm.Code.if_icmpeq state.code (label_at state target_pc);
       record_branch_target state target_pc;
@@ -1139,6 +1299,7 @@ let emit_instr state (ins : instr) =
       state.pending_cmp <- None
     | None ->
       let target_pc = ins.pc + ins.args.(0) + 1 in
+      ensure_kind state K_int;
       Jvm.Code.ldc_int state.code 0;
       Jvm.Code.if_icmpne state.code (label_at state target_pc);
       record_branch_target state target_pc;
@@ -1409,77 +1570,35 @@ let emit_instr state (ins : instr) =
   then (
     match inspect_global state.globals ins.args.(0) with
     | G_string s -> emit_string_const state s
-    | G_int_block ints ->
-      (* Materialise as a Block with boxed int fields. *)
+    | G_block (tag, fields) ->
       if state.acc_live then Jvm.Code.pop_top state.code;
-      let size = List.length ints in
-      let fields_local = allocate_local state in
-      Jvm.Code.ldc_int state.code size;
-      Jvm.Code.anewarray state.code "java/lang/Object";
-      Jvm.Code.astore state.code fields_local;
-      List.iteri
-        (fun i v ->
-          Jvm.Code.aload state.code fields_local;
-          Jvm.Code.ldc_int state.code i;
-          Jvm.Code.ldc_int state.code v;
-          emit_box_int state.code;
-          Jvm.Code.aastore state.code)
-        ints;
-      Jvm.Code.new_ state.code "Block";
-      Jvm.Code.dup state.code;
-      Jvm.Code.ldc_int state.code 0;
-      Jvm.Code.aload state.code fields_local;
-      Jvm.Code.invokespecial
-        state.code
-        ~class_:"Block"
-        ~method_:"<init>"
-        ~descriptor:"(I[Ljava/lang/Object;)V";
+      emit_materialise_block_constant state tag fields;
       state.acc_live <- true;
-      state.acc_kind <- K_block (List.map (fun _ -> K_int) ints)
+      state.acc_kind <- K_block (List.map kind_of_global_field fields)
     | G_unsupported ->
       failwith
         (Printf.sprintf
-           "java_of_ocaml: GETGLOBAL %d at pc %d — global is neither a \
-            string nor an int-block"
+           "java_of_ocaml: GETGLOBAL %d at pc %d — global has an \
+            unsupported shape (nested blocks / abstract values aren't \
+            materialised yet)"
            ins.args.(0)
            ins.pc))
   else if op = Bytecode.Op.pushgetglobal
   then (
     match inspect_global state.globals ins.args.(0) with
     | G_string s -> emit_string_push state s
-    | G_int_block ints ->
+    | G_block (tag, fields) ->
       let was_live = state.acc_live in
       emit_push state;
       if was_live then Jvm.Code.pop_top state.code;
-      let size = List.length ints in
-      let fields_local = allocate_local state in
-      Jvm.Code.ldc_int state.code size;
-      Jvm.Code.anewarray state.code "java/lang/Object";
-      Jvm.Code.astore state.code fields_local;
-      List.iteri
-        (fun i v ->
-          Jvm.Code.aload state.code fields_local;
-          Jvm.Code.ldc_int state.code i;
-          Jvm.Code.ldc_int state.code v;
-          emit_box_int state.code;
-          Jvm.Code.aastore state.code)
-        ints;
-      Jvm.Code.new_ state.code "Block";
-      Jvm.Code.dup state.code;
-      Jvm.Code.ldc_int state.code 0;
-      Jvm.Code.aload state.code fields_local;
-      Jvm.Code.invokespecial
-        state.code
-        ~class_:"Block"
-        ~method_:"<init>"
-        ~descriptor:"(I[Ljava/lang/Object;)V";
+      emit_materialise_block_constant state tag fields;
       state.acc_live <- true;
-      state.acc_kind <- K_block (List.map (fun _ -> K_int) ints)
+      state.acc_kind <- K_block (List.map kind_of_global_field fields)
     | G_unsupported ->
       failwith
         (Printf.sprintf
-           "java_of_ocaml: PUSHGETGLOBAL %d at pc %d — global is neither \
-            a string nor an int-block"
+           "java_of_ocaml: PUSHGETGLOBAL %d at pc %d — global has an \
+            unsupported shape"
            ins.args.(0)
            ins.pc))
   else if op = Bytecode.Op.branch
@@ -1632,9 +1751,46 @@ let classify_return_kind_at arr i func_list current_fn =
 let kinds_agree a b =
   match a, b with
   | K_int, K_int -> true
+  | K_string, K_string -> true
   | K_closure _, K_closure _ -> true
   | K_block _, K_block _ -> true
   | _ -> false
+
+(* Infer the kind of each argument to a function by scanning its body for
+   specific use-patterns. Today we detect only one non-default case: an
+   arg that's passed directly into [caml_java_print_endline] via ACC k at
+   function entry. We default to K_int for everything else, which is
+   almost always what our test programs want. *)
+let infer_arg_kinds arr prim_table (fi : function_info) =
+  let kinds = Array.make fi.nargs K_int in
+  let is_print_endline_prim idx =
+    match Hashtbl.find_opt prim_table idx with
+    | Some (_, P_println_string) -> true
+    | _ -> false
+  in
+  let acc_arg_index op args =
+    if op >= Bytecode.Op.acc0 && op <= Bytecode.Op.acc7
+    then Some (op - Bytecode.Op.acc0)
+    else if op = Bytecode.Op.acc
+    then Some args.(0)
+    else None
+  in
+  for i = fi.body_start_idx to fi.body_end_idx do
+    let ins = arr.(i) in
+    if ins.opcode = Bytecode.Op.c_call1
+       && is_print_endline_prim ins.args.(0)
+       && i > fi.body_start_idx
+    then (
+      let prev = arr.(i - 1) in
+      match acc_arg_index prev.opcode prev.args with
+      | Some k when k < fi.nargs ->
+        (* ACC k at function entry reads slot k from top, which is the
+           (k+1)-th-from-first source-order arg. In our arg-index
+           convention, that's [kinds.(k)]. *)
+        kinds.(k) <- K_string
+      | _ -> ())
+  done;
+  Array.to_list kinds
 
 let infer_return_kind arr (func_list : function_info list) (fi : function_info) =
   let is_return op =
@@ -1756,6 +1912,7 @@ let compile ~bc ~out_dir =
         ; nargs
         ; ncaps
         ; return_kind = ref K_int
+        ; arg_kinds = ref (List.init nargs (fun _ -> K_int))
         ; capture_kinds = ref []
         ; recursive
         }
@@ -1785,7 +1942,9 @@ let compile ~bc ~out_dir =
     (fun fi -> Hashtbl.add fn_by_name fi.name fi)
     !func_list;
   List.iter
-    (fun fi -> fi.return_kind := infer_return_kind arr !func_list fi)
+    (fun (fi : function_info) ->
+      fi.return_kind := infer_return_kind arr !func_list fi;
+      fi.arg_kinds := infer_arg_kinds arr prim_table fi)
     !func_list;
   let cp = Jvm.Cp.create () in
   (* Emit main first so that CLOSURE/CLOSUREREC sites can fill in each
@@ -1883,23 +2042,18 @@ let compile ~bc ~out_dir =
         let apply_code = Jvm.Code.create fn_cp in
         (* Reserve max_locals: [this] + N args. *)
         Jvm.Code.set_min_locals apply_code (1 + fn_info.nargs);
-        (* Prologue: unbox each int arg, replacing the Object in its local
-           with a primitive int. *)
-        for i = 1 to fn_info.nargs do
-          Jvm.Code.aload apply_code i;
-          emit_unbox_to_kind apply_code K_int;
-          Jvm.Code.istore apply_code i
-        done;
-        (* Set up state for the body. Args are at JVM locals 1..N (local 0
-           is [this]). OCaml's calling convention puts the first source-
-           order arg on the TOP of the stack (slot 0 from top). So slot 0
-           from top = first source arg = JVM local 1; slot k from top =
-           JVM local (k + 1). Our [state.slots] is in top-first order. *)
+        (* No prologue: apply method args arrive as [Object], and we keep
+           them that way in their locals. Each op that needs a specific
+           kind (arithmetic → int; println(string) → String; etc.) casts
+           or unboxes on first use via [ensure_kind]. This avoids static
+           arg-kind inference and handles transitive cases like
+           mkgreeter, where the arg's kind is only determined by where
+           it ends up (in this case, a closure capture). *)
         let initial_slots =
           let rec make k =
             if k >= fn_info.nargs
             then []
-            else { kind = K_int; local = k + 1 } :: make (k + 1)
+            else { kind = K_obj; local = k + 1 } :: make (k + 1)
           in
           make 0
         in
