@@ -85,38 +85,34 @@ once Stdlib compilation (or a targeted materialisation of
 
 ## Whole-bytecode compilation (Stdlib Phase 1)
 
-The plan in
-`/home/mathew/.claude/plans/we-need-to-create-glistening-turing.md`
-targets full Stdlib support by compiling the whole bytecode
-(Stdlib init + every Stdlib module + user code), not just a user-
-code slice. Foundation work has landed — a runtime [Main.GLOBALS]
-table, runtime-resolved GETGLOBAL fall-backs, new opcode
-dispatches for SETGLOBAL / ATOM* / MAKEFLOATBLOCK / GETFLOATFIELD /
-SETFLOATFIELD / ULTINT / UGEINT / BULTINT / BUGEINT / STOP /
-GETSTRINGCHAR / C_CALLN, stubs for the OO / effects family, and
-runtime errors for unregistered C primitives.
+Under `JAVA_OF_OCAML_WHOLE_BYTECODE=1` a minimal
+`caml_java_print_endline "hello"` program now compiles the whole
+bytecode (Stdlib init + user code) and exits clean with code 0 —
+Phase 1's acceptance criterion is met. Remaining gaps on the way
+to flipping this as the default:
 
-The flip to whole-bytecode itself is gated behind a
-`JAVA_OF_OCAML_WHOLE_BYTECODE=1` environment variable so we can
-iterate without breaking the existing test suite. Two known
-blockers keep it out of the default path:
+- **Mid-function K_int closures** *(partial).* Path-unioning
+  return-kind inference is now in place, but a narrow set of
+  Stdlib-internal dispatch paths still land at an APPLY site with
+  `acc_kind=K_int` when the runtime value is a closure. The box +
+  checkcast fall-back in `emit_apply` papers over the mismatch
+  with a runtime ClassCastException. The next fix likely needs
+  per-variable kind tracking (jsoo's `Flow.Info` approach),
+  requiring a basic-block IR.
+- **ENVACC out-of-range on Stdlib closures.** More involved
+  Stdlib-using programs (e.g. `List.length [1;2;3]`) hit an
+  `ENVACC capture index N out of range` at a closure we haven't
+  fully classified. Probably a mismatch between the closure's
+  actual capture count and our function-discovery pass's
+  `nvars`; needs investigation.
+- **C primitive coverage.** Runtime-error athrow for any
+  primitive not in `Prim.primitives`. Adding Stdlib proper
+  (Phase 2+ of the broader plan) means registering a few dozen
+  more (Bytes / String internals, polymorphic compare, I/O).
 
-- **Kind-tracking at label joins.** Our emitter walks forward
-  through the bytecode once, resetting `acc_live=false` at every
-  label. Code reached only by fall-through with a live acc on the
-  JVM stack loses that information, and the next instruction (a
-  CLOSURE with nvars>0, or an APPLY) fails the emitter's
-  invariant. `record_branch_target` captures slot state but not
-  acc state; either capture acc too, or move to a structural IR
-  that makes these joins explicit.
-- **Mid-function K_int closures.** Some Stdlib bodies land with
-  `acc_kind=K_int` at an APPLY site where the real value is a
-  closure. A temporary box + checkcast fall-back is in place so
-  compilation no longer aborts; the runtime raises
-  ClassCastException if the kind inference is genuinely wrong.
-  The proper fix is to rewrite return-kind inference (closer to
-  jsoo's `Flow.Info`) so it doesn't over-commit to K_int for
-  opaque returns.
+The flip to whole-bytecode as the default is still gated; retire
+the env var once the K_int-at-APPLY fall-back in `emit_apply`
+becomes unreachable.
 
 ## Known representation gaps
 
