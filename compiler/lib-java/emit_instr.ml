@@ -301,32 +301,23 @@ let emit_instr state (ins : instr) =
     in
     let top = List.hd state.slots in
     (match state.acc_kind with
-     | K_block _ ->
-       Jvm.Code.getfield
-         state.code
-         ~class_:"Block"
-         ~field:"fields"
-         ~descriptor:"[Ljava/lang/Object;";
-       Jvm.Code.ldc_int state.code field;
-       emit_load_for_kind state.code top.local top.kind;
-       box_if_int state.code top.kind;
-       Jvm.Code.aastore state.code
-     | K_obj ->
-       Jvm.Code.checkcast state.code "Block";
-       Jvm.Code.getfield
-         state.code
-         ~class_:"Block"
-         ~field:"fields"
-         ~descriptor:"[Ljava/lang/Object;";
-       Jvm.Code.ldc_int state.code field;
-       emit_load_for_kind state.code top.local top.kind;
-       box_if_int state.code top.kind;
-       Jvm.Code.aastore state.code
-     | _ ->
-       failwith
-         (Printf.sprintf
-            "java_of_ocaml: SETFIELD on non-block at pc %d"
-            ins.pc));
+     | K_block _ -> ()
+     | K_obj | K_int | K_float | K_string | K_closure _ ->
+       (* Non-block-kind acc at SETFIELD means inference tagged
+          it wrong (common after a join whose reload leaves acc
+          as K_int). Box + checkcast defers to a runtime
+          ClassCastException if it's genuinely not a block. *)
+       box_if_int state.code state.acc_kind;
+       Jvm.Code.checkcast state.code "Block");
+    Jvm.Code.getfield
+      state.code
+      ~class_:"Block"
+      ~field:"fields"
+      ~descriptor:"[Ljava/lang/Object;";
+    Jvm.Code.ldc_int state.code field;
+    emit_load_for_kind state.code top.local top.kind;
+    box_if_int state.code top.kind;
+    Jvm.Code.aastore state.code;
     consume_top state;
     Jvm.Code.ldc_int state.code 0;
     state.acc_kind <- K_int)

@@ -1064,13 +1064,9 @@ let emit_open_descriptor_out state =
   state.acc_kind <- K_obj
 
 let emit_cast_channel state =
-  match state.acc_kind with
-  | K_obj -> Jvm.Code.checkcast state.code "Channel"
-  | _ ->
-    failwith
-      (Printf.sprintf
-         "java_of_ocaml: expected Channel for caml_ml_* primitive, got %s"
-         (jvm_type_of_kind state.acc_kind))
+  box_if_int state.code state.acc_kind;
+  Jvm.Code.checkcast state.code "Channel";
+  state.acc_kind <- K_obj
 
 (* [caml_ml_output(chan, buf, ofs, len)] — [buf] is a bytes/string
    pair in our representation (both flow as JVM [String]). The
@@ -1136,13 +1132,9 @@ let emit_ml_output_char state =
    do the [.toString()] / wrapping conversion explicitly. *)
 
 let emit_cast_bytes state =
-  match state.acc_kind with
-  | K_obj -> Jvm.Code.checkcast state.code "Bytes"
-  | _ ->
-    failwith
-      (Printf.sprintf
-         "java_of_ocaml: expected Bytes, got %s"
-         (jvm_type_of_kind state.acc_kind))
+  box_if_int state.code state.acc_kind;
+  Jvm.Code.checkcast state.code "Bytes";
+  state.acc_kind <- K_obj
 
 let emit_load_slot_as_int_arg state k =
   let s = List.nth state.slots k in
