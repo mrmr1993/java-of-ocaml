@@ -87,6 +87,8 @@ module Code : sig
 
   val iastore : t -> unit
 
+  val arraylength : t -> unit
+
   (** {2 Arithmetic (int)} *)
 
   val iadd : t -> unit

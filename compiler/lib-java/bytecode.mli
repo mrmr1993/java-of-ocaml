@@ -62,9 +62,21 @@ module Op : sig
   val geint : int
   val offsetint : int
   val offsetref : int
+  val makeblock : int
   val makeblock1 : int
+  val makeblock2 : int
+  val makeblock3 : int
   val getfield0 : int
+  val getfield1 : int
+  val getfield2 : int
+  val getfield3 : int
+  val getfield : int
   val setfield0 : int
+  val setfield1 : int
+  val setfield2 : int
+  val setfield3 : int
+  val setfield : int
+  val vectlength : int
   val branch : int
   val branchif : int
   val branchifnot : int

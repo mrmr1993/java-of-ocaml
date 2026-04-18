@@ -253,3 +253,70 @@ let%expect_test "incr/decr on a captured ref" =
          inc (); inc (); inc (); dec ();
          caml_java_print_int !r |};
   [%expect {| 102 |}]
+
+let%expect_test "constant tuple destructured" =
+  compile_and_run
+    {| external caml_java_print_int : int -> unit = "caml_java_print_int"
+       let () =
+         let t = (10, 20, 30) in
+         let (a, b, c) = t in
+         caml_java_print_int (a + b + c) |};
+  [%expect {| 60 |}]
+
+let%expect_test "dynamic tuple from let bindings" =
+  compile_and_run
+    {| external caml_java_print_int : int -> unit = "caml_java_print_int"
+       let () =
+         let x = 10 in
+         let t = (x, x + 5, x * 2) in
+         let (a, b, c) = t in
+         caml_java_print_int (a + b + c) |};
+  [%expect {| 45 |}]
+
+let%expect_test "record with multiple fields" =
+  compile_and_run
+    {| external caml_java_print_int : int -> unit = "caml_java_print_int"
+       type point = { x : int; y : int }
+       let () =
+         let p = { x = 3; y = 4 } in
+         caml_java_print_int (p.x + p.y) |};
+  [%expect {| 7 |}]
+
+let%expect_test "mutable record field" =
+  compile_and_run
+    {| external caml_java_print_int : int -> unit = "caml_java_print_int"
+       type counter = { mutable n : int }
+       let () =
+         let c = { n = 0 } in
+         c.n <- 10;
+         c.n <- c.n + 5;
+         caml_java_print_int c.n |};
+  [%expect {| 15 |}]
+
+let%expect_test "array read/write/length" =
+  compile_and_run
+    {| external caml_java_print_int : int -> unit = "caml_java_print_int"
+       let () =
+         let a = [| 10; 20; 30; 40 |] in
+         a.(1) <- 99;
+         caml_java_print_int a.(0);
+         caml_java_print_int a.(1);
+         caml_java_print_int a.(3);
+         caml_java_print_int (Array.length a) |};
+  [%expect {|
+    10
+    99
+    40
+    4 |}]
+
+let%expect_test "sum an array" =
+  compile_and_run
+    {| external caml_java_print_int : int -> unit = "caml_java_print_int"
+       let () =
+         let a = [| 1; 2; 3; 4; 5; 6; 7; 8; 9; 10 |] in
+         let total = ref 0 in
+         for i = 0 to Array.length a - 1 do
+           total := !total + a.(i)
+         done;
+         caml_java_print_int !total |};
+  [%expect {| 55 |}]

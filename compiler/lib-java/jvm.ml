@@ -311,6 +311,10 @@ module Code = struct
     add_u1 t.buf 0x4F;
     pop t 3 (* pops arrayref + index + value *)
 
+  let arraylength t =
+    add_u1 t.buf 0xBE
+    (* pops arrayref, pushes length — net 0 *)
+
   let iadd t =
     add_u1 t.buf 0x60;
     pop t 1

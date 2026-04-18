@@ -1,11 +1,19 @@
 (* -------------------------------------------------------------------------- *)
-(* Supported primitives. *)
+(* Supported primitives. Each has a known JVM emission pattern. *)
 
-type arg_kind = Int | String
+type prim_handler =
+  | P_println_int
+  | P_println_string
+  | P_array_get
+  | P_array_set
+  | P_obj_dup
 
-let primitives : (string * arg_kind) list =
-  [ "caml_java_print_endline", String
-  ; "caml_java_print_int", Int
+let primitives : (string * prim_handler) list =
+  [ "caml_java_print_endline", P_println_string
+  ; "caml_java_print_int", P_println_int
+  ; "caml_array_get_addr", P_array_get
+  ; "caml_array_set_addr", P_array_set
+  ; "caml_obj_dup", P_obj_dup
   ]
 
 (* -------------------------------------------------------------------------- *)
@@ -105,9 +113,21 @@ let is_user_op (ins : instr) =
   || op = Bytecode.Op.pushconstint
   || op = Bytecode.Op.offsetint
   || op = Bytecode.Op.offsetref
+  || op = Bytecode.Op.makeblock
   || op = Bytecode.Op.makeblock1
+  || op = Bytecode.Op.makeblock2
+  || op = Bytecode.Op.makeblock3
   || op = Bytecode.Op.getfield0
+  || op = Bytecode.Op.getfield1
+  || op = Bytecode.Op.getfield2
+  || op = Bytecode.Op.getfield3
+  || op = Bytecode.Op.getfield
   || op = Bytecode.Op.setfield0
+  || op = Bytecode.Op.setfield1
+  || op = Bytecode.Op.setfield2
+  || op = Bytecode.Op.setfield3
+  || op = Bytecode.Op.setfield
+  || op = Bytecode.Op.vectlength
   || op = Bytecode.Op.addint
   || op = Bytecode.Op.subint
   || op = Bytecode.Op.mulint
@@ -148,21 +168,44 @@ let is_user_op (ins : instr) =
   || op = grab_op
   || op = event_op
   || op = break_op
+  || op = 92 (* CHECK_SIGNALS — no-op at our level *)
 
 (* -------------------------------------------------------------------------- *)
 (* Globals. *)
 
-let string_of_global (globals : Obj.t array) n =
+(* Classification of a global's value so GETGLOBAL can produce the right
+   JVM representation. *)
+type global_view =
+  | G_string of string
+  | G_int_block of int list (* all fields are small ints *)
+  | G_unsupported
+
+let inspect_global (globals : Obj.t array) n =
   if n < 0 || n >= Array.length globals
   then
     failwith
       (Printf.sprintf "java_of_ocaml: global index %d out of bounds" n);
   let v = globals.(n) in
   if not (Obj.is_block v)
-  then None
-  else if Obj.tag v <> Obj.string_tag
-  then None
-  else Some (Obj.magic v : string)
+  then G_unsupported
+  else if Obj.tag v = Obj.string_tag
+  then G_string (Obj.magic v : string)
+  else if Obj.tag v < Obj.no_scan_tag
+  then (
+    let size = Obj.size v in
+    let rec gather i acc =
+      if i >= size
+      then Some (List.rev acc)
+      else (
+        let f = Obj.field v i in
+        if Obj.is_block f
+        then None
+        else gather (i + 1) ((Obj.magic f : int) :: acc))
+    in
+    match gather 0 [] with
+    | None -> G_unsupported
+    | Some ints -> G_int_block ints)
+  else G_unsupported
 
 (* -------------------------------------------------------------------------- *)
 (* Branch-target arithmetic. *)
@@ -304,7 +347,7 @@ type branch_snapshot =
 type state =
   { code : Jvm.Code.t
   ; globals : Obj.t array
-  ; supported_prims : (int, string * arg_kind) Hashtbl.t
+  ; supported_prims : (int, string * prim_handler) Hashtbl.t
   ; functions : (int, function_info) Hashtbl.t
       (* closure{,rec}_pc -> function_info *)
   ; pc_to_label : (int, Jvm.Code.label) Hashtbl.t
@@ -396,9 +439,9 @@ let pop_slots state n =
 let find_supported_prims bc =
   let table = Hashtbl.create 4 in
   List.iter
-    (fun (name, kind) ->
+    (fun (name, handler) ->
       match Bytecode.prim_index bc name with
-      | Some idx -> Hashtbl.add table idx (name, kind)
+      | Some idx -> Hashtbl.add table idx (name, handler)
       | None -> ())
     primitives;
   table
@@ -693,24 +736,69 @@ let emit_offsetint state n =
   Jvm.Code.ldc_int state.code n;
   Jvm.Code.iadd state.code
 
-let emit_c_call state ~kind =
+let emit_println state ~int_arg =
   Jvm.Code.getstatic
     state.code
     ~class_:"java/lang/System"
     ~field:"out"
     ~descriptor:"Ljava/io/PrintStream;";
   Jvm.Code.swap state.code;
-  let desc =
-    match kind with
-    | Int -> "(I)V"
-    | String -> "(Ljava/lang/String;)V"
-  in
+  let desc = if int_arg then "(I)V" else "(Ljava/lang/String;)V" in
   Jvm.Code.invokevirtual
     state.code
     ~class_:"java/io/PrintStream"
     ~method_:"println"
     ~descriptor:desc;
   state.acc_live <- false;
+  state.acc_kind <- K_int
+
+(* caml_array_get_addr: C_CALL2 — args acc=array, stack[0]=index, result=
+   array[index]. JVM: iload index onto the op stack next to array, iaload. *)
+let emit_array_get state =
+  (match state.acc_kind with
+   | K_ref -> ()
+   | _ ->
+     failwith "java_of_ocaml: caml_array_get_addr on non-block");
+  let idx_slot = top_slot_local ~state in
+  Jvm.Code.iload state.code idx_slot;
+  Jvm.Code.iaload state.code;
+  consume_top state;
+  state.acc_live <- true;
+  state.acc_kind <- K_int
+
+(* caml_obj_dup: C_CALL1, acc=block, result=shallow copy of block. We
+   emit a call to java.util.Arrays.copyOf(int[], int). *)
+let emit_obj_dup state =
+  (match state.acc_kind with
+   | K_ref -> ()
+   | _ -> failwith "java_of_ocaml: caml_obj_dup on non-block");
+  Jvm.Code.dup state.code;
+  Jvm.Code.arraylength state.code;
+  Jvm.Code.invokestatic
+    state.code
+    ~class_:"java/util/Arrays"
+    ~method_:"copyOf"
+    ~descriptor:"([II)[I";
+  (* The top of the op stack now holds a fresh int[] copy; the old array
+     was consumed by the dup/arraylength/copyOf chain. State stays K_ref. *)
+  state.acc_kind <- K_ref
+
+(* caml_array_set_addr: C_CALL3 — args acc=array, stack[0]=index,
+   stack[1]=value, result=unit. JVM: iload index ; iload value ; iastore;
+   then replace acc with 0 (unit sentinel). *)
+let emit_array_set state =
+  (match state.acc_kind with
+   | K_ref -> ()
+   | _ ->
+     failwith "java_of_ocaml: caml_array_set_addr on non-block");
+  let idx_slot = stack_slot_local ~state 0 in
+  let val_slot = stack_slot_local ~state 1 in
+  Jvm.Code.iload state.code idx_slot;
+  Jvm.Code.iload state.code val_slot;
+  Jvm.Code.iastore state.code;
+  pop_slots state 2;
+  Jvm.Code.ldc_int state.code 0;
+  state.acc_live <- true;
   state.acc_kind <- K_int
 
 (* APPLY{1,2,3,N}: OCaml-stack slots [0..n-1] from top are the args in
@@ -903,57 +991,121 @@ let emit_instr state (ins : instr) =
   else if op = Bytecode.Op.pushconstint
   then emit_int_push state ins.args.(0)
   else if op = Bytecode.Op.offsetint then emit_offsetint state ins.args.(0)
-  else if op = Bytecode.Op.makeblock1
+  else if op = Bytecode.Op.makeblock
+       || op = Bytecode.Op.makeblock1
+       || op = Bytecode.Op.makeblock2
+       || op = Bytecode.Op.makeblock3
   then (
-    (* Treat MAKEBLOCK1 tag=N as a ref cell (int[1] holding the current
-       acc value). Only tag 0 is exercised by our tests; the tag is
-       unused in the JVM representation.
+    (* MAKEBLOCK size tag / MAKEBLOCKi tag: build an int[size] whose
+       field 0 = acc and fields 1..size-1 = the top (size-1) OCaml-stack
+       entries, most-recently-pushed at the lowest field index. The tag
+       is unused in the JVM representation (we don't yet distinguish
+       blocks by tag).
 
-       The module-init trailer also emits MAKEBLOCK1 to wrap the
-       compilation unit, but by that point acc is dead — we ignore those. *)
+       The module-init trailer also emits MAKEBLOCK when wrapping the
+       compilation unit, but by then acc is dead — ignore those. *)
     if not state.acc_live
     then ()
     else (
+      let size =
+        if op = Bytecode.Op.makeblock1
+        then 1
+        else if op = Bytecode.Op.makeblock2
+        then 2
+        else if op = Bytecode.Op.makeblock3
+        then 3
+        else ins.args.(0)
+      in
+      if size < 1 then failwith "java_of_ocaml: MAKEBLOCK with size < 1";
       let temp = allocate_local state in
       Jvm.Code.istore state.code temp;
-      Jvm.Code.ldc_int state.code 1;
+      Jvm.Code.ldc_int state.code size;
       Jvm.Code.newarray_int state.code;
+      (* Field 0 = acc *)
       Jvm.Code.dup state.code;
       Jvm.Code.ldc_int state.code 0;
       Jvm.Code.iload state.code temp;
       Jvm.Code.iastore state.code;
+      (* Fields 1..size-1 = consecutive pops from OCaml stack *)
+      for i = 1 to size - 1 do
+        let slot_from_top = i - 1 in
+        Jvm.Code.dup state.code;
+        Jvm.Code.ldc_int state.code i;
+        let slot_local =
+          stack_slot_local ~state slot_from_top
+        in
+        Jvm.Code.iload state.code slot_local;
+        Jvm.Code.iastore state.code
+      done;
+      pop_slots state (size - 1);
       state.acc_kind <- K_ref))
   else if op = Bytecode.Op.getfield0
+       || op = Bytecode.Op.getfield1
+       || op = Bytecode.Op.getfield2
+       || op = Bytecode.Op.getfield3
+       || op = Bytecode.Op.getfield
   then (
-    (* acc must be a ref (int[1]). Emit iaload to read field 0. *)
     (match state.acc_kind with
      | K_ref -> ()
      | _ ->
        failwith
-         (Printf.sprintf "java_of_ocaml: GETFIELD0 on non-ref at pc %d" ins.pc));
-    Jvm.Code.ldc_int state.code 0;
+         (Printf.sprintf
+            "java_of_ocaml: GETFIELD on non-block at pc %d"
+            ins.pc));
+    let field =
+      if op = Bytecode.Op.getfield0
+      then 0
+      else if op = Bytecode.Op.getfield1
+      then 1
+      else if op = Bytecode.Op.getfield2
+      then 2
+      else if op = Bytecode.Op.getfield3
+      then 3
+      else ins.args.(0)
+    in
+    Jvm.Code.ldc_int state.code field;
     Jvm.Code.iaload state.code;
     state.acc_kind <- K_int)
   else if op = Bytecode.Op.setfield0
+       || op = Bytecode.Op.setfield1
+       || op = Bytecode.Op.setfield2
+       || op = Bytecode.Op.setfield3
+       || op = Bytecode.Op.setfield
   then (
-    (* OCaml semantics: field(acc, 0) := stack.pop(); acc := unit.
-       JVM stack before: [..., ref] where ref = acc is K_ref, top-of-stack
-       OCaml stack entry is the new value in a JVM local. Emit:
-         iconst_0        ; index
-         iload <top_slot>; new value
-         iastore         ; stores
-         ldc 0           ; new acc (unit) *)
     (match state.acc_kind with
      | K_ref -> ()
      | _ ->
        failwith
-         (Printf.sprintf "java_of_ocaml: SETFIELD0 on non-ref at pc %d" ins.pc));
+         (Printf.sprintf
+            "java_of_ocaml: SETFIELD on non-block at pc %d"
+            ins.pc));
+    let field =
+      if op = Bytecode.Op.setfield0
+      then 0
+      else if op = Bytecode.Op.setfield1
+      then 1
+      else if op = Bytecode.Op.setfield2
+      then 2
+      else if op = Bytecode.Op.setfield3
+      then 3
+      else ins.args.(0)
+    in
     let value_slot = top_slot_local ~state in
-    Jvm.Code.ldc_int state.code 0;
+    Jvm.Code.ldc_int state.code field;
     Jvm.Code.iload state.code value_slot;
     Jvm.Code.iastore state.code;
     consume_top state;
     Jvm.Code.ldc_int state.code 0;
+    state.acc_kind <- K_int)
+  else if op = Bytecode.Op.vectlength
+  then (
+    (* Array.length: acc := Wosize_val(acc) — on JVM, arraylength. *)
+    (match state.acc_kind with
+     | K_ref -> ()
+     | _ ->
+       failwith
+         (Printf.sprintf "java_of_ocaml: VECTLENGTH on non-block at pc %d" ins.pc));
+    Jvm.Code.arraylength state.code;
     state.acc_kind <- K_int)
   else if op = Bytecode.Op.offsetref
   then (
@@ -1030,27 +1182,58 @@ let emit_instr state (ins : instr) =
     state.acc_live <- true;
     state.acc_kind <- K_int)
   else if op = Bytecode.Op.getglobal
-  then
-    match string_of_global state.globals ins.args.(0) with
-    | Some s -> emit_string_const state s
-    | None ->
+  then (
+    match inspect_global state.globals ins.args.(0) with
+    | G_string s -> emit_string_const state s
+    | G_int_block ints ->
+      (* Materialise the block as an int[size] at this point. *)
+      if state.acc_live then Jvm.Code.pop_top state.code;
+      let size = List.length ints in
+      Jvm.Code.ldc_int state.code size;
+      Jvm.Code.newarray_int state.code;
+      List.iteri
+        (fun i v ->
+          Jvm.Code.dup state.code;
+          Jvm.Code.ldc_int state.code i;
+          Jvm.Code.ldc_int state.code v;
+          Jvm.Code.iastore state.code)
+        ints;
+      state.acc_live <- true;
+      state.acc_kind <- K_ref
+    | G_unsupported ->
       failwith
         (Printf.sprintf
-           "java_of_ocaml: GETGLOBAL %d at pc %d — only string globals are \
-            currently supported"
+           "java_of_ocaml: GETGLOBAL %d at pc %d — global is neither a \
+            string nor an int-block"
            ins.args.(0)
-           ins.pc)
+           ins.pc))
   else if op = Bytecode.Op.pushgetglobal
-  then
-    match string_of_global state.globals ins.args.(0) with
-    | Some s -> emit_string_push state s
-    | None ->
+  then (
+    match inspect_global state.globals ins.args.(0) with
+    | G_string s -> emit_string_push state s
+    | G_int_block ints ->
+      let was_live = state.acc_live in
+      emit_push state;
+      if was_live then Jvm.Code.pop_top state.code;
+      let size = List.length ints in
+      Jvm.Code.ldc_int state.code size;
+      Jvm.Code.newarray_int state.code;
+      List.iteri
+        (fun i v ->
+          Jvm.Code.dup state.code;
+          Jvm.Code.ldc_int state.code i;
+          Jvm.Code.ldc_int state.code v;
+          Jvm.Code.iastore state.code)
+        ints;
+      state.acc_live <- true;
+      state.acc_kind <- K_ref
+    | G_unsupported ->
       failwith
         (Printf.sprintf
-           "java_of_ocaml: PUSHGETGLOBAL %d at pc %d — only string globals \
-            are currently supported"
+           "java_of_ocaml: PUSHGETGLOBAL %d at pc %d — global is neither \
+            a string nor an int-block"
            ins.args.(0)
-           ins.pc)
+           ins.pc))
   else if op = Bytecode.Op.branch
   then (
     let target = ins.pc + ins.args.(0) + 1 in
@@ -1088,10 +1271,20 @@ let emit_instr state (ins : instr) =
     (* Debug markers from [ocamlc -g]. Nothing to emit; they're there for
        the OCaml debugger only. *)
     ()
+  else if op = 92 then
+    (* CHECK_SIGNALS — OCaml bytecode polls for signals at loop headers.
+       We don't model OCaml's signal machinery, so this is a no-op. *)
+    ()
   else if is_c_call op
   then (
     match Hashtbl.find_opt state.supported_prims ins.args.(0) with
-    | Some (_name, kind) -> emit_c_call state ~kind
+    | Some (_name, handler) ->
+      (match handler with
+       | P_println_int -> emit_println state ~int_arg:true
+       | P_println_string -> emit_println state ~int_arg:false
+       | P_array_get -> emit_array_get state
+       | P_array_set -> emit_array_set state
+       | P_obj_dup -> emit_obj_dup state)
     | None ->
       failwith
         (Printf.sprintf
