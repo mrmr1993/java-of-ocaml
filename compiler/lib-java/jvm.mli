@@ -46,6 +46,10 @@ module Code : sig
 
   val mark_label : t -> label -> unit
 
+  val set_min_locals : t -> int -> unit
+  (** Ensure [max_locals] is at least [n]. Used to reserve slots for
+      method parameters that the body may not touch directly. *)
+
   (** {2 Loads / stack manipulation} *)
 
   val ldc_string : t -> string -> unit
@@ -55,6 +59,8 @@ module Code : sig
       depending on the value. *)
 
   val dup : t -> unit
+
+  val dup2 : t -> unit
 
   val pop_top : t -> unit
   (** Discard the top stack slot (JVM [pop], 0x57). *)
@@ -70,6 +76,16 @@ module Code : sig
   val istore : t -> int -> unit
 
   val iload : t -> int -> unit
+
+  val astore : t -> int -> unit
+
+  val aload : t -> int -> unit
+
+  val newarray_int : t -> unit
+
+  val iaload : t -> unit
+
+  val iastore : t -> unit
 
   (** {2 Arithmetic (int)} *)
 

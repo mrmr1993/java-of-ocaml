@@ -150,6 +150,9 @@ module Code = struct
   let note_local t index =
     if index + 1 > t.max_locals then t.max_locals <- index + 1
 
+  let set_min_locals t n =
+    if n > t.max_locals then t.max_locals <- n
+
   let fresh_label t =
     let lbl = { target = None; refs = []; id = t.next_label_id } in
     t.next_label_id <- t.next_label_id + 1;
@@ -231,6 +234,10 @@ module Code = struct
     add_u1 t.buf 0x59;
     push t 1
 
+  let dup2 t =
+    add_u1 t.buf 0x5C;
+    push t 2
+
   let pop_top t =
     add_u1 t.buf 0x57;
     pop t 1
@@ -264,6 +271,45 @@ module Code = struct
          (Printf.sprintf "jvm: iload index %d exceeds 1-byte range" n));
     note_local t n;
     push t 1
+
+  let astore t n =
+    (if n >= 0 && n <= 3
+     then add_u1 t.buf (0x4B + n) (* astore_0 .. astore_3 *)
+     else if n < 256
+     then (
+       add_u1 t.buf 0x3A;
+       add_u1 t.buf n)
+     else
+       failwith
+         (Printf.sprintf "jvm: astore index %d exceeds 1-byte range" n));
+    note_local t n;
+    pop t 1
+
+  let aload t n =
+    (if n >= 0 && n <= 3
+     then add_u1 t.buf (0x2A + n) (* aload_0 .. aload_3 *)
+     else if n < 256
+     then (
+       add_u1 t.buf 0x19;
+       add_u1 t.buf n)
+     else
+       failwith
+         (Printf.sprintf "jvm: aload index %d exceeds 1-byte range" n));
+    note_local t n;
+    push t 1
+
+  let newarray_int t =
+    add_u1 t.buf 0xBC;
+    add_u1 t.buf 10 (* T_INT *)
+    (* stack effect: pops [count], pushes [arrayref] — net 0 *)
+
+  let iaload t =
+    add_u1 t.buf 0x2E;
+    pop t 1 (* pops arrayref + index, pushes value; net -1 *)
+
+  let iastore t =
+    add_u1 t.buf 0x4F;
+    pop t 3 (* pops arrayref + index + value *)
 
   let iadd t =
     add_u1 t.buf 0x60;

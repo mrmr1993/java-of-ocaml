@@ -25,6 +25,7 @@ module Op : sig
   val acc7 : int
   val acc : int
   val push : int
+  val assign : int
   val pushacc0 : int
   val pushacc1 : int
   val pushacc2 : int
@@ -60,6 +61,10 @@ module Op : sig
   val gtint : int
   val geint : int
   val offsetint : int
+  val offsetref : int
+  val makeblock1 : int
+  val getfield0 : int
+  val setfield0 : int
   val branch : int
   val branchif : int
   val branchifnot : int
