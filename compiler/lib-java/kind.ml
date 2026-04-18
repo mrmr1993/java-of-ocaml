@@ -24,6 +24,14 @@ let jvm_type_of_kind = function
   | K_closure { name; _ } -> Printf.sprintf "L%s;" name
   | K_obj -> "Ljava/lang/Object;"
 
+let rec string_of_kind = function
+  | K_int -> "int"
+  | K_string -> "string"
+  | K_block ks ->
+    Printf.sprintf "block[%s]" (String.concat "," (List.map string_of_kind ks))
+  | K_closure { name; _ } -> Printf.sprintf "closure<%s>" name
+  | K_obj -> "obj"
+
 let emit_store_for_kind code local kind =
   match kind with
   | K_int -> Jvm.Code.istore code local

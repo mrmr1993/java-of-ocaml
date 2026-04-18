@@ -28,6 +28,11 @@ val kind_of_global_field : Global_view.global_field_value -> kind
 val jvm_type_of_kind : kind -> string
 (** JVM descriptor (["I"], ["Ljava/lang/String;"], ...) for each kind. *)
 
+val string_of_kind : kind -> string
+(** Short, human-readable tag: ["int"] / ["string"] / ["block[…]"] /
+    ["closure<name>"] / ["obj"]. For diagnostic tracing; not stable
+    enough to switch on. *)
+
 val emit_store_for_kind : Jvm.Code.t -> int -> kind -> unit
 
 val emit_load_for_kind : Jvm.Code.t -> int -> kind -> unit
