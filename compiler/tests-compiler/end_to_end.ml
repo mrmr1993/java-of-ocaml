@@ -320,3 +320,50 @@ let%expect_test "sum an array" =
          done;
          caml_java_print_int !total |};
   [%expect {| 55 |}]
+
+let%expect_test "tuple of int and ref" =
+  compile_and_run
+    {| external caml_java_print_int : int -> unit = "caml_java_print_int"
+       let () =
+         let r = ref 5 in
+         let p = (42, r) in
+         let (n, r2) = p in
+         r2 := !r2 + 100;
+         caml_java_print_int (n + !r) |};
+  [%expect {| 147 |}]
+
+let%expect_test "record with int and ref fields" =
+  compile_and_run
+    {| external caml_java_print_int : int -> unit = "caml_java_print_int"
+       type thing = { k : int; v : int ref }
+       let () =
+         let t = { k = 7; v = ref 11 } in
+         t.v := !(t.v) * t.k;
+         caml_java_print_int !(t.v) |};
+  [%expect {| 77 |}]
+
+let%expect_test "array of refs" =
+  compile_and_run
+    {| external caml_java_print_int : int -> unit = "caml_java_print_int"
+       let () =
+         let arr = [| ref 1; ref 2; ref 3 |] in
+         for i = 0 to Array.length arr - 1 do
+           incr arr.(i)
+         done;
+         caml_java_print_int !(arr.(0));
+         caml_java_print_int !(arr.(1));
+         caml_java_print_int !(arr.(2)) |};
+  [%expect {|
+    2
+    3
+    4 |}]
+
+let%expect_test "nested tuples" =
+  compile_and_run
+    {| external caml_java_print_int : int -> unit = "caml_java_print_int"
+       let () =
+         let inner = (3, 4) in
+         let outer = (inner, 5) in
+         let ((a, b), c) = outer in
+         caml_java_print_int (a + b + c) |};
+  [%expect {| 12 |}]

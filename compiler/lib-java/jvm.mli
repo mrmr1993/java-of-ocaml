@@ -89,6 +89,16 @@ module Code : sig
 
   val arraylength : t -> unit
 
+  val anewarray : t -> string -> unit
+  (** Allocate a reference array. [string] is an internal JVM class name. *)
+
+  val aaload : t -> unit
+
+  val aastore : t -> unit
+
+  val checkcast : t -> string -> unit
+  (** Cast top-of-stack reference to the named class/array type. *)
+
   (** {2 Arithmetic (int)} *)
 
   val iadd : t -> unit

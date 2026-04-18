@@ -315,6 +315,26 @@ module Code = struct
     add_u1 t.buf 0xBE
     (* pops arrayref, pushes length — net 0 *)
 
+  let anewarray t class_name =
+    let idx = Cp.class_ t.cp class_name in
+    add_u1 t.buf 0xBD;
+    add_u2 t.buf idx
+    (* pops [count], pushes [arrayref] — net 0 *)
+
+  let aaload t =
+    add_u1 t.buf 0x32;
+    pop t 1 (* pops arrayref + index, pushes value; net -1 *)
+
+  let aastore t =
+    add_u1 t.buf 0x53;
+    pop t 3 (* pops arrayref + index + value *)
+
+  let checkcast t class_name =
+    let idx = Cp.class_ t.cp class_name in
+    add_u1 t.buf 0xC0;
+    add_u2 t.buf idx
+    (* stack effect: 0 *)
+
   let iadd t =
     add_u1 t.buf 0x60;
     pop t 1

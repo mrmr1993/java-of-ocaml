@@ -226,8 +226,12 @@ let branch_target (ins : instr) =
 
 type kind =
   | K_int                 (* int on the JVM operand stack *)
-  | K_ref                 (* reference to int[] (OCaml mutable block,
-                             1-field, tag 0 — used for ref cells) *)
+  | K_ref                 (* reference to int[] — OCaml ref cell or pure-int
+                             block, tag unused *)
+  | K_obj_block of kind list
+                          (* reference to Object[] — OCaml block with mixed
+                             field kinds. The list carries the kinds in
+                             field order (index 0 = OCaml field 0). *)
   | K_closure of closure_ref
 
 and closure_ref =
@@ -240,16 +244,17 @@ and closure_ref =
 let jvm_type_of_kind = function
   | K_int | K_closure _ -> "I"
   | K_ref -> "[I"
+  | K_obj_block _ -> "[Ljava/lang/Object;"
 
 let emit_store_for_kind code local kind =
   match kind with
   | K_int | K_closure _ -> Jvm.Code.istore code local
-  | K_ref -> Jvm.Code.astore code local
+  | K_ref | K_obj_block _ -> Jvm.Code.astore code local
 
 let emit_load_for_kind code local kind =
   match kind with
   | K_int | K_closure _ -> Jvm.Code.iload code local
-  | K_ref -> Jvm.Code.aload code local
+  | K_ref | K_obj_block _ -> Jvm.Code.aload code local
 
 (* -------------------------------------------------------------------------- *)
 (* Function discovery + body range.
@@ -752,19 +757,57 @@ let emit_println state ~int_arg =
   state.acc_live <- false;
   state.acc_kind <- K_int
 
+(* For a reference-backed array (K_obj_block), all elements share a kind
+   if the OCaml program is well-typed. We look at the first entry of the
+   per-field kinds list to get the element kind. *)
+let element_kind_of_obj_block field_kinds =
+  match field_kinds with
+  | [] -> K_int (* degenerate — shouldn't happen *)
+  | k :: rest ->
+    if List.for_all (fun k' ->
+      match k, k' with
+      | K_int, K_int | K_ref, K_ref -> true
+      | K_obj_block _, K_obj_block _ -> true
+      | K_closure _, K_closure _ -> true
+      | _ -> false) rest
+    then k
+    else
+      failwith
+        "java_of_ocaml: array/get/set on a heterogeneous Object[] — \
+         dynamic indexing requires homogeneous element kinds"
+
 (* caml_array_get_addr: C_CALL2 — args acc=array, stack[0]=index, result=
-   array[index]. JVM: iload index onto the op stack next to array, iaload. *)
+   array[index]. For int-arrays: iaload. For Object[]-arrays: aaload plus
+   cast/unbox based on the element kind. *)
 let emit_array_get state =
-  (match state.acc_kind with
-   | K_ref -> ()
-   | _ ->
-     failwith "java_of_ocaml: caml_array_get_addr on non-block");
   let idx_slot = top_slot_local ~state in
-  Jvm.Code.iload state.code idx_slot;
-  Jvm.Code.iaload state.code;
-  consume_top state;
-  state.acc_live <- true;
-  state.acc_kind <- K_int
+  (match state.acc_kind with
+   | K_ref ->
+     Jvm.Code.iload state.code idx_slot;
+     Jvm.Code.iaload state.code;
+     consume_top state;
+     state.acc_live <- true;
+     state.acc_kind <- K_int
+   | K_obj_block field_kinds ->
+     let ek = element_kind_of_obj_block field_kinds in
+     Jvm.Code.iload state.code idx_slot;
+     Jvm.Code.aaload state.code;
+     (match ek with
+      | K_int ->
+        Jvm.Code.checkcast state.code "java/lang/Integer";
+        Jvm.Code.invokevirtual
+          state.code
+          ~class_:"java/lang/Integer"
+          ~method_:"intValue"
+          ~descriptor:"()I"
+      | K_ref -> Jvm.Code.checkcast state.code "[I"
+      | K_obj_block _ -> Jvm.Code.checkcast state.code "[Ljava/lang/Object;"
+      | K_closure _ ->
+        failwith "java_of_ocaml: array element kind K_closure unsupported");
+     consume_top state;
+     state.acc_live <- true;
+     state.acc_kind <- ek
+   | _ -> failwith "java_of_ocaml: caml_array_get_addr on non-block")
 
 (* caml_obj_dup: C_CALL1, acc=block, result=shallow copy of block. We
    emit a call to java.util.Arrays.copyOf(int[], int). *)
@@ -784,18 +827,29 @@ let emit_obj_dup state =
   state.acc_kind <- K_ref
 
 (* caml_array_set_addr: C_CALL3 — args acc=array, stack[0]=index,
-   stack[1]=value, result=unit. JVM: iload index ; iload value ; iastore;
-   then replace acc with 0 (unit sentinel). *)
+   stack[1]=value, result=unit. *)
 let emit_array_set state =
-  (match state.acc_kind with
-   | K_ref -> ()
-   | _ ->
-     failwith "java_of_ocaml: caml_array_set_addr on non-block");
   let idx_slot = stack_slot_local ~state 0 in
-  let val_slot = stack_slot_local ~state 1 in
-  Jvm.Code.iload state.code idx_slot;
-  Jvm.Code.iload state.code val_slot;
-  Jvm.Code.iastore state.code;
+  let val_slot_info = List.nth state.slots 1 in
+  (match state.acc_kind with
+   | K_ref ->
+     Jvm.Code.iload state.code idx_slot;
+     Jvm.Code.iload state.code val_slot_info.local;
+     Jvm.Code.iastore state.code
+   | K_obj_block field_kinds ->
+     let ek = element_kind_of_obj_block field_kinds in
+     Jvm.Code.iload state.code idx_slot;
+     emit_load_for_kind state.code val_slot_info.local val_slot_info.kind;
+     (match ek with
+      | K_int ->
+        Jvm.Code.invokestatic
+          state.code
+          ~class_:"java/lang/Integer"
+          ~method_:"valueOf"
+          ~descriptor:"(I)Ljava/lang/Integer;"
+      | _ -> ());
+     Jvm.Code.aastore state.code
+   | _ -> failwith "java_of_ocaml: caml_array_set_addr on non-block");
   pop_slots state 2;
   Jvm.Code.ldc_int state.code 0;
   state.acc_live <- true;
@@ -839,7 +893,7 @@ let emit_apply state ~nargs =
     pop_slots state nargs;
     state.acc_live <- true;
     state.acc_kind <- K_int
-  | K_int | K_ref ->
+  | K_int | K_ref | K_obj_block _ ->
     failwith
       (Printf.sprintf
          "java_of_ocaml: APPLY%d called on a non-closure value. Closure \
@@ -996,13 +1050,18 @@ let emit_instr state (ins : instr) =
        || op = Bytecode.Op.makeblock2
        || op = Bytecode.Op.makeblock3
   then (
-    (* MAKEBLOCK size tag / MAKEBLOCKi tag: build an int[size] whose
+    (* MAKEBLOCK size tag / MAKEBLOCKi tag: build an N-field block whose
        field 0 = acc and fields 1..size-1 = the top (size-1) OCaml-stack
-       entries, most-recently-pushed at the lowest field index. The tag
-       is unused in the JVM representation (we don't yet distinguish
-       blocks by tag).
+       entries (most-recently-pushed at the lowest non-zero index,
+       matching OCaml's MAKEBLOCK semantics).
 
-       The module-init trailer also emits MAKEBLOCK when wrapping the
+       If every field is K_int, we use a JVM int[] for compactness and
+       unboxed access. Otherwise we use an Object[], boxing ints as
+       [java.lang.Integer] — the resulting kind is [K_obj_block] and
+       carries the per-field kinds so later GETFIELD/SETFIELD can emit
+       the right load/store + cast/unbox sequence.
+
+       The module-init trailer also emits MAKEBLOCK to wrap the
        compilation unit, but by then acc is dead — ignore those. *)
     if not state.acc_live
     then ()
@@ -1017,41 +1076,84 @@ let emit_instr state (ins : instr) =
         else ins.args.(0)
       in
       if size < 1 then failwith "java_of_ocaml: MAKEBLOCK with size < 1";
-      let temp = allocate_local state in
-      Jvm.Code.istore state.code temp;
-      Jvm.Code.ldc_int state.code size;
-      Jvm.Code.newarray_int state.code;
-      (* Field 0 = acc *)
-      Jvm.Code.dup state.code;
-      Jvm.Code.ldc_int state.code 0;
-      Jvm.Code.iload state.code temp;
-      Jvm.Code.iastore state.code;
-      (* Fields 1..size-1 = consecutive pops from OCaml stack *)
-      for i = 1 to size - 1 do
-        let slot_from_top = i - 1 in
-        Jvm.Code.dup state.code;
-        Jvm.Code.ldc_int state.code i;
-        let slot_local =
-          stack_slot_local ~state slot_from_top
+      let field_kinds =
+        let k0 = state.acc_kind in
+        let rec gather i acc =
+          if i >= size
+          then List.rev acc
+          else (
+            let slot_kind = (List.nth state.slots (i - 1)).kind in
+            gather (i + 1) (slot_kind :: acc))
         in
-        Jvm.Code.iload state.code slot_local;
-        Jvm.Code.iastore state.code
-      done;
-      pop_slots state (size - 1);
-      state.acc_kind <- K_ref))
+        gather 1 [ k0 ]
+      in
+      let all_int =
+        List.for_all (function K_int -> true | _ -> false) field_kinds
+      in
+      if all_int
+      then (
+        (* int[size] path — fast and compact. *)
+        let temp = allocate_local state in
+        Jvm.Code.istore state.code temp;
+        Jvm.Code.ldc_int state.code size;
+        Jvm.Code.newarray_int state.code;
+        Jvm.Code.dup state.code;
+        Jvm.Code.ldc_int state.code 0;
+        Jvm.Code.iload state.code temp;
+        Jvm.Code.iastore state.code;
+        for i = 1 to size - 1 do
+          let slot_from_top = i - 1 in
+          Jvm.Code.dup state.code;
+          Jvm.Code.ldc_int state.code i;
+          let slot_local = stack_slot_local ~state slot_from_top in
+          Jvm.Code.iload state.code slot_local;
+          Jvm.Code.iastore state.code
+        done;
+        pop_slots state (size - 1);
+        state.acc_kind <- K_ref)
+      else (
+        (* Object[size] path — box ints as Integer, store refs as-is. *)
+        let box_int () =
+          Jvm.Code.invokestatic
+            state.code
+            ~class_:"java/lang/Integer"
+            ~method_:"valueOf"
+            ~descriptor:"(I)Ljava/lang/Integer;"
+        in
+        let temp = allocate_local state in
+        (* Save acc to a local. For int kind, we istore and later need to
+           iload + box. For reference kinds, astore + later aload. *)
+        emit_store_for_kind state.code temp state.acc_kind;
+        Jvm.Code.ldc_int state.code size;
+        Jvm.Code.anewarray state.code "java/lang/Object";
+        (* Field 0 = original acc *)
+        Jvm.Code.dup state.code;
+        Jvm.Code.ldc_int state.code 0;
+        emit_load_for_kind state.code temp state.acc_kind;
+        (match state.acc_kind with
+         | K_int -> box_int ()
+         | _ -> ());
+        Jvm.Code.aastore state.code;
+        (* Fields 1..size-1 *)
+        for i = 1 to size - 1 do
+          let slot_from_top = i - 1 in
+          let slot = List.nth state.slots slot_from_top in
+          Jvm.Code.dup state.code;
+          Jvm.Code.ldc_int state.code i;
+          emit_load_for_kind state.code slot.local slot.kind;
+          (match slot.kind with
+           | K_int -> box_int ()
+           | _ -> ());
+          Jvm.Code.aastore state.code
+        done;
+        pop_slots state (size - 1);
+        state.acc_kind <- K_obj_block field_kinds)))
   else if op = Bytecode.Op.getfield0
        || op = Bytecode.Op.getfield1
        || op = Bytecode.Op.getfield2
        || op = Bytecode.Op.getfield3
        || op = Bytecode.Op.getfield
   then (
-    (match state.acc_kind with
-     | K_ref -> ()
-     | _ ->
-       failwith
-         (Printf.sprintf
-            "java_of_ocaml: GETFIELD on non-block at pc %d"
-            ins.pc));
     let field =
       if op = Bytecode.Op.getfield0
       then 0
@@ -1063,22 +1165,50 @@ let emit_instr state (ins : instr) =
       then 3
       else ins.args.(0)
     in
-    Jvm.Code.ldc_int state.code field;
-    Jvm.Code.iaload state.code;
-    state.acc_kind <- K_int)
+    match state.acc_kind with
+    | K_ref ->
+      Jvm.Code.ldc_int state.code field;
+      Jvm.Code.iaload state.code;
+      state.acc_kind <- K_int
+    | K_obj_block field_kinds ->
+      let fk =
+        try List.nth field_kinds field with
+        | _ ->
+          failwith
+            (Printf.sprintf
+               "java_of_ocaml: GETFIELD %d out of range at pc %d"
+               field
+               ins.pc)
+      in
+      Jvm.Code.ldc_int state.code field;
+      Jvm.Code.aaload state.code;
+      (match fk with
+       | K_int ->
+         Jvm.Code.checkcast state.code "java/lang/Integer";
+         Jvm.Code.invokevirtual
+           state.code
+           ~class_:"java/lang/Integer"
+           ~method_:"intValue"
+           ~descriptor:"()I"
+       | K_ref -> Jvm.Code.checkcast state.code "[I"
+       | K_obj_block _ -> Jvm.Code.checkcast state.code "[Ljava/lang/Object;"
+       | K_closure _ ->
+         failwith
+           (Printf.sprintf
+              "java_of_ocaml: GETFIELD of K_closure not supported at pc %d"
+              ins.pc));
+      state.acc_kind <- fk
+    | _ ->
+      failwith
+        (Printf.sprintf
+           "java_of_ocaml: GETFIELD on non-block at pc %d"
+           ins.pc))
   else if op = Bytecode.Op.setfield0
        || op = Bytecode.Op.setfield1
        || op = Bytecode.Op.setfield2
        || op = Bytecode.Op.setfield3
        || op = Bytecode.Op.setfield
   then (
-    (match state.acc_kind with
-     | K_ref -> ()
-     | _ ->
-       failwith
-         (Printf.sprintf
-            "java_of_ocaml: SETFIELD on non-block at pc %d"
-            ins.pc));
     let field =
       if op = Bytecode.Op.setfield0
       then 0
@@ -1090,18 +1220,36 @@ let emit_instr state (ins : instr) =
       then 3
       else ins.args.(0)
     in
-    let value_slot = top_slot_local ~state in
-    Jvm.Code.ldc_int state.code field;
-    Jvm.Code.iload state.code value_slot;
-    Jvm.Code.iastore state.code;
+    let top = List.hd state.slots in
+    (match state.acc_kind with
+     | K_ref ->
+       Jvm.Code.ldc_int state.code field;
+       Jvm.Code.iload state.code top.local;
+       Jvm.Code.iastore state.code
+     | K_obj_block _ ->
+       Jvm.Code.ldc_int state.code field;
+       emit_load_for_kind state.code top.local top.kind;
+       (match top.kind with
+        | K_int ->
+          Jvm.Code.invokestatic
+            state.code
+            ~class_:"java/lang/Integer"
+            ~method_:"valueOf"
+            ~descriptor:"(I)Ljava/lang/Integer;"
+        | _ -> ());
+       Jvm.Code.aastore state.code
+     | _ ->
+       failwith
+         (Printf.sprintf
+            "java_of_ocaml: SETFIELD on non-block at pc %d"
+            ins.pc));
     consume_top state;
     Jvm.Code.ldc_int state.code 0;
     state.acc_kind <- K_int)
   else if op = Bytecode.Op.vectlength
   then (
-    (* Array.length: acc := Wosize_val(acc) — on JVM, arraylength. *)
     (match state.acc_kind with
-     | K_ref -> ()
+     | K_ref | K_obj_block _ -> ()
      | _ ->
        failwith
          (Printf.sprintf "java_of_ocaml: VECTLENGTH on non-block at pc %d" ins.pc));
