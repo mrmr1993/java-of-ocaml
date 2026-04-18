@@ -5,10 +5,11 @@ open Function_info
 open Prim
 open State
 
-(* Debug flags. Enable via [JAVA_OF_OCAML_DEBUG=times,primitives,functions]. *)
+(* Debug flags. Enable via [JAVA_OF_OCAML_DEBUG=times,primitives,functions,emit]. *)
 let debug_times = Debug.find "times"
 let debug_primitives = Debug.find "primitives"
 let debug_functions = Debug.find "functions"
+let debug_emit = Debug.find "emit"
 
 let time_phase name f =
   if not (debug_times ())
@@ -1217,6 +1218,22 @@ let emit_fused_branch state ~cmp ~target_pc ~branch_if_true =
   state.acc_kind <- K_int
 
 let emit_instr state (ins : instr) =
+  if debug_emit ()
+  then
+    Format.eprintf
+      "[emit] pc=%d op=%s%s depth=%d acc=%s%s@."
+      ins.pc
+      (Bytecode.opcode_name ins.opcode)
+      (if Array.length ins.args = 0
+       then ""
+       else
+         " "
+         ^ (Array.to_list ins.args
+            |> List.map string_of_int
+            |> String.concat ","))
+      state.oc_stack_depth
+      (if state.acc_live then "live:" else "dead:")
+      (string_of_kind state.acc_kind);
   (match Hashtbl.find_opt state.pc_to_label ins.pc with
    | Some lbl ->
      (* If this PC is a try/with handler target, emit the JVM-level
