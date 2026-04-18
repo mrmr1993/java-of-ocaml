@@ -83,36 +83,24 @@ around this by binding the underlying `external` directly. Lift
 once Stdlib compilation (or a targeted materialisation of
 `Stdlib.Invalid_argument` / `Stdlib.invalid_arg`) lands.
 
-## Whole-bytecode compilation (Stdlib Phase 1)
+## Whole-bytecode compilation
 
-Under `JAVA_OF_OCAML_WHOLE_BYTECODE=1` a minimal
-`caml_java_print_endline "hello"` program now compiles the whole
-bytecode (Stdlib init + user code) and exits clean with code 0 —
-Phase 1's acceptance criterion is met. Remaining gaps on the way
-to flipping this as the default:
+Whole-bytecode is now the default and only mode: the compile
+driver emits every instruction in the CODE section, including
+Stdlib init, module-init boilerplate, and user code. Mismatched
+types at join blocks are merged structurally via the CFG's
+block-parameter locals (see `Cfg` + `State.spill_to_block_params`
+/ `reload_from_block_params`), so programs like
+`List.length [1;2;3]`, `List.sort compare xs`, and
+`List.fold_left (+) 0 xs` compile, pass the JVM verifier, and
+run correctly.
 
-- **Mid-function K_int closures** *(partial).* Path-unioning
-  return-kind inference is now in place, but a narrow set of
-  Stdlib-internal dispatch paths still land at an APPLY site with
-  `acc_kind=K_int` when the runtime value is a closure. The box +
-  checkcast fall-back in `emit_apply` papers over the mismatch
-  with a runtime ClassCastException. The next fix likely needs
-  per-variable kind tracking (jsoo's `Flow.Info` approach),
-  requiring a basic-block IR.
-- **ENVACC out-of-range on Stdlib closures.** More involved
-  Stdlib-using programs (e.g. `List.length [1;2;3]`) hit an
-  `ENVACC capture index N out of range` at a closure we haven't
-  fully classified. Probably a mismatch between the closure's
-  actual capture count and our function-discovery pass's
-  `nvars`; needs investigation.
-- **C primitive coverage.** Runtime-error athrow for any
-  primitive not in `Prim.primitives`. Adding Stdlib proper
-  (Phase 2+ of the broader plan) means registering a few dozen
-  more (Bytes / String internals, polymorphic compare, I/O).
-
-The flip to whole-bytecode as the default is still gated; retire
-the env var once the K_int-at-APPLY fall-back in `emit_apply`
-becomes unreachable.
+The remaining gaps to getting real Stdlib programs running end-
+to-end are all about primitive coverage: anything touching I/O
+(`print_endline`, `Printf.*`) still throws `UnsupportedOperation`
+because `caml_ml_output` / `caml_ml_output_char` /
+`caml_ml_flush` are unimplemented. Extending `Prim` + adding
+matching emitters is the next body of work.
 
 ## Known representation gaps
 

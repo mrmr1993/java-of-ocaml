@@ -142,16 +142,25 @@ Each module under `compiler/lib-java/` has a companion `.mli`.
       range, nargs, ncaps, inferred kinds, CLOSUREREC group pointer).
     - `prim` — the registry of supported C primitives (`prim_handler`,
       `prim_entry`, `find_supported_prims`).
-    - `inference` — pre-passes that walk the decoded bytecode once
-      each: user-range detection (`supported_call_indices`,
-      `walk_back_user_start`, `walk_forward_user_end`), return-kind /
-      arg-kind inference.
+    - `inference` — pre-passes that populate `function_info`'s
+      return-kind and arg-kind fields by walking each function body
+      once.
+    - `cfg` — per-function basic-block graph. Blocks are the maximal
+      straight-line spans between branch targets and terminators;
+      `is_join cfg bid` identifies blocks with more than one
+      incoming edge. Join blocks get reserved Object-typed JVM
+      locals that every edge spills into and the prologue reloads
+      from — structural cross-block merging, adapted from jsoo.
     - `state` — mutable emitter state: OCaml-stack slots, acc
       live/kind, JVM local allocator, pc→label map, branch-target
-      snapshots, pending cmp, pending retaddrs, open traps, etc.
-      Also hosts the `ensure_kind` / `box_acc_to_object` /
-      `overwrite_acc` / `allocate_local` / slot helpers every emitter
-      uses.
+      snapshots, pending cmp, pending retaddrs, open traps,
+      per-function CFG, block-param locals, and the
+      `last_was_terminator` flag that tells fall-through entries
+      from jump-only entries at join-block prologues. Also hosts
+      `ensure_kind` / `box_acc_to_object` / `overwrite_acc` /
+      `allocate_local` / `normalize_acc_for_branch` /
+      `spill_to_block_params` / `reload_from_block_params` /
+      `emit_edge_spill` and the slot helpers every emitter uses.
 
   Emission (per-topic opcode handlers, all take `state`):
     - `emit_stack` — PUSH, ACC{0..7,N}, PUSHACC{0..7,N}, CONST*,
@@ -196,13 +205,13 @@ Each module under `compiler/lib-java/` has a companion `.mli`.
 
   Driver:
     - `compile.{ml,mli}` — the compile driver. Reads the bytecode,
-      locates the user range via seed primitives (`caml_java_print_*`,
-      array ops — NOT `caml_fresh_oo_id`, which also appears in Stdlib
-      init), runs the CLOSUREREC pre-scan, runs `Inference` to
-      populate function_info kinds, builds the initial State, calls
-      `Emit_instr.emit_instr` over each bytecode instruction, then
-      generates one class file per OCaml function plus `Main.class`.
-      Wires Debug/Timer for opt-in tracing.
+      runs the CLOSUREREC pre-scan over the whole CODE section,
+      runs `Inference` to populate `function_info` return / arg
+      kinds, builds a per-function `Cfg`, wires the initial State
+      (with CFG + block-param locals), calls `Emit_instr.emit_instr`
+      over each bytecode instruction, then generates one class file
+      per OCaml function plus `Main.class`. Wires Debug/Timer for
+      opt-in tracing.
 
   Instrumentation:
     - `debug` / `timer` — opt-in per-pass tracing/timing. Toggle via
