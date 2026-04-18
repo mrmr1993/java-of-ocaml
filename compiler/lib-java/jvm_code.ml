@@ -168,6 +168,10 @@ let pop_top t =
   add_u1 t.buf 0x57;
   pop t 1
 
+let aconst_null t =
+  add_u1 t.buf 0x01;
+  push t 1
+
 let swap t = add_u1 t.buf 0x5F
 
 (* Locals past index 3 use the 1-byte-index form (up to 255); past 255

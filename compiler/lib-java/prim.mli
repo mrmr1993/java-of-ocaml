@@ -47,6 +47,8 @@ type prim_handler =
   | P_noop1
   | P_noop2
   | P_noop_float1
+  | P_noop_null1
+  | P_noop_null2
 
 type prim_entry =
   { name : string

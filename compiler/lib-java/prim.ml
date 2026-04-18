@@ -41,6 +41,8 @@ type prim_handler =
   | P_noop1
   | P_noop2
   | P_noop_float1
+  | P_noop_null1
+  | P_noop_null2
     (* Stub: 1 arg, returns a dummy K_float (0.0). For Int64/Int32 bit
        conversions we don't implement yet; Stdlib init calls them to
        set up infinity / nan / max_float, which would be wrong but at
@@ -117,26 +119,28 @@ let primitives : prim_entry list =
      code can run. Address at the Int64 phase of the stdlib plan. *)
   ; { name = "caml_int64_float_of_bits"; handler = P_noop_float1; seed = false }
   ; { name = "caml_int32_float_of_bits"; handler = P_noop_float1; seed = false }
-  (* IO descriptor primitives stubbed as no-ops so Stdlib init can
-     complete. Any program that actually reads/writes through a
-     channel will trip a NullPointerException or similar when the
-     stub's Val_unit is used as a Channel. *)
-  ; { name = "caml_ml_open_descriptor_in"; handler = P_noop1; seed = false }
-  ; { name = "caml_ml_open_descriptor_out"; handler = P_noop1; seed = false }
-  ; { name = "caml_ml_out_channels_list"; handler = P_noop1; seed = false }
-  ; { name = "caml_channel_descriptor"; handler = P_noop1; seed = false }
-  ; { name = "caml_sys_get_config"; handler = P_noop1; seed = false }
-  ; { name = "caml_sys_get_argv"; handler = P_noop1; seed = false }
-  ; { name = "caml_sys_executable_name"; handler = P_noop1; seed = false }
-  ; { name = "caml_sys_const_backend_type"; handler = P_noop1; seed = false }
-  (* Atomic primitives: we're single-threaded, so plain loads / stores
-     suffice. [caml_atomic_load] reads a ref-like block, [_cas] does
-     a compare-and-swap. Stubs for the ones stdlib touches during
-     init and teardown. *)
-  ; { name = "caml_atomic_load"; handler = P_noop1; seed = false }
-  ; { name = "caml_atomic_cas"; handler = P_noop1; seed = false }
-  ; { name = "caml_atomic_exchange"; handler = P_noop1; seed = false }
-  ; { name = "caml_atomic_fetch_add"; handler = P_noop1; seed = false }
+  (* IO descriptor / channel primitives stubbed as null-returning
+     no-ops so Stdlib init can complete. Callers treat these as
+     reference values (channels, blocks); returning null lets
+     downstream [checkcast] succeed, trading a readable
+     NullPointerException at first-use for a
+     ClassCastException at the call site. *)
+  ; { name = "caml_ml_open_descriptor_in"; handler = P_noop_null1; seed = false }
+  ; { name = "caml_ml_open_descriptor_out"; handler = P_noop_null1; seed = false }
+  ; { name = "caml_ml_out_channels_list"; handler = P_noop_null1; seed = false }
+  ; { name = "caml_channel_descriptor"; handler = P_noop_null1; seed = false }
+  ; { name = "caml_sys_get_config"; handler = P_noop_null1; seed = false }
+  ; { name = "caml_sys_get_argv"; handler = P_noop_null1; seed = false }
+  ; { name = "caml_sys_executable_name"; handler = P_noop_null1; seed = false }
+  ; { name = "caml_sys_const_backend_type"; handler = P_noop_null1; seed = false }
+  (* Atomic primitives: we're single-threaded so loads / stores are
+     straightforward, but Stdlib wraps everything in atomic refs
+     whose value is a reference. Stub as null-returning; first
+     real use of the result fails with NullPointerException. *)
+  ; { name = "caml_atomic_load"; handler = P_noop_null1; seed = false }
+  ; { name = "caml_atomic_cas"; handler = P_noop_null2; seed = false }
+  ; { name = "caml_atomic_exchange"; handler = P_noop_null2; seed = false }
+  ; { name = "caml_atomic_fetch_add"; handler = P_noop_null2; seed = false }
   ]
 
 type table = (int, string * prim_handler * bool) Hashtbl.t

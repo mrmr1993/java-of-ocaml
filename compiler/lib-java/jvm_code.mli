@@ -28,6 +28,9 @@ val dup2 : t -> unit
 
 val pop_top : t -> unit
 
+val aconst_null : t -> unit
+(** Push the null reference (JVM [aconst_null], 0x01). *)
+
 val swap : t -> unit
 
 (** {1 Local-variable loads/stores} *)

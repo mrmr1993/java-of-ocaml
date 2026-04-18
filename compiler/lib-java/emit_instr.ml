@@ -847,7 +847,9 @@ let emit_instr state (ins : instr) =
        | P_string_compare -> Emit_primitive.emit_string_compare state
        | P_noop1 -> Emit_primitive.emit_noop state ~nargs:1
        | P_noop2 -> Emit_primitive.emit_noop state ~nargs:2
-       | P_noop_float1 -> Emit_primitive.emit_noop_float1 state)
+       | P_noop_float1 -> Emit_primitive.emit_noop_float1 state
+       | P_noop_null1 -> Emit_primitive.emit_noop_null state ~nargs:1
+       | P_noop_null2 -> Emit_primitive.emit_noop_null state ~nargs:2)
     | None ->
       let name =
         if prim_idx >= 0 && prim_idx < Array.length state.prims

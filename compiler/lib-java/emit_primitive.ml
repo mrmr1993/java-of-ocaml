@@ -431,7 +431,10 @@ let emit_format_int state =
   state.acc_live <- true;
   state.acc_kind <- K_string
 
-(* Stubbed no-op primitives. Drop the args, return [Val_unit = 0]. *)
+(* Stubbed no-op primitives. Drop the args, return [Val_unit = 0].
+   For primitives whose result might be used as a reference
+   (channel, closure, block), use [emit_noop_null] instead — it
+   returns a JVM [null] that can be freely [checkcast]'d. *)
 let emit_noop state ~nargs =
   (* Acc + (nargs-1) stack args. *)
   drop_live_acc state;
@@ -439,6 +442,18 @@ let emit_noop state ~nargs =
   Jvm.Code.ldc_int state.code 0;
   state.acc_live <- true;
   state.acc_kind <- K_int
+
+(* Like [emit_noop] but returns [null] as a [K_obj] instead of
+   [Val_unit]. For stubs whose callers expect a reference — any
+   subsequent [checkcast] / [invokevirtual] succeeds (or the
+   invoke throws NullPointerException, which is at least a
+   meaningful runtime error rather than a ClassCastException). *)
+let emit_noop_null state ~nargs =
+  drop_live_acc state;
+  if nargs > 1 then pop_slots state (nargs - 1);
+  Jvm.Code.aconst_null state.code;
+  state.acc_live <- true;
+  state.acc_kind <- K_obj
 
 (* Stubbed primitive that takes 1 arg and returns the float [0.0].
    Obviously wrong but lets Stdlib init finish when it calls

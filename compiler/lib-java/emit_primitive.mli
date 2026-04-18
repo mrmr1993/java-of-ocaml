@@ -53,6 +53,13 @@ val emit_noop : State.state -> nargs:int -> unit
     for Stdlib-init primitives that manage JVM-irrelevant state
     (GC, signal handlers, backtrace control). *)
 
+val emit_noop_null : State.state -> nargs:int -> unit
+(** Like [emit_noop] but returns a JVM [null] as a [K_obj] instead
+    of [Val_unit] as a [K_int]. Use for stubs whose callers
+    checkcast the result to a reference type (channel, block,
+    closure) — a null cast succeeds, whereas a boxed [0] would
+    raise [ClassCastException]. *)
+
 val emit_noop_float1 : State.state -> unit
 (** Stub returning [0.0] as a K_float. Used for primitives that take
     an Int32 / Int64 we can't materialise and return a double. *)

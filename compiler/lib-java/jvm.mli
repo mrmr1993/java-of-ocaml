@@ -65,6 +65,9 @@ module Code : sig
   val pop_top : t -> unit
   (** Discard the top stack slot (JVM [pop], 0x57). *)
 
+  val aconst_null : t -> unit
+  (** Push the null reference (JVM [aconst_null], 0x01). *)
+
   val swap : t -> unit
 
   (** {2 Integer locals}
