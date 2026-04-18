@@ -161,6 +161,7 @@ let is_user_op (ins : instr) =
   || op = Bytecode.Op.reraise
   || op = Bytecode.Op.raise_notrace
   || op = Bytecode.Op.isint
+  || op = Bytecode.Op.boolnot
   || is_cmp_jump op
   || is_c_call op
   || op = closurerec_op
@@ -1672,11 +1673,11 @@ let emit_instr state (ins : instr) =
            state
            ~target_pc
            ~branch_if_zero:true
-       | other ->
-         failwith
-           (Printf.sprintf
-              "java_of_ocaml: branchifnot on non-int/obj kind %s"
-              (jvm_type_of_kind other)));
+       | K_block _ | K_closure _ | K_string ->
+         (* A statically-known reference kind is never [Val_int(0)];
+            the branchifnot can't fire. Discard acc. *)
+         Jvm.Code.pop_top state.code
+       );
       record_branch_target state target_pc;
       state.acc_live <- false;
       state.acc_kind <- K_int)
@@ -1698,11 +1699,12 @@ let emit_instr state (ins : instr) =
            state
            ~target_pc
            ~branch_if_zero:false
-       | other ->
-         failwith
-           (Printf.sprintf
-              "java_of_ocaml: branchif on non-int/obj kind %s"
-              (jvm_type_of_kind other)));
+       | K_block _ | K_closure _ | K_string ->
+         (* Statically-known reference — always "truthy"; the branch
+            always fires. Drop acc and goto. *)
+         Jvm.Code.pop_top state.code;
+         Jvm.Code.goto state.code (label_at state target_pc)
+       );
       record_branch_target state target_pc;
       state.acc_live <- false;
       state.acc_kind <- K_int)
@@ -1718,6 +1720,18 @@ let emit_instr state (ins : instr) =
   then emit_raise state
   else if op = Bytecode.Op.isint
   then emit_isint state
+  else if op = Bytecode.Op.boolnot
+  then (
+    (* OCaml bool is Val_int(0) / Val_int(1). Flip via XOR with 1. *)
+    ensure_kind state K_int;
+    Jvm.Code.ldc_int state.code 1;
+    (* XOR opcode not exposed; synthesise via [(1 - x)] with iconst_1;
+       swap; isub — but [Code.swap] + [isub] is what we have.
+       Actually simpler: [ixor] is opcode 0x82, not yet in [Jvm.Code].
+       Use subtraction instead. *)
+    Jvm.Code.swap state.code;
+    Jvm.Code.isub state.code;
+    state.acc_kind <- K_int)
   else if op = Bytecode.Op.const0 then emit_int_const state 0
   else if op = Bytecode.Op.const1 then emit_int_const state 1
   else if op = Bytecode.Op.const2 then emit_int_const state 2

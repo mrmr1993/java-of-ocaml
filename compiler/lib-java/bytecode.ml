@@ -71,6 +71,7 @@ module Op = struct
   let branchif = 85
   let branchifnot = 86
   let switch = 87
+  let boolnot = 88
   let pushtrap = 89
   let poptrap = 90
   let raise_ = 91
