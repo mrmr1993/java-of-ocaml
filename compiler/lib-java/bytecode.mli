@@ -13,10 +13,33 @@ val read_exe : string -> t
 val prim_index : t -> string -> int option
 (** Look up a primitive name in [prims]. *)
 
-(** Opcode numbers. Only the handful we currently inspect. *)
+(** Opcode numbers. Extend as new tests demand. *)
 module Op : sig
+  val push : int
   val getglobal : int
   val pushgetglobal : int
   val c_call1 : int
+  val const0 : int
+  val const1 : int
+  val const2 : int
+  val const3 : int
+  val constint : int
+  val pushconst0 : int
+  val pushconst1 : int
+  val pushconst2 : int
+  val pushconst3 : int
+  val pushconstint : int
+  val addint : int
+  val subint : int
+  val mulint : int
+  val offsetint : int
   val stop : int
 end
+
+val instr_size : t -> int -> int
+(** Given a pc inside [t.code], return the number of words this instruction
+    occupies (including the opcode). Raises [Failure] on unsupported
+    variable-length opcodes (SWITCH, CLOSUREREC). *)
+
+val opcode_name : int -> string
+(** Human-readable name for an opcode; useful for error messages. *)

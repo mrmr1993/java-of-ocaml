@@ -5,11 +5,226 @@ type t =
   }
 
 module Op = struct
+  let push = 9
   let getglobal = 53
   let pushgetglobal = 54
   let c_call1 = 93
+  let const0 = 99
+  let const1 = 100
+  let const2 = 101
+  let const3 = 102
+  let constint = 103
+  let pushconst0 = 104
+  let pushconst1 = 105
+  let pushconst2 = 106
+  let pushconst3 = 107
+  let pushconstint = 108
+  let addint = 110
+  let subint = 111
+  let mulint = 112
+  let offsetint = 127
   let stop = 143
 end
+
+(* Classification of opcodes following js_of_ocaml's [Instr.kind]. What we
+   need is the in-code size of each instruction: opcode word + N argument
+   words. Most ops have a fixed size; [Switch] and [Closurerec] are
+   variable-length (size depends on the args themselves). *)
+
+type kind =
+  | Nullary         (* 1 word: opcode only *)
+  | Unary           (* 2 words: opcode + 1 arg *)
+  | Binary          (* 3 words: opcode + 2 args *)
+  | Jump            (* 2 words *)
+  | Cond_jump       (* 2 words *)
+  | Cmp_jump        (* 3 words *)
+  | Switch          (* variable: 2 + (low16(arg) + high16(arg)) *)
+  | Closure         (* 3 words *)
+  | Closurerec      (* variable: 3 + arg1 *)
+  | Nullary_call    (* 1 word *)
+  | Unary_call      (* 2 words *)
+  | Binary_call     (* 3 words *)
+  | Stop_n of int   (* 1 + n words *)
+
+(* Opcode metadata table. Indexed by opcode number (0-143). Must stay in sync
+   with ocaml/runtime/caml/opcodes.h. Length 144. *)
+let opcodes =
+  [| "ACC0", Nullary
+   ; "ACC1", Nullary
+   ; "ACC2", Nullary
+   ; "ACC3", Nullary
+   ; "ACC4", Nullary
+   ; "ACC5", Nullary
+   ; "ACC6", Nullary
+   ; "ACC7", Nullary
+   ; "ACC", Unary
+   ; "PUSH", Nullary
+   ; "PUSHACC0", Nullary
+   ; "PUSHACC1", Nullary
+   ; "PUSHACC2", Nullary
+   ; "PUSHACC3", Nullary
+   ; "PUSHACC4", Nullary
+   ; "PUSHACC5", Nullary
+   ; "PUSHACC6", Nullary
+   ; "PUSHACC7", Nullary
+   ; "PUSHACC", Unary
+   ; "POP", Unary
+   ; "ASSIGN", Unary
+   ; "ENVACC1", Nullary
+   ; "ENVACC2", Nullary
+   ; "ENVACC3", Nullary
+   ; "ENVACC4", Nullary
+   ; "ENVACC", Unary
+   ; "PUSHENVACC1", Nullary
+   ; "PUSHENVACC2", Nullary
+   ; "PUSHENVACC3", Nullary
+   ; "PUSHENVACC4", Nullary
+   ; "PUSHENVACC", Unary
+   ; "PUSH_RETADDR", Unary
+   ; "APPLY", Unary_call
+   ; "APPLY1", Nullary_call
+   ; "APPLY2", Nullary_call
+   ; "APPLY3", Nullary_call
+   ; "APPTERM", Stop_n 2
+   ; "APPTERM1", Stop_n 1
+   ; "APPTERM2", Stop_n 1
+   ; "APPTERM3", Stop_n 1
+   ; "RETURN", Stop_n 1
+   ; "RESTART", Nullary
+   ; "GRAB", Unary
+   ; "CLOSURE", Closure
+   ; "CLOSUREREC", Closurerec
+   ; "OFFSETCLOSUREM3", Nullary
+   ; "OFFSETCLOSURE0", Nullary
+   ; "OFFSETCLOSURE3", Nullary
+   ; "OFFSETCLOSURE", Unary
+   ; "PUSHOFFSETCLOSUREM3", Nullary
+   ; "PUSHOFFSETCLOSURE0", Nullary
+   ; "PUSHOFFSETCLOSURE3", Nullary
+   ; "PUSHOFFSETCLOSURE", Unary
+   ; "GETGLOBAL", Unary
+   ; "PUSHGETGLOBAL", Unary
+   ; "GETGLOBALFIELD", Binary
+   ; "PUSHGETGLOBALFIELD", Binary
+   ; "SETGLOBAL", Unary
+   ; "ATOM0", Nullary
+   ; "ATOM", Unary
+   ; "PUSHATOM0", Nullary
+   ; "PUSHATOM", Unary
+   ; "MAKEBLOCK", Binary
+   ; "MAKEBLOCK1", Unary
+   ; "MAKEBLOCK2", Unary
+   ; "MAKEBLOCK3", Unary
+   ; "MAKEFLOATBLOCK", Unary
+   ; "GETFIELD0", Nullary
+   ; "GETFIELD1", Nullary
+   ; "GETFIELD2", Nullary
+   ; "GETFIELD3", Nullary
+   ; "GETFIELD", Unary
+   ; "GETFLOATFIELD", Unary
+   ; "SETFIELD0", Nullary
+   ; "SETFIELD1", Nullary
+   ; "SETFIELD2", Nullary
+   ; "SETFIELD3", Nullary
+   ; "SETFIELD", Unary
+   ; "SETFLOATFIELD", Unary
+   ; "VECTLENGTH", Nullary
+   ; "GETVECTITEM", Nullary
+   ; "SETVECTITEM", Nullary
+   ; "GETBYTESCHAR", Nullary
+   ; "SETBYTESCHAR", Nullary
+   ; "BRANCH", Jump
+   ; "BRANCHIF", Cond_jump
+   ; "BRANCHIFNOT", Cond_jump
+   ; "SWITCH", Switch
+   ; "BOOLNOT", Nullary
+   ; "PUSHTRAP", Cond_jump
+   ; "POPTRAP", Nullary
+   ; "RAISE", Stop_n 0
+   ; "CHECK_SIGNALS", Nullary
+   ; "C_CALL1", Unary_call
+   ; "C_CALL2", Unary_call
+   ; "C_CALL3", Unary_call
+   ; "C_CALL4", Unary_call
+   ; "C_CALL5", Unary_call
+   ; "C_CALLN", Binary_call
+   ; "CONST0", Nullary
+   ; "CONST1", Nullary
+   ; "CONST2", Nullary
+   ; "CONST3", Nullary
+   ; "CONSTINT", Unary
+   ; "PUSHCONST0", Nullary
+   ; "PUSHCONST1", Nullary
+   ; "PUSHCONST2", Nullary
+   ; "PUSHCONST3", Nullary
+   ; "PUSHCONSTINT", Unary
+   ; "NEGINT", Nullary
+   ; "ADDINT", Nullary
+   ; "SUBINT", Nullary
+   ; "MULINT", Nullary
+   ; "DIVINT", Nullary
+   ; "MODINT", Nullary
+   ; "ANDINT", Nullary
+   ; "ORINT", Nullary
+   ; "XORINT", Nullary
+   ; "LSLINT", Nullary
+   ; "LSRINT", Nullary
+   ; "ASRINT", Nullary
+   ; "EQ", Nullary
+   ; "NEQ", Nullary
+   ; "LTINT", Nullary
+   ; "LEINT", Nullary
+   ; "GTINT", Nullary
+   ; "GEINT", Nullary
+   ; "OFFSETINT", Unary
+   ; "OFFSETREF", Unary
+   ; "ISINT", Nullary
+   ; "GETMETHOD", Nullary
+   ; "BEQ", Cmp_jump
+   ; "BNEQ", Cmp_jump
+   ; "BLTINT", Cmp_jump
+   ; "BLEINT", Cmp_jump
+   ; "BGTINT", Cmp_jump
+   ; "BGEINT", Cmp_jump
+   ; "ULTINT", Nullary
+   ; "UGEINT", Nullary
+   ; "BULTINT", Cmp_jump
+   ; "BUGEINT", Cmp_jump
+   ; "GETPUBMET", Binary
+   ; "GETDYNMET", Nullary
+   ; "STOP", Stop_n 0
+   ; "EVENT", Nullary
+   ; "BREAK", Nullary
+   ; "RERAISE", Stop_n 0
+   ; "RAISE_NOTRACE", Stop_n 0
+   ; "GETSTRINGCHAR", Nullary
+   ; "PERFORM", Nullary_call
+   ; "RESUME", Nullary_call
+   ; "RESUMETERM", Stop_n 1
+   ; "REPERFORMTERM", Stop_n 1
+  |]
+
+let opcode_name op =
+  if op < 0 || op >= Array.length opcodes
+  then Printf.sprintf "<opcode %d>" op
+  else fst opcodes.(op)
+
+let instr_size t pc =
+  let op = t.code.(pc) in
+  if op < 0 || op >= Array.length opcodes
+  then
+    failwith (Printf.sprintf "bytecode: unknown opcode %d at pc %d" op pc);
+  match snd opcodes.(op) with
+  | Nullary | Nullary_call -> 1
+  | Unary | Unary_call | Jump | Cond_jump -> 2
+  | Binary | Binary_call | Cmp_jump | Closure -> 3
+  | Stop_n n -> n + 1
+  | Switch ->
+    let sz = t.code.(pc + 1) in
+    2 + (sz land 0xffff) + ((sz lsr 16) land 0xffff)
+  | Closurerec ->
+    let nfuncs = t.code.(pc + 1) in
+    3 + nfuncs
 
 (* OCaml bumps the trailer magic on every bytecode-format change. We accept
    any "Caml1999X..." magic: the layout described below is stable across the
@@ -65,9 +280,6 @@ let read_exe path =
       then failwith "bytecode: CODE section length not a multiple of 4";
       seek_in ic off;
       let n = len / 4 in
-      (* OCaml bytecode stores each instruction word as a native int32 in
-         platform-endian order. On little-endian hosts that means we read the
-         raw bytes and unpack as signed LE int32. We use [Bytes.get_int32_le]. *)
       let buf = Bytes.create len in
       really_input ic buf 0 len;
       Array.init n (fun i ->
@@ -79,7 +291,6 @@ let read_exe path =
     | Some (off, len) ->
       seek_in ic off;
       let raw = really_input_string ic len in
-      (* The PRIM section is a sequence of null-terminated primitive names. *)
       let parts = String.split_on_char '\000' raw in
       let parts =
         match List.rev parts with

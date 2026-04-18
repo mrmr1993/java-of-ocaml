@@ -1,8 +1,9 @@
 (** JVM class-file emission.
 
-    Phase 0 only supports what we need to produce a [Main] class whose static
-    [main] method runs a straight-line sequence of [System.out.println(String)]
-    calls. The API is intentionally narrow; extend as new tests demand. *)
+    The API is intentionally narrow: extend it as new tests demand. Method
+    bodies are built by calling the [Code] ops in program order, and the
+    builder tracks [max_stack] from the cumulative effects. Straight-line
+    code only — no branches or exception handlers yet. *)
 
 (** A builder for the class-file constant pool. *)
 module Cp : sig
@@ -30,10 +31,33 @@ module Code : sig
 
   val create : Cp.t -> t
 
-  val getstatic :
-    t -> class_:string -> field:string -> descriptor:string -> unit
+  (** {2 Loads / stack manipulation} *)
 
   val ldc_string : t -> string -> unit
+
+  val ldc_int : t -> int -> unit
+  (** Push an [int]. Chooses the tightest of iconst_* / bipush / sipush / ldc
+      depending on the value. *)
+
+  val dup : t -> unit
+
+  val pop_top : t -> unit
+  (** Discard the top stack slot (JVM [pop], 0x57). *)
+
+  val swap : t -> unit
+
+  (** {2 Arithmetic (int)} *)
+
+  val iadd : t -> unit
+
+  val isub : t -> unit
+
+  val imul : t -> unit
+
+  (** {2 Static/virtual dispatch} *)
+
+  val getstatic :
+    t -> class_:string -> field:string -> descriptor:string -> unit
 
   val invokevirtual :
     t -> class_:string -> method_:string -> descriptor:string -> unit
@@ -41,7 +65,8 @@ module Code : sig
   val return_void : t -> unit
 end
 
-val emit_main_class : messages:string list -> string
-(** Return the bytes of a [.class] file defining class [Main] with a
-    [public static void main(String[])] method that calls
-    [System.out.println(m)] for each [m] in [messages], then returns. *)
+val assemble_main_class : (Cp.t -> Code.t -> unit) -> string
+(** Build a class file with a public static [main(String[])] method. The
+    supplied callback receives a fresh constant pool and code builder; it
+    should emit the method body (including the terminating [return_void]).
+    The returned bytes are ready to write to [Main.class]. *)

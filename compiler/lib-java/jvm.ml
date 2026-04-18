@@ -90,14 +90,15 @@ module Cp = struct
   let contents t = Buffer.contents t.buf
 end
 
-(* --- Method body builder ---
+(* --- Method-body builder ---
 
-   Tracks maximum operand-stack depth so we can set [max_stack] correctly.
+   Tracks operand-stack depth so we can set [max_stack] correctly.
    Straight-line code only: no branches, no exception handlers. *)
 
-let stack_effect_of_invokevirtual_descriptor descriptor =
-  (* Net stack effect of [invokevirtual] given a method descriptor.
-     Returns (n_args + 1 /* receiver */) - (return pushes). *)
+let stack_effect_of_call_descriptor descriptor ~is_virtual =
+  (* Net stack effect of invokevirtual / invokestatic on a method with the
+     given descriptor. Counts args in "(...)R" between parens; virtual calls
+     consume one extra slot (the receiver). *)
   let lp = String.index descriptor '(' in
   let rp = String.index descriptor ')' in
   let args = String.sub descriptor (lp + 1) (rp - lp - 1) in
@@ -115,7 +116,8 @@ let stack_effect_of_invokevirtual_descriptor descriptor =
   let n_args = count_args 0 0 in
   let ret = String.sub descriptor (rp + 1) 1 in
   let push_ret = if ret = "V" then 0 else 1 in
-  n_args + 1 - push_ret
+  let pops = n_args + if is_virtual then 1 else 0 in
+  pops - push_ret
 
 module Code = struct
   type t =
@@ -133,12 +135,6 @@ module Code = struct
 
   let pop t n = t.stack <- t.stack - n
 
-  let getstatic t ~class_ ~field ~descriptor =
-    let idx = Cp.fieldref t.cp ~class_ ~field ~descriptor in
-    add_u1 t.buf 0xB2;
-    add_u2 t.buf idx;
-    push t 1
-
   let ldc_string t s =
     let idx = Cp.string t.cp s in
     if idx <= 0xff
@@ -150,11 +146,88 @@ module Code = struct
       add_u2 t.buf idx);
     push t 1
 
+  let ldc_int t n =
+    (* Pick the tightest encoding. iconst_m1..iconst_5 are one byte; bipush
+       handles -128..127 in two bytes; sipush handles -32768..32767 in three;
+       anything else needs a CONSTANT_Integer constant-pool entry. *)
+    (if n >= -1 && n <= 5
+     then
+       let op =
+         match n with
+         | -1 -> 0x02
+         | 0 -> 0x03
+         | 1 -> 0x04
+         | 2 -> 0x05
+         | 3 -> 0x06
+         | 4 -> 0x07
+         | 5 -> 0x08
+         | _ -> assert false
+       in
+       add_u1 t.buf op
+     else if n >= -128 && n <= 127
+     then (
+       add_u1 t.buf 0x10 (* bipush *);
+       add_u1 t.buf (n land 0xff))
+     else if n >= -32768 && n <= 32767
+     then (
+       add_u1 t.buf 0x11 (* sipush *);
+       add_u2 t.buf (n land 0xffff))
+     else
+       let idx =
+         Cp.intern
+           t.cp
+           (Printf.sprintf "I:%d" n)
+           (fun buf ->
+             add_u1 buf 3 (* CONSTANT_Integer *);
+             add_u4 buf n)
+       in
+       if idx <= 0xff
+       then (
+         add_u1 t.buf 0x12;
+         add_u1 t.buf idx)
+       else (
+         add_u1 t.buf 0x13;
+         add_u2 t.buf idx));
+    push t 1
+
+  let dup t =
+    add_u1 t.buf 0x59;
+    push t 1
+
+  let pop_top t =
+    add_u1 t.buf 0x57;
+    pop t 1
+
+  let swap t =
+    add_u1 t.buf 0x5F
+    (* stack depth unchanged *)
+
+  let iadd t =
+    add_u1 t.buf 0x60;
+    pop t 1
+
+  let isub t =
+    add_u1 t.buf 0x64;
+    pop t 1
+
+  let imul t =
+    add_u1 t.buf 0x68;
+    pop t 1
+
+  let getstatic t ~class_ ~field ~descriptor =
+    let idx = Cp.fieldref t.cp ~class_ ~field ~descriptor in
+    add_u1 t.buf 0xB2;
+    add_u2 t.buf idx;
+    push t 1
+
   let invokevirtual t ~class_ ~method_ ~descriptor =
     let idx = Cp.methodref t.cp ~class_ ~method_ ~descriptor in
     add_u1 t.buf 0xB6;
     add_u2 t.buf idx;
-    pop t (stack_effect_of_invokevirtual_descriptor descriptor)
+    let net = stack_effect_of_call_descriptor descriptor ~is_virtual:true in
+    if net >= 0
+    then pop t net
+    else push t (-net)
 
   let return_void t =
     add_u1 t.buf 0xB1 (* return *);
@@ -167,27 +240,14 @@ end
 
 (* --- Class assembly --- *)
 
-let emit_main_class ~messages =
+let assemble_main_class build =
   let cp = Cp.create () in
   let code = Code.create cp in
-  List.iter
-    (fun m ->
-      Code.getstatic
-        code
-        ~class_:"java/lang/System"
-        ~field:"out"
-        ~descriptor:"Ljava/io/PrintStream;";
-      Code.ldc_string code m;
-      Code.invokevirtual
-        code
-        ~class_:"java/io/PrintStream"
-        ~method_:"println"
-        ~descriptor:"(Ljava/lang/String;)V")
-    messages;
-  Code.return_void code;
+  build cp code;
   let code_bytes = Code.contents code in
   let code_len = String.length code_bytes in
-  (* Register structural constants. *)
+  (* Pre-register structural constants so the CP serialisation order is
+     stable even though emitting instructions may have already appended. *)
   let this_class = Cp.class_ cp "Main" in
   let super_class = Cp.class_ cp "java/lang/Object" in
   let main_name = Cp.utf8 cp "main" in
@@ -205,10 +265,10 @@ let emit_main_class ~messages =
   add_u2 out 0 (* interfaces_count *);
   add_u2 out 0 (* fields_count *);
   add_u2 out 1 (* methods_count *);
-  add_u2 out 0x0009 (* method access: ACC_PUBLIC | ACC_STATIC *);
+  add_u2 out 0x0009 (* ACC_PUBLIC | ACC_STATIC *);
   add_u2 out main_name;
   add_u2 out main_desc;
-  add_u2 out 1 (* attributes_count on method: one Code attribute *);
+  add_u2 out 1 (* one Code attribute on the method *);
   add_u2 out code_attr_name;
   let attr_len =
     2 (* max_stack *) + 2 (* max_locals *) + 4 (* code_length *) + code_len
