@@ -49,8 +49,22 @@ let element_kind_of_block field_kinds =
         "java_of_ocaml: dynamic array indexing on a heterogeneous block — \
          element kinds disagree across fields"
 
+(* Load stack slot [k] onto the JVM stack as a primitive [int],
+   unboxing from [java.lang.Integer] via [intValue] if the slot
+   currently holds an opaque object. *)
+let emit_load_slot_as_int state k =
+  let slot = List.nth state.slots k in
+  emit_load_for_kind state.code slot.local slot.kind;
+  match slot.kind with
+  | K_int -> ()
+  | K_obj -> emit_unbox_to_kind state.code K_int
+  | _ ->
+    failwith
+      (Printf.sprintf
+         "java_of_ocaml: expected an int slot but got %s"
+         (jvm_type_of_kind slot.kind))
+
 let emit_array_get state =
-  let idx_slot = top_slot_local ~state in
   match state.acc_kind with
   | K_block field_kinds ->
     let ek = element_kind_of_block field_kinds in
@@ -59,7 +73,7 @@ let emit_array_get state =
       ~class_:"Block"
       ~field:"fields"
       ~descriptor:"[Ljava/lang/Object;";
-    Jvm.Code.iload state.code idx_slot;
+    emit_load_slot_as_int state 0;
     Jvm.Code.aaload state.code;
     emit_unbox_to_kind state.code ek;
     consume_top state;
@@ -72,7 +86,7 @@ let emit_array_get state =
       ~class_:"Block"
       ~field:"fields"
       ~descriptor:"[Ljava/lang/Object;";
-    Jvm.Code.iload state.code idx_slot;
+    emit_load_slot_as_int state 0;
     Jvm.Code.aaload state.code;
     consume_top state;
     state.acc_live <- true;
@@ -827,7 +841,6 @@ let emit_isint state =
   state.acc_kind <- K_int
 
 let emit_array_set state =
-  let idx_slot = stack_slot_local ~state 0 in
   let val_slot_info = List.nth state.slots 1 in
   (match state.acc_kind with
    | K_block _ ->
@@ -836,7 +849,7 @@ let emit_array_set state =
        ~class_:"Block"
        ~field:"fields"
        ~descriptor:"[Ljava/lang/Object;";
-     Jvm.Code.iload state.code idx_slot;
+     emit_load_slot_as_int state 0;
      emit_load_for_kind state.code val_slot_info.local val_slot_info.kind;
      box_if_int state.code val_slot_info.kind;
      Jvm.Code.aastore state.code
@@ -847,7 +860,7 @@ let emit_array_set state =
        ~class_:"Block"
        ~field:"fields"
        ~descriptor:"[Ljava/lang/Object;";
-     Jvm.Code.iload state.code idx_slot;
+     emit_load_slot_as_int state 0;
      emit_load_for_kind state.code val_slot_info.local val_slot_info.kind;
      box_if_int state.code val_slot_info.kind;
      Jvm.Code.aastore state.code
