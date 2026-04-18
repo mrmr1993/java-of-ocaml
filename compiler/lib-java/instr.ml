@@ -195,6 +195,8 @@ let branch_target (ins : instr) =
      || op = Bytecode.Op.pushtrap
   then Some (ins.pc + ins.args.(0) + 1)
   else if is_cmp_jump op
+          || op = Bytecode.Op.bultint
+          || op = Bytecode.Op.bugeint
   then Some (ins.pc + ins.args.(1) + 2)
   else None
 
