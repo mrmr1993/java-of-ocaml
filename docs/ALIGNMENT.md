@@ -61,6 +61,22 @@ home-grown one or, preferably, adopting `Code.program` from
   primitives (`caml_java_print_*`). Replacing that requires either our own
   Stdlib compilation or cross-compiled artefacts.
 
+## Known bugs surfaced but not fixed
+
+Recorded here so we don't lose track; each has a focused repro:
+
+- **Oversupply + inline closure call**: `let mk n = fun x -> x + n let () =
+  caml_java_print_int (mk 10 32)`. Direct CLI invocation of
+  `java_of_ocaml.exe` on the resulting bytecode produces a correct
+  `Main.class` that prints `42`; running through
+  `compile_and_javap` / `compile_and_run` inside dune's test sandbox
+  fails with `kind mismatch — have Locaml_fn_0;, need I`. Exact
+  environmental divergence is unclear — same binary hash, same source
+  bytes, same cwd-to-bytecode flow — but the test sandbox reliably
+  triggers it. Binding the intermediate (`let add10 = mk 10 in add10 32`)
+  avoids it entirely. Worth rerunning after the emit_* split clarifies
+  kind flow through APPLY.
+
 ## Feature gaps (tracked elsewhere too)
 
 These are features noted in `README.md` / `CLAUDE.md` as unsupported;
