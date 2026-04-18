@@ -224,16 +224,15 @@ let branch_target (ins : instr) =
 (* Value kinds: tracked compile-time so we know whether a JVM int slot holds
    a genuine integer or a placeholder for a closure reference. *)
 
-(* Every OCaml value flows through the JVM as either:
-     - a primitive [int] (for monomorphic int-valued contexts), or
-     - a reference: either a [Block] object (all non-int OCaml values that
-       our compiler currently models — tuples, records, arrays, ref cells)
-       or a closure sentinel (still an int at runtime; K_closure is a
-       compile-time phantom we plan to replace with a real Closure class
-       in a later step).
+(* Every OCaml value has a canonical JVM runtime type:
+     - [K_int]       → primitive JVM [int] (for monomorphic int contexts)
+     - [K_block _]   → reference to a [Block] instance
+     - [K_closure _] → reference to a [Closure] subclass instance
 
    Per-block field kinds let GETFIELD / SETFIELD / array primitives emit
-   the right cast + box/unbox at each use. *)
+   the right cast + box/unbox at each use. For closures, we track the
+   concrete class name and the captures' kinds (so generated constructor
+   signatures line up). *)
 type kind =
   | K_int
   | K_block of kind list
@@ -241,23 +240,31 @@ type kind =
 
 and closure_ref =
   { name : string
-  ; captures : (int * kind) list
-      (* JVM local + kind, in closure-field order (index 0 = ENVACC 2). *)
+      (* Generated JVM class name, e.g. "Closure_ocaml_fn_0". At a CLOSURE
+         site we allocate an instance of this class; at APPLY we
+         [invokevirtual Closure.applyN] and JVM dispatch finds the
+         overridden method. *)
+  ; captures : (int * kind) list [@warning "-69"]
+      (* Legacy: each capture's (JVM local at closure-creation site,
+         kind). Used only when a closure was first modelled with captures
+         pre-loaded onto the stack; now captures flow through instance
+         fields on [this], so the list is often empty. *)
   }
 
 let jvm_type_of_kind = function
-  | K_int | K_closure _ -> "I"
+  | K_int -> "I"
   | K_block _ -> "LBlock;"
+  | K_closure { name; _ } -> Printf.sprintf "L%s;" name
 
 let emit_store_for_kind code local kind =
   match kind with
-  | K_int | K_closure _ -> Jvm.Code.istore code local
-  | K_block _ -> Jvm.Code.astore code local
+  | K_int -> Jvm.Code.istore code local
+  | K_block _ | K_closure _ -> Jvm.Code.astore code local
 
 let emit_load_for_kind code local kind =
   match kind with
-  | K_int | K_closure _ -> Jvm.Code.iload code local
-  | K_block _ -> Jvm.Code.aload code local
+  | K_int -> Jvm.Code.iload code local
+  | K_block _ | K_closure _ -> Jvm.Code.aload code local
 
 (* Boxing / unboxing helpers for crossing the int ↔ Object boundary. *)
 let emit_box_int code =
@@ -277,12 +284,7 @@ let emit_unbox_to_kind code kind =
       ~method_:"intValue"
       ~descriptor:"()I"
   | K_block _ -> Jvm.Code.checkcast code "Block"
-  | K_closure _ ->
-    (* No runtime representation yet for closures-as-values. *)
-    failwith
-      "java_of_ocaml: reading a K_closure field is not supported yet — \
-       closures need a runtime representation before they can live in a \
-       block"
+  | K_closure { name; _ } -> Jvm.Code.checkcast code name
 
 (* If [kind] is an int-kind, emit [Integer.valueOf] to box it to an
    Object. Otherwise, the value is already a reference. *)
@@ -307,7 +309,7 @@ type function_info =
   ; body_start_idx : int
   ; body_end_idx : int
   ; nargs : int
-  ; ncaps : int
+  ; ncaps : int [@warning "-69"]
   ; capture_kinds : kind list ref
       (* Kinds of the captures passed to this method, in closure-field
          order. Length [ncaps]. Filled in when [emit_closure_creation]
@@ -568,31 +570,30 @@ let self_closure_ref state =
     failwith
       "java_of_ocaml: OFFSETCLOSURE0/PUSHOFFSETCLOSURE0 outside a function"
   | Some fname ->
-    (* A function can pass itself as a closure by name: its captures are the
-         captures the caller handed to it, currently in JVM locals 0..ncaps-1,
-         with their kinds taken from [state.capture_kinds]. *)
-    let rec loop i acc =
-      if i >= state.ncaps then List.rev acc
-      else (
-        let k = List.nth state.capture_kinds i in
-        loop (i + 1) ((i, k) :: acc))
-    in
-    { name = fname; captures = loop 0 [] }
+    (* Self-closure: the captures aren't in separate locals anymore — they
+       live as instance fields on [this]. We don't need to re-list them;
+       what we need is a [closure_ref] whose [name] matches this method's
+       class so APPLY emits the right [invokevirtual]. The [captures]
+       list is left empty because the runtime representation of "self" is
+       just [this] (no extra locals to load). *)
+    { name = fname; captures = [] }
 
 let emit_offsetclosure0 state =
   let cref = self_closure_ref state in
-  overwrite_acc
-    state
-    (K_closure cref)
-    (fun () -> Jvm.Code.ldc_int state.code 0)
+  (* Emit [this] onto the op stack. *)
+  if state.acc_live then Jvm.Code.pop_top state.code;
+  Jvm.Code.aload state.code 0;
+  state.acc_live <- true;
+  state.acc_kind <- K_closure cref
 
 let emit_pushoffsetclosure0 state =
+  let cref = self_closure_ref state in
   let was_live = state.acc_live in
   emit_push state;
   if was_live then Jvm.Code.pop_top state.code;
-  Jvm.Code.ldc_int state.code 0;
+  Jvm.Code.aload state.code 0;
   state.acc_live <- true;
-  state.acc_kind <- K_closure (self_closure_ref state)
+  state.acc_kind <- K_closure cref
 
 (* ENVACC k accesses the k-th field of the closure's environment. OCaml 5.x
    closure layout: field 0 = code, field 1 = closinfo, fields 2..ncaps+1 =
@@ -607,6 +608,10 @@ let capture_kind_at state cap_index =
          cap_index
          state.ncaps)
 
+(* ENVACC k reads field [k] of the closure environment. In our representation,
+   captures live as instance fields on the closure object named [capN]
+   (where N = k - 2). We load [this], then read the field. *)
+
 let emit_envacc state k =
   if k < 2
   then
@@ -617,8 +622,16 @@ let emit_envacc state k =
          k);
   let cap_index = k - 2 in
   let kind = capture_kind_at state cap_index in
+  let fname = Printf.sprintf "cap%d" cap_index in
+  let desc = jvm_type_of_kind kind in
+  let class_ =
+    match state.enclosing_function_name with
+    | Some n -> n
+    | None -> failwith "java_of_ocaml: ENVACC outside a function"
+  in
   if state.acc_live then Jvm.Code.pop_top state.code;
-  emit_load_for_kind state.code cap_index kind;
+  Jvm.Code.aload state.code 0 (* this *);
+  Jvm.Code.getfield state.code ~class_ ~field:fname ~descriptor:desc;
   state.acc_live <- true;
   state.acc_kind <- kind
 
@@ -631,27 +644,36 @@ let emit_pushenvacc state k =
       (Printf.sprintf "java_of_ocaml: PUSHENVACC %d (field <2) not supported" k);
   let cap_index = k - 2 in
   let kind = capture_kind_at state cap_index in
+  let fname = Printf.sprintf "cap%d" cap_index in
+  let desc = jvm_type_of_kind kind in
+  let class_ =
+    match state.enclosing_function_name with
+    | Some n -> n
+    | None -> failwith "java_of_ocaml: PUSHENVACC outside a function"
+  in
   if was_live then Jvm.Code.pop_top state.code;
-  emit_load_for_kind state.code cap_index kind;
+  Jvm.Code.aload state.code 0;
+  Jvm.Code.getfield state.code ~class_ ~field:fname ~descriptor:desc;
   state.acc_live <- true;
   state.acc_kind <- kind
 
-(* Shared closure-creation logic. For CLOSURE (non-rec), [is_rec = false]
-   and the closure is just placed in acc. For CLOSUREREC, [is_rec = true]
-   and the closure is also pushed onto the OCaml stack (matching the
-   interpreter's trailing [*--sp = accu]).
+(* Build a JVM constructor descriptor for a closure class given the kinds
+   of its captures in field order. *)
+let ctor_descriptor_for_captures cap_kinds =
+  let buf = Buffer.create 16 in
+  Buffer.add_char buf '(';
+  List.iter (fun k -> Buffer.add_string buf (jvm_type_of_kind k)) cap_kinds;
+  Buffer.add_string buf ")V";
+  Buffer.contents buf
 
-   OCaml semantics for nvars > 0:
-     if (nvars > 0) *--sp = accu;
-     for i = 0..nvars-1: field(accu, i+2) = sp[i];
-     sp += nvars;
-   So the first capture (field 2) is the acc at closure time; captures
-   1..nvars-1 come from the OCaml stack, top-first. After the instruction
-   the captured stack slots are consumed, and acc is the closure.
+(* CLOSURE / CLOSUREREC: allocate a fresh [Closure_<name>] instance whose
+   constructor takes the captures. The result flows as a JVM reference (the
+   new instance is on the op stack).
 
-   Our scheme: emit an [emit_push state] to stash acc into a fresh JVM
-   local, then the top nvars OCaml-stack slots are exactly our captures
-   (their JVM locals, in top-first order, give field-order). *)
+   OCaml semantics for nvars > 0: [field(closure, 2..) = sp[0..nvars-1]]
+   with the implicit [sp.push(acc)] at the start. The first capture is
+   therefore acc at closure-creation time; the rest come from the top N-1
+   OCaml-stack slots in top-first order. *)
 let emit_closure_creation state (fn_info : function_info) ~nvars ~is_rec =
   let captures =
     if nvars = 0
@@ -674,10 +696,6 @@ let emit_closure_creation state (fn_info : function_info) ~nvars ~is_rec =
       pop_slots state nvars;
       caps)
   in
-  (* Record the capture kinds on the function_info so the later pass that
-     emits its body can use them to generate the correct descriptor and
-     ENVACC load opcodes. If captures have been seen already (a function
-     whose closure is created at multiple sites), require consistency. *)
   let collected_kinds = List.map snd captures in
   (match !(fn_info.capture_kinds) with
    | [] -> fn_info.capture_kinds := collected_kinds
@@ -697,15 +715,26 @@ let emit_closure_creation state (fn_info : function_info) ~nvars ~is_rec =
           "java_of_ocaml: inconsistent capture kinds for function %s"
           fn_info.name));
   let cref = { name = fn_info.name; captures } in
-  overwrite_acc
-    state
-    (K_closure cref)
-    (fun () -> Jvm.Code.ldc_int state.code 0);
+  (* Pop any stale acc, allocate instance, invoke constructor with capture
+     values in field order. *)
+  if state.acc_live then Jvm.Code.pop_top state.code;
+  Jvm.Code.new_ state.code fn_info.name;
+  Jvm.Code.dup state.code;
+  List.iter
+    (fun (local, kind) -> emit_load_for_kind state.code local kind)
+    captures;
+  Jvm.Code.invokespecial
+    state.code
+    ~class_:fn_info.name
+    ~method_:"<init>"
+    ~descriptor:(ctor_descriptor_for_captures collected_kinds);
+  state.acc_live <- true;
+  state.acc_kind <- K_closure cref;
   if is_rec
   then (
     let local = allocate_local state in
     Jvm.Code.dup state.code;
-    Jvm.Code.istore state.code local;
+    Jvm.Code.astore state.code local;
     push_slot state state.acc_kind local)
 
 let emit_closure state (ins : instr) =
@@ -894,38 +923,46 @@ let emit_array_set state =
    are loaded from the JVM locals the closure recorded when it was created,
    each using its kind's corresponding load opcode. We emit captures first,
    then args, then invokestatic. *)
-let descriptor_of_capture_and_arg_kinds cap_kinds nargs =
-  let buf = Buffer.create 8 in
+(* APPLY: acc holds a [Closure] subclass instance. We need to call
+   [acc.applyN(arg0, arg1, ...)] where each arg is boxed to [Object].
+   Small arities (1/2/3) use the [applyN] overloads on [Closure]. *)
+
+let apply_descriptor_for_nargs nargs =
+  let buf = Buffer.create 16 in
   Buffer.add_char buf '(';
-  List.iter (fun k -> Buffer.add_string buf (jvm_type_of_kind k)) cap_kinds;
   for _ = 1 to nargs do
-    Buffer.add_char buf 'I'
+    Buffer.add_string buf "Ljava/lang/Object;"
   done;
-  Buffer.add_char buf ')';
-  Buffer.add_char buf 'I';
+  Buffer.add_string buf ")Ljava/lang/Object;";
   Buffer.contents buf
 
-let emit_apply state ~nargs =
+(* Emit the invokevirtual for an APPLY. Leaves the callee's result as an
+   [Object] reference on the JVM op stack, consumes the arg slots, and
+   updates state accordingly. Does not touch the result's boxedness. *)
+let emit_apply_invoke state ~nargs =
   match state.acc_kind with
-  | K_closure { name; captures } ->
-    if state.acc_live then Jvm.Code.pop_top state.code;
-    List.iter
-      (fun (local, kind) -> emit_load_for_kind state.code local kind)
-      captures;
+  | K_closure _ ->
     for k = 0 to nargs - 1 do
       let slot = stack_slot_local ~state k in
-      Jvm.Code.iload state.code slot
+      let sk = (List.nth state.slots k).kind in
+      emit_load_for_kind state.code slot sk;
+      box_if_int state.code sk
     done;
-    let cap_kinds = List.map snd captures in
-    let desc = descriptor_of_capture_and_arg_kinds cap_kinds nargs in
-    Jvm.Code.invokestatic
+    if nargs > 3
+    then
+      failwith
+        (Printf.sprintf
+           "java_of_ocaml: APPLY%d — the base Closure class only has \
+            apply1/2/3 dispatch right now; higher-arity applies aren't \
+            supported yet"
+           nargs);
+    Jvm.Code.invokevirtual
       state.code
-      ~class_:"Main"
-      ~method_:name
-      ~descriptor:desc;
+      ~class_:"Closure"
+      ~method_:(Printf.sprintf "apply%d" nargs)
+      ~descriptor:(apply_descriptor_for_nargs nargs);
     pop_slots state nargs;
-    state.acc_live <- true;
-    state.acc_kind <- K_int
+    state.acc_live <- true
   | K_int | K_block _ ->
     failwith
       (Printf.sprintf
@@ -933,22 +970,43 @@ let emit_apply state ~nargs =
           analysis lost the tag?"
          nargs)
 
+(* Regular APPLY: invoke then unbox to int (we assume an int return; see
+   the note on return-kind inference above). *)
+let emit_apply state ~nargs =
+  emit_apply_invoke state ~nargs;
+  emit_unbox_to_kind state.code K_int;
+  state.acc_kind <- K_int
+
 let emit_apply1 state = emit_apply state ~nargs:1
 
-(* APPTERM_N: tail call — same as APPLY followed by return. Since our
-   method is about to return anyway, drop-slots (S) is a no-op for us. *)
+(* APPTERM_N: tail call — same as APPLY followed by return. Because the
+   callee's result and our method's return type are both [Object], we
+   don't unbox; we pass the Object straight to areturn. *)
 let emit_appterm state ~nargs =
-  emit_apply state ~nargs;
-  Jvm.Code.ireturn state.code;
+  emit_apply_invoke state ~nargs;
+  Jvm.Code.areturn state.code;
   state.acc_live <- false;
   state.acc_kind <- K_int;
   state.oc_stack_depth <- 0;
   state.slots <- []
 
+(* Box acc's value into an Object on the JVM op stack, so it can be used as
+   the [Object] return from an [apply] method or as a capture argument. *)
+let box_acc_to_object state =
+  match state.acc_kind with
+  | K_int -> emit_box_int state.code
+  | K_block _ | K_closure _ -> () (* already a reference *)
+
 let emit_return state =
-  (* We discard the OCaml frame's stack depth — the JVM method's locals are
-     all dead once we return. Just emit ireturn. *)
-  Jvm.Code.ireturn state.code;
+  (* We're returning from a JVM [apply] method whose signature returns
+     [Object]. If acc is already on the stack, box (if int) and areturn;
+     otherwise materialise a unit and return that. *)
+  if state.acc_live
+  then box_acc_to_object state
+  else (
+    Jvm.Code.ldc_int state.code 0;
+    emit_box_int state.code);
+  Jvm.Code.areturn state.code;
   state.acc_live <- false;
   state.acc_kind <- K_int;
   state.oc_stack_depth <- 0;
@@ -1670,35 +1728,85 @@ let compile ~bc ~out_dir =
     ; code = main_code
     }
   in
-  (* Now emit each function body, using the [capture_kinds] populated by
-     main's CLOSURE/CLOSUREREC emissions. *)
-  let fn_methods =
+  let main_class_bytes =
+    Jvm.assemble_class
+      ~class_name:"Main"
+      ~super_name:"java/lang/Object"
+      ~cp
+      ~fields:[]
+      ~methods:[ main_method ]
+      ~access_flags:0x0021 (* ACC_PUBLIC | ACC_SUPER *)
+  in
+  (* Now emit each function as its own concrete [Closure] subclass. Each
+     closure class has:
+       - one instance field per capture, named [capN] (field order).
+       - a constructor taking the captures as args, assigning them to the
+         fields after calling [Closure.<init>()].
+       - an [applyN] method whose body is the OCaml function's bytecode,
+         with a prologue that unboxes [K_int] args from their [Object]
+         parameters, and RETURN/APPTERM that box the result before
+         [areturn]. *)
+  let closure_class_files =
     List.map
-      (fun fn_info ->
-        let fn_code = Jvm.Code.create cp in
+      (fun (fn_info : function_info) ->
+        let cap_kinds = !(fn_info.capture_kinds) in
+        let ncaps = List.length cap_kinds in
+        let fn_cp = Jvm.Cp.create () in
+        (* --- Constructor --- *)
+        let ctor_code = Jvm.Code.create fn_cp in
+        Jvm.Code.set_min_locals ctor_code (1 + ncaps);
+        Jvm.Code.aload ctor_code 0;
+        Jvm.Code.invokespecial
+          ctor_code
+          ~class_:"Closure"
+          ~method_:"<init>"
+          ~descriptor:"()V";
+        List.iteri
+          (fun i k ->
+            Jvm.Code.aload ctor_code 0;
+            emit_load_for_kind ctor_code (i + 1) k;
+            Jvm.Code.putfield
+              ctor_code
+              ~class_:fn_info.name
+              ~field:(Printf.sprintf "cap%d" i)
+              ~descriptor:(jvm_type_of_kind k))
+          cap_kinds;
+        Jvm.Code.return_void ctor_code;
+        (* --- apply method body --- *)
+        let apply_code = Jvm.Code.create fn_cp in
+        (* Reserve max_locals: [this] + N args. *)
+        Jvm.Code.set_min_locals apply_code (1 + fn_info.nargs);
+        (* Prologue: unbox each int arg, replacing the Object in its local
+           with a primitive int. *)
+        for i = 1 to fn_info.nargs do
+          Jvm.Code.aload apply_code i;
+          emit_unbox_to_kind apply_code K_int;
+          Jvm.Code.istore apply_code i
+        done;
+        (* Set up state for the body. Args are at JVM locals 1..N (local 0
+           is [this]). OCaml's calling convention puts the first source-
+           order arg on the TOP of the stack (slot 0 from top). So slot 0
+           from top = first source arg = JVM local 1; slot k from top =
+           JVM local (k + 1). Our [state.slots] is in top-first order. *)
+        let initial_slots =
+          let rec make k =
+            if k >= fn_info.nargs
+            then []
+            else { kind = K_int; local = k + 1 } :: make (k + 1)
+          in
+          make 0
+        in
         let pc_to_label =
           collect_pc_to_label
-            fn_code
+            apply_code
             ~arr
             ~scan_range:(fn_info.body_start_idx, fn_info.body_end_idx)
             ~target_range:
               (arr.(fn_info.body_start_idx).pc, arr.(fn_info.body_end_idx).pc)
             ~skip_pcs:(Hashtbl.create 0)
         in
-        let initial_slots =
-          let rec make i =
-            if i >= fn_info.nargs
-            then []
-            else { kind = K_int; local = fn_info.ncaps + i } :: make (i + 1)
-          in
-          make 0
-        in
-        (* Reserve max_locals for the declared parameters even if the body
-           doesn't touch all of them (otherwise the JVM class-format loader
-           rejects the method with "Arguments can't fit into locals"). *)
-        Jvm.Code.set_min_locals fn_code (fn_info.ncaps + fn_info.nargs);
         let state =
-          { code = fn_code
+          { code = apply_code
           ; globals = parsed.globals
           ; supported_prims = prim_table
           ; functions
@@ -1708,11 +1816,11 @@ let compile ~bc ~out_dir =
           ; acc_kind = K_int
           ; slots = initial_slots
           ; oc_stack_depth = fn_info.nargs
-          ; next_local = fn_info.ncaps + fn_info.nargs
+          ; next_local = 1 + fn_info.nargs
           ; pending_cmp = None
           ; nargs = fn_info.nargs
-          ; ncaps = fn_info.ncaps
-          ; capture_kinds = !(fn_info.capture_kinds)
+          ; ncaps
+          ; capture_kinds = cap_kinds
           ; enclosing_function_name = Some fn_info.name
           }
         in
@@ -1721,26 +1829,40 @@ let compile ~bc ~out_dir =
           arr
           (fn_info.body_start_idx, fn_info.body_end_idx)
           ~skip_pcs:(Hashtbl.create 0);
-        let desc =
-          descriptor_of_capture_and_arg_kinds
-            !(fn_info.capture_kinds)
-            fn_info.nargs
+        let fields =
+          List.mapi
+            (fun i k ->
+              { Jvm.name = Printf.sprintf "cap%d" i
+              ; descriptor = jvm_type_of_kind k
+              ; access_flags = 0x0011 (* ACC_PUBLIC | ACC_FINAL *)
+              })
+            cap_kinds
         in
-        { Jvm.name = fn_info.name
-        ; descriptor = desc
-        ; access_flags = 0x000A (* ACC_PRIVATE | ACC_STATIC *)
-        ; code = fn_code
-        })
+        let ctor =
+          { Jvm.name = "<init>"
+          ; descriptor = ctor_descriptor_for_captures cap_kinds
+          ; access_flags = 0x0001 (* ACC_PUBLIC *)
+          ; code = ctor_code
+          }
+        in
+        let apply_method =
+          { Jvm.name = Printf.sprintf "apply%d" fn_info.nargs
+          ; descriptor = apply_descriptor_for_nargs fn_info.nargs
+          ; access_flags = 0x0001 (* ACC_PUBLIC *)
+          ; code = apply_code
+          }
+        in
+        let bytes =
+          Jvm.assemble_class
+            ~class_name:fn_info.name
+            ~super_name:"Closure"
+            ~cp:fn_cp
+            ~fields
+            ~methods:[ ctor; apply_method ]
+            ~access_flags:0x0031 (* ACC_PUBLIC | ACC_SUPER | ACC_FINAL *)
+        in
+        fn_info.name, bytes)
       !func_list
-  in
-  let class_bytes =
-    Jvm.assemble_class
-      ~class_name:"Main"
-      ~super_name:"java/lang/Object"
-      ~cp
-      ~fields:[]
-      ~methods:(main_method :: fn_methods)
-      ~access_flags:0x0021 (* ACC_PUBLIC | ACC_SUPER *)
   in
   let write_class name bytes =
     let path = Filename.concat out_dir (name ^ ".class") in
@@ -1748,5 +1870,7 @@ let compile ~bc ~out_dir =
     output_string oc bytes;
     close_out oc
   in
-  write_class "Main" class_bytes;
-  write_class "Block" (Jvm.block_class_bytes ())
+  write_class "Main" main_class_bytes;
+  write_class "Block" (Jvm.block_class_bytes ());
+  write_class "Closure" (Jvm.closure_class_bytes ());
+  List.iter (fun (name, bytes) -> write_class name bytes) closure_class_files

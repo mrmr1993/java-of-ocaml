@@ -442,6 +442,10 @@ module Code = struct
     add_u1 t.buf 0xAC (* ireturn *);
     t.stack <- 0
 
+  let areturn t =
+    add_u1 t.buf 0xB0 (* areturn *);
+    t.stack <- 0
+
   (* Resolve all forward references: for each label, patch the placeholder
      u2 at (branch_pc+1, branch_pc+2) with the signed 16-bit offset
      (target_pc - branch_pc). Buffers aren't mutable in place, so we convert
@@ -575,9 +579,12 @@ let assemble_class
   let out = Buffer.create 512 in
   add_u4 out 0xCAFEBABE;
   add_u2 out 0 (* minor_version *);
-  add_u2 out 50 (* major_version = Java 6.
-                   Lets the verifier fall back to type inference so we can
-                   emit branches without StackMapTable attributes. *);
+  add_u2 out 49 (* major_version = Java 5.
+                   Modern JVMs apply type-inference verification to
+                   major_version <= 49 class files; 50 is borderline and
+                   can fall back but newer JDKs are strict. Using 49 is
+                   the reliable way to avoid emitting StackMapTable
+                   attributes for now. *);
   add_u2 out (Cp.count cp + 1);
   Buffer.add_string out (Cp.contents cp);
   add_u2 out access_flags;
@@ -622,6 +629,84 @@ let assemble_main_class build =
      }
 
    Generated at class-writing time so it can ship alongside Main.class. *)
+
+(* -------------------------------------------------------------------------- *)
+(* Closure base class
+
+     public class Closure {
+         public Closure() { super(); }
+         public Object apply1(Object a1) { throw new RuntimeException(...); }
+         public Object apply2(Object a1, Object a2) { throw ...; }
+         public Object apply3(Object a1, Object a2, Object a3) { throw ...; }
+     }
+
+   OCaml functions are compiled to subclasses that override the apply
+   method matching their arity. *)
+
+let closure_class_bytes () =
+  let cp = Cp.create () in
+  (* <init>() — just calls Object.<init>. *)
+  let ctor = Code.create cp in
+  Code.set_min_locals ctor 1;
+  Code.aload ctor 0;
+  Code.invokespecial
+    ctor
+    ~class_:"java/lang/Object"
+    ~method_:"<init>"
+    ~descriptor:"()V";
+  Code.return_void ctor;
+  (* Throwing-body helper: builds a method that does
+       new RuntimeException("arity mismatch");
+       athrow
+     with enough locals for the declared args. *)
+  let throw_body ~nargs =
+    let body = Code.create cp in
+    Code.set_min_locals body (1 + nargs);
+    (* Push throw-message + throw. We use String constant via ldc. *)
+    Code.new_ body "java/lang/RuntimeException";
+    Code.dup body;
+    Code.ldc_string body "closure arity mismatch";
+    Code.invokespecial
+      body
+      ~class_:"java/lang/RuntimeException"
+      ~method_:"<init>"
+      ~descriptor:"(Ljava/lang/String;)V";
+    (* Stack: [..., exception]. athrow (0xBF). *)
+    add_u1 body.buf 0xBF;
+    body
+  in
+  let make_apply n =
+    let desc =
+      let buf = Buffer.create 16 in
+      Buffer.add_char buf '(';
+      for _ = 1 to n do
+        Buffer.add_string buf "Ljava/lang/Object;"
+      done;
+      Buffer.add_string buf ")Ljava/lang/Object;";
+      Buffer.contents buf
+    in
+    { name = Printf.sprintf "apply%d" n
+    ; descriptor = desc
+    ; access_flags = 0x0001 (* ACC_PUBLIC *)
+    ; code = throw_body ~nargs:n
+    }
+  in
+  assemble_class
+    ~class_name:"Closure"
+    ~super_name:"java/lang/Object"
+    ~cp
+    ~fields:[]
+    ~methods:
+      [ { name = "<init>"
+        ; descriptor = "()V"
+        ; access_flags = 0x0001
+        ; code = ctor
+        }
+      ; make_apply 1
+      ; make_apply 2
+      ; make_apply 3
+      ]
+    ~access_flags:0x0021 (* ACC_PUBLIC | ACC_SUPER *)
 
 let block_class_bytes () =
   let cp = Cp.create () in
