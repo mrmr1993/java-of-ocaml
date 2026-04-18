@@ -1,0 +1,130 @@
+(** Structural IR for bytecode-to-JVM compilation.
+
+    Adapted from [js_of_ocaml/compiler/lib/code.ml]. Each OCaml function
+    body (and the top-level init code) compiles to a [program]: a graph
+    of basic blocks keyed by bytecode address. Blocks have explicit
+    [params] at entry (values that every incoming edge must supply),
+    straight-line [body] of [instr]s, and a terminator [branch] that
+    fans out to zero or more continuations.
+
+    SSA-lite: [Let (x, e)] binds a fresh [Var.t]; [Assign (x, y)] copies
+    one var's current value into another (used only for OCaml's ASSIGN
+    bytecode, which updates a slot shared across exception handlers).
+
+    Not ported from jsoo: CPS/effects (Special), Event debug info,
+    native-string distinction, typed constants (Int32/Int64/NativeInt),
+    fold_closures traversal helpers. Add as needed. *)
+
+module Addr : sig
+  type t = int
+
+  val zero : t
+  val succ : t -> t
+  val to_string : t -> string
+
+  module Map : Map.S with type key = t
+  module Set : Set.S with type elt = t
+end
+
+module Var : sig
+  type t
+
+  val fresh : unit -> t
+  val fresh_n : string -> t
+  val idx : t -> int
+  val equal : t -> t -> bool
+  val compare : t -> t -> int
+  val print : Format.formatter -> t -> unit
+  val get_name : t -> string option
+  val reset : unit -> unit
+  val count : unit -> int
+
+  module Map : Map.S with type key = t
+  module Set : Set.S with type elt = t
+  module Hashtbl : Hashtbl.S with type key = t
+end
+
+type cont = Addr.t * Var.t list
+
+type constant =
+  | Int of int
+  | Float of float
+  | String of string
+  | Block of int * constant array
+  | Null
+
+type prim =
+  | Vectlength
+  | Array_get
+  | Not
+  | IsInt
+  | Eq
+  | Neq
+  | Lt
+  | Le
+  | Gt
+  | Ge
+  | Ult
+  | Uge
+  | Extern of string
+
+type prim_arg =
+  | Pv of Var.t
+  | Pc of constant
+
+type expr =
+  | Apply of { f : Var.t; args : Var.t list; exact : bool }
+  | Block of int * Var.t array
+  | Field of Var.t * int
+  | Closure of Var.t list * cont
+      (** [Closure (params, (body_addr, body_args))] allocates a closure
+          whose body starts at [body_addr] and which captures are the
+          free variables referenced in the body (materialised as the
+          block's env: fields 2..n of the closure record in OCaml). *)
+  | Constant of constant
+  | Prim of prim * prim_arg list
+
+type instr =
+  | Let of Var.t * expr
+  | Assign of Var.t * Var.t
+  | Set_field of Var.t * int * Var.t
+  | Offset_ref of Var.t * int
+  | Array_set of Var.t * Var.t * Var.t
+
+type last =
+  | Return of Var.t
+  | Raise of Var.t
+  | Stop
+  | Branch of cont
+  | Cond of Var.t * cont * cont
+  | Switch of Var.t * cont array
+  | Pushtrap of cont * Var.t * cont
+      (** [Pushtrap (body, exn_var, handler)] — protected region is
+          [body]; if a CamlException is raised inside, [exn_var] binds
+          the raised value and control transfers to [handler]. *)
+  | Poptrap of cont
+
+type block =
+  { params : Var.t list
+  ; body : instr list
+  ; branch : last
+  }
+
+type program =
+  { start : Addr.t
+  ; blocks : block Addr.Map.t
+  ; free_pc : Addr.t
+  }
+
+module Print : sig
+  val constant : Format.formatter -> constant -> unit
+  val expr : Format.formatter -> expr -> unit
+  val instr : Format.formatter -> instr -> unit
+  val last : Format.formatter -> last -> unit
+  val cont : Format.formatter -> cont -> unit
+  val block : Format.formatter -> Addr.t -> block -> unit
+  val program : Format.formatter -> program -> unit
+end
+
+val fold_children : program -> Addr.t -> (Addr.t -> 'a -> 'a) -> 'a -> 'a
+(** Fold over the immediate successors of the block at [addr]. *)
