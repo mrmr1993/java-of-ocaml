@@ -37,9 +37,20 @@ type function_info =
 
 module Int_set : Set.S with type elt = int
 
-val find_function_body_range : Instr.instr array -> int -> int * int * int
+val find_function_body_range
+  :  Instr.instr array
+  -> ?pc_upper_bound:int
+  -> int
+  -> int * int * int
 (** [find_function_body_range arr body_pc] locates the function whose
     body begins at bytecode [body_pc] and returns its
     [(body_start_idx, body_end_idx, nargs)] in [arr]. The start index
     skips a leading RESTART / GRAB entry sequence; [nargs] is decoded
-    from the GRAB if present, or [1] otherwise. *)
+    from the GRAB if present, or [1] otherwise.
+
+    [pc_upper_bound] caps the walk: an instruction at that PC or
+    beyond is treated as outside this function's body. Useful when
+    the next sibling function's [body_pc] is known, since OCaml's
+    bytecode sometimes has forward branch targets that point past
+    the natural terminator and would otherwise lead the walker to
+    keep consuming sibling bodies. *)

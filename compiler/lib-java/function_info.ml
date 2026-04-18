@@ -19,7 +19,7 @@ type function_info =
 
 module Int_set = Set.Make (Int)
 
-let find_function_body_range arr body_pc =
+let find_function_body_range arr ?(pc_upper_bound = max_int) body_pc =
   let n = Array.length arr in
   let start_idx = ref (-1) in
   for i = 0 to n - 1 do
@@ -41,12 +41,14 @@ let find_function_body_range arr body_pc =
   let outstanding = ref Int_set.empty in
   let last_terminator = ref (-1) in
   let rec loop i =
-    if i >= n
+    if i >= n || arr.(i).pc >= pc_upper_bound
     then
-      (* Ran off the end — probably a backward branch target from
-         inside a nested function we accidentally absorbed. Fall
-         back to the last terminator we saw; assert at least one
-         exists. *)
+      (* Walker reached end of code or crossed into the next
+         function's body. Anything outstanding now is a branch
+         target beyond the natural end of this function (typical
+         pattern: forward branch to post-group cleanup that was
+         emitted inside a sibling's body). Fall back to the last
+         terminator we saw; assert at least one exists. *)
       if !last_terminator >= !real_start
       then !last_terminator
       else

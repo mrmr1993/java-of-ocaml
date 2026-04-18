@@ -7,6 +7,7 @@ open State
 let debug_times = Debug.find "times"
 let debug_primitives = Debug.find "primitives"
 let debug_functions = Debug.find "functions"
+let debug_labels = Debug.find "labels"
 
 let time_phase name f =
   if not (debug_times ())
@@ -28,6 +29,7 @@ let collect_pc_to_label
     ~skip_pcs
   =
   let tbl = Hashtbl.create 4 in
+  let debug_labels = Debug.find "labels" in
   for i = scan_lo to scan_hi do
     if not (Hashtbl.mem skip_pcs arr.(i).pc)
     then
@@ -36,7 +38,17 @@ let collect_pc_to_label
           if target_pc >= tgt_lo_pc
              && target_pc <= tgt_hi_pc
              && not (Hashtbl.mem tbl target_pc)
-          then Hashtbl.add tbl target_pc (Jvm.Code.fresh_label code))
+          then (
+            let lbl = Jvm.Code.fresh_label code in
+            if debug_labels ()
+            then
+              Format.eprintf
+                "[label] id=%d target_pc=%d from_pc=%d (%s)@."
+                (Jvm.Code.label_id lbl)
+                target_pc
+                arr.(i).pc
+                (Bytecode.opcode_name arr.(i).opcode);
+            Hashtbl.add tbl target_pc lbl))
         (branch_targets arr.(i))
   done;
   tbl
@@ -159,6 +171,35 @@ let compile ~bc ~out_dir =
   let fn_body_pcs = Hashtbl.create 64 in
   let fn_count = ref 0 in
   let fn_scan_timer = if debug_times () then Some (Timer.make ()) else None in
+  (* First pass: collect every function body_pc up front, so when we
+     compute body ranges below we can bound each one by the next
+     function's body_pc. Without this bound the range-walker can
+     consume sibling bodies whole whenever a forward branch points
+     past the natural terminator. *)
+  let all_body_pcs = ref [] in
+  for i = start_idx to end_idx do
+    let ins = arr.(i) in
+    if ins.opcode = closurerec_op
+    then (
+      let nf = ins.args.(0) in
+      for k = 0 to nf - 1 do
+        all_body_pcs := (ins.pc + 3 + ins.args.(2 + k)) :: !all_body_pcs
+      done)
+    else if ins.opcode = closure_op
+    then all_body_pcs := (ins.pc + ins.args.(1) + 2) :: !all_body_pcs
+  done;
+  let sorted_body_pcs =
+    List.sort_uniq compare !all_body_pcs |> Array.of_list
+  in
+  let pc_upper_bound_after pc =
+    let n = Array.length sorted_body_pcs in
+    let rec find i =
+      if i >= n then max_int
+      else if sorted_body_pcs.(i) > pc then sorted_body_pcs.(i)
+      else find (i + 1)
+    in
+    find 0
+  in
   for i = start_idx to end_idx do
     let ins = arr.(i) in
     if ins.opcode = closurerec_op || ins.opcode = closure_op
@@ -177,8 +218,9 @@ let compile ~bc ~out_dir =
       let group = Array.make nfuncs (Obj.magic () : function_info) in
       for k = 0 to nfuncs - 1 do
         let body_pc = body_pc_of k in
+        let pc_upper_bound = pc_upper_bound_after body_pc in
         let body_start_idx, body_end_idx, nargs =
-          find_function_body_range arr body_pc
+          find_function_body_range arr ~pc_upper_bound body_pc
         in
         let name = Printf.sprintf "ocaml_fn_%d" !fn_count in
         incr fn_count;
@@ -293,6 +335,12 @@ let compile ~bc ~out_dir =
         ; last_was_terminator = true
     }
   in
+  if debug_labels ()
+  then
+    Hashtbl.iter
+      (fun pc lbl ->
+        Format.eprintf "[main] label_id=%d at pc=%d@." (Jvm.Code.label_id lbl) pc)
+      pc_to_label;
   time_phase "emit-main" (fun () ->
     emit_range state arr (start_idx, end_idx) ~skip_pcs:fn_body_pcs;
     (match Hashtbl.find_opt pc_to_label post_end_pc with

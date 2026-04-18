@@ -10,6 +10,10 @@ val create : Jvm_constant_pool.t -> t
 
 val fresh_label : t -> label
 
+val label_id : label -> int
+(** Monotonically-increasing id, stable across the method body.
+    Useful for debug prints correlating labels to PCs. *)
+
 val mark_label : t -> label -> unit
 
 val set_min_locals : t -> int -> unit

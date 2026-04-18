@@ -88,6 +88,8 @@ let note_local t index =
 
 let set_min_locals t n = if n > t.max_locals then t.max_locals <- n
 
+let label_id lbl = lbl.id
+
 let fresh_label t =
   let lbl = { target = None; refs = []; id = t.next_label_id } in
   t.next_label_id <- t.next_label_id + 1;

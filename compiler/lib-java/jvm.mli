@@ -44,6 +44,8 @@ module Code : sig
 
   val fresh_label : t -> label
 
+  val label_id : label -> int
+
   val mark_label : t -> label -> unit
 
   val set_min_locals : t -> int -> unit
