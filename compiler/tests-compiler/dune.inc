@@ -1,5 +1,29 @@
 
 (library
+ ;; compiler/tests-compiler/arithmetic.ml
+ (name arithmetic_15)
+ (enabled_if true)
+ (modules arithmetic)
+ (libraries unix str java_of_ocaml_expect_tests_helper)
+ (inline_tests
+  (enabled_if true))
+ (flags (:standard -open Java_of_ocaml_expect_tests_helper))
+ (preprocess
+  (pps ppx_expect)))
+
+(library
+ ;; compiler/tests-compiler/bytecode_smoke.ml
+ (name bytecode_smoke_15)
+ (enabled_if true)
+ (modules bytecode_smoke)
+ (libraries unix str java_of_ocaml_expect_tests_helper)
+ (inline_tests
+  (enabled_if true))
+ (flags (:standard -open Java_of_ocaml_expect_tests_helper))
+ (preprocess
+  (pps ppx_expect)))
+
+(library
  ;; compiler/tests-compiler/corecursion.ml
  (name corecursion_15)
  (enabled_if true)
@@ -12,10 +36,34 @@
   (pps ppx_expect)))
 
 (library
- ;; compiler/tests-compiler/end_to_end.ml
- (name end_to_end_15)
+ ;; compiler/tests-compiler/exceptions.ml
+ (name exceptions_15)
  (enabled_if true)
- (modules end_to_end)
+ (modules exceptions)
+ (libraries unix str java_of_ocaml_expect_tests_helper)
+ (inline_tests
+  (enabled_if true))
+ (flags (:standard -open Java_of_ocaml_expect_tests_helper))
+ (preprocess
+  (pps ppx_expect)))
+
+(library
+ ;; compiler/tests-compiler/extensible.ml
+ (name extensible_15)
+ (enabled_if true)
+ (modules extensible)
+ (libraries unix str java_of_ocaml_expect_tests_helper)
+ (inline_tests
+  (enabled_if true))
+ (flags (:standard -open Java_of_ocaml_expect_tests_helper))
+ (preprocess
+  (pps ppx_expect)))
+
+(library
+ ;; compiler/tests-compiler/functions.ml
+ (name functions_15)
+ (enabled_if true)
+ (modules functions)
  (libraries unix str java_of_ocaml_expect_tests_helper)
  (inline_tests
   (enabled_if true))
@@ -64,6 +112,66 @@
  (name modules_15)
  (enabled_if true)
  (modules modules)
+ (libraries unix str java_of_ocaml_expect_tests_helper)
+ (inline_tests
+  (enabled_if true))
+ (flags (:standard -open Java_of_ocaml_expect_tests_helper))
+ (preprocess
+  (pps ppx_expect)))
+
+(library
+ ;; compiler/tests-compiler/records.ml
+ (name records_15)
+ (enabled_if true)
+ (modules records)
+ (libraries unix str java_of_ocaml_expect_tests_helper)
+ (inline_tests
+  (enabled_if true))
+ (flags (:standard -open Java_of_ocaml_expect_tests_helper))
+ (preprocess
+  (pps ppx_expect)))
+
+(library
+ ;; compiler/tests-compiler/refs.ml
+ (name refs_15)
+ (enabled_if true)
+ (modules refs)
+ (libraries unix str java_of_ocaml_expect_tests_helper)
+ (inline_tests
+  (enabled_if true))
+ (flags (:standard -open Java_of_ocaml_expect_tests_helper))
+ (preprocess
+  (pps ppx_expect)))
+
+(library
+ ;; compiler/tests-compiler/strings.ml
+ (name strings_15)
+ (enabled_if true)
+ (modules strings)
+ (libraries unix str java_of_ocaml_expect_tests_helper)
+ (inline_tests
+  (enabled_if true))
+ (flags (:standard -open Java_of_ocaml_expect_tests_helper))
+ (preprocess
+  (pps ppx_expect)))
+
+(library
+ ;; compiler/tests-compiler/tuples_records_arrays.ml
+ (name tuples_records_arrays_15)
+ (enabled_if true)
+ (modules tuples_records_arrays)
+ (libraries unix str java_of_ocaml_expect_tests_helper)
+ (inline_tests
+  (enabled_if true))
+ (flags (:standard -open Java_of_ocaml_expect_tests_helper))
+ (preprocess
+  (pps ppx_expect)))
+
+(library
+ ;; compiler/tests-compiler/variants.ml
+ (name variants_15)
+ (enabled_if true)
+ (modules variants)
  (libraries unix str java_of_ocaml_expect_tests_helper)
  (inline_tests
   (enabled_if true))
