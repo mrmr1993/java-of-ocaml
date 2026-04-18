@@ -11,14 +11,10 @@ WebAssembly.
 
 The project uses a local opam switch with OCaml 5.3.0 and dune 3.17.
 
-### What's actually implemented
+### What's implemented
 
-The compiler is a real working compiler (not a scaffold). The
-end-to-end test suite in `compiler/tests-compiler/end_to_end.ml` has
-~99 tests each of the form "compile this OCaml program, run the
-resulting JVM output, assert the stdout matches". Every feature
-listed below is covered by at least one of those tests. `dune
-runtest` runs the whole thing.
+Every feature listed below is covered by at least one test under
+`compiler/tests-compiler/`. `dune runtest` runs the whole suite.
 
 Working:
 
@@ -37,17 +33,16 @@ Working:
 - **Modules** — structures, signatures, nested modules, aliases,
   `open` (top-level and local), functors (single-arg, multi-arg
   curried, generative `()`), `include`, `with type` and `with type
-  :=`, `module type of`, first-class modules. See "module-features
-  survey" tests in `end_to_end.ml`.
+  :=`, `module type of`, first-class modules.
 - **Recursive values** — `let rec a = A (b, b) and b = [|a; a; a|]`
   via `caml_alloc_dummy` / `caml_update_dummy`.
 
 Not yet supported:
 
 - No `Stdlib` — e.g. `print_endline`, `^`, `@`, `List.iter`, etc.
-  all fall back to Stdlib's compiled bytecode, which we don't
-  compile. Tests use custom C primitives
-  (`caml_java_print_int`, `caml_java_print_endline`) for output.
+  all fall back to Stdlib's compiled bytecode, which isn't compiled.
+  Tests use custom C primitives (`caml_java_print_int`,
+  `caml_java_print_endline`) for output.
 - `module rec` — OCaml lowers these via `CamlinternalMod`'s
   lazy-initialised placeholders.
 - `Lazy.t` / `lazy` / `Lazy.force`.
@@ -69,7 +64,7 @@ are for reference only.
 ```bash
 dune build @all                            # Build everything
 dune runtest                               # Run all tests (full suite)
-dune runtest compiler/tests-compiler       # The main ppx_expect end-to-end suite
+dune runtest compiler/tests-compiler       # The main ppx_expect suite
 dune runtest compiler/tests-java_of_ocaml  # Standalone executable tests (byte mode)
 dune runtest compiler/tests-full           # Library compilation tests
 dune promote                               # Accept test output changes
@@ -85,85 +80,124 @@ java -cp out_dir Main
 
 ## Repository layout
 
-- `compiler/lib-java/` — the compiler library (`java_of_ocaml_compiler`).
-    Modelled after jsoo's per-concern module discipline; each of the
-    following has a companion `.mli`:
+Each module under `compiler/lib-java/` has a companion `.mli`.
+
+- `compiler/lib-java/` — the compiler library
+  (`java_of_ocaml_compiler`).
+
+  Input & low-level emission:
     - `bytecode` — bytecode-executable reader. Decodes CODE, PRIM,
-      DATA, SYMB. `SYMB` parsing goes through `compiler-libs.bytecomp`'s
+      DATA, SYMB. SYMB parsing goes through `compiler-libs.bytecomp`'s
       `Symtable.global_map` (do NOT re-implement via `Obj` traversal —
-      user feedback asked specifically for compiler-libs here).
+      that route is fragile across OCaml versions and has been
+      explicitly ruled out).
     - `jvm_bin` / `jvm_constant_pool` / `jvm_code` / `jvm_class_file` —
-      low-level class-file construction. `jvm_bin` is the u1/u2/u4
-      buffer helpers; `jvm_constant_pool` is the `Cp` builder;
-      `jvm_code` is the method-body builder (labels, exception
-      entries, straight-line [push]/[pop] accounting); `jvm_class_file`
-      assembles a class from methods + fields + cp. `jvm.ml` is now a
-      thin shim re-exporting `Cp` / `Code` + the runtime accessors so
-      older callers see the same API.
-    - `jvm_runtime` — re-exports the four runtime-class byte blobs
-      produced by the Java sources under `runtime-java/`. See that
-      directory for the real Java source.
-    - `global_view` / `instr` / `kind` / `function_info` / `prim` /
-      `inference` / `state` — the compile-time passes extracted out of
-      the old monolithic `compile.ml`. `state` carries the mutable
-      emitter state (OCaml stack, JVM locals, pending cmp, pending
-      retaddrs, open traps, ...); `inference` runs the pre-passes that
-      populate `function_info.{return_kind,arg_kinds}`.
-    - `emit_stack` / `emit_arith` / `emit_branch` / `emit_apply` /
-      `emit_closure` / `emit_exception` / `emit_primitive` — per-topic
-      opcode emitters. Each takes `state` and emits into
-      `state.code`. `emit_stack` holds the core push / acc / pushacc /
-      constant primitives every other emitter composes with.
-    - `emit_instr` — the opcode dispatcher. For each decoded
-      [Instr.instr], it marks the JVM label at that PC (with a
-      CamlException-unwrap prelude if it's a try/with handler entry),
-      restores state from the branch snapshot, then dispatches to one
-      of the emit_* modules above, with a handful of small opcodes
-      emitted inline (MAKEBLOCK, GETFIELD, SETFIELD, VECTLENGTH,
-      OFFSETREF, BRANCH, BRANCH(IF/NOT), ASSIGN, BOOLNOT, POP, GETGLOBAL,
+      class-file construction. `jvm_bin` is the u1/u2/u4 buffer
+      helpers; `jvm_constant_pool` is the `Cp` builder; `jvm_code` is
+      the method-body builder (labels, exception entries, straight-
+      line push/pop accounting); `jvm_class_file` assembles a class
+      from methods + fields + cp.
+    - `jvm_runtime` — re-exports the runtime-class byte blobs compiled
+      from the Java sources under `runtime-java/`.
+
+  Analysis passes (pure on bytecode, populate metadata):
+    - `global_view` — Gv_* / G_* classification of `Obj.t` entries in
+      the DATA section (integers, strings, nested blocks).
+    - `instr` — decoded `instr = { pc; opcode; args }`, opcode
+      classification (`is_c_call`, `is_user_op`, …), branch-target
+      arithmetic.
+    - `kind` — `kind = K_int | K_string | K_block of kind list |
+      K_closure of closure_ref | K_obj` plus JVM descriptor / box /
+      unbox / load / store helpers.
+    - `function_info` — per-OCaml-function metadata (class name, pc
+      range, nargs, ncaps, inferred kinds, CLOSUREREC group pointer).
+    - `prim` — the registry of supported C primitives (`prim_handler`,
+      `prim_entry`, `find_supported_prims`).
+    - `inference` — pre-passes that walk the decoded bytecode once
+      each: user-range detection (`supported_call_indices`,
+      `walk_back_user_start`, `walk_forward_user_end`), return-kind /
+      arg-kind inference.
+    - `state` — mutable emitter state: OCaml-stack slots, acc
+      live/kind, JVM local allocator, pc→label map, branch-target
+      snapshots, pending cmp, pending retaddrs, open traps, etc.
+      Also hosts the `ensure_kind` / `box_acc_to_object` /
+      `overwrite_acc` / `allocate_local` / slot helpers every emitter
+      uses.
+
+  Emission (per-topic opcode handlers, all take `state`):
+    - `emit_stack` — PUSH, ACC{0..7,N}, PUSHACC{0..7,N}, CONST*,
+      PUSHCONST*, plus the block-constant materialiser used by
+      GETGLOBAL. The core push / acc primitives every other emitter
+      composes with.
+    - `emit_arith` — ADDINT / SUBINT / MULINT / DIVINT / MODINT /
+      OFFSETINT.
+    - `emit_branch` — cmp_of_opcode, BEQ/BNEQ/BLTINT/BLEINT/BGTINT/
+      BGEINT, BRANCHIF/NOT-on-K_obj, SWITCH, fused compare-and-branch.
+    - `emit_apply` — APPLY / APPLY1..3 / APPTERM / RETURN /
+      PUSH_RETADDR, plus the `apply_descriptor_for_nargs` helper.
+    - `emit_closure` — CLOSURE / CLOSUREREC, OFFSETCLOSURE{0,3,m3,N},
+      ENVACC, PUSHENVACC, and the shared closure-allocation /
+      sibling-resolution helpers.
+    - `emit_exception` — RAISE / PUSHTRAP / POPTRAP.
+    - `emit_primitive` — the C_CALL handlers
+      (`caml_java_print_{int,endline}`, `caml_array_{get,set}_addr`,
+      `caml_obj_dup`, `caml_fresh_oo_id`, `caml_alloc_dummy`,
+      `caml_update_dummy`) plus ISINT.
+    - `emit_instr` — the opcode dispatcher. Handles label marking
+      (with CamlException-unwrap prelude at try/with handler entry)
+      and branch-target state restoration, then dispatches to the
+      emit_* modules above. A handful of small opcodes are emitted
+      inline (MAKEBLOCK, GETFIELD, SETFIELD, VECTLENGTH, OFFSETREF,
+      BRANCH, BRANCH(IF/NOT), ASSIGN, BOOLNOT, POP, GETGLOBAL,
       PUSHGETGLOBAL).
-    - `compile.{ml,mli}` — the remaining compile driver. Locates the
-      user range via seed primitives (`caml_java_print_*`, array ops
-      — NOT `caml_fresh_oo_id`, which appears in Stdlib init), does the
-      CLOSURE/CLOSUREREC pre-scan, runs kind inference, builds the
-      initial state, calls `emit_instr` over each bytecode instruction
-      in turn, then generates one class file per OCaml function +
-      Main.class. Wires Debug/Timer for opt-in tracing. The `.mli` is
-      minimal (one `compile : bc:string -> out_dir:string -> unit`).
-    - `debug` / `timer` — opt-in per-pass tracing/timing. Enable via
-      `JAVA_OF_OCAML_DEBUG=times,primitives,functions`.
+
+  Driver:
+    - `compile.{ml,mli}` — the compile driver. Reads the bytecode,
+      locates the user range via seed primitives (`caml_java_print_*`,
+      array ops — NOT `caml_fresh_oo_id`, which also appears in Stdlib
+      init), runs the CLOSUREREC pre-scan, runs `Inference` to
+      populate function_info kinds, builds the initial State, calls
+      `Emit_instr.emit_instr` over each bytecode instruction, then
+      generates one class file per OCaml function plus `Main.class`.
+      Wires Debug/Timer for opt-in tracing.
+
+  Instrumentation:
+    - `debug` / `timer` — opt-in per-pass tracing/timing. Toggle via
+      `JAVA_OF_OCAML_DEBUG=times,primitives,functions,emit` (comma-
+      separated; any subset).
+
 - `compiler/bin-java_of_ocaml/` — the `java_of_ocaml.exe` CLI binary.
-- `runtime-java/` — hand-written Java sources for the runtime
-  classes (`Block.java`, `Closure.java`, `PartialClosure.java`,
-  `CamlException.java`). Compiled with `javac` at build time;
-  `embed_class_bytes.ml` reads the resulting `.class` files and
-  emits `runtime_bytes.ml`, which is exposed as the
-  `java_of_ocaml_runtime_bytes` library. `jvm_runtime` re-exports
+- `runtime-java/` — Java sources for the runtime classes
+  (`Block.java`, `Closure.java`, `PartialClosure.java`,
+  `CamlException.java`). `javac` compiles them, `embed_class_bytes.ml`
+  reads the resulting `.class` files and emits `runtime_bytes.ml` as
+  the `java_of_ocaml_runtime_bytes` library; `jvm_runtime` re-exports
   its four bindings. Editing the runtime means editing the Java
-  sources; `javac` will catch typos at build time.
+  sources — `javac` catches typos at build time.
 - `compiler/tests-compiler/` — ppx_expect tests, one file per topic
   (`arithmetic.ml`, `functions.ml`, `variants.ml`, `modules.ml`,
-  `exceptions.ml`, ...). Auto-discovered by `gen-rules/gen.ml` which
-  generates `dune.inc`. Run `dune promote` after adding new test
-  files. `emission_snapshots.ml` is a separate file for javap-based
-  disassembly snapshots.
+  `exceptions.ml`, `lists.ml`, `corecursion.ml`, `high_arity.ml`,
+  `gadts.ml`, `extensible.ml`, `records.ml`, `refs.ml`, `strings.ml`,
+  `tuples_records_arrays.ml`, `bytecode_smoke.ml`). Auto-discovered
+  by `gen-rules/gen.ml` which generates `dune.inc`. Run `dune
+  promote` after adding a new test file. `emission_snapshots.ml` is
+  a separate file for javap-based disassembly snapshots.
 - `compiler/tests-compiler/util/` — test helpers. Key functions:
   `compile_and_run s` (ocamlc → java_of_ocaml → java, prints stdout)
-  and `compile_and_javap s` (same pipeline, then runs `javap -c
-  Main.class` and prints the disassembly).
+  and `compile_and_javap s` (same pipeline, then `javap -c
+  Main.class`).
 - `compiler/tests-java_of_ocaml/` — standalone executable tests with
   `.expected` output files. `byte` mode only; a `java` mode is
   aspirational pending a real dune plugin.
 - `compiler/tests-full/` — library compilation tests. Currently
   mostly placeholder.
-- `docs/ALIGNMENT.md` — running index of structural/API alignments
-  with jsoo: done, open, deferred. Add notes there when a new
-  alignment opportunity surfaces.
+- `docs/ALIGNMENT.md` — index of deferred structural/API alignments
+  with jsoo. Add new items there rather than letting them slip.
 
 ## Kind-tracking model
 
-The compiler uses a small `kind` enum to track what each OCaml-stack
-slot or the accumulator holds at compile time, and where JVM `int`
+The `Kind` module's `kind` enum records what each OCaml-stack slot or
+the accumulator holds at compile time, and determines where JVM `int`
 boxing/unboxing needs to happen:
 
 ```ocaml
@@ -176,28 +210,28 @@ type kind =
 ```
 
 `K_obj` is the escape hatch. Apply-method parameters always arrive as
-`K_obj` (we don't do whole-program arg-kind inference) and get cast /
-unboxed via `ensure_kind state target` at each use. Return kinds are
-inferred by a pre-pass (`classify_return_kind_at`): K_int only for
-known int-producing ops (`CONST*`, arithmetic, comparisons, ...);
-K_obj for everything else (including `ACC` / `ENVACC` / `APPLY`).
+`K_obj` (there is no whole-program arg-kind inference) and get cast /
+unboxed via `State.ensure_kind state target` at each use. Return kinds
+are inferred by `Inference.infer_return_kind`: `K_int` only for known
+int-producing ops (`CONST*`, arithmetic, comparisons, …); `K_obj` for
+everything else (including `ACC` / `ENVACC` / `APPLY`).
 
 When a feature is failing with "APPLY called on a non-closure value"
 or "GETFIELD on non-block" — the likely cause is `ensure_kind` not
 being called on some new code path. Each pattern-matching branch,
-each opcode that reads acc, has to decide whether acc's current
-`kind` matches what it wants and unbox if not.
+each opcode that reads acc, has to decide whether acc's current kind
+matches what it wants and unbox if not.
 
 ## Stacks to be aware of
 
 1. **OCaml bytecode stack** — modeled by `state.slots`,
    `state.oc_stack_depth`. Each slot records a kind + the JVM local
    holding the pushed value.
-2. **JVM operand stack** — tracked by `jvm.ml`'s `push`/`pop`
-   accounting. Straight-line only — be careful with `dup` + `pop` on
-   paths after a `goto`.
-3. **The JVM local-variable table** — `state.next_local` is monotonic
-   (we never reuse locals across push/pop; closures capture by JVM
+2. **JVM operand stack** — tracked by `Jvm_code`'s internal
+   `push`/`pop` accounting. Straight-line only — be careful with
+   `dup` + `pop` on paths after a `goto`.
+3. **JVM local-variable table** — `state.next_local` is monotonic
+   (locals are never reused across push/pop; closures capture by JVM
    local, and reusing a local would clobber a live capture).
 
 ## JVM-specific considerations vs WASM
@@ -215,8 +249,8 @@ each opcode that reads acc, has to decide whether acc's current
   - closures → `Closure` subclasses (one class per source-level
     function).
 - Class files are emitted with Java major version 49 (Java 5). This
-  uses the old type-inference verifier; if we ever need the newer
-  strict verifier (Java 6+), we'll need to emit `StackMapTable`
+  uses the old type-inference verifier; moving to the stricter
+  verifier (Java 6+) would require emitting `StackMapTable`
   attributes.
 
 ## Reference code in the submodules
@@ -240,18 +274,19 @@ each opcode that reads acc, has to decide whether acc's current
   that explains the motivation (the "why"), not a mechanical list of
   edits. See `git log --oneline` for the pattern.
 - Test-first development — when asked for a new feature, add an
-  expect-test in `compiler/tests-compiler/end_to_end.ml` that
-  exercises it, watch it fail, then implement. Most features listed
-  above landed this way.
+  expect-test in the topic file under `compiler/tests-compiler/`
+  that exercises it (`variants.ml`, `exceptions.ml`, etc., or a new
+  topic file if none fits), watch it fail, then implement.
 - Don't reach for the opam compiler-libs internals beyond
   `Symtable.global_map` unless asked — `Obj` traversal of marshalled
-  compiler types is fragile across OCaml versions and the user has
-  explicitly steered us away from it.
+  compiler types is fragile across OCaml versions and has been
+  explicitly ruled out.
 
 ## Future alignment with js_of_ocaml
 
 Structural and API-level alignments with `js_of_ocaml`/`wasm_of_ocaml`
-that have been identified but deferred (typically because they depend on
-introducing an intermediate representation, or only pay off once the
-feature set demands it) are tracked in [`docs/ALIGNMENT.md`](docs/ALIGNMENT.md).
-Add newly spotted items there rather than letting them slip.
+that have been identified but deferred (typically because they depend
+on introducing an intermediate representation, or only pay off once
+the feature set demands it) are tracked in
+[`docs/ALIGNMENT.md`](docs/ALIGNMENT.md). Add newly spotted items
+there rather than letting them slip.
