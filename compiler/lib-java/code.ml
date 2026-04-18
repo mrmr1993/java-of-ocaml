@@ -79,7 +79,7 @@ type expr =
   | Apply of { f : Var.t; args : Var.t list; exact : bool }
   | Block of int * Var.t array
   | Field of Var.t * int
-  | Closure of Var.t list * cont
+  | Closure of { captures : Var.t list; body : cont }
   | Constant of constant
   | Prim of prim * prim_arg list
 
@@ -173,12 +173,12 @@ module Print = struct
         fields;
       Format.fprintf fmt "}"
     | Field (v, i) -> Format.fprintf fmt "%a[%d]" Var.print v i
-    | Closure (params, (addr, args)) ->
+    | Closure { captures; body = addr, args } ->
       Format.fprintf
         fmt
-        "closure(%a; -> %d(%a))"
+        "closure(captures=[%a]; -> %d(%a))"
         var_list
-        params
+        captures
         addr
         var_list
         args

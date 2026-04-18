@@ -42,23 +42,31 @@ let ir_smoke_function arr (fi : Function_info.function_info) =
         fi.name
         (Printexc.to_string exn))
 
-let ir_smoke_main arr =
+let ir_smoke_main arr ~fn_body_pcs =
   if not (debug_ir ())
   then ()
   else (
-    let instrs = Array.to_list arr in
-    let start_pc = arr.(0).pc in
-    let end_pc = arr.(Array.length arr - 1).pc + 1 in
-    try
-      let _prog = Parse_bytecode.parse_main instrs ~start_pc ~end_pc in
-      Format.eprintf "[ir] main: parsed ok@."
-    with
-    | Parse_bytecode.Not_supported msg ->
-      Format.eprintf "[ir] main: Not_supported — %s@." msg
-    | exn ->
-      Format.eprintf
-        "[ir] main: unexpected exception — %s@."
-        (Printexc.to_string exn))
+    let instrs =
+      Array.to_list arr
+      |> List.filter (fun (ins : Instr.instr) ->
+           not (Hashtbl.mem fn_body_pcs ins.pc))
+    in
+    match instrs with
+    | [] -> ()
+    | first :: _ ->
+      let start_pc = first.pc in
+      let last = List.nth instrs (List.length instrs - 1) in
+      let end_pc = last.pc + 1 in
+      (try
+         let _prog = Parse_bytecode.parse_main instrs ~start_pc ~end_pc in
+         Format.eprintf "[ir] main: parsed ok@."
+       with
+       | Parse_bytecode.Not_supported msg ->
+         Format.eprintf "[ir] main: Not_supported — %s@." msg
+       | exn ->
+         Format.eprintf
+           "[ir] main: unexpected exception — %s@."
+           (Printexc.to_string exn)))
 
 let time_phase name f =
   if not (debug_times ())
@@ -323,7 +331,7 @@ let compile ~bc ~out_dir =
     !func_list;
   if debug_ir ()
   then (
-    ir_smoke_main arr;
+    ir_smoke_main arr ~fn_body_pcs;
     List.iter (fun fi -> ir_smoke_function arr fi) !func_list);
   time_phase "kind-inference" (fun () ->
     List.iter

@@ -73,6 +73,9 @@ type state =
   ; mutable stack : elt list
   ; mutable body : instr list
   ; target_params : (Addr.t, Var.t list) Hashtbl.t
+  ; env : Var.t option
+        (** [Some v] in a function body: [v] is the closure itself
+            (read by ENVACC / OFFSETCLOSURE). [None] in main. *)
   }
 
 let emit s i = s.body <- i :: s.body
@@ -164,10 +167,18 @@ let acc s k = s.accu <- nth_stack s k
    Block processing
    ------------------------------------------------------------------ *)
 
+(* Convert every stack slot (including Dummies) to a Var for passing
+   across a block edge. Dummy slots become fresh Vars bound to [Null]
+   — the value never matters (PUSH_RETADDR/PUSHTRAP trap-frame words
+   are opaque to the OCaml interpreter), but assigning a Var keeps the
+   IR's shape consistent at joins. *)
 let s_to_list state =
   let of_elt = function
     | V v -> v
-    | Dummy -> raise (Not_supported "Dummy slot spans a block boundary")
+    | Dummy ->
+      let v = Var.fresh () in
+      state.body <- Let (v, Constant Null) :: state.body;
+      v
   in
   of_elt state.accu :: List.map of_elt state.stack
 
@@ -293,6 +304,352 @@ let step (state : state) (ins : Instr.instr) : last option =
   then (binop state Ult; None)
   else if op = Bytecode.Op.ugeint
   then (binop state Uge; None)
+  (* ENVACC family — read a field of the current closure. *)
+  else if op = Bytecode.Op.envacc1
+       || op = Bytecode.Op.envacc2
+       || op = Bytecode.Op.envacc3
+       || op = Bytecode.Op.envacc4
+       || op = Bytecode.Op.envacc
+  then (
+    let k =
+      if op = Bytecode.Op.envacc then args.(0)
+      else op - Bytecode.Op.envacc1 + 1
+    in
+    match state.env with
+    | None -> raise (Not_supported "ENVACC outside a function")
+    | Some env ->
+      set_accu_let state (Field (env, k));
+      None)
+  else if op = Bytecode.Op.pushenvacc1
+       || op = Bytecode.Op.pushenvacc2
+       || op = Bytecode.Op.pushenvacc3
+       || op = Bytecode.Op.pushenvacc4
+       || op = Bytecode.Op.pushenvacc
+  then (
+    let k =
+      if op = Bytecode.Op.pushenvacc then args.(0)
+      else op - Bytecode.Op.pushenvacc1 + 1
+    in
+    push_elt state state.accu;
+    match state.env with
+    | None -> raise (Not_supported "PUSHENVACC outside a function")
+    | Some env ->
+      set_accu_let state (Field (env, k));
+      None)
+  (* OFFSETCLOSURE — sibling lookup in a CLOSUREREC group. The integer
+     arg is the infix offset (0, 3, -3, or N). Modelled as an opaque
+     prim; the JVM generator will translate it using the enclosing
+     function's group layout. *)
+  else if op = Bytecode.Op.offsetclosure0
+  then (
+    match state.env with
+    | None -> raise (Not_supported "OFFSETCLOSURE outside a function")
+    | Some env ->
+      set_accu_let
+        state
+        (Prim (Extern "offsetclosure", [ Pv env; Pc (Int 0) ]));
+      None)
+  else if op = Bytecode.Op.offsetclosure3
+  then (
+    match state.env with
+    | None -> raise (Not_supported "OFFSETCLOSURE outside a function")
+    | Some env ->
+      set_accu_let
+        state
+        (Prim (Extern "offsetclosure", [ Pv env; Pc (Int 3) ]));
+      None)
+  else if op = Bytecode.Op.offsetclosurem3
+  then (
+    match state.env with
+    | None -> raise (Not_supported "OFFSETCLOSURE outside a function")
+    | Some env ->
+      set_accu_let
+        state
+        (Prim (Extern "offsetclosure", [ Pv env; Pc (Int (-3)) ]));
+      None)
+  else if op = Bytecode.Op.offsetclosure
+  then (
+    match state.env with
+    | None -> raise (Not_supported "OFFSETCLOSURE outside a function")
+    | Some env ->
+      set_accu_let
+        state
+        (Prim (Extern "offsetclosure", [ Pv env; Pc (Int args.(0)) ]));
+      None)
+  else if op = Bytecode.Op.pushoffsetclosure0
+  then (
+    push_elt state state.accu;
+    match state.env with
+    | None -> raise (Not_supported "PUSHOFFSETCLOSURE outside a function")
+    | Some env ->
+      set_accu_let
+        state
+        (Prim (Extern "offsetclosure", [ Pv env; Pc (Int 0) ]));
+      None)
+  else if op = Bytecode.Op.pushoffsetclosure3
+  then (
+    push_elt state state.accu;
+    match state.env with
+    | None -> raise (Not_supported "PUSHOFFSETCLOSURE outside a function")
+    | Some env ->
+      set_accu_let
+        state
+        (Prim (Extern "offsetclosure", [ Pv env; Pc (Int 3) ]));
+      None)
+  else if op = Bytecode.Op.pushoffsetclosurem3
+  then (
+    push_elt state state.accu;
+    match state.env with
+    | None -> raise (Not_supported "PUSHOFFSETCLOSURE outside a function")
+    | Some env ->
+      set_accu_let
+        state
+        (Prim (Extern "offsetclosure", [ Pv env; Pc (Int (-3)) ]));
+      None)
+  else if op = Bytecode.Op.pushoffsetclosure
+  then (
+    push_elt state state.accu;
+    match state.env with
+    | None -> raise (Not_supported "PUSHOFFSETCLOSURE outside a function")
+    | Some env ->
+      set_accu_let
+        state
+        (Prim (Extern "offsetclosure", [ Pv env; Pc (Int args.(0)) ]));
+      None)
+  (* CLOSURE(nvars, ofs) — allocate a non-recursive closure. If
+     [nvars > 0], accu is pushed first and then the top [nvars] stack
+     slots are the env captures. Body entry is at [pc + ofs + 2]. *)
+  else if op = Bytecode.Op.closure
+  then (
+    let nvars = args.(0) in
+    let body_pc = ins.pc + args.(1) + 2 in
+    if nvars > 0 then push_elt state state.accu;
+    let captures =
+      let rec pop_n n acc =
+        if n = 0 then List.rev acc
+        else pop_n (n - 1) (pop_var state :: acc)
+      in
+      pop_n nvars []
+    in
+    (* Body block sees an empty initial stack and the env Var is
+       implicit in its own params. We don't recursively parse here —
+       the top-level driver (in compile.ml) walks CLOSUREREC/CLOSURE
+       instructions separately and parses each body as its own
+       [parse_function]. The closure expression just records the entry
+       pc and captures. *)
+    set_accu_let
+      state
+      (Closure { captures; body = (body_pc, []) });
+    None)
+  (* CLOSUREREC(nfuncs, nvars, ofs_0, ofs_1, ..., ofs_{nfuncs-1}) —
+     allocate a group of mutually recursive closures. The group is one
+     shared block containing [nfuncs] (code, closinfo, infix) triples
+     followed by [nvars] captures.
+
+     Stack effect: if [nvars > 0], accu is pushed first, then the top
+     [nvars] stack slots are consumed as captures. After allocation,
+     each of the [nfuncs] sibling closures is PUSHed onto the stack,
+     top-first; accu holds the first (group_idx=0) sibling.
+
+     We lower this to [nfuncs] distinct [Closure] Lets (one per
+     sibling), each with the same captures list. The siblings end up
+     distributed across accu + pushed stack just like the interpreter.
+     Sibling navigation at runtime (OFFSETCLOSURE_N) reads a field of
+     the env rather than a stored sibling pointer; we keep the
+     [Extern "offsetclosure"] prim for that. *)
+  else if op = Bytecode.Op.closurerec
+  then (
+    let nfuncs = args.(0) in
+    let nvars = args.(1) in
+    if nvars > 0 then push_elt state state.accu;
+    let captures =
+      let rec pop_n n acc =
+        if n = 0 then List.rev acc
+        else pop_n (n - 1) (pop_var state :: acc)
+      in
+      pop_n nvars []
+    in
+    (* Allocate fresh Vars for each sibling; bind them as
+       [Let (sibling_i, Closure { captures; body = (body_pc_i, []) })].
+       After allocation, accu = sibling_0, and siblings_1..n-1 are
+       pushed onto the stack. *)
+    let sibling_vars = Array.init nfuncs (fun _ -> Var.fresh ()) in
+    for i = 0 to nfuncs - 1 do
+      let body_pc = ins.pc + 3 + args.(2 + i) in
+      emit
+        state
+        (Let
+           ( sibling_vars.(i)
+           , Closure { captures; body = (body_pc, []) } ))
+    done;
+    state.accu <- V sibling_vars.(0);
+    for i = nfuncs - 1 downto 1 do
+      push_elt state (V sibling_vars.(i))
+    done;
+    None)
+  (* C_CALL family — external primitives indexed by prim table. In the
+     IR they're Extern prims. *)
+  else if Instr.is_c_call op
+  then (
+    let nargs_ccall = op - 92 (* C_CALL1=93 → 1 arg *) in
+    let prim_idx = args.(0) in
+    let prim_name = "ccall_" ^ string_of_int prim_idx in
+    let a = var_of state.accu in
+    let rest = take_args state (nargs_ccall - 1) in
+    let all_args = List.map (fun v -> Pv v) (a :: rest) in
+    set_accu_let state (Prim (Extern prim_name, all_args));
+    None)
+  else if op = Bytecode.Op.c_calln
+  then (
+    let nargs_ccall = args.(0) in
+    let prim_idx = args.(1) in
+    let prim_name = "ccall_" ^ string_of_int prim_idx in
+    let a = var_of state.accu in
+    let rest = take_args state (nargs_ccall - 1) in
+    let all_args = List.map (fun v -> Pv v) (a :: rest) in
+    set_accu_let state (Prim (Extern prim_name, all_args));
+    None)
+  (* BULTINT / BUGEINT — unsigned fused compare-and-branch. *)
+  else if op = Bytecode.Op.bultint || op = Bytecode.Op.bugeint
+  then (
+    let a = var_of state.accu in
+    let cmp = if op = Bytecode.Op.bultint then Ult else Uge in
+    let c = Var.fresh () in
+    emit state (Let (c, Constant (Int args.(0))));
+    let r = Var.fresh () in
+    emit state (Let (r, Prim (cmp, [ Pv a; Pv c ])));
+    let then_pc = ins.pc + args.(1) + 2 in
+    let else_pc = ins.pc + 3 in
+    Some (Cond (r, make_cont state then_pc, make_cont state else_pc)))
+  (* SWITCH(sizes, offsets...) — OCaml's switch splits immediates from
+     blocks. args.(0) packs num_ints in low 16 bits, num_tags in high.
+     Cases 0..num_ints-1 match on the int value; cases 0..num_tags-1
+     match on the block tag — but we collapse to a single-dimensional
+     switch on accu at IR level and let the generator split. *)
+  else if op = Bytecode.Op.switch
+  then (
+    let a = var_of state.accu in
+    let sizes = args.(0) in
+    let num_ints = sizes land 0xffff in
+    let num_tags = (sizes lsr 16) land 0xffff in
+    let total = num_ints + num_tags in
+    let cases =
+      Array.init total (fun i ->
+        let target_pc = ins.pc + 2 + args.(1 + i) in
+        make_cont state target_pc)
+    in
+    Some (Switch (a, cases)))
+  (* PUSHTRAP L — open a try/with region. The OCaml interp pushes four
+     trap-frame words onto the stack (Dummies in our IR) and registers
+     L as the handler. We lower to Pushtrap (body, exn_var, handler);
+     the body block starts at PC+2 (after the 2-word PUSHTRAP), the
+     handler at [pc + arg + 1]. *)
+  else if op = Bytecode.Op.pushtrap
+  then (
+    (* OCaml stack grows by 4 Dummy slots in the protected region. *)
+    push_elt state Dummy;
+    push_elt state Dummy;
+    push_elt state Dummy;
+    push_elt state Dummy;
+    let handler_pc = ins.pc + args.(0) + 1 in
+    let body_pc = ins.pc + 2 in
+    let exn_var = Var.fresh () in
+    Some
+      (Pushtrap
+         ( make_cont state body_pc
+         , exn_var
+         , (handler_pc, [ exn_var ]) )))
+  (* POPTRAP — pop the 4 trap-frame dummies and resume in the next
+     block. *)
+  else if op = Bytecode.Op.poptrap
+  then (
+    (* The 4 trap-frame slots may be Dummies (if this block starts
+       straight after PUSHTRAP) or Vars (if a prior block edge
+       materialised them via [s_to_list]). Drop either. *)
+    for _ = 1 to 4 do
+      ignore (pop state)
+    done;
+    (* Successor PC: next instruction. We don't have it here directly,
+       so we terminate with Poptrap of a Branch cont to the next
+       instruction's PC. The [walk] function handles this by not
+       falling through — but Poptrap isn't actually a terminator in
+       the same sense as Return/Branch. For now, treat it as a branch
+       to the fall-through PC. *)
+    let next_pc = ins.pc + 1 in
+    Some (Poptrap (make_cont state next_pc)))
+  (* String / bytes / float-block ops. *)
+  else if op = Bytecode.Op.getstringchar || op = Bytecode.Op.getbyteschar
+  then (binop state (Extern "get_byte"); None)
+  else if op = Bytecode.Op.setbyteschar
+  then (
+    let s = var_of state.accu in
+    let i = pop_var state in
+    let v = pop_var state in
+    let r = Var.fresh () in
+    emit
+      state
+      (Let (r, Prim (Extern "set_byte", [ Pv s; Pv i; Pv v ])));
+    state.accu <- V r;
+    None)
+  else if op = Bytecode.Op.makefloatblock
+  then (
+    let n = args.(0) in
+    let fields = Array.make n (Var.fresh ()) in
+    fields.(0) <- var_of state.accu;
+    for i = 1 to n - 1 do
+      fields.(i) <- pop_var state
+    done;
+    set_accu_let state (Block (Obj.double_array_tag, fields));
+    None)
+  else if op = Bytecode.Op.getfloatfield
+  then (
+    let a = var_of state.accu in
+    set_accu_let state (Field (a, args.(0)));
+    None)
+  else if op = Bytecode.Op.setfloatfield
+  then (
+    let a = var_of state.accu in
+    let v = pop_var state in
+    emit state (Set_field (a, args.(0), v));
+    None)
+  else if op = Bytecode.Op.atom0
+  then (set_accu_let state (Constant (Block (0, [||]))); None)
+  else if op = Bytecode.Op.atom
+  then (set_accu_let state (Constant (Block (args.(0), [||]))); None)
+  else if op = Bytecode.Op.pushatom0
+  then (
+    push_elt state state.accu;
+    set_accu_let state (Constant (Block (0, [||])));
+    None)
+  else if op = Bytecode.Op.pushatom
+  then (
+    push_elt state state.accu;
+    set_accu_let state (Constant (Block (args.(0), [||])));
+    None)
+  (* ASSIGN k — copy accu into slot k. In the IR, this is an
+     Assign that updates the slot's Var so any active exception
+     handler sees the new value. *)
+  else if op = Bytecode.Op.assign
+  then (
+    let k = args.(0) in
+    let slot = nth_stack state k in
+    let dst = var_of slot in
+    let src = var_of state.accu in
+    emit state (Assign (dst, src));
+    (* accu becomes unit (OCaml interp sets it to Val_unit). *)
+    const_int state 0;
+    None)
+  (* GRAB / RESTART / CHECK_SIGNALS / EVENT / BREAK — no-ops at the
+     IR level. GRAB is used for curried closure partial-application
+     runtime check; we handle partial application via Apply's exact
+     flag and the runtime PartialClosure class. RESTART is the entry
+     back-edge for that; also a no-op for us. *)
+  else if op = Bytecode.Op.grab
+       || op = Bytecode.Op.restart
+       || op = 92 (* CHECK_SIGNALS *)
+       || op = Bytecode.Op.event
+       || op = Bytecode.Op.break
+  then None
   else if op = Bytecode.Op.vectlength
   then (unop state Vectlength; None)
   else if op = Bytecode.Op.getvectitem
@@ -553,13 +910,29 @@ let build_addr_map instrs =
   !m
 
 (* Process one block: consume instructions until we hit the next block
-   boundary or a terminator. Returns the constructed [block]. *)
+   boundary or a terminator. Returns the constructed [block].
+
+   If any predecessor has already registered canonical params for
+   [start_pc] via [make_cont], we inherit them. Otherwise (entry block
+   or one reached purely by fall-through that we haven't observed
+   yet), use the state's current accu+stack length to allocate a
+   fresh param list. *)
 let process_block state start_pc next_starts addr_map =
-  let accu_v = Var.fresh () in
-  let stack_vs = List.map (fun _ -> Var.fresh ()) state.stack in
-  (* Install params for this block if not yet present. *)
-  let params = accu_v :: stack_vs in
-  Hashtbl.replace state.target_params start_pc params;
+  let params =
+    match Hashtbl.find_opt state.target_params start_pc with
+    | Some ps -> ps
+    | None ->
+      let accu_v = Var.fresh () in
+      let stack_vs = List.map (fun _ -> Var.fresh ()) state.stack in
+      let ps = accu_v :: stack_vs in
+      Hashtbl.add state.target_params start_pc ps;
+      ps
+  in
+  let accu_v, stack_vs =
+    match params with
+    | a :: s -> a, s
+    | [] -> raise (Not_supported "block has no params")
+  in
   state.accu <- V accu_v;
   state.stack <- List.map (fun v -> V v) stack_vs;
   state.body <- [];
@@ -596,7 +969,7 @@ let process_block state start_pc next_starts addr_map =
   let br = walk start_pc in
   { params; body = List.rev state.body; branch = br }
 
-let parse_generic_with_stack instrs ~start_pc ~end_pc ~initial_stack =
+let parse_generic_with_stack instrs ~start_pc ~end_pc ~initial_stack ~env =
   let starts = block_starts instrs ~start_pc ~end_pc in
   let addr_map = build_addr_map instrs in
   let state =
@@ -604,13 +977,44 @@ let parse_generic_with_stack instrs ~start_pc ~end_pc ~initial_stack =
     ; stack = List.map (fun v -> V v) initial_stack
     ; body = []
     ; target_params = Hashtbl.create 32
+    ; env
     }
   in
+  (* DFS from [start_pc] so every block's canonical params are
+     registered by a predecessor's [make_cont] before we process the
+     block itself. Blocks unreachable from [start_pc] (usually none,
+     but handler blocks from PUSHTRAP land here too — Pushtrap is the
+     terminator, so [make_cont] covers them) are still processed via
+     the outer fallback loop afterwards. *)
   let blocks = ref Addr.Map.empty in
+  let visited = Hashtbl.create 32 in
+  let rec visit pc =
+    if Hashtbl.mem visited pc || not (IntSet.mem pc starts)
+    then ()
+    else (
+      Hashtbl.add visited pc ();
+      let blk = process_block state pc starts addr_map in
+      blocks := Addr.Map.add pc blk !blocks;
+      let step_cont (addr, _args) = visit addr in
+      match blk.branch with
+      | Return _ | Raise _ | Stop -> ()
+      | Branch c | Poptrap c -> step_cont c
+      | Cond (_, c1, c2) -> step_cont c1; step_cont c2
+      | Switch (_, arr) -> Array.iter step_cont arr
+      | Pushtrap (b, _, h) -> step_cont b; step_cont h)
+  in
+  visit start_pc;
+  (* Any blocks not reached by DFS — unlikely in well-formed bytecode
+     but guard against orphans. *)
   IntSet.iter
     (fun pc ->
-      let blk = process_block state pc starts addr_map in
-      blocks := Addr.Map.add pc blk !blocks)
+      if not (Hashtbl.mem visited pc)
+      then (
+        Hashtbl.add visited pc ();
+        try
+          let blk = process_block state pc starts addr_map in
+          blocks := Addr.Map.add pc blk !blocks
+        with Not_supported _ -> ()))
     starts;
   { start = start_pc; blocks = !blocks; free_pc = end_pc }
 
@@ -624,12 +1028,24 @@ let parse_function instrs ~start_pc ~end_pc ~nargs ~ncaps =
      first argument). The caller hands us [arg_vars] in declaration
      order (arg[0] first), so we reverse-then-push to leave arg[0]
      at the top. *)
+  let env_var = Var.fresh () in
+  let _ = cap_vars in
   let prog =
     let initial_stack = List.rev arg_vars in
-    parse_generic_with_stack instrs ~start_pc ~end_pc ~initial_stack
+    parse_generic_with_stack
+      instrs
+      ~start_pc
+      ~end_pc
+      ~initial_stack
+      ~env:(Some env_var)
   in
   (prog, params)
 
 let parse_main instrs ~start_pc ~end_pc =
   Var.reset ();
-  parse_generic_with_stack instrs ~start_pc ~end_pc ~initial_stack:[]
+  parse_generic_with_stack
+    instrs
+    ~start_pc
+    ~end_pc
+    ~initial_stack:[]
+    ~env:None

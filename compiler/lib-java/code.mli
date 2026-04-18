@@ -76,11 +76,16 @@ type expr =
   | Apply of { f : Var.t; args : Var.t list; exact : bool }
   | Block of int * Var.t array
   | Field of Var.t * int
-  | Closure of Var.t list * cont
-      (** [Closure (params, (body_addr, body_args))] allocates a closure
-          whose body starts at [body_addr] and which captures are the
-          free variables referenced in the body (materialised as the
-          block's env: fields 2..n of the closure record in OCaml). *)
+  | Closure of
+      { captures : Var.t list
+            (** Values stored in the closure's env (fields 2..n of the
+                OCaml closure block). Read by the body via [Field]s on
+                the env param of the body block. *)
+      ; body : cont
+            (** Entry block for the closure body. The block's first
+                params are the function's own arguments (top-of-stack
+                first), followed by the env Var itself. *)
+      }
   | Constant of constant
   | Prim of prim * prim_arg list
 
