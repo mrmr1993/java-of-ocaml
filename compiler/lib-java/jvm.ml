@@ -335,6 +335,38 @@ module Code = struct
     add_u2 t.buf idx
     (* stack effect: 0 *)
 
+  let new_ t class_name =
+    let idx = Cp.class_ t.cp class_name in
+    add_u1 t.buf 0xBB;
+    add_u2 t.buf idx;
+    push t 1
+
+  let invokespecial t ~class_ ~method_ ~descriptor =
+    let idx = Cp.methodref t.cp ~class_ ~method_ ~descriptor in
+    add_u1 t.buf 0xB7;
+    add_u2 t.buf idx;
+    let net =
+      stack_effect_of_call_descriptor descriptor ~is_virtual:true
+    in
+    if net >= 0
+    then pop t net
+    else push t (-net)
+
+  let getfield t ~class_ ~field ~descriptor =
+    let idx = Cp.fieldref t.cp ~class_ ~field ~descriptor in
+    add_u1 t.buf 0xB4;
+    add_u2 t.buf idx;
+    (* Pops objectref, pushes value. For single-slot values (int or ref,
+       which is all we use) net effect is 0. *)
+    ignore t
+
+  let putfield t ~class_ ~field ~descriptor =
+    let idx = Cp.fieldref t.cp ~class_ ~field ~descriptor in
+    add_u1 t.buf 0xB5;
+    add_u2 t.buf idx;
+    (* Pops objectref + value. *)
+    pop t 2
+
   let iadd t =
     add_u1 t.buf 0x60;
     pop t 1
@@ -460,6 +492,12 @@ type method_desc =
   ; code : Code.t
   }
 
+type field_desc =
+  { name : string
+  ; descriptor : string
+  ; access_flags : int
+  }
+
 (* A method's CP indices are captured up-front so they can be interned
    BEFORE the constant pool is serialised. Code bytes are realised at the
    same time (triggering label resolution and any final CP additions). *)
@@ -487,12 +525,30 @@ let emit_method_info out (l : method_layout) =
   add_u2 out 0 (* exception_table_length *);
   add_u2 out 0 (* nested attributes_count *)
 
-let assemble_class ~class_name ~cp ~methods =
-  (* Phase 1: realise bytes and intern all CP entries the methods or class
-     header need. The bytes have to be computed first — [Code.contents]
-     runs label resolution and may append CP entries (e.g. via methodref
-     lookup deferred to branch emission). *)
-  let layouts =
+type field_layout =
+  { f : field_desc
+  ; f_name_idx : int
+  ; f_desc_idx : int
+  }
+
+let emit_field_info out (l : field_layout) =
+  add_u2 out l.f.access_flags;
+  add_u2 out l.f_name_idx;
+  add_u2 out l.f_desc_idx;
+  add_u2 out 0 (* attributes_count *)
+
+let assemble_class
+    ~class_name
+    ~super_name
+    ~cp
+    ~fields
+    ~methods
+    ~access_flags
+  =
+  (* Phase 1: realise bytes and intern all CP entries that the methods or
+     class header need. Code bytes have to be computed first — [Code.contents]
+     runs label resolution and may add CP entries through branch emission. *)
+  let method_layouts =
     List.map
       (fun m ->
         let bytes = Code.contents m.code in
@@ -504,8 +560,17 @@ let assemble_class ~class_name ~cp ~methods =
         })
       methods
   in
+  let field_layouts =
+    List.map
+      (fun f ->
+        { f
+        ; f_name_idx = Cp.utf8 cp f.name
+        ; f_desc_idx = Cp.utf8 cp f.descriptor
+        })
+      fields
+  in
   let this_class = Cp.class_ cp class_name in
-  let super_class = Cp.class_ cp "java/lang/Object" in
+  let super_class = Cp.class_ cp super_name in
   (* Phase 2: serialise. The CP is now stable. *)
   let out = Buffer.create 512 in
   add_u4 out 0xCAFEBABE;
@@ -515,13 +580,14 @@ let assemble_class ~class_name ~cp ~methods =
                    emit branches without StackMapTable attributes. *);
   add_u2 out (Cp.count cp + 1);
   Buffer.add_string out (Cp.contents cp);
-  add_u2 out 0x0021 (* access_flags: ACC_PUBLIC | ACC_SUPER *);
+  add_u2 out access_flags;
   add_u2 out this_class;
   add_u2 out super_class;
   add_u2 out 0 (* interfaces_count *);
-  add_u2 out 0 (* fields_count *);
+  add_u2 out (List.length fields);
+  List.iter (emit_field_info out) field_layouts;
   add_u2 out (List.length methods);
-  List.iter (emit_method_info out) layouts;
+  List.iter (emit_method_info out) method_layouts;
   add_u2 out 0 (* class attributes_count *);
   Buffer.contents out
 
@@ -531,7 +597,9 @@ let assemble_main_class build =
   build cp main_code;
   assemble_class
     ~class_name:"Main"
+    ~super_name:"java/lang/Object"
     ~cp
+    ~fields:[]
     ~methods:
       [ { name = "main"
         ; descriptor = "([Ljava/lang/String;)V"
@@ -539,3 +607,65 @@ let assemble_main_class build =
         ; code = main_code
         }
       ]
+    ~access_flags:0x0021 (* ACC_PUBLIC | ACC_SUPER *)
+
+(* -------------------------------------------------------------------------- *)
+(* Block class
+
+     public final class Block {
+         public final int tag;
+         public final Object[] fields;
+         public Block(int tag, Object[] fields) {
+             this.tag = tag;
+             this.fields = fields;
+         }
+     }
+
+   Generated at class-writing time so it can ship alongside Main.class. *)
+
+let block_class_bytes () =
+  let cp = Cp.create () in
+  let code = Code.create cp in
+  Code.set_min_locals code 3;
+  (* aload_0 ; invokespecial Object.<init>()V *)
+  Code.aload code 0;
+  Code.invokespecial
+    code
+    ~class_:"java/lang/Object"
+    ~method_:"<init>"
+    ~descriptor:"()V";
+  (* aload_0 ; iload_1 ; putfield Block.tag I *)
+  Code.aload code 0;
+  Code.iload code 1;
+  Code.putfield code ~class_:"Block" ~field:"tag" ~descriptor:"I";
+  (* aload_0 ; aload_2 ; putfield Block.fields [Ljava/lang/Object; *)
+  Code.aload code 0;
+  Code.aload code 2;
+  Code.putfield
+    code
+    ~class_:"Block"
+    ~field:"fields"
+    ~descriptor:"[Ljava/lang/Object;";
+  Code.return_void code;
+  assemble_class
+    ~class_name:"Block"
+    ~super_name:"java/lang/Object"
+    ~cp
+    ~fields:
+      [ { name = "tag"
+        ; descriptor = "I"
+        ; access_flags = 0x0011 (* ACC_PUBLIC | ACC_FINAL *)
+        }
+      ; { name = "fields"
+        ; descriptor = "[Ljava/lang/Object;"
+        ; access_flags = 0x0011
+        }
+      ]
+    ~methods:
+      [ { name = "<init>"
+        ; descriptor = "(I[Ljava/lang/Object;)V"
+        ; access_flags = 0x0001 (* ACC_PUBLIC *)
+        ; code
+        }
+      ]
+    ~access_flags:0x0031 (* ACC_PUBLIC | ACC_SUPER | ACC_FINAL *)

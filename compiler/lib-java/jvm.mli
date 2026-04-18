@@ -99,6 +99,21 @@ module Code : sig
   val checkcast : t -> string -> unit
   (** Cast top-of-stack reference to the named class/array type. *)
 
+  val new_ : t -> string -> unit
+  (** Allocate an uninitialised instance of the named class (JVM [new]).
+      The class's constructor still has to be invoked with
+      [invokespecial]. *)
+
+  val invokespecial :
+    t -> class_:string -> method_:string -> descriptor:string -> unit
+  (** For instance constructors ([<init>]) and super-class method calls. *)
+
+  val getfield :
+    t -> class_:string -> field:string -> descriptor:string -> unit
+
+  val putfield :
+    t -> class_:string -> field:string -> descriptor:string -> unit
+
   (** {2 Arithmetic (int)} *)
 
   val iadd : t -> unit
@@ -151,8 +166,21 @@ type method_desc =
   ; code : Code.t
   }
 
+(** An instance-field declaration. *)
+type field_desc =
+  { name : string
+  ; descriptor : string
+  ; access_flags : int
+  }
+
 val assemble_class :
-  class_name:string -> cp:Cp.t -> methods:method_desc list -> string
+  class_name:string
+  -> super_name:string
+  -> cp:Cp.t
+  -> fields:field_desc list
+  -> methods:method_desc list
+  -> access_flags:int
+  -> string
 (** Build a class file containing the given methods. All methods share the
     supplied constant pool. The returned bytes are ready to write to
     [<class_name>.class]. *)
@@ -161,3 +189,9 @@ val assemble_main_class : (Cp.t -> Code.t -> unit) -> string
 (** Convenience wrapper over {!assemble_class} for a single-method [Main]
     class whose public static [main(String[])V] body is produced by the
     callback. *)
+
+val block_class_bytes : unit -> string
+(** Bytes of a [Block] class file. The class has two public final
+    instance fields ([int tag], [Object[] fields]) and a two-argument
+    constructor that assigns them. Callers should write this alongside
+    [Main.class] so the JVM can load it when [Main] references it. *)
