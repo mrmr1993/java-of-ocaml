@@ -53,6 +53,7 @@ type prim_handler =
   | P_atomic_cas
   | P_atomic_exchange
   | P_atomic_fetch_add
+  | P_int_compare
 
 type prim_entry =
   { name : string

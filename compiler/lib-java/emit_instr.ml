@@ -865,7 +865,8 @@ let emit_instr state (ins : instr) =
        | P_atomic_load -> Emit_primitive.emit_atomic_load state
        | P_atomic_cas -> Emit_primitive.emit_atomic_cas state
        | P_atomic_exchange -> Emit_primitive.emit_atomic_exchange state
-       | P_atomic_fetch_add -> Emit_primitive.emit_atomic_fetch_add state)
+       | P_atomic_fetch_add -> Emit_primitive.emit_atomic_fetch_add state
+       | P_int_compare -> Emit_primitive.emit_int_compare state)
     | None ->
       let name =
         if prim_idx >= 0 && prim_idx < Array.length state.prims

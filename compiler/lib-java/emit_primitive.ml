@@ -540,6 +540,27 @@ let emit_atomic_exchange state =
   state.acc_live <- true;
   state.acc_kind <- K_obj
 
+(* [caml_int_compare a b]: [Integer.compare(a, b)]. Signed, returns
+   negative / 0 / positive. Used by [List.sort compare] on int
+   lists and by polymorphic [compare] through Stdlib specialisation. *)
+let emit_int_compare state =
+  ensure_kind state K_int;
+  let b_slot = List.hd state.slots in
+  emit_load_for_kind state.code b_slot.local b_slot.kind;
+  (match b_slot.kind with
+   | K_int -> ()
+   | K_obj -> emit_unbox_to_kind state.code K_int
+   | _ ->
+     failwith "java_of_ocaml: caml_int_compare: both args must be int");
+  Jvm.Code.invokestatic
+    state.code
+    ~class_:"java/lang/Integer"
+    ~method_:"compare"
+    ~descriptor:"(II)I";
+  consume_top state;
+  state.acc_live <- true;
+  state.acc_kind <- K_int
+
 (* [caml_atomic_fetch_add ref n]: [old = ref.fields[0]; ref.fields[0] = old + n; return old]. *)
 let emit_atomic_fetch_add state =
   let n_slot = List.nth state.slots 0 in

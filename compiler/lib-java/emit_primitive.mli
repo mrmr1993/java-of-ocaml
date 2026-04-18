@@ -68,6 +68,9 @@ val emit_atomic_fetch_add : State.state -> unit
     runtime level. On the JVM we're single-threaded, so the
     primitives reduce to [getfield fields; aaload / aastore]. *)
 
+val emit_int_compare : State.state -> unit
+(** [caml_int_compare a b]: [Integer.compare(a, b)]. *)
+
 val emit_noop_float1 : State.state -> unit
 (** Stub returning [0.0] as a K_float. Used for primitives that take
     an Int32 / Int64 we can't materialise and return a double. *)

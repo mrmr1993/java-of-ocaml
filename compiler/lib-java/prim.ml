@@ -47,6 +47,7 @@ type prim_handler =
   | P_atomic_cas
   | P_atomic_exchange
   | P_atomic_fetch_add
+  | P_int_compare
     (* Stub: 1 arg, returns a dummy K_float (0.0). For Int64/Int32 bit
        conversions we don't implement yet; Stdlib init calls them to
        set up infinity / nan / max_float, which would be wrong but at
@@ -145,6 +146,7 @@ let primitives : prim_entry list =
   ; { name = "caml_atomic_cas"; handler = P_atomic_cas; seed = false }
   ; { name = "caml_atomic_exchange"; handler = P_atomic_exchange; seed = false }
   ; { name = "caml_atomic_fetch_add"; handler = P_atomic_fetch_add; seed = false }
+  ; { name = "caml_int_compare"; handler = P_int_compare; seed = false }
   ]
 
 type table = (int, string * prim_handler * bool) Hashtbl.t
