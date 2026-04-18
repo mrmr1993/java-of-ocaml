@@ -17,23 +17,7 @@ let emit_apply_invoke state ~nargs =
    | K_obj ->
      Jvm.Code.checkcast state.code "Closure";
      state.acc_kind <- K_closure { name = "Closure"; captures = [] }
-   | K_int ->
-     (* Inference can still land on K_int for a value that's
-        actually a closure at runtime — happens for polymorphic
-        dispatch and for indirection through closures whose body
-        we haven't fully analysed. Box + checkcast defers the
-        mismatch to a runtime ClassCastException rather than a
-        compile-time abort. Path-unioning inference (Phase 2)
-        reduced the frequency of this fall-back but didn't
-        eliminate it. *)
-     emit_box_int state.code;
-     Jvm.Code.checkcast state.code "Closure";
-     state.acc_kind <- K_closure { name = "Closure"; captures = [] }
-   | K_float ->
-     emit_box_float state.code;
-     Jvm.Code.checkcast state.code "Closure";
-     state.acc_kind <- K_closure { name = "Closure"; captures = [] }
-   | K_string | K_block _ ->
+   | K_int | K_float | K_string | K_block _ ->
      failwith
        (Printf.sprintf
           "java_of_ocaml: APPLY%d called on a non-closure value (%s). \

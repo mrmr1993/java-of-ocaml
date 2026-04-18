@@ -144,25 +144,11 @@ let compile ~bc ~out_dir =
       prim_table);
   let instrs = time_phase "decode" (fun () -> decode_all parsed) in
   let arr = Array.of_list instrs in
-  let whole_bytecode = Sys.getenv_opt "JAVA_OF_OCAML_WHOLE_BYTECODE" <> None in
-  let start_idx, end_idx =
-    if whole_bytecode
-    then 0, Array.length arr - 1
-    else (
-      let first_idx, last_idx =
-        match Inference.supported_call_indices arr ~prim_table with
-        | Some p -> p
-        | None ->
-          failwith "java_of_ocaml: no supported primitive calls found"
-      in
-      ( Inference.walk_back_user_start arr first_idx
-      , Inference.walk_forward_user_end arr last_idx ))
-  in
+  let start_idx, end_idx = 0, Array.length arr - 1 in
   if debug_functions ()
   then
     Format.eprintf
-      "[functions] %s: idx %d..%d (pc %d..%d)@."
-      (if whole_bytecode then "whole bytecode" else "user range")
+      "[functions] whole bytecode: idx %d..%d (pc %d..%d)@."
       start_idx
       end_idx
       arr.(start_idx).pc

@@ -7,23 +7,6 @@ open Kind
 open Instr
 open Function_info
 
-val supported_call_indices
-  :  instr array
-  -> prim_table:Prim.table
-  -> (int * int) option
-(** Locate the first and last user-range anchor in [arr]. The walker
-    defines user code as "runs from the first to the last seed C_CALL".
-    Returns [None] if no seed primitive is called at all. *)
-
-val walk_back_user_start : instr array -> int -> int
-(** Extend a user-range start leftwards past every [is_user_op]
-    instruction. Used to pick up module-init boilerplate that is still
-    legally compilable. *)
-
-val walk_forward_user_end : instr array -> int -> int
-(** Extend a user-range end rightwards past every [is_user_op]
-    instruction. *)
-
 val find_function_by_body_pc : function_info list -> int -> function_info option
 
 val infer_return_kind : instr array -> function_info list -> function_info -> kind

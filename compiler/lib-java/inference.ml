@@ -3,46 +3,6 @@ open Instr
 open Function_info
 open Prim
 
-let supported_call_indices arr ~prim_table =
-  let n = Array.length arr in
-  let is_seed_call ins =
-    is_c_call ins.opcode
-    &&
-    match Hashtbl.find_opt prim_table ins.args.(0) with
-    | Some (_, _, seed) -> seed
-    | None -> false
-  in
-  let rec find_first i =
-    if i >= n then None
-    else if is_seed_call arr.(i) then Some i
-    else find_first (i + 1)
-  in
-  let rec find_last i =
-    if i < 0 then None
-    else if is_seed_call arr.(i) then Some i
-    else find_last (i - 1)
-  in
-  match find_first 0, find_last (n - 1) with
-  | Some f, Some l -> Some (f, l)
-  | _ -> None
-
-let walk_back_user_start arr start_idx =
-  let rec loop i =
-    if i < 0 then 0
-    else if is_user_op arr.(i) then loop (i - 1)
-    else i + 1
-  in
-  loop (start_idx - 1)
-
-let walk_forward_user_end arr end_idx =
-  let n = Array.length arr in
-  let rec loop i =
-    if i >= n then n - 1
-    else if is_user_op arr.(i) then loop (i + 1)
-    else i - 1
-  in
-  loop (end_idx + 1)
-
 let find_function_by_body_pc func_list body_pc =
   List.find_opt (fun (fi : function_info) -> fi.body_pc = body_pc) func_list
 
