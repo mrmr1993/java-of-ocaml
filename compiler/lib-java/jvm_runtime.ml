@@ -12,3 +12,4 @@ let partial_closure_class_bytes () = R.partial_closure
 let camlexception_class_bytes () = R.caml_exception
 let compare_class_bytes () = R.compare
 let channel_class_bytes () = R.channel
+let bytes_class_bytes () = R.bytes

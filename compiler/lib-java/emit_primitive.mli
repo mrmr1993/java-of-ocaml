@@ -123,3 +123,17 @@ val emit_ml_output_char : State.state -> unit
 
 val emit_ml_flush : State.state -> unit
 (** [caml_ml_flush(chan)]: [chan.flush()]. *)
+
+val emit_create_bytes : State.state -> unit
+val emit_bytes_length : State.state -> unit
+val emit_bytes_get : State.state -> unit
+val emit_bytes_set : State.state -> unit
+val emit_fill_bytes : State.state -> unit
+val emit_blit_string_to_bytes : State.state -> unit
+val emit_blit_bytes_to_bytes : State.state -> unit
+val emit_bytes_of_string : State.state -> unit
+val emit_string_of_bytes : State.state -> unit
+val emit_bytes_equal : State.state -> invert:bool -> unit
+val emit_bytes_compare : State.state -> unit
+(** [Bytes] primitives: storage-class for OCaml's mutable byte
+    sequence. See [Bytes.java] in [runtime-java/]. *)

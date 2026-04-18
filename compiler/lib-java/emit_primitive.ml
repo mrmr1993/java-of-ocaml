@@ -1127,6 +1127,252 @@ let emit_ml_output_char state =
   state.acc_live <- true;
   state.acc_kind <- K_int
 
+(* ---- Bytes primitives ----
+
+   OCaml [bytes] is a mutable byte buffer; on the JVM we back it
+   with a [Bytes] wrapper class holding a [StringBuilder]. String
+   operands keep flowing as [java.lang.String]; the bytes/string
+   boundary primitives ([caml_string_of_bytes] / [caml_bytes_of_string])
+   do the [.toString()] / wrapping conversion explicitly. *)
+
+let emit_cast_bytes state =
+  match state.acc_kind with
+  | K_obj -> Jvm.Code.checkcast state.code "Bytes"
+  | _ ->
+    failwith
+      (Printf.sprintf
+         "java_of_ocaml: expected Bytes, got %s"
+         (jvm_type_of_kind state.acc_kind))
+
+let emit_load_slot_as_int_arg state k =
+  let s = List.nth state.slots k in
+  emit_load_for_kind state.code s.local s.kind;
+  match s.kind with
+  | K_int -> ()
+  | K_obj -> emit_unbox_to_kind state.code K_int
+  | _ -> failwith "java_of_ocaml: expected int slot"
+
+(* [caml_create_bytes n]: new Bytes(n). *)
+let emit_create_bytes state =
+  ensure_kind state K_int;
+  let n_local = allocate_local state in
+  Jvm.Code.istore state.code n_local;
+  Jvm.Code.new_ state.code "Bytes";
+  Jvm.Code.dup state.code;
+  Jvm.Code.iload state.code n_local;
+  Jvm.Code.invokespecial
+    state.code
+    ~class_:"Bytes"
+    ~method_:"<init>"
+    ~descriptor:"(I)V";
+  state.acc_live <- true;
+  state.acc_kind <- K_obj
+
+(* [caml_ml_bytes_length b]: Bytes.length(). *)
+let emit_bytes_length state =
+  emit_cast_bytes state;
+  Jvm.Code.invokevirtual
+    state.code
+    ~class_:"Bytes"
+    ~method_:"length"
+    ~descriptor:"()I";
+  state.acc_kind <- K_int
+
+(* [caml_bytes_get b i]: Bytes.get(i). *)
+let emit_bytes_get state =
+  emit_cast_bytes state;
+  emit_load_slot_as_int_arg state 0;
+  Jvm.Code.invokevirtual
+    state.code
+    ~class_:"Bytes"
+    ~method_:"get"
+    ~descriptor:"(I)I";
+  pop_slots state 1;
+  state.acc_live <- true;
+  state.acc_kind <- K_int
+
+(* [caml_bytes_set b i c]: Bytes.set(i, c). *)
+let emit_bytes_set state =
+  emit_cast_bytes state;
+  emit_load_slot_as_int_arg state 0;
+  emit_load_slot_as_int_arg state 1;
+  Jvm.Code.invokevirtual
+    state.code
+    ~class_:"Bytes"
+    ~method_:"set"
+    ~descriptor:"(II)V";
+  pop_slots state 2;
+  Jvm.Code.ldc_int state.code 0;
+  state.acc_live <- true;
+  state.acc_kind <- K_int
+
+(* [caml_fill_bytes b ofs len c]: Bytes.fill(ofs, len, c). *)
+let emit_fill_bytes state =
+  emit_cast_bytes state;
+  emit_load_slot_as_int_arg state 0;
+  emit_load_slot_as_int_arg state 1;
+  emit_load_slot_as_int_arg state 2;
+  Jvm.Code.invokevirtual
+    state.code
+    ~class_:"Bytes"
+    ~method_:"fill"
+    ~descriptor:"(III)V";
+  pop_slots state 3;
+  Jvm.Code.ldc_int state.code 0;
+  state.acc_live <- true;
+  state.acc_kind <- K_int
+
+(* [caml_blit_string src sofs dst dofs len]: dst.blitString(src, sofs, dofs, len).
+   Acc = src (String); slots = [sofs; dst; dofs; len]. *)
+let emit_blit_string_to_bytes state =
+  (* Pull dst to the top. Stash src/sofs/dst/dofs/len into locals. *)
+  let src_local = allocate_local state in
+  (match state.acc_kind with
+   | K_string -> ()
+   | K_obj -> Jvm.Code.checkcast state.code "java/lang/String"
+   | _ -> failwith "java_of_ocaml: caml_blit_string: src must be string");
+  Jvm.Code.astore state.code src_local;
+  let sofs = List.nth state.slots 0 in
+  let dst = List.nth state.slots 1 in
+  let dofs = List.nth state.slots 2 in
+  let len = List.nth state.slots 3 in
+  emit_load_for_kind state.code dst.local dst.kind;
+  box_if_int state.code dst.kind;
+  Jvm.Code.checkcast state.code "Bytes";
+  Jvm.Code.aload state.code src_local;
+  emit_load_for_kind state.code sofs.local sofs.kind;
+  (match sofs.kind with
+   | K_int -> ()
+   | K_obj -> emit_unbox_to_kind state.code K_int
+   | _ -> failwith "java_of_ocaml: caml_blit_string: sofs must be int");
+  emit_load_for_kind state.code dofs.local dofs.kind;
+  (match dofs.kind with
+   | K_int -> ()
+   | K_obj -> emit_unbox_to_kind state.code K_int
+   | _ -> failwith "java_of_ocaml: caml_blit_string: dofs must be int");
+  emit_load_for_kind state.code len.local len.kind;
+  (match len.kind with
+   | K_int -> ()
+   | K_obj -> emit_unbox_to_kind state.code K_int
+   | _ -> failwith "java_of_ocaml: caml_blit_string: len must be int");
+  Jvm.Code.invokevirtual
+    state.code
+    ~class_:"Bytes"
+    ~method_:"blitString"
+    ~descriptor:"(Ljava/lang/String;III)V";
+  pop_slots state 4;
+  Jvm.Code.ldc_int state.code 0;
+  state.acc_live <- true;
+  state.acc_kind <- K_int
+
+(* [caml_blit_bytes src sofs dst dofs len]: dst.blitBytes(src, sofs, dofs, len).
+   Acc = src (Bytes); slots = [sofs; dst; dofs; len]. *)
+let emit_blit_bytes_to_bytes state =
+  let src_local = allocate_local state in
+  emit_cast_bytes state;
+  Jvm.Code.astore state.code src_local;
+  let sofs = List.nth state.slots 0 in
+  let dst = List.nth state.slots 1 in
+  let dofs = List.nth state.slots 2 in
+  let len = List.nth state.slots 3 in
+  emit_load_for_kind state.code dst.local dst.kind;
+  box_if_int state.code dst.kind;
+  Jvm.Code.checkcast state.code "Bytes";
+  Jvm.Code.aload state.code src_local;
+  emit_load_for_kind state.code sofs.local sofs.kind;
+  (match sofs.kind with
+   | K_int -> ()
+   | K_obj -> emit_unbox_to_kind state.code K_int
+   | _ -> failwith "java_of_ocaml: caml_blit_bytes: sofs must be int");
+  emit_load_for_kind state.code dofs.local dofs.kind;
+  (match dofs.kind with
+   | K_int -> ()
+   | K_obj -> emit_unbox_to_kind state.code K_int
+   | _ -> failwith "java_of_ocaml: caml_blit_bytes: dofs must be int");
+  emit_load_for_kind state.code len.local len.kind;
+  (match len.kind with
+   | K_int -> ()
+   | K_obj -> emit_unbox_to_kind state.code K_int
+   | _ -> failwith "java_of_ocaml: caml_blit_bytes: len must be int");
+  Jvm.Code.invokevirtual
+    state.code
+    ~class_:"Bytes"
+    ~method_:"blitBytes"
+    ~descriptor:"(LBytes;III)V";
+  pop_slots state 4;
+  Jvm.Code.ldc_int state.code 0;
+  state.acc_live <- true;
+  state.acc_kind <- K_int
+
+(* [caml_bytes_of_string s]: new Bytes(s). *)
+let emit_bytes_of_string state =
+  (match state.acc_kind with
+   | K_string -> ()
+   | K_obj -> Jvm.Code.checkcast state.code "java/lang/String"
+   | _ -> failwith "java_of_ocaml: caml_bytes_of_string: acc must be string");
+  Jvm.Code.invokestatic
+    state.code
+    ~class_:"Bytes"
+    ~method_:"ofString"
+    ~descriptor:"(Ljava/lang/String;)LBytes;";
+  state.acc_kind <- K_obj
+
+(* [caml_string_of_bytes b]: b.asString(). *)
+let emit_string_of_bytes state =
+  emit_cast_bytes state;
+  Jvm.Code.invokevirtual
+    state.code
+    ~class_:"Bytes"
+    ~method_:"asString"
+    ~descriptor:"()Ljava/lang/String;";
+  state.acc_kind <- K_string
+
+(* [caml_bytes_equal a b] / [caml_bytes_notequal] / [caml_bytes_compare].
+   Compare two Bytes by contents. *)
+let emit_bytes_equal state ~invert =
+  emit_cast_bytes state;
+  let b_slot = List.nth state.slots 0 in
+  emit_load_for_kind state.code b_slot.local b_slot.kind;
+  box_if_int state.code b_slot.kind;
+  Jvm.Code.checkcast state.code "Bytes";
+  Jvm.Code.invokevirtual
+    state.code
+    ~class_:"Bytes"
+    ~method_:"contentEquals"
+    ~descriptor:"(LBytes;)Z";
+  if invert
+  then (
+    Jvm.Code.ldc_int state.code 1;
+    Jvm.Code.ixor state.code);
+  pop_slots state 1;
+  state.acc_live <- true;
+  state.acc_kind <- K_int
+
+let emit_bytes_compare state =
+  emit_cast_bytes state;
+  Jvm.Code.invokevirtual
+    state.code
+    ~class_:"Bytes"
+    ~method_:"asString"
+    ~descriptor:"()Ljava/lang/String;";
+  let b_slot = List.nth state.slots 0 in
+  emit_load_for_kind state.code b_slot.local b_slot.kind;
+  box_if_int state.code b_slot.kind;
+  Jvm.Code.checkcast state.code "Bytes";
+  Jvm.Code.invokevirtual
+    state.code
+    ~class_:"Bytes"
+    ~method_:"asString"
+    ~descriptor:"()Ljava/lang/String;";
+  Jvm.Code.invokevirtual
+    state.code
+    ~class_:"java/lang/String"
+    ~method_:"compareTo"
+    ~descriptor:"(Ljava/lang/String;)I";
+  pop_slots state 1;
+  state.acc_live <- true;
+  state.acc_kind <- K_int
+
 (* [caml_ml_flush(chan)] — flushes any buffered output. *)
 let emit_ml_flush state =
   emit_cast_channel state;

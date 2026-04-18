@@ -23,6 +23,9 @@ val compare_class_bytes : unit -> string
     [caml_compare] / [caml_equal] / [caml_lessthan] / etc. *)
 
 val channel_class_bytes : unit -> string
+(** See above. *)
+
+val bytes_class_bytes : unit -> string
 (** Output channel wrapper. Holds a [java.io.PrintStream] and
     exposes [output] / [outputChar] / [flush] for
     [caml_ml_output] / [caml_ml_output_char] / [caml_ml_flush].

@@ -9,14 +9,16 @@
   PartialClosure.class
   CamlException.class
   Compare.class
-  Channel.class)
+  Channel.class
+  Bytes.class)
  (deps
   Block.java
   Closure.java
   PartialClosure.java
   CamlException.java
   Compare.java
-  Channel.java)
+  Channel.java
+  Bytes.java)
  (action
   (run javac -d . %{deps})))
 
@@ -29,7 +31,8 @@
    PartialClosure.class
    CamlException.class
    Compare.class
-   Channel.class))
+   Channel.class
+   Bytes.class))
  (action
   (with-stdout-to
    %{targets}

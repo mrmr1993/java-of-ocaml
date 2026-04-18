@@ -307,6 +307,11 @@ val channel_class_bytes : unit -> string
     [caml_ml_output_char] / [caml_ml_flush] wire through static
     [stdout] / [stderr] instances. *)
 
+val bytes_class_bytes : unit -> string
+(** Bytes of the [Bytes] runtime class — OCaml [bytes] as a
+    mutable [StringBuilder] wrapper with [create] / [get] / [set] /
+    [blitString] / [blitBytes] / [asString]. *)
+
 val closure_class_bytes : unit -> string
 
 val partial_closure_class_bytes : unit -> string

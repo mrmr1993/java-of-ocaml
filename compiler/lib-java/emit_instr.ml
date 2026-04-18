@@ -903,7 +903,21 @@ let emit_instr state (ins : instr) =
          Emit_primitive.emit_open_descriptor_out state
        | P_ml_output -> Emit_primitive.emit_ml_output state
        | P_ml_output_char -> Emit_primitive.emit_ml_output_char state
-       | P_ml_flush -> Emit_primitive.emit_ml_flush state)
+       | P_ml_flush -> Emit_primitive.emit_ml_flush state
+       | P_create_bytes -> Emit_primitive.emit_create_bytes state
+       | P_bytes_length -> Emit_primitive.emit_bytes_length state
+       | P_bytes_get -> Emit_primitive.emit_bytes_get state
+       | P_bytes_set -> Emit_primitive.emit_bytes_set state
+       | P_fill_bytes -> Emit_primitive.emit_fill_bytes state
+       | P_blit_string_to_bytes ->
+         Emit_primitive.emit_blit_string_to_bytes state
+       | P_blit_bytes_to_bytes ->
+         Emit_primitive.emit_blit_bytes_to_bytes state
+       | P_bytes_of_string -> Emit_primitive.emit_bytes_of_string state
+       | P_string_of_bytes -> Emit_primitive.emit_string_of_bytes state
+       | P_bytes_equal -> Emit_primitive.emit_bytes_equal state ~invert:false
+       | P_bytes_notequal -> Emit_primitive.emit_bytes_equal state ~invert:true
+       | P_bytes_compare -> Emit_primitive.emit_bytes_compare state)
     | None ->
       let name =
         if prim_idx >= 0 && prim_idx < Array.length state.prims

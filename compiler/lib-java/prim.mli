@@ -65,6 +65,18 @@ type prim_handler =
   | P_ml_output
   | P_ml_output_char
   | P_ml_flush
+  | P_create_bytes
+  | P_bytes_length
+  | P_bytes_get
+  | P_bytes_set
+  | P_fill_bytes
+  | P_blit_string_to_bytes
+  | P_blit_bytes_to_bytes
+  | P_bytes_of_string
+  | P_string_of_bytes
+  | P_bytes_equal
+  | P_bytes_notequal
+  | P_bytes_compare
 
 type prim_entry =
   { name : string

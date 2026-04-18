@@ -59,6 +59,18 @@ type prim_handler =
   | P_ml_output
   | P_ml_output_char
   | P_ml_flush
+  | P_create_bytes
+  | P_bytes_length
+  | P_bytes_get
+  | P_bytes_set
+  | P_fill_bytes
+  | P_blit_string_to_bytes
+  | P_blit_bytes_to_bytes
+  | P_bytes_of_string
+  | P_string_of_bytes
+  | P_bytes_equal
+  | P_bytes_notequal
+  | P_bytes_compare
     (* Stub: 1 arg, returns a dummy K_float (0.0). For Int64/Int32 bit
        conversions we don't implement yet; Stdlib init calls them to
        set up infinity / nan / max_float, which would be wrong but at
@@ -148,6 +160,25 @@ let primitives : prim_entry list =
   ; { name = "caml_ml_output_string"; handler = P_ml_output; seed = false }
   ; { name = "caml_ml_output_char"; handler = P_ml_output_char; seed = false }
   ; { name = "caml_ml_flush"; handler = P_ml_flush; seed = false }
+  (* Bytes primitives — OCaml's mutable byte buffer type. Represented
+     on the JVM as a [Bytes] wrapper class around a [StringBuilder]. *)
+  ; { name = "caml_create_bytes"; handler = P_create_bytes; seed = false }
+  ; { name = "caml_create_string"; handler = P_create_bytes; seed = false }
+  ; { name = "caml_ml_bytes_length"; handler = P_bytes_length; seed = false }
+  ; { name = "caml_bytes_length"; handler = P_bytes_length; seed = false }
+  ; { name = "caml_bytes_get"; handler = P_bytes_get; seed = false }
+  ; { name = "caml_bytes_unsafe_get"; handler = P_bytes_get; seed = false }
+  ; { name = "caml_bytes_set"; handler = P_bytes_set; seed = false }
+  ; { name = "caml_bytes_unsafe_set"; handler = P_bytes_set; seed = false }
+  ; { name = "caml_fill_bytes"; handler = P_fill_bytes; seed = false }
+  ; { name = "caml_fill_string"; handler = P_fill_bytes; seed = false }
+  ; { name = "caml_blit_string"; handler = P_blit_string_to_bytes; seed = false }
+  ; { name = "caml_blit_bytes"; handler = P_blit_bytes_to_bytes; seed = false }
+  ; { name = "caml_bytes_of_string"; handler = P_bytes_of_string; seed = false }
+  ; { name = "caml_string_of_bytes"; handler = P_string_of_bytes; seed = false }
+  ; { name = "caml_bytes_equal"; handler = P_bytes_equal; seed = false }
+  ; { name = "caml_bytes_notequal"; handler = P_bytes_notequal; seed = false }
+  ; { name = "caml_bytes_compare"; handler = P_bytes_compare; seed = false }
   (* Returns an OCaml list (nil = Val_int 0). *)
   ; { name = "caml_ml_out_channels_list"; handler = P_noop1; seed = false }
   ; { name = "caml_channel_descriptor"; handler = P_noop_null1; seed = false }
