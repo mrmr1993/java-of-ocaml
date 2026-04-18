@@ -1065,12 +1065,25 @@ let parse_generic_with_stack instrs ~start_pc ~end_pc ~initial_stack ~env =
      the outer fallback loop afterwards. *)
   let blocks = ref Addr.Map.empty in
   let visited = Hashtbl.create 32 in
+  (* [starts_ref] is mutable so DFS can dynamically promote any cont
+     target it reaches that wasn't in the initial [block_starts] scan
+     to a proper block boundary. This papers over edge cases where
+     the static scan missed a target (e.g., a branch to an address
+     that happens to equal end_pc, a POPTRAP next-pc that doesn't
+     line up with [i+1 < len], etc.). *)
+  let starts_ref = ref starts in
   let rec visit pc =
-    if Hashtbl.mem visited pc || not (IntSet.mem pc starts)
+    if Hashtbl.mem visited pc
     then ()
+    else if not (IntSet.mem pc !starts_ref)
+    then (
+      if IntMap.mem pc addr_map
+      then (
+        starts_ref := IntSet.add pc !starts_ref;
+        visit pc))
     else (
       Hashtbl.add visited pc ();
-      let blk = process_block state pc starts addr_map in
+      let blk = process_block state pc !starts_ref addr_map in
       blocks := Addr.Map.add pc blk !blocks;
       let step_cont (addr, _args) = visit addr in
       match blk.branch with
@@ -1081,6 +1094,7 @@ let parse_generic_with_stack instrs ~start_pc ~end_pc ~initial_stack ~env =
       | Pushtrap (b, _, h) -> step_cont b; step_cont h)
   in
   visit start_pc;
+  let starts = !starts_ref in
   (* Any blocks not reached by DFS — unlikely in well-formed bytecode
      but guard against orphans. *)
   IntSet.iter

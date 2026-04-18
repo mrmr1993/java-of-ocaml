@@ -9,6 +9,7 @@ let debug_primitives = Debug.find "primitives"
 let debug_functions = Debug.find "functions"
 let debug_labels = Debug.find "labels"
 let debug_ir = Debug.find "ir"
+let debug_ir_gen = Debug.find "ir_gen"
 
 (* Attempt to lower a function body (or the main init range) to the new
    Code IR via [Parse_bytecode]. This is a smoke pass for Phase 1 — the
@@ -24,7 +25,7 @@ let ir_smoke_function arr (fi : Function_info.function_info) =
     let end_pc = arr.(fi.body_end_idx).pc in
     let instrs = Array.to_list arr in
     try
-      let _prog, _params =
+      let prog, _params =
         Parse_bytecode.parse_function
           instrs
           ~start_pc:body_pc
@@ -32,7 +33,17 @@ let ir_smoke_function arr (fi : Function_info.function_info) =
           ~nargs:fi.nargs
           ~ncaps:fi.ncaps
       in
-      Format.eprintf "[ir] %s: parsed ok@." fi.name
+      Format.eprintf "[ir] %s: parsed ok@." fi.name;
+      if debug_ir_gen ()
+      then (
+        let cp = Jvm.Cp.create () in
+        let code = Jvm.Code.create cp in
+        let typing = Jvm_typing.infer prog in
+        try
+          Jvm_generate.emit_program ~code ~typing prog;
+          Format.eprintf "[ir_gen] %s: emitted ok@." fi.name
+        with Jvm_generate.Unsupported msg ->
+          Format.eprintf "[ir_gen] %s: Unsupported — %s@." fi.name msg)
     with
     | Parse_bytecode.Not_supported msg ->
       Format.eprintf "[ir] %s: Not_supported — %s@." fi.name msg

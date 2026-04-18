@@ -168,6 +168,48 @@ let emit_prim ctx (p : Code.prim) (args : Code.prim_arg list) : Kind.kind =
     Jvm.Code.ldc_int ctx.code 1;
     Jvm.Code.mark_label ctx.code l_end;
     K_int
+  | Extern "get_global", [ Pc (Int idx) ] ->
+    Jvm.Code.getstatic
+      ctx.code
+      ~class_:"Main"
+      ~field:"GLOBALS"
+      ~descriptor:"[Ljava/lang/Object;";
+    Jvm.Code.ldc_int ctx.code idx;
+    Jvm.Code.aaload ctx.code;
+    K_obj
+  | Extern "set_global", [ Pc (Int idx); Pv v ] ->
+    Jvm.Code.getstatic
+      ctx.code
+      ~class_:"Main"
+      ~field:"GLOBALS"
+      ~descriptor:"[Ljava/lang/Object;";
+    Jvm.Code.ldc_int ctx.code idx;
+    emit_load ctx v;
+    (match kind_of ctx v with
+     | K_int -> Kind.emit_box_int ctx.code
+     | K_float -> Kind.emit_box_float ctx.code
+     | _ -> ());
+    Jvm.Code.aastore ctx.code;
+    (* Return unit (represented as int 0). *)
+    Jvm.Code.ldc_int ctx.code 0;
+    K_int
+  | Extern "get_global_field", [ Pc (Int idx); Pc (Int field) ] ->
+    Jvm.Code.getstatic
+      ctx.code
+      ~class_:"Main"
+      ~field:"GLOBALS"
+      ~descriptor:"[Ljava/lang/Object;";
+    Jvm.Code.ldc_int ctx.code idx;
+    Jvm.Code.aaload ctx.code;
+    Jvm.Code.checkcast ctx.code "Block";
+    Jvm.Code.getfield
+      ctx.code
+      ~class_:"Block"
+      ~field:"fields"
+      ~descriptor:"[Ljava/lang/Object;";
+    Jvm.Code.ldc_int ctx.code field;
+    Jvm.Code.aaload ctx.code;
+    K_obj
   | IsInt, [ a ] ->
     let ka = emit_prim_arg ctx a in
     (match ka with
@@ -182,8 +224,44 @@ let emit_expr ctx (e : Code.expr) : Kind.kind =
   | Constant c -> emit_constant ctx c
   | Prim (p, args) -> emit_prim ctx p args
   | Apply _ -> raise (Unsupported "Apply")
-  | Block _ -> raise (Unsupported "Block")
-  | Field _ -> raise (Unsupported "Field")
+  | Block (tag, fields) ->
+    (* new Block(tag, new Object[]{fields...}). *)
+    Jvm.Code.new_ ctx.code "Block";
+    Jvm.Code.dup ctx.code;
+    Jvm.Code.ldc_int ctx.code tag;
+    Jvm.Code.ldc_int ctx.code (Array.length fields);
+    Jvm.Code.anewarray ctx.code "java/lang/Object";
+    Array.iteri
+      (fun i v ->
+        Jvm.Code.dup ctx.code;
+        Jvm.Code.ldc_int ctx.code i;
+        emit_load ctx v;
+        (match kind_of ctx v with
+         | K_int -> Kind.emit_box_int ctx.code
+         | K_float -> Kind.emit_box_float ctx.code
+         | _ -> ());
+        Jvm.Code.aastore ctx.code)
+      fields;
+    Jvm.Code.invokespecial
+      ctx.code
+      ~class_:"Block"
+      ~method_:"<init>"
+      ~descriptor:"(I[Ljava/lang/Object;)V";
+    K_obj
+  | Field (v, i) ->
+    emit_load ctx v;
+    (match kind_of ctx v with
+     | K_block _ | K_obj ->
+       Jvm.Code.checkcast ctx.code "Block";
+       Jvm.Code.getfield
+         ctx.code
+         ~class_:"Block"
+         ~field:"fields"
+         ~descriptor:"[Ljava/lang/Object;";
+       Jvm.Code.ldc_int ctx.code i;
+       Jvm.Code.aaload ctx.code;
+       K_obj
+     | _ -> raise (Unsupported "Field on non-block kind"))
   | Closure _ -> raise (Unsupported "Closure")
 
 let emit_instr ctx (i : Code.instr) =
@@ -194,8 +272,23 @@ let emit_instr ctx (i : Code.instr) =
   | Assign (x, y) ->
     emit_load ctx y;
     emit_store ctx x ~from:(kind_of ctx y)
-  | Set_field _ | Offset_ref _ | Array_set _ ->
-    raise (Unsupported "Set_field/Offset_ref/Array_set")
+  | Set_field (x, i, y) ->
+    emit_load ctx x;
+    Jvm.Code.checkcast ctx.code "Block";
+    Jvm.Code.getfield
+      ctx.code
+      ~class_:"Block"
+      ~field:"fields"
+      ~descriptor:"[Ljava/lang/Object;";
+    Jvm.Code.ldc_int ctx.code i;
+    emit_load ctx y;
+    (match kind_of ctx y with
+     | K_int -> Kind.emit_box_int ctx.code
+     | K_float -> Kind.emit_box_float ctx.code
+     | _ -> ());
+    Jvm.Code.aastore ctx.code
+  | Offset_ref _ | Array_set _ ->
+    raise (Unsupported "Offset_ref/Array_set")
 
 (* Emit a branch edge: parallel-rename the [args] into a caller's
    [param] locals, then [goto] a caller's entry label. To avoid
