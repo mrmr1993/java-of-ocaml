@@ -718,355 +718,6 @@ let emit_array_set state =
    [acc.applyN(arg0, arg1, ...)] where each arg is boxed to [Object].
    Small arities (1/2/3) use the [applyN] overloads on [Closure]. *)
 
-let apply_descriptor_for_nargs nargs =
-  let buf = Buffer.create 16 in
-  Buffer.add_char buf '(';
-  for _ = 1 to nargs do
-    Buffer.add_string buf "Ljava/lang/Object;"
-  done;
-  Buffer.add_string buf ")Ljava/lang/Object;";
-  Buffer.contents buf
-
-(* Emit the invokevirtual for an APPLY. Leaves the callee's result as an
-   [Object] reference on the JVM op stack, consumes the arg slots, and
-   updates state accordingly. Does not touch the result's boxedness. *)
-let emit_apply_invoke state ~nargs =
-  (* Ensure acc is a Closure reference. K_obj → checkcast Closure;
-     K_closure is already typed. *)
-  (match state.acc_kind with
-   | K_closure _ -> ()
-   | K_obj ->
-     Jvm.Code.checkcast state.code "Closure";
-     state.acc_kind <- K_closure { name = "Closure"; captures = [] }
-   | K_int | K_string | K_block _ ->
-     failwith
-       (Printf.sprintf
-          "java_of_ocaml: APPLY%d called on a non-closure value (%s). \
-           Closure analysis lost the tag?"
-          nargs
-          (jvm_type_of_kind state.acc_kind)));
-  for k = 0 to nargs - 1 do
-    let slot = stack_slot_local ~state k in
-    let sk = (List.nth state.slots k).kind in
-    emit_load_for_kind state.code slot sk;
-    box_if_int state.code sk
-  done;
-  if nargs > 7
-  then
-    failwith
-      (Printf.sprintf
-         "java_of_ocaml: APPLY%d — the base Closure class only \
-          declares apply1..apply7 right now"
-         nargs);
-  Jvm.Code.invokevirtual
-    state.code
-    ~class_:"Closure"
-    ~method_:(Printf.sprintf "apply%d" nargs)
-    ~descriptor:(apply_descriptor_for_nargs nargs);
-  pop_slots state nargs;
-  (* If this APPLY is the tail of a [PUSH_RETADDR; …; APPLY] frame,
-     discard the three retaddr sentinels too. OCaml's callee consumed
-     them in its RETURN; at our level we just drop them from the
-     tracked OCaml-stack depth. *)
-  if state.pending_retaddrs > 0
-  then (
-    state.pending_retaddrs <- state.pending_retaddrs - 1;
-    pop_slots state 3);
-  state.acc_live <- true
-
-(* Regular APPLY: invoke then cast / unbox based on the callee's return
-   kind. [fn_by_name] is a side-table supplied in the state for this. *)
-let emit_apply state ~nargs =
-  let callee_info =
-    match state.acc_kind with
-    | K_closure { name; _ } -> Hashtbl.find_opt state.fn_by_name name
-    | _ -> None
-  in
-  emit_apply_invoke state ~nargs;
-  let return_kind =
-    match callee_info with
-    | Some fi when nargs < fi.nargs ->
-      (* Undersupplied call — the JVM [Closure.apply<nargs>] stub built a
-         [PartialClosure] from the passed args. The result is a closure,
-         not the function's final return. *)
-      K_obj
-    | Some fi -> !(fi.return_kind)
-    | None ->
-      (* Calling through an opaque closure (e.g. a function arg, or a
-         capture whose kind we lost). We can't know the callee's return
-         kind without more analysis, so stay on the lazy K_obj path and
-         let the next op unbox via [ensure_kind] at point of use. *)
-      K_obj
-  in
-  emit_unbox_to_kind state.code return_kind;
-  state.acc_kind <- return_kind
-
-let emit_apply1 state = emit_apply state ~nargs:1
-
-(* OCaml [PUSH_RETADDR L]: push three retaddr words onto the OCaml stack
-   (return PC, env, extra_args). The callee's [RETURN] pops them along
-   with its own locals. At the JVM level we don't need any of this
-   information (Java's native return takes care of it); we only need to
-   track that the OCaml stack got 3 slots deeper so later [ACC k]
-   resolves to the right slot. After the matching [APPLY] those slots
-   are "popped" by the callee's RETURN — since nothing in our JVM-level
-   emission pushed them, we reconcile by popping 3 slots post-apply. *)
-let emit_push_retaddr state =
-  for _ = 1 to 3 do
-    let local = allocate_local state in
-    push_slot state K_obj local
-  done;
-  state.pending_retaddrs <- state.pending_retaddrs + 1
-
-(* APPTERM_N: tail call — same as APPLY followed by return. Because the
-   callee's result and our method's return type are both [Object], we
-   don't unbox; we pass the Object straight to areturn. *)
-let emit_appterm state ~nargs =
-  emit_apply_invoke state ~nargs;
-  Jvm.Code.areturn state.code;
-  state.acc_live <- false;
-  state.acc_kind <- K_int;
-  state.oc_stack_depth <- 0;
-  state.slots <- []
-
-let emit_return state =
-  (* We're returning from a JVM [apply] method whose signature returns
-     [Object]. If acc is already on the stack, box (if int) and areturn;
-     otherwise materialise a unit and return that. *)
-  if state.acc_live
-  then box_acc_to_object state
-  else (
-    Jvm.Code.ldc_int state.code 0;
-    emit_box_int state.code);
-  Jvm.Code.areturn state.code;
-  state.acc_live <- false;
-  state.acc_kind <- K_int;
-  state.oc_stack_depth <- 0;
-  state.slots <- []
-
-let emit_cmp_jump state (ins : instr) =
-  let imm = ins.args.(0) in
-  let target_pc = ins.pc + ins.args.(1) + 2 in
-  let lbl = label_at state target_pc in
-  ensure_kind state K_int;
-  Jvm.Code.ldc_int state.code imm;
-  (match ins.opcode with
-   | 131 -> Jvm.Code.if_icmpeq state.code lbl
-   | 132 -> Jvm.Code.if_icmpne state.code lbl
-   | 133 -> Jvm.Code.if_icmpgt state.code lbl
-   | 134 -> Jvm.Code.if_icmpge state.code lbl
-   | 135 -> Jvm.Code.if_icmplt state.code lbl
-   | 136 -> Jvm.Code.if_icmple state.code lbl
-   | other ->
-     failwith
-       (Printf.sprintf
-          "java_of_ocaml: unexpected cmp_jump opcode %d"
-          other));
-  (* Cmp_jump reads acc (= accu of [acc TST imm]) but doesn't touch the
-     OCaml stack; a caller sees the same stack as the branch point. *)
-  record_branch_target state target_pc;
-  state.acc_live <- false;
-  state.acc_kind <- K_int
-
-let cmp_of_opcode op =
-  if op = Bytecode.Op.eq then Eq
-  else if op = Bytecode.Op.neq then Ne
-  else if op = Bytecode.Op.ltint then Lt
-  else if op = Bytecode.Op.leint then Le
-  else if op = Bytecode.Op.gtint then Gt
-  else if op = Bytecode.Op.geint then Ge
-  else
-    failwith
-      (Printf.sprintf
-         "java_of_ocaml: cmp_of_opcode on non-comparison %d"
-         op)
-
-(* BRANCHIFNOT / BRANCHIF on a K_obj acc (i.e. a variant value that may be
-   either a boxed Integer — for immediate constructors like [None] or enum
-   tags — or a [Block] — for data constructors like [Some x]). OCaml's
-   branchifnot branches if the value equals [Val_long(0)]; in our
-   representation that means the value is an [Integer] whose [intValue] is
-   zero. A [Block] always counts as "truthy". Emits the dual-dispatch that
-   handles both shapes at runtime. Assumes acc is already on the JVM
-   operand stack. *)
-let emit_branch_on_val_int_zero state ~target_pc ~branch_if_zero =
-  (* Stash acc to a local so every JVM path leaves the op stack empty —
-     the [Jvm.Code] max-stack tracker is linear-only and a dangling
-     [pop_top] on an unreachable path would silently desync it. *)
-  let v_local = allocate_local state in
-  let l_not_int = Jvm.Code.fresh_label state.code in
-  let l_end = Jvm.Code.fresh_label state.code in
-  let target_lbl = label_at state target_pc in
-  Jvm.Code.astore state.code v_local;
-  Jvm.Code.aload state.code v_local;
-  Jvm.Code.instanceof_ state.code "java/lang/Integer";
-  Jvm.Code.ifeq state.code l_not_int;
-  Jvm.Code.aload state.code v_local;
-  Jvm.Code.checkcast state.code "java/lang/Integer";
-  Jvm.Code.invokevirtual
-    state.code
-    ~class_:"java/lang/Integer"
-    ~method_:"intValue"
-    ~descriptor:"()I";
-  (if branch_if_zero
-   then Jvm.Code.ifeq state.code target_lbl
-   else Jvm.Code.ifne state.code target_lbl);
-  Jvm.Code.goto state.code l_end;
-  Jvm.Code.mark_label state.code l_not_int;
-  if not branch_if_zero then Jvm.Code.goto state.code target_lbl;
-  Jvm.Code.mark_label state.code l_end
-
-(* Compile a [(case_value, target_pc)] table to a dispatch chain. Each
-   target is reached with the JVM operand stack empty (the scrutinee has
-   been consumed). Fall-through after the chain also leaves the stack
-   empty. The scrutinee must be on the op stack as a raw int at entry.
-
-   Implementation: stash the scrutinee into a JVM local, then for each case
-   iload + ldc + if_icmpeq. This keeps the JVM stack balanced across the
-   dispatch and, critically, never leaves a dangling [pop] on an
-   unreachable linear path — the [Jvm.Code] max-stack tracker only
-   observes straight-line code, so every dangling [pop] after a [goto]
-   silently decrements its view of the stack and causes it to
-   under-declare [max_stack] downstream. *)
-let emit_int_case_chain state ~cases ~to_target_pc =
-  let v_local = allocate_local state in
-  Jvm.Code.istore state.code v_local;
-  List.iter
-    (fun case_index ->
-      let target_pc = to_target_pc case_index in
-      Jvm.Code.iload state.code v_local;
-      Jvm.Code.ldc_int state.code case_index;
-      Jvm.Code.if_icmpeq state.code (label_at state target_pc);
-      record_branch_target state target_pc)
-    cases
-
-let emit_switch state (ins : instr) =
-  let sizes = ins.args.(0) in
-  let num_ints = sizes land 0xffff in
-  let num_tags = (sizes lsr 16) land 0xffff in
-  let int_target i = ins.pc + 2 + ins.args.(1 + i) in
-  let tag_target j = ins.pc + 2 + ins.args.(1 + num_ints + j) in
-  let int_cases = List.init num_ints (fun i -> i) in
-  let tag_cases = List.init num_tags (fun j -> j) in
-  (match state.acc_kind with
-   | K_int ->
-     (* All values are immediates; tag cases are unreachable. *)
-     emit_int_case_chain state ~cases:int_cases ~to_target_pc:int_target
-   | K_obj ->
-     if num_tags = 0
-     then (
-       Jvm.Code.checkcast state.code "java/lang/Integer";
-       Jvm.Code.invokevirtual
-         state.code
-         ~class_:"java/lang/Integer"
-         ~method_:"intValue"
-         ~descriptor:"()I";
-       emit_int_case_chain state ~cases:int_cases ~to_target_pc:int_target)
-     else if num_ints = 0
-     then (
-       Jvm.Code.checkcast state.code "Block";
-       Jvm.Code.getfield state.code ~class_:"Block" ~field:"tag" ~descriptor:"I";
-       emit_int_case_chain state ~cases:tag_cases ~to_target_pc:tag_target)
-     else (
-       (* Stash acc so the JVM op stack is empty at both label targets. *)
-       let v_local = allocate_local state in
-       let l_is_block = Jvm.Code.fresh_label state.code in
-       let l_end = Jvm.Code.fresh_label state.code in
-       Jvm.Code.astore state.code v_local;
-       Jvm.Code.aload state.code v_local;
-       Jvm.Code.instanceof_ state.code "Block";
-       Jvm.Code.ifne state.code l_is_block;
-       Jvm.Code.aload state.code v_local;
-       Jvm.Code.checkcast state.code "java/lang/Integer";
-       Jvm.Code.invokevirtual
-         state.code
-         ~class_:"java/lang/Integer"
-         ~method_:"intValue"
-         ~descriptor:"()I";
-       emit_int_case_chain state ~cases:int_cases ~to_target_pc:int_target;
-       Jvm.Code.goto state.code l_end;
-       Jvm.Code.mark_label state.code l_is_block;
-       Jvm.Code.aload state.code v_local;
-       Jvm.Code.checkcast state.code "Block";
-       Jvm.Code.getfield state.code ~class_:"Block" ~field:"tag" ~descriptor:"I";
-       emit_int_case_chain state ~cases:tag_cases ~to_target_pc:tag_target;
-       Jvm.Code.mark_label state.code l_end)
-   | K_block _ ->
-     Jvm.Code.getfield state.code ~class_:"Block" ~field:"tag" ~descriptor:"I";
-     emit_int_case_chain state ~cases:tag_cases ~to_target_pc:tag_target
-   | other ->
-     failwith
-       (Printf.sprintf
-          "java_of_ocaml: SWITCH on unsupported kind %s"
-          (jvm_type_of_kind other)));
-  state.acc_live <- false;
-  state.acc_kind <- K_int
-
-let emit_fused_branch state ~cmp ~target_pc ~branch_if_true =
-  (* acc (value1) is on the JVM op stack; the OCaml-stack top is value2.
-     Dispatch on kinds: two [K_int]s (or [K_obj]s that unbox cleanly)
-     compare as ints; two references compare as identities. OCaml's
-     [eqint] / [neqint] are reference-equality when applied to block-
-     tagged values (e.g. exception descriptors), so we need both
-     paths. *)
-  let slot_kind = kind_of_slot_from_top ~state 0 in
-  let slot = top_slot_local ~state in
-  let is_ref_kind = function
-    | K_int | K_obj -> false
-    | K_string | K_block _ | K_closure _ -> true
-  in
-  let lbl = label_at state target_pc in
-  let branch_cond =
-    if branch_if_true
-    then cmp
-    else
-      match cmp with
-      | Eq -> Ne
-      | Ne -> Eq
-      | Lt -> Ge
-      | Le -> Gt
-      | Gt -> Le
-      | Ge -> Lt
-  in
-  (* Reference-equality path. Only [Eq] / [Ne] are meaningful on refs;
-     ordering compares on references would be nonsensical. *)
-  if is_ref_kind state.acc_kind || is_ref_kind slot_kind
-  then (
-    emit_load_for_kind state.code slot slot_kind;
-    (match branch_cond with
-     | Eq -> Jvm.Code.if_acmpeq state.code lbl
-     | Ne -> Jvm.Code.if_acmpne state.code lbl
-     | _ ->
-       failwith
-         (Printf.sprintf
-            "java_of_ocaml: ordering comparison on reference kinds \
-             (%s vs %s) at pc %d"
-            (jvm_type_of_kind state.acc_kind)
-            (jvm_type_of_kind slot_kind)
-            target_pc)))
-  else (
-    ensure_kind state K_int;
-    emit_load_for_kind state.code slot slot_kind;
-    (match slot_kind with
-     | K_int -> ()
-     | K_obj -> emit_unbox_to_kind state.code K_int
-     | other ->
-       failwith
-         (Printf.sprintf
-            "java_of_ocaml: fused branch on non-int slot kind %s"
-            (jvm_type_of_kind other)));
-    match branch_cond with
-    | Eq -> Jvm.Code.if_icmpeq state.code lbl
-    | Ne -> Jvm.Code.if_icmpne state.code lbl
-    | Lt -> Jvm.Code.if_icmplt state.code lbl
-    | Le -> Jvm.Code.if_icmple state.code lbl
-    | Gt -> Jvm.Code.if_icmpgt state.code lbl
-    | Ge -> Jvm.Code.if_icmpge state.code lbl);
-  consume_top state;
-  record_branch_target state target_pc;
-  state.acc_live <- false;
-  state.acc_kind <- K_int
-
 let emit_instr state (ins : instr) =
   if debug_emit ()
   then
@@ -1127,13 +778,13 @@ let emit_instr state (ins : instr) =
    | None -> ());
   let op = ins.opcode in
   if is_cmp_nullary op
-  then state.pending_cmp <- Some (cmp_of_opcode op)
+  then state.pending_cmp <- Some (Emit_branch.cmp_of_opcode op)
   else if op = Bytecode.Op.branchifnot
   then (
     match state.pending_cmp with
     | Some cmp ->
       let target_pc = ins.pc + ins.args.(0) + 1 in
-      emit_fused_branch state ~cmp ~target_pc ~branch_if_true:false;
+      Emit_branch.emit_fused_branch state ~cmp ~target_pc ~branch_if_true:false;
       state.pending_cmp <- None
     | None ->
       let target_pc = ins.pc + ins.args.(0) + 1 in
@@ -1142,7 +793,7 @@ let emit_instr state (ins : instr) =
          Jvm.Code.ldc_int state.code 0;
          Jvm.Code.if_icmpeq state.code (label_at state target_pc)
        | K_obj ->
-         emit_branch_on_val_int_zero
+         Emit_branch.emit_branch_on_val_int_zero
            state
            ~target_pc
            ~branch_if_zero:true
@@ -1159,7 +810,7 @@ let emit_instr state (ins : instr) =
     match state.pending_cmp with
     | Some cmp ->
       let target_pc = ins.pc + ins.args.(0) + 1 in
-      emit_fused_branch state ~cmp ~target_pc ~branch_if_true:true;
+      Emit_branch.emit_fused_branch state ~cmp ~target_pc ~branch_if_true:true;
       state.pending_cmp <- None
     | None ->
       let target_pc = ins.pc + ins.args.(0) + 1 in
@@ -1168,7 +819,7 @@ let emit_instr state (ins : instr) =
          Jvm.Code.ldc_int state.code 0;
          Jvm.Code.if_icmpne state.code (label_at state target_pc)
        | K_obj ->
-         emit_branch_on_val_int_zero
+         Emit_branch.emit_branch_on_val_int_zero
            state
            ~target_pc
            ~branch_if_zero:false
@@ -1182,7 +833,7 @@ let emit_instr state (ins : instr) =
       state.acc_live <- false;
       state.acc_kind <- K_int)
   else if op = Bytecode.Op.switch
-  then emit_switch state ins
+  then Emit_branch.emit_switch state ins
   else if op = Bytecode.Op.pushtrap
   then Emit_exception.emit_pushtrap state ins
   else if op = Bytecode.Op.poptrap
@@ -1194,7 +845,7 @@ let emit_instr state (ins : instr) =
   else if op = Bytecode.Op.isint
   then emit_isint state
   else if op = Bytecode.Op.push_retaddr
-  then emit_push_retaddr state
+  then Emit_apply.emit_push_retaddr state
   else if op = Bytecode.Op.boolnot
   then (
     (* OCaml bool is Val_int(0) / Val_int(1). Flip via XOR with 1. *)
@@ -1537,7 +1188,7 @@ let emit_instr state (ins : instr) =
     let target = ins.pc + ins.args.(0) + 1 in
     Jvm.Code.goto state.code (label_at state target);
     record_branch_target state target)
-  else if is_cmp_jump op then emit_cmp_jump state ins
+  else if is_cmp_jump op then Emit_branch.emit_cmp_jump state ins
   else if op = closurerec_op then emit_closurerec state ins
   else if op = closure_op then emit_closure state ins
   else if op = Bytecode.Op.envacc1 then emit_envacc state 1
@@ -1559,15 +1210,15 @@ let emit_instr state (ins : instr) =
   else if op = pushoffsetclosure3_op then emit_pushoffsetclosure state 3
   else if op = pushoffsetclosure_op
   then emit_pushoffsetclosure state ins.args.(0)
-  else if op = apply1_op then emit_apply1 state
-  else if op = apply2_op then emit_apply state ~nargs:2
-  else if op = apply3_op then emit_apply state ~nargs:3
-  else if op = apply_op then emit_apply state ~nargs:ins.args.(0)
-  else if op = appterm1_op then emit_appterm state ~nargs:1
-  else if op = appterm2_op then emit_appterm state ~nargs:2
-  else if op = appterm3_op then emit_appterm state ~nargs:3
-  else if op = appterm_op then emit_appterm state ~nargs:ins.args.(0)
-  else if op = return_op then emit_return state
+  else if op = apply1_op then Emit_apply.emit_apply1 state
+  else if op = apply2_op then Emit_apply.emit_apply state ~nargs:2
+  else if op = apply3_op then Emit_apply.emit_apply state ~nargs:3
+  else if op = apply_op then Emit_apply.emit_apply state ~nargs:ins.args.(0)
+  else if op = appterm1_op then Emit_apply.emit_appterm state ~nargs:1
+  else if op = appterm2_op then Emit_apply.emit_appterm state ~nargs:2
+  else if op = appterm3_op then Emit_apply.emit_appterm state ~nargs:3
+  else if op = appterm_op then Emit_apply.emit_appterm state ~nargs:ins.args.(0)
+  else if op = return_op then Emit_apply.emit_return state
   else if op = restart_op || op = grab_op then
     (* Function-entry prologue. We already extracted [nargs] up-front and
        the JVM convention puts args in locals 0..nargs-1; nothing to emit. *)
@@ -1966,7 +1617,7 @@ let compile ~bc ~out_dir =
         in
         let apply_method =
           { Jvm.name = Printf.sprintf "apply%d" fn_info.nargs
-          ; descriptor = apply_descriptor_for_nargs fn_info.nargs
+          ; descriptor = Emit_apply.apply_descriptor_for_nargs fn_info.nargs
           ; access_flags = 0x0001 (* ACC_PUBLIC *)
           ; code = apply_code
           }
