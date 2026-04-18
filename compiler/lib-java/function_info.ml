@@ -39,10 +39,22 @@ let find_function_body_range arr body_pc =
     else 1
   in
   let outstanding = ref Int_set.empty in
+  let last_terminator = ref (-1) in
   let rec loop i =
     if i >= n
     then
-      failwith "java_of_ocaml: walked past end of code while tracing function body"
+      (* Ran off the end — probably a backward branch target from
+         inside a nested function we accidentally absorbed. Fall
+         back to the last terminator we saw; assert at least one
+         exists. *)
+      if !last_terminator >= !real_start
+      then !last_terminator
+      else
+        failwith
+          (Printf.sprintf
+             "java_of_ocaml: no terminator in function body starting at \
+              pc %d"
+             body_pc)
     else
       let ins = arr.(i) in
       outstanding := Int_set.remove ins.pc !outstanding;
@@ -50,18 +62,19 @@ let find_function_body_range arr body_pc =
         (fun t ->
           if t <> ins.pc then outstanding := Int_set.add t !outstanding)
         (branch_targets ins);
-      let ends_here =
-        (ins.opcode = return_op
-         || ins.opcode = appterm_op
-         || ins.opcode = appterm1_op
-         || ins.opcode = appterm2_op
-         || ins.opcode = appterm3_op
-         || ins.opcode = Bytecode.Op.stop
-         || ins.opcode = Bytecode.Op.raise_
-         || ins.opcode = Bytecode.Op.reraise
-         || ins.opcode = Bytecode.Op.raise_notrace)
-        && Int_set.is_empty !outstanding
+      let is_terminator =
+        ins.opcode = return_op
+        || ins.opcode = appterm_op
+        || ins.opcode = appterm1_op
+        || ins.opcode = appterm2_op
+        || ins.opcode = appterm3_op
+        || ins.opcode = Bytecode.Op.stop
+        || ins.opcode = Bytecode.Op.raise_
+        || ins.opcode = Bytecode.Op.reraise
+        || ins.opcode = Bytecode.Op.raise_notrace
       in
+      if is_terminator then last_terminator := i;
+      let ends_here = is_terminator && Int_set.is_empty !outstanding in
       if ends_here then i else loop (i + 1)
   in
   let end_idx = loop !real_start in
