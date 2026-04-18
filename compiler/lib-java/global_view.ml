@@ -1,10 +1,12 @@
 type global_field_value =
   | Gv_int of int
   | Gv_string of string
+  | Gv_float of float
   | Gv_block of int * global_field_value list
 
 type global_view =
   | G_string of string
+  | G_float of float
   | G_block of int * global_field_value list
   | G_unsupported
 
@@ -13,6 +15,8 @@ let rec classify_field (f : Obj.t) =
   then (
     if Obj.tag f = Obj.string_tag
     then Some (Gv_string (Obj.magic f : string))
+    else if Obj.tag f = Obj.double_tag
+    then Some (Gv_float (Obj.magic f : float))
     else if Obj.tag f < Obj.no_scan_tag
     then (
       let size = Obj.size f in
@@ -39,6 +43,8 @@ let inspect_global (globals : Obj.t array) n =
   then G_unsupported
   else if Obj.tag v = Obj.string_tag
   then G_string (Obj.magic v : string)
+  else if Obj.tag v = Obj.double_tag
+  then G_float (Obj.magic v : float)
   else if Obj.tag v < Obj.no_scan_tag
   then (
     let size = Obj.size v in

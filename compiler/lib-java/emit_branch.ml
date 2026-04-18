@@ -182,7 +182,7 @@ let emit_fused_branch state ~cmp ~target_pc ~branch_if_true =
   let slot_kind = kind_of_slot_from_top ~state 0 in
   let slot = top_slot_local ~state in
   let is_ref_kind = function
-    | K_int | K_obj -> false
+    | K_int | K_float | K_obj -> false
     | K_string | K_block _ | K_closure _ -> true
   in
   let lbl = label_at state target_pc in

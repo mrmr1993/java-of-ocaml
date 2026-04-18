@@ -36,6 +36,15 @@ val istore : t -> int -> unit
 val iload : t -> int -> unit
 val astore : t -> int -> unit
 val aload : t -> int -> unit
+val dstore : t -> int -> unit
+val dload : t -> int -> unit
+
+val ldc_double : t -> float -> unit
+(** Push a double constant (JVM [ldc2_w]; occupies 2 operand slots). *)
+
+val pop2 : t -> unit
+(** Discard the top 2 operand-stack slots (JVM [pop2], 0x58). Used to
+    drop a double or a pair of category-1 values. *)
 
 (** {1 Arrays} *)
 
@@ -76,6 +85,23 @@ val ishl : t -> unit
 val ishr : t -> unit
 val iushr : t -> unit
 
+(** {1 Double arithmetic / conversions} *)
+
+val dadd : t -> unit
+val dsub : t -> unit
+val dmul : t -> unit
+val ddiv : t -> unit
+val dneg : t -> unit
+
+val dcmpl : t -> unit
+(** JVM [dcmpl]: pops 2 doubles and pushes -1/0/1; NaN pushes -1. *)
+
+val dcmpg : t -> unit
+(** JVM [dcmpg]: pops 2 doubles and pushes -1/0/1; NaN pushes +1. *)
+
+val d2i : t -> unit
+val i2d : t -> unit
+
 (** {1 Branches} *)
 
 val if_icmpeq : t -> label -> unit
@@ -87,6 +113,10 @@ val if_icmpge : t -> label -> unit
 
 val ifeq : t -> label -> unit
 val ifne : t -> label -> unit
+val iflt : t -> label -> unit
+val ifge : t -> label -> unit
+val ifgt : t -> label -> unit
+val ifle : t -> label -> unit
 
 val if_acmpeq : t -> label -> unit
 val if_acmpne : t -> label -> unit

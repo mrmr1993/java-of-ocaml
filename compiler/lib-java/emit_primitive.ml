@@ -94,6 +94,11 @@ let emit_obj_tag state =
     Jvm.Code.ldc_int state.code 252;
     state.acc_live <- true;
     state.acc_kind <- K_int
+  | K_float ->
+    drop_live_acc state;
+    Jvm.Code.ldc_int state.code 253;
+    state.acc_live <- true;
+    state.acc_kind <- K_int
   | K_closure _ ->
     if state.acc_live then Jvm.Code.pop_top state.code;
     Jvm.Code.ldc_int state.code 247;
@@ -291,6 +296,113 @@ let emit_fresh_oo_id state =
   state.acc_live <- true;
   state.acc_kind <- K_int
 
+(* Load the top OCaml-stack slot as a JVM [double], unboxing from
+   [java.lang.Double] if the slot currently holds an opaque object. *)
+let emit_dload_top_as_double state =
+  let si = List.hd state.slots in
+  emit_load_for_kind state.code si.local si.kind;
+  match si.kind with
+  | K_float -> ()
+  | K_obj ->
+    Jvm.Code.checkcast state.code "java/lang/Double";
+    Jvm.Code.invokevirtual
+      state.code
+      ~class_:"java/lang/Double"
+      ~method_:"doubleValue"
+      ~descriptor:"()D"
+  | _ ->
+    failwith
+      (Printf.sprintf
+         "java_of_ocaml: float primitive on a non-float slot (%s)"
+         (jvm_type_of_kind si.kind))
+
+let emit_float_binop state op =
+  ensure_kind state K_float;
+  emit_dload_top_as_double state;
+  op state.code;
+  consume_top state;
+  state.acc_live <- true;
+  state.acc_kind <- K_float
+
+let emit_float_neg state =
+  ensure_kind state K_float;
+  Jvm.Code.dneg state.code;
+  state.acc_kind <- K_float
+
+let emit_float_abs state =
+  ensure_kind state K_float;
+  Jvm.Code.invokestatic
+    state.code
+    ~class_:"java/lang/Math"
+    ~method_:"abs"
+    ~descriptor:"(D)D";
+  state.acc_kind <- K_float
+
+(* OCaml's float comparisons return [false] on NaN for all six
+   operators — so picking [dcmpg] for strict-less/less-eq and
+   [dcmpl] for strict-greater/greater-eq keeps NaN from sneaking
+   through as a positive answer. *)
+let emit_float_cmp state ~cmp =
+  ensure_kind state K_float;
+  emit_dload_top_as_double state;
+  let use_dcmpg =
+    match cmp with
+    | Lt | Le -> true
+    | Gt | Ge | Eq | Ne -> false
+  in
+  if use_dcmpg
+  then Jvm.Code.dcmpg state.code
+  else Jvm.Code.dcmpl state.code;
+  let lbl_true = Jvm.Code.fresh_label state.code in
+  let lbl_end = Jvm.Code.fresh_label state.code in
+  (match cmp with
+   | Eq -> Jvm.Code.ifeq state.code lbl_true
+   | Ne -> Jvm.Code.ifne state.code lbl_true
+   | Lt -> Jvm.Code.iflt state.code lbl_true
+   | Le -> Jvm.Code.ifle state.code lbl_true
+   | Gt -> Jvm.Code.ifgt state.code lbl_true
+   | Ge -> Jvm.Code.ifge state.code lbl_true);
+  Jvm.Code.ldc_int state.code 0;
+  Jvm.Code.goto state.code lbl_end;
+  Jvm.Code.mark_label state.code lbl_true;
+  Jvm.Code.ldc_int state.code 1;
+  Jvm.Code.mark_label state.code lbl_end;
+  consume_top state;
+  state.acc_live <- true;
+  state.acc_kind <- K_int
+
+let emit_int_of_float state =
+  ensure_kind state K_float;
+  Jvm.Code.d2i state.code;
+  state.acc_kind <- K_int
+
+let emit_float_of_int state =
+  ensure_kind state K_int;
+  Jvm.Code.i2d state.code;
+  state.acc_kind <- K_float
+
+let emit_float_print state =
+  ensure_kind state K_float;
+  Jvm.Code.invokestatic
+    state.code
+    ~class_:"java/lang/Double"
+    ~method_:"toString"
+    ~descriptor:"(D)Ljava/lang/String;";
+  Jvm.Code.getstatic
+    state.code
+    ~class_:"java/lang/System"
+    ~field:"out"
+    ~descriptor:"Ljava/io/PrintStream;";
+  Jvm.Code.swap state.code;
+  Jvm.Code.invokevirtual
+    state.code
+    ~class_:"java/io/PrintStream"
+    ~method_:"println"
+    ~descriptor:"(Ljava/lang/String;)V";
+  Jvm.Code.ldc_int state.code 0;
+  state.acc_live <- true;
+  state.acc_kind <- K_int
+
 (* ISINT: [acc := Val_bool(Is_long(acc))]. Used by polymorphic-variant
    match bytecode to dispatch between zero-arg cases (tagged ints) and
    data-carrying cases (blocks). *)
@@ -301,6 +413,9 @@ let emit_isint state =
      Jvm.Code.ldc_int state.code 1
    | K_block _ | K_closure _ | K_string ->
      if state.acc_live then Jvm.Code.pop_top state.code;
+     Jvm.Code.ldc_int state.code 0
+   | K_float ->
+     drop_live_acc state;
      Jvm.Code.ldc_int state.code 0
    | K_obj -> Jvm.Code.instanceof_ state.code "java/lang/Integer");
   state.acc_live <- true;

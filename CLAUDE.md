@@ -49,17 +49,26 @@ Working:
   `land`/`lor`/`lxor`/`lsl`/`lsr`/`asr`. Shifts are JVM-int (32-bit),
   not OCaml's 63-bit, so programs that depend on the width beyond 31
   bits will diverge — a separate item.
+- **`Float`** — `+.` / `-.` / `*.` / `/.`, unary `-.`, `Float.abs`,
+  NaN-safe float comparisons (via `dcmpl` / `dcmpg` chosen per
+  operator), `int_of_float` / `float_of_int`. Floats flow as JVM
+  `double`; boxed to `java.lang.Double` when passed to `Object`-typed
+  apply slots and unboxed via `doubleValue` at point of use. Float
+  locals and stack slots are 2-wide — `Kind.local_slots_for_kind` and
+  `State.allocate_local_for_kind` reserve the second slot.
 
 Not yet supported:
 
 - No general `Stdlib` — e.g. `print_endline`, `^`, `@`, `List.iter`
   would still fall back to Stdlib's compiled bytecode, which isn't
   compiled. Tests use custom C primitives (`caml_java_print_int`,
-  `caml_java_print_endline`) for output.
+  `caml_java_print_endline`, `caml_java_print_float`) for output.
+  `Stdlib.nan` and similar constants live in the Stdlib module
+  record and can't be materialised yet.
 - `module rec` — OCaml lowers these via `CamlinternalMod`'s
   lazy-initialised placeholders.
 - `Lazy.t` / `lazy` / `Lazy.force`.
-- Floats, IO, threads, effects.
+- IO, threads, effects.
 
 ### Reference submodules
 
@@ -154,10 +163,14 @@ Each module under `compiler/lib-java/` has a companion `.mli`.
       sibling-resolution helpers.
     - `emit_exception` — RAISE / PUSHTRAP / POPTRAP.
     - `emit_primitive` — the C_CALL handlers
-      (`caml_java_print_{int,endline}`, `caml_array_{get,set}_addr`,
-      `caml_array_unsafe_{get,set}`, `caml_obj_dup`, `caml_obj_tag`,
-      `caml_obj_block`, `caml_obj_with_tag`, `caml_fresh_oo_id`,
-      `caml_alloc_dummy`, `caml_update_dummy`) plus ISINT. Shared
+      (`caml_java_print_{int,endline,float}`,
+      `caml_array_{get,set}_addr`, `caml_array_unsafe_{get,set}`,
+      `caml_obj_dup`, `caml_obj_tag`, `caml_obj_block`,
+      `caml_obj_with_tag`, `caml_fresh_oo_id`, `caml_alloc_dummy`,
+      `caml_update_dummy`, float arithmetic
+      `caml_{add,sub,mul,div}_float`, `caml_{neg,abs}_float`, the
+      six `caml_{eq,neq,lt,le,gt,ge}_float` comparisons, and
+      `caml_int_of_float` / `caml_float_of_int`) plus ISINT. Shared
       helpers for dynamic block-field read/write back `GETVECTITEM`
       and `SETVECTITEM` in `emit_instr`.
     - `emit_instr` — the opcode dispatcher. Handles label marking

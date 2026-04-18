@@ -1,25 +1,38 @@
 open Jvm_bin
 module Cp = Jvm_constant_pool
 
+(* Sum the JVM operand-stack slot widths of [args] (the descriptor's
+   argument string, i.e. the content between '(' and ')'). Doubles
+   and longs occupy 2 slots; everything else 1. *)
 let stack_effect_of_call_descriptor descriptor ~is_virtual =
   let lp = String.index descriptor '(' in
   let rp = String.index descriptor ')' in
   let args = String.sub descriptor (lp + 1) (rp - lp - 1) in
-  let rec count_args i acc =
+  let rec count_args i slots =
     if i >= String.length args
-    then acc
+    then slots
     else
       match args.[i] with
       | 'L' ->
         let semi = String.index_from args i ';' in
-        count_args (semi + 1) (acc + 1)
-      | '[' -> count_args (i + 1) acc
-      | _ -> count_args (i + 1) (acc + 1)
+        count_args (semi + 1) (slots + 1)
+      | '[' -> count_args (i + 1) slots
+      | 'D' | 'J' -> count_args (i + 1) (slots + 2)
+      | _ -> count_args (i + 1) (slots + 1)
   in
-  let n_args = count_args 0 0 in
-  let ret = String.sub descriptor (rp + 1) 1 in
-  let push_ret = if ret = "V" then 0 else 1 in
-  let pops = n_args + if is_virtual then 1 else 0 in
+  let arg_slots = count_args 0 0 in
+  let ret =
+    if rp + 1 >= String.length descriptor
+    then "V"
+    else String.sub descriptor (rp + 1) 1
+  in
+  let push_ret =
+    match ret with
+    | "V" -> 0
+    | "D" | "J" -> 2
+    | _ -> 1
+  in
+  let pops = arg_slots + if is_virtual then 1 else 0 in
   pops - push_ret
 
 type label =
@@ -201,6 +214,41 @@ let aload t n =
   note_local t n;
   push t 1
 
+(* Doubles occupy 2 JVM local slots (N and N+1) and 2 operand-stack
+   slots. All the [d*] helpers reflect that in their push/pop
+   accounting and reserve the second local slot via [note_local]. *)
+let dstore t n =
+  (if n >= 0 && n <= 3
+   then add_u1 t.buf (0x47 + n)
+   else if n < 256
+   then (
+     add_u1 t.buf 0x39;
+     add_u1 t.buf n)
+   else failwith (Printf.sprintf "jvm: dstore index %d exceeds 1-byte range" n));
+  note_local t (n + 1);
+  pop t 2
+
+let dload t n =
+  (if n >= 0 && n <= 3
+   then add_u1 t.buf (0x26 + n)
+   else if n < 256
+   then (
+     add_u1 t.buf 0x18;
+     add_u1 t.buf n)
+   else failwith (Printf.sprintf "jvm: dload index %d exceeds 1-byte range" n));
+  note_local t (n + 1);
+  push t 2
+
+let ldc_double t d =
+  let idx = Cp.double t.cp d in
+  add_u1 t.buf 0x14;
+  add_u2 t.buf idx;
+  push t 2
+
+let pop2 t =
+  add_u1 t.buf 0x58;
+  pop t 2
+
 let newarray_int t =
   add_u1 t.buf 0xBC;
   add_u1 t.buf 10
@@ -304,6 +352,42 @@ let ixor t =
   add_u1 t.buf 0x82;
   pop t 1
 
+(* Double arithmetic. Each [d*] binary op pops two doubles (4 slots)
+   and pushes one (2 slots), net -2. Unary [dneg] is stack-neutral. *)
+let dadd t =
+  add_u1 t.buf 0x63;
+  pop t 2
+
+let dsub t =
+  add_u1 t.buf 0x67;
+  pop t 2
+
+let dmul t =
+  add_u1 t.buf 0x6B;
+  pop t 2
+
+let ddiv t =
+  add_u1 t.buf 0x6F;
+  pop t 2
+
+let dneg t = add_u1 t.buf 0x77
+
+let dcmpl t =
+  add_u1 t.buf 0x97;
+  pop t 3
+
+let dcmpg t =
+  add_u1 t.buf 0x98;
+  pop t 3
+
+let d2i t =
+  add_u1 t.buf 0x8E;
+  pop t 1
+
+let i2d t =
+  add_u1 t.buf 0x87;
+  push t 1
+
 let emit_branch t lbl opcode ~stack_delta =
   let branch_pc = Buffer.length t.buf in
   add_u1 t.buf opcode;
@@ -320,6 +404,10 @@ let if_icmple t lbl = emit_branch t lbl 0xA4 ~stack_delta:(-2)
 
 let ifeq t lbl = emit_branch t lbl 0x99 ~stack_delta:(-1)
 let ifne t lbl = emit_branch t lbl 0x9A ~stack_delta:(-1)
+let iflt t lbl = emit_branch t lbl 0x9B ~stack_delta:(-1)
+let ifge t lbl = emit_branch t lbl 0x9C ~stack_delta:(-1)
+let ifgt t lbl = emit_branch t lbl 0x9D ~stack_delta:(-1)
+let ifle t lbl = emit_branch t lbl 0x9E ~stack_delta:(-1)
 
 let if_acmpeq t lbl = emit_branch t lbl 0xA5 ~stack_delta:(-2)
 let if_acmpne t lbl = emit_branch t lbl 0xA6 ~stack_delta:(-2)

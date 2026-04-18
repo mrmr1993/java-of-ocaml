@@ -18,6 +18,9 @@ let rec emit_materialise_value state = function
     Jvm.Code.ldc_int state.code n;
     emit_box_int state.code
   | Gv_string s -> Jvm.Code.ldc_string state.code s
+  | Gv_float d ->
+    Jvm.Code.ldc_double state.code d;
+    emit_box_float state.code
   | Gv_block (tag, fields) -> emit_materialise_block_constant state tag fields
 
 and emit_materialise_block_constant state tag fields =
@@ -51,8 +54,10 @@ let emit_push state =
        skip. *)
     ()
   else (
-    let local = allocate_local state in
-    Jvm.Code.dup state.code;
+    let local = allocate_local_for_kind state state.acc_kind in
+    (match state.acc_kind with
+     | K_float -> Jvm.Code.dup2 state.code
+     | _ -> Jvm.Code.dup state.code);
     emit_store_for_kind state.code local state.acc_kind;
     push_slot state state.acc_kind local)
 
@@ -67,7 +72,7 @@ let emit_acc state k =
   else (
     let slot = stack_slot_local ~state k in
     let new_kind = kind_of_slot_from_top ~state k in
-    if state.acc_live then Jvm.Code.pop_top state.code;
+    drop_live_acc state;
     emit_load_for_kind state.code slot new_kind;
     state.acc_live <- true;
     state.acc_kind <- new_kind)
@@ -84,17 +89,15 @@ let emit_pushacc state k =
     emit_acc state k)
 
 let emit_int_push state n =
-  let was_live = state.acc_live in
   emit_push state;
-  if was_live then Jvm.Code.pop_top state.code;
+  drop_live_acc state;
   Jvm.Code.ldc_int state.code n;
   state.acc_live <- true;
   state.acc_kind <- K_int
 
 let emit_string_push state s =
-  let was_live = state.acc_live in
   emit_push state;
-  if was_live then Jvm.Code.pop_top state.code;
+  drop_live_acc state;
   Jvm.Code.ldc_string state.code s;
   state.acc_live <- true;
   state.acc_kind <- K_string

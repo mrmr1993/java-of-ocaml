@@ -29,6 +29,11 @@ val fieldref : t -> class_:string -> field:string -> descriptor:string -> int
 
 val methodref : t -> class_:string -> method_:string -> descriptor:string -> int
 
+val double : t -> float -> int
+(** Intern a [CONSTANT_Double_info] entry. Per the JVM spec, a double
+    occupies two constant-pool slots (the second is unusable); the
+    returned index is the first of the pair. *)
+
 val count : t -> int
 (** Number of interned entries. The constant-pool-count in the class file
     header is [count t + 1] (the pool itself is 1-based). *)

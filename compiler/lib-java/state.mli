@@ -76,6 +76,11 @@ val top_slot_local : state:state -> int
 val allocate_local : state -> int
 (** Allocate the next JVM local for an OCaml-stack push. Monotonic. *)
 
+val allocate_local_for_kind : state -> kind -> int
+(** Like [allocate_local] but reserves [Kind.local_slots_for_kind kind]
+    slots (2 for [K_float], 1 for every other kind). Returns the low
+    index of the reservation. *)
+
 val kind_of_slot_from_top : state:state -> int -> kind
 
 val push_slot : state -> kind -> int -> unit
@@ -87,6 +92,10 @@ val consume_top : state -> unit
     (acc + top). Used by every arith emitter. *)
 
 val label_at : state -> int -> Jvm.Code.label
+
+val drop_live_acc : state -> unit
+(** If the acc is live, pop its JVM-operand-stack slots (1 for most
+    kinds, 2 for [K_float]). A no-op when the acc is dead. *)
 
 val overwrite_acc : state -> kind -> (unit -> unit) -> unit
 (** [overwrite_acc state kind emit] pops the current live acc (if any),

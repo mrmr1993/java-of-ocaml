@@ -39,6 +39,7 @@ let ensure_kind state target =
     match a, b with
     | K_int, K_int -> true
     | K_string, K_string -> true
+    | K_float, K_float -> true
     | K_block _, K_block _ -> true
     | K_closure _, K_closure _ -> true
     | K_obj, K_obj -> true
@@ -91,6 +92,14 @@ let allocate_local state =
   state.next_local <- l + 1;
   l
 
+(* For [K_float] a JVM local takes 2 adjacent slots (N and N+1).
+   Callers that know the value's kind should use this instead of
+   [allocate_local] to avoid clobbering the second half. *)
+let allocate_local_for_kind state kind =
+  let l = state.next_local in
+  state.next_local <- l + Kind.local_slots_for_kind kind;
+  l
+
 let kind_of_slot_from_top ~state k = (List.nth state.slots k).kind
 
 let push_slot state kind local =
@@ -113,8 +122,18 @@ let consume_top state = pop_slots state 1
 
 let label_at state pc = Hashtbl.find state.pc_to_label pc
 
+(* Discard the current live acc from the JVM stack — one [pop] for
+   most kinds, [pop2] for [K_float] (which occupies 2 operand-stack
+   slots). *)
+let drop_live_acc state =
+  if state.acc_live
+  then
+    match state.acc_kind with
+    | K_float -> Jvm.Code.pop2 state.code
+    | _ -> Jvm.Code.pop_top state.code
+
 let overwrite_acc state kind emit =
-  if state.acc_live then Jvm.Code.pop_top state.code;
+  drop_live_acc state;
   emit ();
   state.acc_live <- true;
   state.acc_kind <- kind
@@ -122,4 +141,5 @@ let overwrite_acc state kind emit =
 let box_acc_to_object state =
   match state.acc_kind with
   | K_int -> emit_box_int state.code
+  | K_float -> emit_box_float state.code
   | K_string | K_block _ | K_closure _ | K_obj -> ()

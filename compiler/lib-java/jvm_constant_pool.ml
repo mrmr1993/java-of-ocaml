@@ -66,6 +66,24 @@ let methodref t ~class_ ~method_ ~descriptor =
     add_u2 buf cls_idx;
     add_u2 buf nt_idx)
 
+(* [CONSTANT_Double_info] occupies two consecutive constant-pool
+   slots per the JVM spec, with index n+1 left unusable. *)
+let double t d =
+  let key = "D:" ^ Printf.sprintf "%h" d in
+  match Hashtbl.find_opt t.table key with
+  | Some idx -> idx
+  | None ->
+    let idx = t.count in
+    t.count <- t.count + 2;
+    let bits = Int64.bits_of_float d in
+    let hi = Int64.to_int (Int64.shift_right_logical bits 32) land 0xFFFFFFFF in
+    let lo = Int64.to_int bits land 0xFFFFFFFF in
+    add_u1 t.buf 6;
+    add_u4 t.buf hi;
+    add_u4 t.buf lo;
+    Hashtbl.add t.table key idx;
+    idx
+
 let count t = t.count - 1
 
 let contents t = Buffer.contents t.buf

@@ -7,6 +7,7 @@
 type prim_handler =
   | P_println_int
   | P_println_string
+  | P_println_float
   | P_array_get
   | P_array_set
   | P_obj_dup
@@ -16,6 +17,20 @@ type prim_handler =
   | P_fresh_oo_id
   | P_alloc_dummy
   | P_update_dummy
+  | P_float_add
+  | P_float_sub
+  | P_float_mul
+  | P_float_div
+  | P_float_neg
+  | P_float_abs
+  | P_float_eq
+  | P_float_neq
+  | P_float_lt
+  | P_float_le
+  | P_float_gt
+  | P_float_ge
+  | P_int_of_float
+  | P_float_of_int
 
 type prim_entry =
   { name : string

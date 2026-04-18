@@ -80,6 +80,10 @@ What works end-to-end (each covered by tests under
 - **`Int`** — `neg`, `succ`/`pred`, `add`/`sub`/`mul`/`div`/`rem`,
   `logand`/`logor`/`logxor`, `shift_left`/`shift_right`/
   `shift_right_logical`, and the matching infix operators.
+- **`Float`** — `+.` / `-.` / `*.` / `/.`, unary `-.`, `Float.abs`,
+  NaN-safe float comparisons, `int_of_float` / `float_of_int`. Float
+  values flow as JVM `double` (boxed to `java.lang.Double` when
+  crossing into `Object`-typed args).
 
 What doesn't work yet:
 
@@ -92,7 +96,6 @@ What doesn't work yet:
 - `module rec ... and ...` — needs `CamlinternalMod`'s lazy-
   initialised placeholders.
 - `Lazy.t` / `lazy` / `Lazy.force`.
-- Floats.
 - IO, threads, effects, the GC.
 
 ## Layout

@@ -9,6 +9,7 @@
 type kind =
   | K_int
   | K_string
+  | K_float
   | K_block of kind list
   | K_closure of closure_ref
   | K_obj
@@ -37,12 +38,22 @@ val emit_store_for_kind : Jvm.Code.t -> int -> kind -> unit
 
 val emit_load_for_kind : Jvm.Code.t -> int -> kind -> unit
 
+val local_slots_for_kind : kind -> int
+(** JVM local-variable width. [K_float] takes 2 slots; every other
+    kind takes 1. Callers reserving a local for a value of unknown-
+    but-inferable kind must use this instead of hard-coding 1. *)
+
 val emit_box_int : Jvm.Code.t -> unit
 (** [Integer.valueOf(int) : Integer]. *)
+
+val emit_box_float : Jvm.Code.t -> unit
+(** [Double.valueOf(double) : Double]. *)
 
 val emit_unbox_to_kind : Jvm.Code.t -> kind -> unit
 (** If the top-of-stack is an [Object], unbox / checkcast it in place to
     the concrete [kind]. *)
 
 val box_if_int : Jvm.Code.t -> kind -> unit
-(** [emit_box_int] when [kind = K_int]; a no-op otherwise. *)
+(** Box a primitive to its reference form: [Integer.valueOf] for
+    [K_int], [Double.valueOf] for [K_float]. A no-op for reference
+    kinds. *)

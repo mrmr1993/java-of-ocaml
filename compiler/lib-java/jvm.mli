@@ -140,6 +140,34 @@ module Code : sig
 
   val iushr : t -> unit
 
+  (** {2 Doubles} *)
+
+  val dstore : t -> int -> unit
+
+  val dload : t -> int -> unit
+
+  val ldc_double : t -> float -> unit
+
+  val pop2 : t -> unit
+
+  val dadd : t -> unit
+
+  val dsub : t -> unit
+
+  val dmul : t -> unit
+
+  val ddiv : t -> unit
+
+  val dneg : t -> unit
+
+  val dcmpl : t -> unit
+
+  val dcmpg : t -> unit
+
+  val d2i : t -> unit
+
+  val i2d : t -> unit
+
   (** {2 Branches}
 
       All variants of [if_icmp<cond>] compare two ints. The semantics follow
@@ -159,6 +187,13 @@ module Code : sig
 
   val ifne : t -> label -> unit
   (** Branch if the top int on the stack is non-zero (JVM [ifne]). *)
+
+  val iflt : t -> label -> unit
+  val ifge : t -> label -> unit
+  val ifgt : t -> label -> unit
+  val ifle : t -> label -> unit
+  (** Top int compared against zero (JVM [if<cond>] family). Used
+      together with [dcmpl]/[dcmpg] to branch on a float comparison. *)
 
   val if_acmpeq : t -> label -> unit
   (** Branch if the top two references on the stack are equal (JVM

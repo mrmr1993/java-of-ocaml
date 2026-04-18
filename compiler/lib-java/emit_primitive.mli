@@ -25,4 +25,22 @@ val emit_fresh_oo_id : State.state -> unit
 
 val emit_isint : State.state -> unit
 (** Not a C primitive but the sibling [ISINT] bytecode; shares the
-    Integer-vs-Block dispatch idiom used by the array / obj primitives. *)
+    Integer-vs-Block dispatch idiom used by the array / obj
+    primitives. *)
+
+val emit_float_binop : State.state -> (Jvm.Code.t -> unit) -> unit
+(** Binary float op: [acc := acc <op> stack[0]]. The JVM callback
+    should be one of [dadd] / [dsub] / [dmul] / [ddiv]. *)
+
+val emit_float_neg : State.state -> unit
+val emit_float_abs : State.state -> unit
+
+val emit_float_cmp : State.state -> cmp:State.cmp_op -> unit
+(** Float comparison, NaN-safe per OCaml semantics (NaN → false). *)
+
+val emit_int_of_float : State.state -> unit
+val emit_float_of_int : State.state -> unit
+
+val emit_float_print : State.state -> unit
+(** Test-only [caml_java_print_float] — prints the double via
+    [Double.toString] + [System.out.println]. *)

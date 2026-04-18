@@ -75,7 +75,9 @@ let emit_instr state (ins : instr) =
            ~target_pc
            ~branch_if_zero:true
        | K_block _ | K_closure _ | K_string ->
-         Jvm.Code.pop_top state.code);
+         Jvm.Code.pop_top state.code
+       | K_float ->
+         failwith "java_of_ocaml: BRANCHIFNOT on a float acc");
       record_branch_target state target_pc;
       state.acc_live <- false;
       state.acc_kind <- K_int)
@@ -99,7 +101,9 @@ let emit_instr state (ins : instr) =
            ~branch_if_zero:false
        | K_block _ | K_closure _ | K_string ->
          Jvm.Code.pop_top state.code;
-         Jvm.Code.goto state.code (label_at state target_pc));
+         Jvm.Code.goto state.code (label_at state target_pc)
+       | K_float ->
+         failwith "java_of_ocaml: BRANCHIF on a float acc");
       record_branch_target state target_pc;
       state.acc_live <- false;
       state.acc_kind <- K_int)
@@ -398,8 +402,13 @@ let emit_instr state (ins : instr) =
   then (
     match inspect_global state.globals ins.args.(0) with
     | G_string s -> Emit_stack.emit_string_const state s
+    | G_float d ->
+      drop_live_acc state;
+      Jvm.Code.ldc_double state.code d;
+      state.acc_live <- true;
+      state.acc_kind <- K_float
     | G_block (tag, fields) ->
-      if state.acc_live then Jvm.Code.pop_top state.code;
+      drop_live_acc state;
       Emit_stack.emit_materialise_block_constant state tag fields;
       state.acc_live <- true;
       state.acc_kind <- K_block (List.map kind_of_global_field fields)
@@ -415,10 +424,15 @@ let emit_instr state (ins : instr) =
   then (
     match inspect_global state.globals ins.args.(0) with
     | G_string s -> Emit_stack.emit_string_push state s
-    | G_block (tag, fields) ->
-      let was_live = state.acc_live in
+    | G_float d ->
       Emit_stack.emit_push state;
-      if was_live then Jvm.Code.pop_top state.code;
+      drop_live_acc state;
+      Jvm.Code.ldc_double state.code d;
+      state.acc_live <- true;
+      state.acc_kind <- K_float
+    | G_block (tag, fields) ->
+      Emit_stack.emit_push state;
+      drop_live_acc state;
       Emit_stack.emit_materialise_block_constant state tag fields;
       state.acc_live <- true;
       state.acc_kind <- K_block (List.map kind_of_global_field fields)
@@ -448,9 +462,8 @@ let emit_instr state (ins : instr) =
              ins.pc)
     in
     let push_first = op = Bytecode.Op.pushgetglobalfield in
-    let was_live = state.acc_live in
     if push_first then Emit_stack.emit_push state;
-    let drop_old () = if was_live then Jvm.Code.pop_top state.code in
+    let drop_old () = drop_live_acc state in
     match field with
     | Gv_int n ->
       drop_old ();
@@ -462,6 +475,11 @@ let emit_instr state (ins : instr) =
       Jvm.Code.ldc_string state.code s;
       state.acc_live <- true;
       state.acc_kind <- K_string
+    | Gv_float d ->
+      drop_old ();
+      Jvm.Code.ldc_double state.code d;
+      state.acc_live <- true;
+      state.acc_kind <- K_float
     | Gv_block (tag, sub_fields) ->
       drop_old ();
       Emit_stack.emit_materialise_block_constant state tag sub_fields;
@@ -522,7 +540,22 @@ let emit_instr state (ins : instr) =
        | P_obj_with_tag -> Emit_primitive.emit_obj_with_tag state
        | P_fresh_oo_id -> Emit_primitive.emit_fresh_oo_id state
        | P_alloc_dummy -> Emit_primitive.emit_alloc_dummy state
-       | P_update_dummy -> Emit_primitive.emit_update_dummy state)
+       | P_update_dummy -> Emit_primitive.emit_update_dummy state
+       | P_println_float -> Emit_primitive.emit_float_print state
+       | P_float_add -> Emit_primitive.emit_float_binop state Jvm.Code.dadd
+       | P_float_sub -> Emit_primitive.emit_float_binop state Jvm.Code.dsub
+       | P_float_mul -> Emit_primitive.emit_float_binop state Jvm.Code.dmul
+       | P_float_div -> Emit_primitive.emit_float_binop state Jvm.Code.ddiv
+       | P_float_neg -> Emit_primitive.emit_float_neg state
+       | P_float_abs -> Emit_primitive.emit_float_abs state
+       | P_float_eq -> Emit_primitive.emit_float_cmp state ~cmp:Eq
+       | P_float_neq -> Emit_primitive.emit_float_cmp state ~cmp:Ne
+       | P_float_lt -> Emit_primitive.emit_float_cmp state ~cmp:Lt
+       | P_float_le -> Emit_primitive.emit_float_cmp state ~cmp:Le
+       | P_float_gt -> Emit_primitive.emit_float_cmp state ~cmp:Gt
+       | P_float_ge -> Emit_primitive.emit_float_cmp state ~cmp:Ge
+       | P_int_of_float -> Emit_primitive.emit_int_of_float state
+       | P_float_of_int -> Emit_primitive.emit_float_of_int state)
     | None ->
       failwith
         (Printf.sprintf
