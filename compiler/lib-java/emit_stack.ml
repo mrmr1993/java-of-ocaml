@@ -54,11 +54,20 @@ let emit_push state =
        skip. *)
     ()
   else (
-    let local = allocate_local_for_kind state state.acc_kind in
+    (* Push to the slot that will sit at [oc_stack_depth] from the
+       bottom of the OCaml stack after this push. Box acc to Object
+       first so every slot local is [Object]-typed — depth-indexed
+       and stable across every control-flow path, per the fixed
+       slot→local scheme. Acc stays live on the operand stack. *)
+    let local = slot_obj_local state state.oc_stack_depth in
     (match state.acc_kind with
      | K_float -> Jvm.Code.dup2 state.code
      | _ -> Jvm.Code.dup state.code);
-    emit_store_for_kind state.code local state.acc_kind;
+    (match state.acc_kind with
+     | K_int -> emit_box_int state.code
+     | K_float -> emit_box_float state.code
+     | K_string | K_block _ | K_closure _ | K_obj -> ());
+    Jvm.Code.astore state.code local;
     push_slot state state.acc_kind local)
 
 let emit_acc state k =
@@ -70,12 +79,12 @@ let emit_acc state k =
        this access is dead; skip it. *)
     ()
   else (
-    let slot = stack_slot_local ~state k in
-    let new_kind = kind_of_slot_from_top ~state k in
+    let slot = List.nth state.slots k in
     drop_live_acc state;
-    emit_load_for_kind state.code slot new_kind;
+    Jvm.Code.aload state.code slot.local;
+    emit_unbox_on_top state.code slot.kind;
     state.acc_live <- true;
-    state.acc_kind <- new_kind)
+    state.acc_kind <- slot.kind)
 
 let emit_pushacc state k =
   if not state.acc_live

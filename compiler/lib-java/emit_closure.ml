@@ -227,7 +227,9 @@ let emit_closure_creation state (fn_info : function_info) ~nvars ~is_rec =
   Jvm.Code.new_ state.code fn_info.name;
   Jvm.Code.dup state.code;
   List.iter
-    (fun (local, kind) -> emit_load_for_kind state.code local kind)
+    (fun (local, kind) ->
+      Jvm.Code.aload state.code local;
+      emit_unbox_on_top state.code kind)
     captures;
   Jvm.Code.invokespecial
     state.code
@@ -312,7 +314,9 @@ let emit_closurerec state (ins : Instr.instr) =
       Jvm.Code.new_ state.code fi.name;
       Jvm.Code.dup state.code;
       List.iter
-        (fun (local, kind) -> emit_load_for_kind state.code local kind)
+        (fun (local, kind) ->
+          Jvm.Code.aload state.code local;
+          emit_unbox_on_top state.code kind)
         captures;
       Jvm.Code.invokespecial
         state.code

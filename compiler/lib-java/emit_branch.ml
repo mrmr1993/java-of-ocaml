@@ -249,15 +249,14 @@ let emit_materialize_cmp state ~cmp =
   in
   if use_acmp
   then (
-    emit_load_for_kind state.code slot slot_kind;
-    (* No unbox needed — both operands stay as references. *)
+    (* Slot locals are always Object-typed; load as reference. *)
+    Jvm.Code.aload state.code slot;
     ())
   else (
     ensure_kind state K_int;
-    emit_load_for_kind state.code slot slot_kind;
+    Jvm.Code.aload state.code slot;
     match slot_kind with
-    | K_int -> ()
-    | K_obj -> emit_unbox_to_kind state.code K_int
+    | K_int | K_obj -> emit_unbox_to_kind state.code K_int
     | K_float | K_string | K_block _ | K_closure _ ->
       failwith
         (Printf.sprintf

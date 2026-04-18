@@ -132,6 +132,7 @@ let emit_globals_init code globals =
         ; fresh_oo_id_counter = ref 0
         ; pending_retaddrs = 0
         ; last_was_terminator = true
+        ; slot_obj_locals = Hashtbl.create 8
         }
       in
       Emit_stack.emit_materialise_block_constant throwaway_state tag fields;
@@ -333,6 +334,7 @@ let compile ~bc ~out_dir =
     ; fresh_oo_id_counter
     ; pending_retaddrs = 0
         ; last_was_terminator = true
+        ; slot_obj_locals = Hashtbl.create 8
     }
   in
   if debug_labels ()
@@ -425,6 +427,15 @@ let compile ~bc ~out_dir =
             ~body_start:fn_info.body_start_idx
             ~body_end:fn_info.body_end_idx
         in
+        (* Pre-populate the fixed depth→local map with the incoming
+           args. Arg [k] (from top) is at depth_from_bottom
+           [nargs - 1 - k] and sits in JVM local [k + 1] by the apply
+           method's signature. Every later [slot_obj_local] lookup
+           returns the same local, stable across all paths. *)
+        let fn_slot_obj_locals = Hashtbl.create 8 in
+        for k = 0 to fn_info.nargs - 1 do
+          Hashtbl.add fn_slot_obj_locals (fn_info.nargs - 1 - k) (k + 1)
+        done;
         let state =
           { code = apply_code
           ; globals = parsed.globals
@@ -450,7 +461,8 @@ let compile ~bc ~out_dir =
           ; open_traps = []
           ; fresh_oo_id_counter
           ; pending_retaddrs = 0
-        ; last_was_terminator = true
+          ; last_was_terminator = true
+          ; slot_obj_locals = fn_slot_obj_locals
           }
         in
         emit_range

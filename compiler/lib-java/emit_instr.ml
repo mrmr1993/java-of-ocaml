@@ -244,7 +244,7 @@ let emit_instr state (ins : instr) =
         let slot = List.nth state.slots (i - 1) in
         Jvm.Code.aload state.code fields_local;
         Jvm.Code.ldc_int state.code i;
-        emit_load_for_kind state.code slot.local slot.kind;
+        State.emit_slot_load state slot;
         box_if_int state.code slot.kind;
         Jvm.Code.aastore state.code
       done;
@@ -344,7 +344,7 @@ let emit_instr state (ins : instr) =
       ~field:"fields"
       ~descriptor:"[Ljava/lang/Object;";
     Jvm.Code.ldc_int state.code field;
-    emit_load_for_kind state.code top.local top.kind;
+    State.emit_slot_load state top;
     box_if_int state.code top.kind;
     Jvm.Code.aastore state.code;
     consume_top state;
@@ -443,36 +443,13 @@ let emit_instr state (ins : instr) =
     then
       failwith
         (Printf.sprintf "java_of_ocaml: ASSIGN with dead acc at pc %d" ins.pc);
-    (* OCaml's ASSIGN is untyped; JVM locals are typed. When the
-       slot's current local has the same kind as [acc], reuse it
-       (preserving snapshot/block-param references). When the
-       kinds differ, allocate a fresh local of the new kind and
-       rebind the slot — callers downstream see the new local
-       through [state.slots]. Mixed-kind slot-local rebinding
-       only shows up in Stdlib paths that re-assign different-
-       shaped values through the same slot; snapshot and block-
-       params still reference the old local, but that local's
-       type is consistent (never rebinded) and its value is
-       whatever the pre-ASSIGN predecessor stored. *)
-    let target_slot = List.nth state.slots k in
-    let kinds_equal a b =
-      match a, b with
-      | K_int, K_int | K_float, K_float | K_string, K_string
-      | K_obj, K_obj -> true
-      | K_block _, K_block _ | K_closure _, K_closure _ -> true
-      | _ -> false
-    in
-    if kinds_equal target_slot.kind state.acc_kind
-    then emit_store_for_kind state.code target_slot.local state.acc_kind
-    else (
-      let new_local = allocate_local_for_kind state state.acc_kind in
-      emit_store_for_kind state.code new_local state.acc_kind;
-      let new_kind = state.acc_kind in
-      state.slots <-
-        List.mapi
-          (fun i s ->
-            if i = k then { kind = new_kind; local = new_local } else s)
-          state.slots);
+    (* ASSIGN under the fixed-depth slot scheme: the slot's local
+       is always [Object]-typed, so box acc (if primitive) and
+       astore. No per-path divergence: snapshot / block-param
+       reloads that reference this same local see whatever the
+       last write placed there. The slot's [kind] in [state.slots]
+       is updated so later reads know whether to unbox. *)
+    State.emit_slot_store state k state.acc_kind;
     Jvm.Code.ldc_int state.code 0;
     state.acc_live <- true;
     state.acc_kind <- K_int)
@@ -698,7 +675,7 @@ let emit_instr state (ins : instr) =
       let slot = List.nth state.slots (i - 1) in
       Jvm.Code.aload state.code fields_local;
       Jvm.Code.ldc_int state.code i;
-      emit_load_for_kind state.code slot.local slot.kind;
+      State.emit_slot_load state slot;
       box_if_int state.code slot.kind;
       Jvm.Code.aastore state.code
     done;
@@ -750,7 +727,7 @@ let emit_instr state (ins : instr) =
       ~descriptor:"[Ljava/lang/Object;";
     Jvm.Code.ldc_int state.code field;
     let top = List.hd state.slots in
-    emit_load_for_kind state.code top.local top.kind;
+    State.emit_slot_load state top;
     (match top.kind with
      | K_float -> emit_box_float state.code
      | K_obj -> ()
@@ -768,7 +745,7 @@ let emit_instr state (ins : instr) =
     Jvm.Code.ldc_int state.code min_int;
     Jvm.Code.ixor state.code;
     let top = List.hd state.slots in
-    emit_load_for_kind state.code top.local top.kind;
+    State.emit_slot_load state top;
     (match top.kind with
      | K_int -> ()
      | K_obj -> emit_unbox_to_kind state.code K_int
@@ -797,7 +774,7 @@ let emit_instr state (ins : instr) =
        box_if_int state.code state.acc_kind;
        Jvm.Code.checkcast state.code "java/lang/String");
     let idx_slot = List.hd state.slots in
-    emit_load_for_kind state.code idx_slot.local idx_slot.kind;
+    State.emit_slot_load state idx_slot;
     (match idx_slot.kind with
      | K_int -> ()
      | K_obj -> emit_unbox_to_kind state.code K_int
@@ -817,7 +794,7 @@ let emit_instr state (ins : instr) =
     box_if_int state.code state.acc_kind;
     Jvm.Code.checkcast state.code "Bytes";
     let idx_slot = List.hd state.slots in
-    emit_load_for_kind state.code idx_slot.local idx_slot.kind;
+    State.emit_slot_load state idx_slot;
     (match idx_slot.kind with
      | K_int -> ()
      | K_obj -> emit_unbox_to_kind state.code K_int
@@ -837,12 +814,12 @@ let emit_instr state (ins : instr) =
     Jvm.Code.checkcast state.code "Bytes";
     let idx_slot = List.hd state.slots in
     let chr_slot = List.nth state.slots 1 in
-    emit_load_for_kind state.code idx_slot.local idx_slot.kind;
+    State.emit_slot_load state idx_slot;
     (match idx_slot.kind with
      | K_int -> ()
      | K_obj -> emit_unbox_to_kind state.code K_int
      | _ -> failwith "java_of_ocaml: SETBYTESCHAR index must be int");
-    emit_load_for_kind state.code chr_slot.local chr_slot.kind;
+    State.emit_slot_load state chr_slot;
     (match chr_slot.kind with
      | K_int -> ()
      | K_obj -> emit_unbox_to_kind state.code K_int

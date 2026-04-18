@@ -26,10 +26,10 @@ let emit_apply_invoke state ~nargs =
      Jvm.Code.checkcast state.code "Closure";
      state.acc_kind <- K_closure { name = "Closure"; captures = [] });
   for k = 0 to nargs - 1 do
-    let slot = stack_slot_local ~state k in
-    let sk = (List.nth state.slots k).kind in
-    emit_load_for_kind state.code slot sk;
-    box_if_int state.code sk
+    let slot = List.nth state.slots k in
+    (* Slot locals are Object-typed; aload and pass directly — no
+       unbox/rebox, since apply wants [Object] args anyway. *)
+    Jvm.Code.aload state.code slot.local
   done;
   if nargs > 7
   then
@@ -86,8 +86,17 @@ let emit_apply1 state = emit_apply state ~nargs:1
    are "popped" by the callee's RETURN — since nothing in our JVM-level
    emission pushed them, we reconcile by popping 3 slots post-apply. *)
 let emit_push_retaddr state =
+  (* Initialise the 3 sentinel slots with [null] so the JVM verifier
+     sees them as typed [Object] rather than TOP. OCaml ignores the
+     slot values (APPLY pops them with the callee's RETURN), but the
+     JVM verifier rejects [aload] of an uninitialised local. Use the
+     fixed depth→local mapping so these slots share the same JVM
+     locals as any control-flow path that arrives at the same
+     depth. *)
   for _ = 1 to 3 do
-    let local = allocate_local state in
+    let local = State.slot_obj_local state state.oc_stack_depth in
+    Jvm.Code.aconst_null state.code;
+    Jvm.Code.astore state.code local;
     push_slot state K_obj local
   done;
   state.pending_retaddrs <- state.pending_retaddrs + 1

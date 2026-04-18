@@ -83,7 +83,31 @@ type state =
   ; mutable last_was_terminator : bool
       (** Set after each [emit_instr]. Used by label prologues to
           distinguish fall-through entries from jump-only entries. *)
+  ; slot_obj_locals : (int, int) Hashtbl.t
+      (** Fixed OCaml-stack-depth → JVM local mapping. Each depth gets
+          one [Object]-typed JVM local, stable across every path.
+          Primitives are boxed on store and unboxed on load. *)
   }
+
+val slot_obj_local : state -> int -> int
+(** [slot_obj_local state depth] returns the JVM local reserved for
+    the OCaml-stack slot at [depth] (measured from the bottom of the
+    stack). Lazily allocated on first call; stable thereafter. *)
+
+val emit_unbox_on_top : Jvm.Code.t -> kind -> unit
+(** Unbox an [Object] on top of the operand stack to the given
+    primitive [kind]. No-op for reference kinds. *)
+
+val emit_slot_load : state -> slot_info -> unit
+(** [aload slot.local] + unbox to [slot.kind] if primitive. Assumes
+    [slot.local] is the Object-typed local from the fixed-depth
+    mapping. *)
+
+val emit_slot_store : state -> int -> kind -> unit
+(** [emit_slot_store state k new_kind]: box acc to Object (if
+    primitive), astore into the slot-[k]'s Object local, and update
+    [state.slots] to record the new kind. Acc remains live (the
+    caller usually replaces it with [Val_unit = 0] afterwards). *)
 
 val ensure_kind : state -> kind -> unit
 (** If [state.acc_kind = K_obj], emit a [checkcast]/unbox to [target] and

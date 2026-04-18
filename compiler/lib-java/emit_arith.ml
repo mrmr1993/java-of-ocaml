@@ -5,10 +5,11 @@ open State
    the slot currently holds an opaque Object. *)
 let emit_iload_top_as_int state =
   let si = List.hd state.slots in
-  emit_load_for_kind state.code si.local si.kind;
+  (* Slot locals are always Object-typed under the fixed-depth
+     scheme. Load as reference, then unbox to [int]. *)
+  Jvm.Code.aload state.code si.local;
   match si.kind with
-  | K_int -> ()
-  | K_obj ->
+  | K_int | K_obj ->
     Jvm.Code.checkcast state.code "java/lang/Integer";
     Jvm.Code.invokevirtual
       state.code

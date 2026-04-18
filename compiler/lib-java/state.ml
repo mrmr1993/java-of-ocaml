@@ -76,7 +76,78 @@ type state =
             already happened at the branch sites). Initialised to
             [true] at function entry — no fall-through into the
             first instruction. *)
+  ; slot_obj_locals : (int, int) Hashtbl.t
+        (** Fixed OCaml-stack-depth → JVM local mapping. Depth is
+            measured from the bottom of the stack (0 = oldest frame),
+            and each depth is assigned a single [Object]-typed JVM
+            local once, stable across every control-flow path in the
+            function. Primitive-kind slot values get boxed into the
+            Object local on write and unboxed on read. Removes the
+            class of "Register N contains wrong type" verifier errors
+            where different paths backed the "same" OCaml slot with
+            different JVM locals and a merge tried to read one that
+            the other path never stored to. *)
   }
+
+(* Look up (and lazily allocate) the single [Object]-typed JVM local
+   reserved for the OCaml-stack slot at [depth_from_bottom]. Stable
+   across the whole function: every control-flow path that writes or
+   reads the slot at this depth uses the same JVM local, eliminating
+   the class of cross-path local-aliasing bugs that untyped OCaml
+   slots meeting typed JVM locals produce. *)
+let slot_obj_local state depth_from_bottom =
+  match Hashtbl.find_opt state.slot_obj_locals depth_from_bottom with
+  | Some l -> l
+  | None ->
+    let l = state.next_local in
+    state.next_local <- l + 1;
+    Jvm.Code.set_min_locals state.code state.next_local;
+    Hashtbl.add state.slot_obj_locals depth_from_bottom l;
+    l
+
+(* Convert an [Object]-typed JVM-stack value to the [kind] the caller
+   wants — unbox if primitive, no-op for reference kinds. Assumes the
+   top of the operand stack is an [Object] reference at entry. *)
+let emit_unbox_on_top code = function
+  | K_int ->
+    Jvm.Code.checkcast code "java/lang/Integer";
+    Jvm.Code.invokevirtual
+      code
+      ~class_:"java/lang/Integer"
+      ~method_:"intValue"
+      ~descriptor:"()I"
+  | K_float ->
+    Jvm.Code.checkcast code "java/lang/Double";
+    Jvm.Code.invokevirtual
+      code
+      ~class_:"java/lang/Double"
+      ~method_:"doubleValue"
+      ~descriptor:"()D"
+  | K_string | K_block _ | K_closure _ | K_obj -> ()
+
+(* [aload slot.local] + unbox if the slot has a primitive kind. Slot
+   locals are always [Object]-typed per the fixed-depth mapping. Use
+   this instead of [emit_load_for_kind] at every slot-read site; the
+   latter is now reserved for dynamic primitive temporaries. *)
+let emit_slot_load state (slot : slot_info) =
+  Jvm.Code.aload state.code slot.local;
+  emit_unbox_on_top state.code slot.kind
+
+(* Box acc to Object (if primitive), astore into the slot's Object
+   local. Slot kind is updated to reflect what was written so reads
+   can unbox correctly. *)
+let emit_slot_store state k new_kind =
+  (* Caller has acc on stack as [state.acc_kind]; box first if needed. *)
+  (match state.acc_kind with
+   | K_int -> emit_box_int state.code
+   | K_float -> emit_box_float state.code
+   | K_string | K_block _ | K_closure _ | K_obj -> ());
+  let slot = List.nth state.slots k in
+  Jvm.Code.astore state.code slot.local;
+  state.slots <-
+    List.mapi
+      (fun i s -> if i = k then { kind = new_kind; local = slot.local } else s)
+      state.slots
 
 let ensure_kind state target =
   let compatible a b =
@@ -114,17 +185,25 @@ let reserve_block_params state block_id ~at_depth ~acc_live =
   match Hashtbl.find_opt state.block_params block_id with
   | Some p -> p
   | None ->
+    (* Use the fixed depth→Object-local mapping for the slot params
+       too, so spill and post-reload pushes all share the same
+       underlying JVM locals. Without this, block-params and
+       [slot_obj_local] would hand out different locals for the
+       "same" OCaml slot, and a later non-join push or ASSIGN
+       would write to a different local than the block-params
+       reload set up — leading to "Register N contains wrong type"
+       at the next use. *)
     let p_slot_locals =
-      Array.init at_depth (fun _ ->
-        let l = state.next_local in
-        state.next_local <- l + 1;
-        l)
+      Array.init at_depth (fun i ->
+        (* slot[0] is top = depth_from_bottom (at_depth - 1). *)
+        slot_obj_local state (at_depth - 1 - i))
     in
     let p_acc_local =
       if acc_live
       then (
         let l = state.next_local in
         state.next_local <- l + 1;
+        Jvm.Code.set_min_locals state.code state.next_local;
         Some l)
       else None
     in
@@ -155,8 +234,10 @@ let spill_to_block_params state block_id =
     (fun i (slot : slot_info) ->
       if i < Array.length p.p_slot_locals
       then (
-        emit_load_for_kind state.code slot.local slot.kind;
-        box_if_int state.code slot.kind;
+        (* Slot locals are always [Object]-typed under the
+           fixed-depth scheme, so [aload] then [astore] into the
+           target's param local — no unbox/rebox needed. *)
+        Jvm.Code.aload state.code slot.local;
         Jvm.Code.astore state.code p.p_slot_locals.(i)))
     state.slots;
   match p.p_acc_local, state.acc_live with

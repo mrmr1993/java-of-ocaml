@@ -54,7 +54,7 @@ let element_kind_of_block field_kinds =
    currently holds an opaque object. *)
 let emit_load_slot_as_int state k =
   let slot = List.nth state.slots k in
-  emit_load_for_kind state.code slot.local slot.kind;
+  State.emit_slot_load state slot;
   match slot.kind with
   | K_int -> ()
   | K_obj -> emit_unbox_to_kind state.code K_int
@@ -147,7 +147,7 @@ let emit_obj_block state =
   Jvm.Code.dup state.code;
   Jvm.Code.iload state.code tag_local;
   let size_slot = List.hd state.slots in
-  emit_load_for_kind state.code size_slot.local size_slot.kind;
+  State.emit_slot_load state size_slot;
   (match size_slot.kind with
    | K_int -> ()
    | K_obj -> emit_unbox_to_kind state.code K_int
@@ -177,7 +177,7 @@ let emit_obj_with_tag state =
   let tag_local = allocate_local state in
   Jvm.Code.istore state.code tag_local;
   let src_slot = List.hd state.slots in
-  emit_load_for_kind state.code src_slot.local src_slot.kind;
+  State.emit_slot_load state src_slot;
   (match src_slot.kind with
    | K_block _ -> ()
    | K_obj -> Jvm.Code.checkcast state.code "Block"
@@ -279,7 +279,7 @@ let emit_update_dummy state =
     ~descriptor:"[Ljava/lang/Object;";
   let dst_fields_local = allocate_local state in
   Jvm.Code.astore state.code dst_fields_local;
-  emit_load_for_kind state.code src_slot.local src_slot.kind;
+  State.emit_slot_load state src_slot;
   Jvm.Code.checkcast state.code "Block";
   Jvm.Code.getfield
     state.code
@@ -317,7 +317,7 @@ let emit_fresh_oo_id state =
    [java.lang.Double] if the slot currently holds an opaque object. *)
 let emit_dload_top_as_double state =
   let si = List.hd state.slots in
-  emit_load_for_kind state.code si.local si.kind;
+  State.emit_slot_load state si;
   match si.kind with
   | K_float -> ()
   | K_obj ->
@@ -420,7 +420,7 @@ let emit_format_int state =
   let n_slot = List.hd state.slots in
   (* Drop the format string — we ignore it for now. *)
   drop_live_acc state;
-  emit_load_for_kind state.code n_slot.local n_slot.kind;
+  State.emit_slot_load state n_slot;
   (match n_slot.kind with
    | K_int -> ()
    | K_obj -> emit_unbox_to_kind state.code K_int
@@ -497,14 +497,14 @@ let emit_atomic_cas state =
   Jvm.Code.aload state.code fields_local;
   Jvm.Code.ldc_int state.code 0;
   Jvm.Code.aaload state.code;
-  emit_load_for_kind state.code expected_slot.local expected_slot.kind;
+  State.emit_slot_load state expected_slot;
   box_if_int state.code expected_slot.kind;
   let lbl_neq = Jvm.Code.fresh_label state.code in
   let lbl_end = Jvm.Code.fresh_label state.code in
   Jvm.Code.if_acmpne state.code lbl_neq;
   Jvm.Code.aload state.code fields_local;
   Jvm.Code.ldc_int state.code 0;
-  emit_load_for_kind state.code new_slot.local new_slot.kind;
+  State.emit_slot_load state new_slot;
   box_if_int state.code new_slot.kind;
   Jvm.Code.aastore state.code;
   Jvm.Code.ldc_int state.code 1;
@@ -535,7 +535,7 @@ let emit_atomic_exchange state =
   let old_local = allocate_local state in
   Jvm.Code.astore state.code old_local;
   Jvm.Code.ldc_int state.code 0;
-  emit_load_for_kind state.code new_slot.local new_slot.kind;
+  State.emit_slot_load state new_slot;
   box_if_int state.code new_slot.kind;
   Jvm.Code.aastore state.code;
   Jvm.Code.aload state.code old_local;
@@ -551,7 +551,7 @@ let emit_atomic_exchange state =
 let emit_poly_cmp state ~method_name =
   box_acc_to_object state;
   let b_slot = List.hd state.slots in
-  emit_load_for_kind state.code b_slot.local b_slot.kind;
+  State.emit_slot_load state b_slot;
   box_if_int state.code b_slot.kind;
   Jvm.Code.invokestatic
     state.code
@@ -568,7 +568,7 @@ let emit_poly_cmp state ~method_name =
 let emit_int_compare state =
   ensure_kind state K_int;
   let b_slot = List.hd state.slots in
-  emit_load_for_kind state.code b_slot.local b_slot.kind;
+  State.emit_slot_load state b_slot;
   (match b_slot.kind with
    | K_int -> ()
    | K_obj -> emit_unbox_to_kind state.code K_int
@@ -609,7 +609,7 @@ let emit_atomic_fetch_add state =
   Jvm.Code.istore state.code old_local;
   Jvm.Code.ldc_int state.code 0;
   Jvm.Code.iload state.code old_local;
-  emit_load_for_kind state.code n_slot.local n_slot.kind;
+  State.emit_slot_load state n_slot;
   (match n_slot.kind with
    | K_int -> ()
    | K_obj -> emit_unbox_to_kind state.code K_int
@@ -647,7 +647,7 @@ let emit_string_length state =
 let emit_string_equal state ~invert =
   ensure_kind state K_string;
   let b_slot = List.hd state.slots in
-  emit_load_for_kind state.code b_slot.local b_slot.kind;
+  State.emit_slot_load state b_slot;
   (match b_slot.kind with
    | K_string -> ()
    | K_obj -> Jvm.Code.checkcast state.code "java/lang/String"
@@ -672,7 +672,7 @@ let emit_string_equal state ~invert =
 let emit_string_compare state =
   ensure_kind state K_string;
   let b_slot = List.hd state.slots in
-  emit_load_for_kind state.code b_slot.local b_slot.kind;
+  State.emit_slot_load state b_slot;
   (match b_slot.kind with
    | K_string -> ()
    | K_obj -> Jvm.Code.checkcast state.code "java/lang/String"
@@ -705,7 +705,7 @@ let emit_float_of_string state =
 let emit_format_float state =
   let d_slot = List.hd state.slots in
   drop_live_acc state;
-  emit_load_for_kind state.code d_slot.local d_slot.kind;
+  State.emit_slot_load state d_slot;
   (match d_slot.kind with
    | K_float -> ()
    | K_obj -> emit_unbox_to_kind state.code K_float
@@ -757,7 +757,7 @@ let emit_array_make state =
   let fields_local = allocate_local state in
   Jvm.Code.astore state.code fields_local;
   let init_slot = List.hd state.slots in
-  emit_load_for_kind state.code init_slot.local init_slot.kind;
+  State.emit_slot_load state init_slot;
   box_if_int state.code init_slot.kind;
   Jvm.Code.aload state.code fields_local;
   Jvm.Code.swap state.code;
@@ -796,13 +796,13 @@ let emit_array_sub state =
     ~descriptor:"[Ljava/lang/Object;";
   let ofs_slot = List.nth state.slots 0 in
   let len_slot = List.nth state.slots 1 in
-  emit_load_for_kind state.code ofs_slot.local ofs_slot.kind;
+  State.emit_slot_load state ofs_slot;
   (match ofs_slot.kind with
    | K_int -> ()
    | K_obj -> emit_unbox_to_kind state.code K_int
    | _ -> failwith "java_of_ocaml: caml_array_sub: ofs must be int");
   Jvm.Code.dup state.code;
-  emit_load_for_kind state.code len_slot.local len_slot.kind;
+  State.emit_slot_load state len_slot;
   (match len_slot.kind with
    | K_int -> ()
    | K_obj -> emit_unbox_to_kind state.code K_int
@@ -849,12 +849,12 @@ let emit_array_blit state =
   let dst = List.nth state.slots 1 in
   let dofs = List.nth state.slots 2 in
   let len = List.nth state.slots 3 in
-  emit_load_for_kind state.code sofs.local sofs.kind;
+  State.emit_slot_load state sofs;
   (match sofs.kind with
    | K_int -> ()
    | K_obj -> emit_unbox_to_kind state.code K_int
    | _ -> failwith "java_of_ocaml: caml_array_blit: sofs must be int");
-  emit_load_for_kind state.code dst.local dst.kind;
+  State.emit_slot_load state dst;
   (match dst.kind with
    | K_block _ -> ()
    | K_obj -> Jvm.Code.checkcast state.code "Block"
@@ -864,12 +864,12 @@ let emit_array_blit state =
     ~class_:"Block"
     ~field:"fields"
     ~descriptor:"[Ljava/lang/Object;";
-  emit_load_for_kind state.code dofs.local dofs.kind;
+  State.emit_slot_load state dofs;
   (match dofs.kind with
    | K_int -> ()
    | K_obj -> emit_unbox_to_kind state.code K_int
    | _ -> failwith "java_of_ocaml: caml_array_blit: dofs must be int");
-  emit_load_for_kind state.code len.local len.kind;
+  State.emit_slot_load state len;
   (match len.kind with
    | K_int -> ()
    | K_obj -> emit_unbox_to_kind state.code K_int
@@ -903,19 +903,19 @@ let emit_array_fill state =
   let ofs = List.nth state.slots 0 in
   let len = List.nth state.slots 1 in
   let v = List.nth state.slots 2 in
-  emit_load_for_kind state.code ofs.local ofs.kind;
+  State.emit_slot_load state ofs;
   (match ofs.kind with
    | K_int -> ()
    | K_obj -> emit_unbox_to_kind state.code K_int
    | _ -> failwith "java_of_ocaml: caml_array_fill: ofs must be int");
   Jvm.Code.dup state.code;
-  emit_load_for_kind state.code len.local len.kind;
+  State.emit_slot_load state len;
   (match len.kind with
    | K_int -> ()
    | K_obj -> emit_unbox_to_kind state.code K_int
    | _ -> failwith "java_of_ocaml: caml_array_fill: len must be int");
   Jvm.Code.iadd state.code;
-  emit_load_for_kind state.code v.local v.kind;
+  State.emit_slot_load state v;
   box_if_int state.code v.kind;
   Jvm.Code.invokestatic
     state.code
@@ -945,7 +945,7 @@ let emit_array_append state =
   let a_local = allocate_local state in
   Jvm.Code.astore state.code a_local;
   let b = List.hd state.slots in
-  emit_load_for_kind state.code b.local b.kind;
+  State.emit_slot_load state b;
   (match b.kind with
    | K_block _ -> ()
    | K_obj -> Jvm.Code.checkcast state.code "Block"
@@ -1032,7 +1032,7 @@ let emit_array_set state =
        ~field:"fields"
        ~descriptor:"[Ljava/lang/Object;";
      emit_load_slot_as_int state 0;
-     emit_load_for_kind state.code val_slot_info.local val_slot_info.kind;
+     State.emit_slot_load state val_slot_info;
      box_if_int state.code val_slot_info.kind;
      Jvm.Code.aastore state.code
    | K_obj ->
@@ -1043,7 +1043,7 @@ let emit_array_set state =
        ~field:"fields"
        ~descriptor:"[Ljava/lang/Object;";
      emit_load_slot_as_int state 0;
-     emit_load_for_kind state.code val_slot_info.local val_slot_info.kind;
+     State.emit_slot_load state val_slot_info;
      box_if_int state.code val_slot_info.kind;
      Jvm.Code.aastore state.code
    | _ -> failwith "java_of_ocaml: dynamic field/array write on non-block");
@@ -1079,18 +1079,18 @@ let emit_ml_output state =
   let ofs = List.nth state.slots 1 in
   let len = List.nth state.slots 2 in
   emit_cast_channel state;
-  emit_load_for_kind state.code buf.local buf.kind;
+  State.emit_slot_load state buf;
   box_if_int state.code buf.kind;
   (match buf.kind with
    | K_string -> ()
    | _ -> Jvm.Code.checkcast state.code "java/lang/String");
-  emit_load_for_kind state.code ofs.local ofs.kind;
+  State.emit_slot_load state ofs;
   (match ofs.kind with
    | K_int -> ()
    | K_obj -> emit_unbox_to_kind state.code K_int
    | _ ->
      failwith "java_of_ocaml: caml_ml_output: ofs must be int");
-  emit_load_for_kind state.code len.local len.kind;
+  State.emit_slot_load state len;
   (match len.kind with
    | K_int -> ()
    | K_obj -> emit_unbox_to_kind state.code K_int
@@ -1110,7 +1110,7 @@ let emit_ml_output state =
 let emit_ml_output_char state =
   let c = List.hd state.slots in
   emit_cast_channel state;
-  emit_load_for_kind state.code c.local c.kind;
+  State.emit_slot_load state c;
   (match c.kind with
    | K_int -> ()
    | K_obj -> emit_unbox_to_kind state.code K_int
@@ -1141,7 +1141,7 @@ let emit_cast_bytes state =
 
 let emit_load_slot_as_int_arg state k =
   let s = List.nth state.slots k in
-  emit_load_for_kind state.code s.local s.kind;
+  State.emit_slot_load state s;
   match s.kind with
   | K_int -> ()
   | K_obj -> emit_unbox_to_kind state.code K_int
@@ -1231,21 +1231,21 @@ let emit_blit_string_to_bytes state =
   let dst = List.nth state.slots 1 in
   let dofs = List.nth state.slots 2 in
   let len = List.nth state.slots 3 in
-  emit_load_for_kind state.code dst.local dst.kind;
+  State.emit_slot_load state dst;
   box_if_int state.code dst.kind;
   Jvm.Code.checkcast state.code "Bytes";
   Jvm.Code.aload state.code src_local;
-  emit_load_for_kind state.code sofs.local sofs.kind;
+  State.emit_slot_load state sofs;
   (match sofs.kind with
    | K_int -> ()
    | K_obj -> emit_unbox_to_kind state.code K_int
    | _ -> failwith "java_of_ocaml: caml_blit_string: sofs must be int");
-  emit_load_for_kind state.code dofs.local dofs.kind;
+  State.emit_slot_load state dofs;
   (match dofs.kind with
    | K_int -> ()
    | K_obj -> emit_unbox_to_kind state.code K_int
    | _ -> failwith "java_of_ocaml: caml_blit_string: dofs must be int");
-  emit_load_for_kind state.code len.local len.kind;
+  State.emit_slot_load state len;
   (match len.kind with
    | K_int -> ()
    | K_obj -> emit_unbox_to_kind state.code K_int
@@ -1270,21 +1270,21 @@ let emit_blit_bytes_to_bytes state =
   let dst = List.nth state.slots 1 in
   let dofs = List.nth state.slots 2 in
   let len = List.nth state.slots 3 in
-  emit_load_for_kind state.code dst.local dst.kind;
+  State.emit_slot_load state dst;
   box_if_int state.code dst.kind;
   Jvm.Code.checkcast state.code "Bytes";
   Jvm.Code.aload state.code src_local;
-  emit_load_for_kind state.code sofs.local sofs.kind;
+  State.emit_slot_load state sofs;
   (match sofs.kind with
    | K_int -> ()
    | K_obj -> emit_unbox_to_kind state.code K_int
    | _ -> failwith "java_of_ocaml: caml_blit_bytes: sofs must be int");
-  emit_load_for_kind state.code dofs.local dofs.kind;
+  State.emit_slot_load state dofs;
   (match dofs.kind with
    | K_int -> ()
    | K_obj -> emit_unbox_to_kind state.code K_int
    | _ -> failwith "java_of_ocaml: caml_blit_bytes: dofs must be int");
-  emit_load_for_kind state.code len.local len.kind;
+  State.emit_slot_load state len;
   (match len.kind with
    | K_int -> ()
    | K_obj -> emit_unbox_to_kind state.code K_int
@@ -1327,7 +1327,7 @@ let emit_string_of_bytes state =
 let emit_bytes_equal state ~invert =
   emit_cast_bytes state;
   let b_slot = List.nth state.slots 0 in
-  emit_load_for_kind state.code b_slot.local b_slot.kind;
+  State.emit_slot_load state b_slot;
   box_if_int state.code b_slot.kind;
   Jvm.Code.checkcast state.code "Bytes";
   Jvm.Code.invokevirtual
@@ -1351,7 +1351,7 @@ let emit_bytes_compare state =
     ~method_:"asString"
     ~descriptor:"()Ljava/lang/String;";
   let b_slot = List.nth state.slots 0 in
-  emit_load_for_kind state.code b_slot.local b_slot.kind;
+  State.emit_slot_load state b_slot;
   box_if_int state.code b_slot.kind;
   Jvm.Code.checkcast state.code "Bytes";
   Jvm.Code.invokevirtual

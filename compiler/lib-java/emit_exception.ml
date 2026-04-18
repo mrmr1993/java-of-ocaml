@@ -66,8 +66,15 @@ let emit_pushtrap state (ins : Instr.instr) =
     ~end_lbl
     ~handler_lbl:prelude_lbl
     ~catch_class:(Some "CamlException");
+  (* Initialise the 4 trap-frame dummy slots with [null] so the
+     JVM verifier sees the locals as typed [Object] rather than
+     TOP (uninitialised). OCaml's interpreter doesn't care about
+     the content of these slots, but the verifier rejects any
+     [aload] that could read TOP. *)
   for _ = 1 to 4 do
-    let local = allocate_local state in
+    let local = slot_obj_local state state.oc_stack_depth in
+    Jvm.Code.aconst_null state.code;
+    Jvm.Code.astore state.code local;
     push_slot state K_obj local
   done;
   state.open_traps <- (start_lbl, end_lbl, prelude_lbl) :: state.open_traps
