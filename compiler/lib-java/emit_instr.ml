@@ -77,6 +77,19 @@ let emit_instr state (ins : instr) =
         Jvm.Code.mark_label state.code lbl;
         State.reload_from_block_params state block_id
       | None ->
+        (* For fall-through entry at a non-handler label with a
+           snapshot, the JVM operand-stack shape at the current
+           JVM position must agree with what every
+           [record_branch_target] site captured — those sites
+           boxed acc to [Object] via [normalize_acc_for_branch].
+           If we arrive here with a primitive-kind acc, the shape
+           disagrees and the verifier will reject the class.
+           Normalise first so every incoming edge — jump or
+           fall-through — leaves acc in [Object] form. *)
+        if (not is_handler)
+           && (not state.last_was_terminator)
+           && Hashtbl.mem state.branch_target_state ins.pc
+        then State.normalize_acc_for_branch state;
         Jvm.Code.mark_label state.code lbl;
         if is_handler
         then (
