@@ -38,6 +38,12 @@ type prim_handler =
   | P_array_append
   | P_int_of_string
   | P_format_int
+  | P_float_of_string
+  | P_format_float
+  | P_string_length
+  | P_string_equal
+  | P_string_notequal
+  | P_string_compare
 
 type prim_entry =
   { name : string

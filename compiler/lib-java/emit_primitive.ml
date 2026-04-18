@@ -417,6 +417,94 @@ let emit_format_int state =
   state.acc_live <- true;
   state.acc_kind <- K_string
 
+(* [caml_ml_string_length s]: [s.length()]. *)
+let emit_string_length state =
+  ensure_kind state K_string;
+  Jvm.Code.invokevirtual
+    state.code
+    ~class_:"java/lang/String"
+    ~method_:"length"
+    ~descriptor:"()I";
+  state.acc_kind <- K_int
+
+(* [caml_string_equal a b], [caml_string_notequal a b]: [a.equals(b)]
+   then optionally invert. *)
+let emit_string_equal state ~invert =
+  ensure_kind state K_string;
+  let b_slot = List.hd state.slots in
+  emit_load_for_kind state.code b_slot.local b_slot.kind;
+  (match b_slot.kind with
+   | K_string -> ()
+   | K_obj -> Jvm.Code.checkcast state.code "java/lang/String"
+   | _ ->
+     failwith
+       "java_of_ocaml: caml_string_(not)equal: arg must be a string");
+  Jvm.Code.invokevirtual
+    state.code
+    ~class_:"java/lang/String"
+    ~method_:"equals"
+    ~descriptor:"(Ljava/lang/Object;)Z";
+  if invert
+  then (
+    Jvm.Code.ldc_int state.code 1;
+    Jvm.Code.swap state.code;
+    Jvm.Code.isub state.code);
+  consume_top state;
+  state.acc_live <- true;
+  state.acc_kind <- K_int
+
+(* [caml_string_compare a b]: [a.compareTo(b)]. *)
+let emit_string_compare state =
+  ensure_kind state K_string;
+  let b_slot = List.hd state.slots in
+  emit_load_for_kind state.code b_slot.local b_slot.kind;
+  (match b_slot.kind with
+   | K_string -> ()
+   | K_obj -> Jvm.Code.checkcast state.code "java/lang/String"
+   | _ ->
+     failwith
+       "java_of_ocaml: caml_string_compare: arg must be a string");
+  Jvm.Code.invokevirtual
+    state.code
+    ~class_:"java/lang/String"
+    ~method_:"compareTo"
+    ~descriptor:"(Ljava/lang/String;)I";
+  consume_top state;
+  state.acc_live <- true;
+  state.acc_kind <- K_int
+
+(* [caml_float_of_string s]: parse a string as a double via
+   [Double.parseDouble]. *)
+let emit_float_of_string state =
+  ensure_kind state K_string;
+  Jvm.Code.invokestatic
+    state.code
+    ~class_:"java/lang/Double"
+    ~method_:"parseDouble"
+    ~descriptor:"(Ljava/lang/String;)D";
+  state.acc_kind <- K_float
+
+(* [caml_format_float fmt d]: same simplification as format_int — we
+   ignore the format string and call [Double.toString]. Sufficient
+   for Printf "%f"/"%g" round-trips on simple values. *)
+let emit_format_float state =
+  let d_slot = List.hd state.slots in
+  drop_live_acc state;
+  emit_load_for_kind state.code d_slot.local d_slot.kind;
+  (match d_slot.kind with
+   | K_float -> ()
+   | K_obj -> emit_unbox_to_kind state.code K_float
+   | _ ->
+     failwith "java_of_ocaml: caml_format_float: arg must be a float");
+  Jvm.Code.invokestatic
+    state.code
+    ~class_:"java/lang/Double"
+    ~method_:"toString"
+    ~descriptor:"(D)Ljava/lang/String;";
+  consume_top state;
+  state.acc_live <- true;
+  state.acc_kind <- K_string
+
 let emit_float_print state =
   ensure_kind state K_float;
   Jvm.Code.invokestatic

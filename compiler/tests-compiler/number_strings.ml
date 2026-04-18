@@ -11,7 +11,9 @@ let preamble =
      external caml_java_print_endline : string -> unit =
        "caml_java_print_endline"
      external int_of_string : string -> int = "caml_int_of_string"
-     external format_int : string -> int -> string = "caml_format_int" |}
+     external format_int : string -> int -> string = "caml_format_int"
+     external float_of_string : string -> float = "caml_float_of_string"
+     external format_float : string -> float -> string = "caml_format_float" |}
 
 let%expect_test "int_of_string: positive / negative decimal" =
   compile_and_run
@@ -55,3 +57,45 @@ let%expect_test "int_of_string . format_int is identity on ints" =
     42
     -1
     0 |}]
+
+let%expect_test "float_of_string / format_float round-trip" =
+  compile_and_run
+    (preamble
+     ^ {| let () =
+            caml_java_print_endline (format_float "%f" 3.14);
+            caml_java_print_endline (format_float "%f" (float_of_string "42.5"));
+            caml_java_print_endline (format_float "%f" (-. 1.0)) |});
+  [%expect {|
+    3.14
+    42.5
+    -1.0 |}]
+
+let%expect_test "caml_ml_string_length / caml_string_equal / caml_string_compare" =
+  compile_and_run
+    {| external caml_java_print_int : int -> unit = "caml_java_print_int"
+       external length : string -> int = "caml_ml_string_length"
+       external equal : string -> string -> bool = "caml_string_equal"
+       external notequal : string -> string -> bool = "caml_string_notequal"
+       external compare : string -> string -> int = "caml_string_compare"
+       let to_int b = if b then 1 else 0
+       let sign n = if n < 0 then -1 else if n > 0 then 1 else 0
+       let () =
+         caml_java_print_int (length "hello");
+         caml_java_print_int (length "");
+         caml_java_print_int (to_int (equal "abc" "abc"));
+         caml_java_print_int (to_int (equal "abc" "abd"));
+         caml_java_print_int (to_int (notequal "abc" "abc"));
+         caml_java_print_int (to_int (notequal "abc" "abd"));
+         caml_java_print_int (sign (compare "abc" "abc"));
+         caml_java_print_int (sign (compare "abc" "abd"));
+         caml_java_print_int (sign (compare "abd" "abc")) |};
+  [%expect {|
+    5
+    0
+    1
+    0
+    0
+    1
+    0
+    -1
+    1 |}]

@@ -35,6 +35,18 @@ val emit_format_int : State.state -> unit
     string argument and always does [Integer.toString]. Sufficient
     for ["%d"] but not ["%x"] / ["%5d"] / etc. *)
 
+val emit_float_of_string : State.state -> unit
+(** [caml_float_of_string]: parse a string as a double via
+    [Double.parseDouble]. *)
+
+val emit_format_float : State.state -> unit
+(** [caml_format_float]: same simplification as [emit_format_int] —
+    ignores the format string and always does [Double.toString]. *)
+
+val emit_string_length : State.state -> unit
+val emit_string_equal : State.state -> invert:bool -> unit
+val emit_string_compare : State.state -> unit
+
 val emit_obj_dup : State.state -> unit
 val emit_obj_tag : State.state -> unit
 val emit_obj_block : State.state -> unit

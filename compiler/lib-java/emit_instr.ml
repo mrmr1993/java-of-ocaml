@@ -828,7 +828,13 @@ let emit_instr state (ins : instr) =
        | P_array_fill -> Emit_primitive.emit_array_fill state
        | P_array_append -> Emit_primitive.emit_array_append state
        | P_int_of_string -> Emit_primitive.emit_int_of_string state
-       | P_format_int -> Emit_primitive.emit_format_int state)
+       | P_format_int -> Emit_primitive.emit_format_int state
+       | P_float_of_string -> Emit_primitive.emit_float_of_string state
+       | P_format_float -> Emit_primitive.emit_format_float state
+       | P_string_length -> Emit_primitive.emit_string_length state
+       | P_string_equal -> Emit_primitive.emit_string_equal state ~invert:false
+       | P_string_notequal -> Emit_primitive.emit_string_equal state ~invert:true
+       | P_string_compare -> Emit_primitive.emit_string_compare state)
     | None ->
       let name =
         if prim_idx >= 0 && prim_idx < Array.length state.prims

@@ -32,6 +32,12 @@ type prim_handler =
   | P_array_append
   | P_int_of_string
   | P_format_int
+  | P_float_of_string
+  | P_format_float
+  | P_string_length
+  | P_string_equal
+  | P_string_notequal
+  | P_string_compare
 
 type prim_entry =
   { name : string
@@ -78,6 +84,12 @@ let primitives : prim_entry list =
   ; { name = "caml_float_of_int"; handler = P_float_of_int; seed = false }
   ; { name = "caml_int_of_string"; handler = P_int_of_string; seed = false }
   ; { name = "caml_format_int"; handler = P_format_int; seed = false }
+  ; { name = "caml_float_of_string"; handler = P_float_of_string; seed = false }
+  ; { name = "caml_format_float"; handler = P_format_float; seed = false }
+  ; { name = "caml_ml_string_length"; handler = P_string_length; seed = false }
+  ; { name = "caml_string_equal"; handler = P_string_equal; seed = false }
+  ; { name = "caml_string_notequal"; handler = P_string_notequal; seed = false }
+  ; { name = "caml_string_compare"; handler = P_string_compare; seed = false }
   ]
 
 type table = (int, string * prim_handler * bool) Hashtbl.t
