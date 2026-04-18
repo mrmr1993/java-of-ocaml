@@ -51,6 +51,8 @@ module Op : sig
   val addint : int
   val subint : int
   val mulint : int
+  val divint : int
+  val modint : int
   val eq : int
   val neq : int
   val ltint : int
@@ -62,6 +64,23 @@ module Op : sig
   val branchif : int
   val branchifnot : int
   val stop : int
+  val apply : int
+  val apply1 : int
+  val apply2 : int
+  val apply3 : int
+  val appterm : int
+  val appterm1 : int
+  val appterm2 : int
+  val appterm3 : int
+  val return : int
+  val restart : int
+  val grab : int
+  val closure : int
+  val closurerec : int
+  val offsetclosure0 : int
+  val pushoffsetclosure0 : int
+  val event : int
+  val break : int
 end
 
 val instr_size : t -> int -> int

@@ -79,6 +79,10 @@ module Code : sig
 
   val imul : t -> unit
 
+  val idiv : t -> unit
+
+  val irem : t -> unit
+
   (** {2 Branches}
 
       All variants of [if_icmp<cond>] compare two ints. The semantics follow

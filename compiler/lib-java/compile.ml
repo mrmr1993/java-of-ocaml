@@ -66,15 +66,25 @@ let is_pushacc op =
   || op = Bytecode.Op.pushacc
 
 (* Closure-related. *)
-let closurerec_op = 44
+let closurerec_op = Bytecode.Op.closurerec
+let closure_op = Bytecode.Op.closure
+let offsetclosure0_op = Bytecode.Op.offsetclosure0
+let pushoffsetclosure0_op = Bytecode.Op.pushoffsetclosure0
+let apply1_op = Bytecode.Op.apply1
+let apply2_op = Bytecode.Op.apply2
+let apply3_op = Bytecode.Op.apply3
+let apply_op = Bytecode.Op.apply
+let appterm_op = Bytecode.Op.appterm
+let appterm1_op = Bytecode.Op.appterm1
+let appterm2_op = Bytecode.Op.appterm2
+let appterm3_op = Bytecode.Op.appterm3
+let return_op = Bytecode.Op.return
+let restart_op = Bytecode.Op.restart
+let grab_op = Bytecode.Op.grab
 
 (* Debug-info no-ops. Emitted by [ocamlc -g] between real instructions. *)
-let event_op = 144
-let break_op = 145
-let offsetclosure0_op = 46
-let pushoffsetclosure0_op = 50
-let apply1_op = 33
-let return_op = 40
+let event_op = Bytecode.Op.event
+let break_op = Bytecode.Op.break
 
 let is_user_op (ins : instr) =
   let op = ins.opcode in
@@ -96,6 +106,8 @@ let is_user_op (ins : instr) =
   || op = Bytecode.Op.addint
   || op = Bytecode.Op.subint
   || op = Bytecode.Op.mulint
+  || op = Bytecode.Op.divint
+  || op = Bytecode.Op.modint
   || is_cmp_nullary op
   || op = Bytecode.Op.getglobal
   || op = Bytecode.Op.pushgetglobal
@@ -105,10 +117,20 @@ let is_user_op (ins : instr) =
   || is_cmp_jump op
   || is_c_call op
   || op = closurerec_op
+  || op = closure_op
   || op = offsetclosure0_op
   || op = pushoffsetclosure0_op
   || op = apply1_op
+  || op = apply2_op
+  || op = apply3_op
+  || op = apply_op
+  || op = appterm_op
+  || op = appterm1_op
+  || op = appterm2_op
+  || op = appterm3_op
   || op = return_op
+  || op = restart_op
+  || op = grab_op
   || op = event_op
   || op = break_op
 
@@ -163,6 +185,8 @@ type function_info =
   ; body_pc : int [@warning "-69"]
   ; body_start_idx : int
   ; body_end_idx : int
+  ; nargs : int
+  ; recursive : bool [@warning "-69"]
   }
 
 module Int_set = Set.Make (Int)
@@ -175,6 +199,22 @@ let find_function_body_range arr body_pc =
   done;
   if !start_idx < 0
   then failwith (Printf.sprintf "java_of_ocaml: no instruction at body_pc %d" body_pc);
+  (* The function's entry is RESTART (multi-arg with GRAB coming) or a
+     direct nullary op for a 1-arg function. Skip a leading RESTART so the
+     enclosed body starts at its first "real" instruction. *)
+  let real_start = ref !start_idx in
+  if arr.(!real_start).opcode = restart_op
+  then incr real_start;
+  let nargs =
+    if arr.(!real_start).opcode = grab_op
+    then (
+      let n = arr.(!real_start).args.(0) + 1 in
+      (* The GRAB itself is also part of the entry sequence; skip it so the
+         body range we return starts at the first statement proper. *)
+      incr real_start;
+      n)
+    else 1
+  in
   let outstanding = ref Int_set.empty in
   let rec loop i =
     if i >= n
@@ -187,13 +227,18 @@ let find_function_body_range arr body_pc =
          outstanding := Int_set.add t !outstanding
        | _ -> ());
       let ends_here =
-        (ins.opcode = return_op || ins.opcode = Bytecode.Op.stop)
+        (ins.opcode = return_op
+         || ins.opcode = appterm_op
+         || ins.opcode = appterm1_op
+         || ins.opcode = appterm2_op
+         || ins.opcode = appterm3_op
+         || ins.opcode = Bytecode.Op.stop)
         && Int_set.is_empty !outstanding
       in
       if ends_here then i else loop (i + 1)
   in
-  let end_idx = loop !start_idx in
-  !start_idx, end_idx
+  let end_idx = loop !real_start in
+  !real_start, end_idx, nargs
 
 (* -------------------------------------------------------------------------- *)
 (* Forward emitter. *)
@@ -214,7 +259,7 @@ type state =
   ; globals : Obj.t array
   ; supported_prims : (int, string * arg_kind) Hashtbl.t
   ; functions : (int, function_info) Hashtbl.t
-      (* closurerec_pc -> function_info *)
+      (* closure{,rec}_pc -> function_info *)
   ; pc_to_label : (int, Jvm.Code.label) Hashtbl.t
   ; branch_target_state : (int, branch_snapshot) Hashtbl.t
       (* Target PC -> state to restore when we mark that target's label. *)
@@ -225,13 +270,31 @@ type state =
          stack. Length always equals [oc_stack_depth]. *)
   ; mutable oc_stack_depth : int
   ; mutable pending_cmp : cmp_op option
-  ; local_base : int
-      (* JVM local index of OCaml-stack slot 0 (bottom). 1 for main (slot 0
-         is [String[] args]); 0 for function bodies (slot 0 is the arg). *)
+  ; nargs : int
+      (* Number of JVM method parameters. 0 for [main] (where local 0 holds
+         [String[] args]). N for a function with N args, where JVM locals
+         0..N-1 hold those args in source order. *)
   ; enclosing_function_name : string option
       (* [None] when emitting [main]; [Some name] inside a function body.
          OFFSETCLOSURE0 uses this to tag acc as the self-closure. *)
   }
+
+(* Mapping from an OCaml-stack slot index (counted from the bottom of the
+   OCaml stack, 0-indexed) to the JVM local that holds its value.
+
+   - In [main]: local 0 is the [String[] args] parameter, so OCaml stack
+     slots start at local 1. Formula: [1 + k].
+   - In a function with N args: JVM locals 0..N-1 are the parameters in
+     source order, but the OCaml calling convention puts the first arg at
+     the TOP of the stack (= slot N-1 from bottom) and the last arg at the
+     BOTTOM (= slot 0). The args therefore occupy locals 0..N-1 in reverse
+     of OCaml stack-slot order: slot k (k < N) -> local (N-1-k). OCaml
+     pushes past the initial stack depth go to locals N, N+1, ... which
+     matches [local = k] for k >= N. *)
+let slot_to_local ~state k =
+  match state.enclosing_function_name with
+  | None -> 1 + k
+  | Some _ -> if k < state.nargs then state.nargs - 1 - k else k
 
 let record_branch_target state target_pc =
   if not (Hashtbl.mem state.branch_target_state target_pc)
@@ -248,17 +311,22 @@ let stack_slot_local ~state k =
   then
     failwith
       (Printf.sprintf
-         "java_of_ocaml: stack slot %d out of range (depth %d, \
-          local_base %d, in_fn=%s)"
+         "java_of_ocaml: stack slot %d out of range (depth %d, nargs %d, \
+          in_fn=%s)"
          k
          state.oc_stack_depth
-         state.local_base
+         state.nargs
          (match state.enclosing_function_name with
           | Some n -> n
           | None -> "<main>"));
-  state.local_base + (state.oc_stack_depth - 1 - k)
+  slot_to_local ~state (state.oc_stack_depth - 1 - k)
 
 let top_slot_local ~state = stack_slot_local ~state 0
+
+let next_free_local ~state =
+  (* The local where a new OCaml stack push would land: it's the local for
+     the slot one beyond the current top. *)
+  slot_to_local ~state state.oc_stack_depth
 
 let kind_of_slot_from_top ~state k =
   List.nth state.slot_kinds k
@@ -316,7 +384,7 @@ let emit_push state =
        Our compile stops before anything would read it back, so skip. *)
     ()
   else (
-    let slot = state.local_base + state.oc_stack_depth in
+    let slot = next_free_local ~state in
     Jvm.Code.dup state.code;
     Jvm.Code.istore state.code slot;
     push_slot state state.acc_kind)
@@ -390,6 +458,22 @@ let emit_pushoffsetclosure0 state =
          "java_of_ocaml: PUSHOFFSETCLOSURE0 outside a function body"
      | Some n -> K_closure n)
 
+(* CLOSURE: acc := new closure. No stack push (the source program emits its
+   own PUSH after if it wants to save the closure). *)
+let emit_closure state (ins : instr) =
+  let fn_info =
+    try Hashtbl.find state.functions ins.pc with
+    | Not_found ->
+      failwith
+        (Printf.sprintf
+           "java_of_ocaml: CLOSURE at pc %d not registered"
+           ins.pc)
+  in
+  overwrite_acc
+    state
+    (K_closure fn_info.name)
+    (fun () -> Jvm.Code.ldc_int state.code 0)
+
 (* CLOSUREREC: create (nfuncs) closures. For nfuncs=1, nvars=0 we just push a
    sentinel and tag acc as the single closure. *)
 let emit_closurerec state (ins : instr) =
@@ -416,7 +500,7 @@ let emit_closurerec state (ins : instr) =
      live), then overwrite with the closure sentinel. *)
   if state.acc_live
   then (
-    let slot = state.local_base + state.oc_stack_depth in
+    let slot = next_free_local ~state in
     Jvm.Code.dup state.code;
     Jvm.Code.istore state.code slot;
     push_slot state state.acc_kind;
@@ -425,7 +509,7 @@ let emit_closurerec state (ins : instr) =
   state.acc_live <- true;
   state.acc_kind <- K_closure fn_info.name;
   (* And then push acc onto the OCaml stack (CLOSUREREC's own push). *)
-  let slot = state.local_base + state.oc_stack_depth in
+  let slot = next_free_local ~state in
   Jvm.Code.dup state.code;
   Jvm.Code.istore state.code slot;
   push_slot state state.acc_kind
@@ -449,6 +533,18 @@ let emit_mulint state =
   let slot = top_slot_local ~state in
   Jvm.Code.iload state.code slot;
   Jvm.Code.imul state.code;
+  consume_top state
+
+let emit_divint state =
+  let slot = top_slot_local ~state in
+  Jvm.Code.iload state.code slot;
+  Jvm.Code.idiv state.code;
+  consume_top state
+
+let emit_modint state =
+  let slot = top_slot_local ~state in
+  Jvm.Code.iload state.code slot;
+  Jvm.Code.irem state.code;
   consume_top state
 
 let emit_offsetint state n =
@@ -475,27 +571,53 @@ let emit_c_call state ~kind =
   state.acc_live <- false;
   state.acc_kind <- K_int
 
-(* APPLY1: the arg is at stack[0 from top] in a local; acc holds the
-   closure sentinel. Dispatch to the known function via invokestatic. *)
-let emit_apply1 state =
+let descriptor_for_nargs nargs =
+  let buf = Buffer.create 8 in
+  Buffer.add_char buf '(';
+  for _ = 1 to nargs do
+    Buffer.add_char buf 'I'
+  done;
+  Buffer.add_char buf ')';
+  Buffer.add_char buf 'I';
+  Buffer.contents buf
+
+(* APPLY{1,2,3,N}: args are at stack[0..n-1 from top] in locals, in source
+   order (stack[0 from top] = first source-order arg). Closure sentinel is
+   on top of JVM operand stack in acc. Dispatch to the known function. *)
+let emit_apply state ~nargs =
   match state.acc_kind with
   | K_closure name ->
-    let arg_slot = top_slot_local ~state in
-    (* Discard sentinel from op stack. *)
     if state.acc_live then Jvm.Code.pop_top state.code;
-    Jvm.Code.iload state.code arg_slot;
+    for k = 0 to nargs - 1 do
+      let slot = stack_slot_local ~state k in
+      Jvm.Code.iload state.code slot
+    done;
     Jvm.Code.invokestatic
       state.code
       ~class_:"Main"
       ~method_:name
-      ~descriptor:"(I)I";
-    consume_top state;
+      ~descriptor:(descriptor_for_nargs nargs);
+    pop_slots state nargs;
     state.acc_live <- true;
     state.acc_kind <- K_int
   | K_int ->
     failwith
-      "java_of_ocaml: APPLY1 called on a non-closure value (K_int). \
-       Did the closure analysis lose its tag?"
+      (Printf.sprintf
+         "java_of_ocaml: APPLY%d called on a non-closure value (K_int). \
+          Did the closure analysis lose its tag?"
+         nargs)
+
+let emit_apply1 state = emit_apply state ~nargs:1
+
+(* APPTERM_N: tail call — same as APPLY followed by return. Since our
+   method is about to return anyway, drop-slots (S) is a no-op for us. *)
+let emit_appterm state ~nargs =
+  emit_apply state ~nargs;
+  Jvm.Code.ireturn state.code;
+  state.acc_live <- false;
+  state.acc_kind <- K_int;
+  state.oc_stack_depth <- 0;
+  state.slot_kinds <- []
 
 let emit_return state =
   (* We discard the OCaml frame's stack depth — the JVM method's locals are
@@ -633,6 +755,8 @@ let emit_instr state (ins : instr) =
   else if op = Bytecode.Op.addint then emit_addint state
   else if op = Bytecode.Op.subint then emit_subint state
   else if op = Bytecode.Op.mulint then emit_mulint state
+  else if op = Bytecode.Op.divint then emit_divint state
+  else if op = Bytecode.Op.modint then emit_modint state
   else if op = Bytecode.Op.push then emit_push state
   else if op = Bytecode.Op.acc0 then emit_acc state 0
   else if op = Bytecode.Op.acc1 then emit_acc state 1
@@ -682,10 +806,22 @@ let emit_instr state (ins : instr) =
     record_branch_target state target)
   else if is_cmp_jump op then emit_cmp_jump state ins
   else if op = closurerec_op then emit_closurerec state ins
+  else if op = closure_op then emit_closure state ins
   else if op = offsetclosure0_op then emit_offsetclosure0 state
   else if op = pushoffsetclosure0_op then emit_pushoffsetclosure0 state
   else if op = apply1_op then emit_apply1 state
+  else if op = apply2_op then emit_apply state ~nargs:2
+  else if op = apply3_op then emit_apply state ~nargs:3
+  else if op = apply_op then emit_apply state ~nargs:ins.args.(0)
+  else if op = appterm1_op then emit_appterm state ~nargs:1
+  else if op = appterm2_op then emit_appterm state ~nargs:2
+  else if op = appterm3_op then emit_appterm state ~nargs:3
+  else if op = appterm_op then emit_appterm state ~nargs:ins.args.(0)
   else if op = return_op then emit_return state
+  else if op = restart_op || op = grab_op then
+    (* Function-entry prologue. We already extracted [nargs] up-front and
+       the JVM convention puts args in locals 0..nargs-1; nothing to emit. *)
+    ()
   else if op = event_op || op = break_op then
     (* Debug markers from [ocamlc -g]. Nothing to emit; they're there for
        the OCaml debugger only. *)
@@ -807,21 +943,37 @@ let compile ~bc ~out_dir =
   let fn_count = ref 0 in
   for i = start_idx to end_idx do
     let ins = arr.(i) in
-    if ins.opcode = closurerec_op
+    if ins.opcode = closurerec_op || ins.opcode = closure_op
     then (
-      let nfuncs = ins.args.(0) in
-      let nvars = ins.args.(1) in
-      if nfuncs <> 1 || nvars <> 0
+      let recursive = ins.opcode = closurerec_op in
+      let body_pc, nvars =
+        if recursive
+        then (
+          let nfuncs = ins.args.(0) in
+          let nvars = ins.args.(1) in
+          if nfuncs <> 1
+          then
+            failwith
+              (Printf.sprintf
+                 "java_of_ocaml: CLOSUREREC nfuncs=%d at pc %d — only 1 \
+                  is currently supported"
+                 nfuncs
+                 ins.pc);
+          ins.pc + 3 + ins.args.(2), nvars)
+        else (
+          (* CLOSURE args: nvars, offset (from pc+1? Check parse_bytecode). *)
+          let nvars = ins.args.(0) in
+          ins.pc + ins.args.(1) + 2, nvars)
+      in
+      if nvars <> 0
       then
         failwith
           (Printf.sprintf
-             "java_of_ocaml: CLOSUREREC nfuncs=%d nvars=%d at pc %d — \
-              only (1, 0) is currently supported"
-             nfuncs
+             "java_of_ocaml: CLOSURE/CLOSUREREC nvars=%d at pc %d — only \
+              0 is currently supported (non-capturing closures)"
              nvars
              ins.pc);
-      let body_pc = ins.pc + 3 + ins.args.(2) in
-      let body_start_idx, body_end_idx =
+      let body_start_idx, body_end_idx, nargs =
         find_function_body_range arr body_pc
       in
       let name = Printf.sprintf "ocaml_fn_%d" !fn_count in
@@ -832,11 +984,24 @@ let compile ~bc ~out_dir =
         ; body_pc
         ; body_start_idx
         ; body_end_idx
+        ; nargs
+        ; recursive
         }
       in
       Hashtbl.add functions ins.pc info;
       func_list := info :: !func_list;
-      for j = body_start_idx to body_end_idx do
+      (* Mark ALL instruction PCs between the original body_pc (including
+         the RESTART / GRAB we skipped) and body_end as part of the
+         function — those should not be re-emitted in main. *)
+      let pre_start =
+        let rec find i =
+          if i >= Array.length arr then i
+          else if arr.(i).pc = body_pc then i
+          else find (i + 1)
+        in
+        find 0
+      in
+      for j = pre_start to body_end_idx do
         Hashtbl.replace fn_body_pcs arr.(j).pc ()
       done)
   done;
@@ -855,6 +1020,12 @@ let compile ~bc ~out_dir =
               (arr.(fn_info.body_start_idx).pc, arr.(fn_info.body_end_idx).pc)
             ~skip_pcs:(Hashtbl.create 0)
         in
+        let initial_kinds =
+          let rec make n =
+            if n <= 0 then [] else K_int :: make (n - 1)
+          in
+          make fn_info.nargs
+        in
         let state =
           { code = fn_code
           ; globals = parsed.globals
@@ -864,10 +1035,10 @@ let compile ~bc ~out_dir =
           ; branch_target_state = Hashtbl.create 4
           ; acc_live = false
           ; acc_kind = K_int
-          ; slot_kinds = [ K_int ]
-          ; oc_stack_depth = 1
+          ; slot_kinds = initial_kinds
+          ; oc_stack_depth = fn_info.nargs
           ; pending_cmp = None
-          ; local_base = 0 (* slot 0 is the method parameter *)
+          ; nargs = fn_info.nargs
           ; enclosing_function_name = Some fn_info.name
           }
         in
@@ -877,7 +1048,7 @@ let compile ~bc ~out_dir =
           (fn_info.body_start_idx, fn_info.body_end_idx)
           ~skip_pcs:(Hashtbl.create 0);
         { Jvm.name = fn_info.name
-        ; descriptor = "(I)I"
+        ; descriptor = descriptor_for_nargs fn_info.nargs
         ; access_flags = 0x000A (* ACC_PRIVATE | ACC_STATIC *)
         ; code = fn_code
         })
@@ -908,7 +1079,7 @@ let compile ~bc ~out_dir =
     ; slot_kinds = []
     ; oc_stack_depth = 0
     ; pending_cmp = None
-    ; local_base = 1 (* slot 0 is [String[] args] *)
+    ; nargs = 0
     ; enclosing_function_name = None
     }
   in

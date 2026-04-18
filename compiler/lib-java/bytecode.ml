@@ -41,6 +41,8 @@ module Op = struct
   let addint = 110
   let subint = 111
   let mulint = 112
+  let divint = 113
+  let modint = 114
   let eq = 121
   let neq = 122
   let ltint = 123
@@ -52,6 +54,23 @@ module Op = struct
   let branchif = 85
   let branchifnot = 86
   let stop = 143
+  let apply = 32
+  let apply1 = 33
+  let apply2 = 34
+  let apply3 = 35
+  let appterm = 36
+  let appterm1 = 37
+  let appterm2 = 38
+  let appterm3 = 39
+  let return = 40
+  let restart = 41
+  let grab = 42
+  let closure = 43
+  let closurerec = 44
+  let offsetclosure0 = 46
+  let pushoffsetclosure0 = 50
+  let event = 144
+  let break = 145
 end
 
 (* Classification of opcodes following js_of_ocaml's [Instr.kind]. What we

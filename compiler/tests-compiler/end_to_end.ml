@@ -154,3 +154,31 @@ let%expect_test "fib of small values" =
     1
     5
     610 |}]
+
+let%expect_test "non-recursive two-arg function" =
+  compile_and_run
+    {| external caml_java_print_int : int -> unit = "caml_java_print_int"
+       let add a b = a + b
+       let () = caml_java_print_int (add 3 5) |};
+  [%expect {| 8 |}]
+
+let%expect_test "non-recursive three-arg function" =
+  compile_and_run
+    {| external caml_java_print_int : int -> unit = "caml_java_print_int"
+       let sum3 a b c = a + b + c
+       let () = caml_java_print_int (sum3 10 20 30) |};
+  [%expect {| 60 |}]
+
+let%expect_test "recursive gcd" =
+  compile_and_run
+    {| external caml_java_print_int : int -> unit = "caml_java_print_int"
+       let rec gcd a b = if b = 0 then a else gcd b (a - b * (a / b))
+       let () = caml_java_print_int (gcd 48 18) |};
+  [%expect {| 6 |}]
+
+let%expect_test "recursive power" =
+  compile_and_run
+    {| external caml_java_print_int : int -> unit = "caml_java_print_int"
+       let rec pow base n = if n = 0 then 1 else base * pow base (n - 1)
+       let () = caml_java_print_int (pow 2 10) |};
+  [%expect {| 1024 |}]

@@ -277,6 +277,14 @@ module Code = struct
     add_u1 t.buf 0x68;
     pop t 1
 
+  let idiv t =
+    add_u1 t.buf 0x6C;
+    pop t 1
+
+  let irem t =
+    add_u1 t.buf 0x70;
+    pop t 1
+
   (* Emit a 2-byte branch instruction and record that its 2-byte offset
      field needs to be patched once [lbl] is marked. The stack delta is
      applied before the branch. *)
