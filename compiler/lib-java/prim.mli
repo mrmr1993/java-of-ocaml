@@ -44,6 +44,9 @@ type prim_handler =
   | P_string_equal
   | P_string_notequal
   | P_string_compare
+  | P_noop1
+  | P_noop2
+  | P_noop_float1
 
 type prim_entry =
   { name : string

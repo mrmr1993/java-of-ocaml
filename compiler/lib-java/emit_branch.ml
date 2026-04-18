@@ -7,6 +7,11 @@ let emit_cmp_jump state (ins : instr) =
   let target_pc = ins.pc + ins.args.(1) + 2 in
   let lbl = label_at state target_pc in
   ensure_kind state K_int;
+  (* [BEQ] / [BNEQ] / [B{LT,LE,GT,GE}INT] preserve acc per OCaml's
+     bytecode semantics — the comparison reads acc but leaves it for
+     a caller. Duplicate acc so the [if_icmp<cond>] consumption
+     doesn't destroy it. *)
+  Jvm.Code.dup state.code;
   Jvm.Code.ldc_int state.code imm;
   (match ins.opcode with
    | 131 -> Jvm.Code.if_icmpeq state.code lbl
@@ -18,9 +23,8 @@ let emit_cmp_jump state (ins : instr) =
    | other ->
      failwith
        (Printf.sprintf "java_of_ocaml: unexpected cmp_jump opcode %d" other));
-  record_branch_target state target_pc;
-  state.acc_live <- false;
-  state.acc_kind <- K_int
+  record_branch_target state target_pc
+  (* acc stays live as K_int on both paths. *)
 
 let cmp_of_opcode op =
   if op = Bytecode.Op.eq then Eq
@@ -33,6 +37,14 @@ let cmp_of_opcode op =
     failwith
       (Printf.sprintf "java_of_ocaml: cmp_of_opcode on non-comparison %d" op)
 
+(* BRANCHIF(NOT) on an opaque [K_obj] acc: the value is either a
+   boxed [Integer] (for immediate OCaml values) or a reference
+   (Block / Closure / String — never [Val_false], which is always an
+   Integer(0)). Dispatch on runtime type and branch accordingly.
+
+   Preserves acc on every outgoing edge (both taken and fall-through),
+   so a caller label's snapshot and our fall-through walker state
+   both leave acc live on the JVM stack. *)
 let emit_branch_on_val_int_zero state ~target_pc ~branch_if_zero =
   let v_local = allocate_local state in
   let l_not_int = Jvm.Code.fresh_label state.code in
@@ -49,22 +61,42 @@ let emit_branch_on_val_int_zero state ~target_pc ~branch_if_zero =
     ~class_:"java/lang/Integer"
     ~method_:"intValue"
     ~descriptor:"()I";
+  (* Take the branch based on the unboxed int; if taken, restore
+     acc onto the stack at a caller. The JVM verifier merges
+     stack states across incoming edges to a caller, so every
+     [goto target_lbl] below pushes acc first via [aload v_local]. *)
   (if branch_if_zero
-   then Jvm.Code.ifeq state.code target_lbl
-   else Jvm.Code.ifne state.code target_lbl);
-  Jvm.Code.goto state.code l_end;
+   then Jvm.Code.ifne state.code l_end (* ifne: stay when non-zero *)
+   else Jvm.Code.ifeq state.code l_end);
+  (* Taken path: push acc and branch. *)
+  Jvm.Code.aload state.code v_local;
+  Jvm.Code.goto state.code target_lbl;
   Jvm.Code.mark_label state.code l_not_int;
-  if not branch_if_zero then Jvm.Code.goto state.code target_lbl;
-  Jvm.Code.mark_label state.code l_end
+  (* Non-Integer acc: always takes on BRANCHIF (value is truthy),
+     never on BRANCHIFNOT (value is non-zero). *)
+  if not branch_if_zero
+  then (
+    Jvm.Code.aload state.code v_local;
+    Jvm.Code.goto state.code target_lbl);
+  Jvm.Code.mark_label state.code l_end;
+  (* Fall-through: restore acc on the stack too. *)
+  Jvm.Code.aload state.code v_local
 
 (* Stash the scrutinee into a JVM local, then for each case iload + ldc +
    if_icmpeq. This keeps the JVM stack balanced across the dispatch and
    never leaves a dangling [pop] after a [goto] — the [Jvm.Code]
    max-stack tracker only observes straight-line code, so any such
-   dangling pop silently under-declares [max_stack] downstream. *)
+   dangling pop silently under-declares [max_stack] downstream.
+
+   SWITCH consumes its scrutinee per OCaml semantics, so every edge
+   out of this case chain starts with [acc_live=false] on both the
+   tracker and the JVM side. We update [state.acc_live] up-front so
+   [record_branch_target] captures the right snapshot. *)
 let emit_int_case_chain state ~cases ~to_target_pc =
   let v_local = allocate_local state in
   Jvm.Code.istore state.code v_local;
+  state.acc_live <- false;
+  state.acc_kind <- K_int;
   List.iter
     (fun case_index ->
       let target_pc = to_target_pc case_index in
@@ -140,28 +172,83 @@ let emit_switch state (ins : instr) =
    emits a bare comparison followed by any other opcode (e.g. RETURN
    at the tail of an expression whose value is a boolean), we have
    to emit the equivalent "if-then-else 1 else 0" here. *)
+(* A kind that can be compared as a primitive int via [if_icmp*]. *)
+let is_int_like = function
+  | K_int -> true
+  | K_float | K_string | K_block _ | K_closure _ | K_obj -> false
+
+(* A kind whose JVM representation is a reference (one slot of some
+   `[L…]` type). *)
+let is_definitely_ref = function
+  | K_int | K_float -> false
+  | K_string | K_block _ | K_closure _ | K_obj -> true
+
 let emit_materialize_cmp state ~cmp =
   let slot = top_slot_local ~state in
   let slot_kind = kind_of_slot_from_top ~state 0 in
-  ensure_kind state K_int;
-  emit_load_for_kind state.code slot slot_kind;
-  (match slot_kind with
-   | K_int -> ()
-   | K_obj -> emit_unbox_to_kind state.code K_int
-   | _ ->
-     failwith
-       (Printf.sprintf
-          "java_of_ocaml: comparison against non-int slot kind %s"
-          (jvm_type_of_kind slot_kind)));
+  let is_ordering_cmp =
+    match cmp with
+    | Eq | Ne -> false
+    | Lt | Le | Gt | Ge -> true
+  in
+  (* For ordering comparisons (Lt/Le/Gt/Ge) OCaml expects both
+     operands to be ints. Unbox as needed. For equality on mixed
+     int / reference kinds, fall back to int compare so an int-on-
+     both-sides runtime value compares equal. *)
+  let use_acmp =
+    (not is_ordering_cmp)
+    && is_definitely_ref state.acc_kind
+    && is_definitely_ref slot_kind
+    && not (is_int_like state.acc_kind)
+    && not (is_int_like slot_kind)
+  in
+  if use_acmp
+  then (
+    emit_load_for_kind state.code slot slot_kind;
+    (* No unbox needed — both operands stay as references. *)
+    ())
+  else (
+    ensure_kind state K_int;
+    emit_load_for_kind state.code slot slot_kind;
+    match slot_kind with
+    | K_int -> ()
+    | K_obj -> emit_unbox_to_kind state.code K_int
+    | K_float | K_string | K_block _ | K_closure _ ->
+      failwith
+        (Printf.sprintf
+           "java_of_ocaml: integer comparison against non-int slot kind \
+            %s (acc=%s, cmp=%s)"
+           (jvm_type_of_kind slot_kind)
+           (jvm_type_of_kind state.acc_kind)
+           (match cmp with
+            | Eq -> "eq"
+            | Ne -> "ne"
+            | Lt -> "lt"
+            | Le -> "le"
+            | Gt -> "gt"
+            | Ge -> "ge")));
   let lbl_true = Jvm.Code.fresh_label state.code in
   let lbl_end = Jvm.Code.fresh_label state.code in
-  (match cmp with
-   | Eq -> Jvm.Code.if_icmpeq state.code lbl_true
-   | Ne -> Jvm.Code.if_icmpne state.code lbl_true
-   | Lt -> Jvm.Code.if_icmplt state.code lbl_true
-   | Le -> Jvm.Code.if_icmple state.code lbl_true
-   | Gt -> Jvm.Code.if_icmpgt state.code lbl_true
-   | Ge -> Jvm.Code.if_icmpge state.code lbl_true);
+  (if use_acmp
+   then (
+     match cmp with
+     | Eq -> Jvm.Code.if_acmpeq state.code lbl_true
+     | Ne -> Jvm.Code.if_acmpne state.code lbl_true
+     | _ ->
+       failwith
+         (Printf.sprintf
+            "java_of_ocaml: ordering comparison on reference kinds \
+             (%s vs %s) is not meaningful"
+            (jvm_type_of_kind state.acc_kind)
+            (jvm_type_of_kind slot_kind)))
+   else
+     match cmp with
+     | Eq -> Jvm.Code.if_icmpeq state.code lbl_true
+     | Ne -> Jvm.Code.if_icmpne state.code lbl_true
+     | Lt -> Jvm.Code.if_icmplt state.code lbl_true
+     | Le -> Jvm.Code.if_icmple state.code lbl_true
+     | Gt -> Jvm.Code.if_icmpgt state.code lbl_true
+     | Ge -> Jvm.Code.if_icmpge state.code lbl_true);
   Jvm.Code.ldc_int state.code 0;
   Jvm.Code.goto state.code lbl_end;
   Jvm.Code.mark_label state.code lbl_true;

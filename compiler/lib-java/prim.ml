@@ -38,6 +38,13 @@ type prim_handler =
   | P_string_equal
   | P_string_notequal
   | P_string_compare
+  | P_noop1
+  | P_noop2
+  | P_noop_float1
+    (* Stub: 1 arg, returns a dummy K_float (0.0). For Int64/Int32 bit
+       conversions we don't implement yet; Stdlib init calls them to
+       set up infinity / nan / max_float, which would be wrong but at
+       least lets init proceed. *)
 
 type prim_entry =
   { name : string
@@ -90,6 +97,26 @@ let primitives : prim_entry list =
   ; { name = "caml_string_equal"; handler = P_string_equal; seed = false }
   ; { name = "caml_string_notequal"; handler = P_string_notequal; seed = false }
   ; { name = "caml_string_compare"; handler = P_string_compare; seed = false }
+  (* Stdlib-init primitives stubbed as unit-returning no-ops. These
+     manage things we don't model on the JVM (GC stack hints, signal
+     handlers, backtrace state). *)
+  ; { name = "caml_ensure_stack_capacity"; handler = P_noop1; seed = false }
+  ; { name = "caml_register_named_value"; handler = P_noop2; seed = false }
+  ; { name = "caml_init_signals"; handler = P_noop1; seed = false }
+  ; { name = "caml_record_backtrace"; handler = P_noop1; seed = false }
+  ; { name = "caml_backtrace_status"; handler = P_noop1; seed = false }
+  ; { name = "caml_ml_debug_info_status"; handler = P_noop1; seed = false }
+  ; { name = "caml_ml_enable_runtime_warnings"; handler = P_noop1; seed = false }
+  ; { name = "caml_ml_runtime_warnings_enabled"; handler = P_noop1; seed = false }
+  ; { name = "caml_runtime_parameters"; handler = P_noop1; seed = false }
+  ; { name = "caml_runtime_variant"; handler = P_noop1; seed = false }
+  (* Int64 / Int32 bit conversions stubbed until we have K_int32 /
+     K_int64 kinds. Returning 0.0 breaks the exact bit-pattern
+     initialisation of [infinity] / [neg_infinity] / [nan] /
+     [max_float] / [min_float], but lets Stdlib init finish so user
+     code can run. Address at the Int64 phase of the stdlib plan. *)
+  ; { name = "caml_int64_float_of_bits"; handler = P_noop_float1; seed = false }
+  ; { name = "caml_int32_float_of_bits"; handler = P_noop_float1; seed = false }
   ]
 
 type table = (int, string * prim_handler * bool) Hashtbl.t

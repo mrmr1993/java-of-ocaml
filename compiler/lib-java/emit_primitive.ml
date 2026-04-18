@@ -417,6 +417,25 @@ let emit_format_int state =
   state.acc_live <- true;
   state.acc_kind <- K_string
 
+(* Stubbed no-op primitives. Drop the args, return [Val_unit = 0]. *)
+let emit_noop state ~nargs =
+  (* Acc + (nargs-1) stack args. *)
+  drop_live_acc state;
+  if nargs > 1 then pop_slots state (nargs - 1);
+  Jvm.Code.ldc_int state.code 0;
+  state.acc_live <- true;
+  state.acc_kind <- K_int
+
+(* Stubbed primitive that takes 1 arg and returns the float [0.0].
+   Obviously wrong but lets Stdlib init finish when it calls
+   [float_of_bits] on an int64 / int32 literal we can't yet
+   materialise. *)
+let emit_noop_float1 state =
+  drop_live_acc state;
+  Jvm.Code.ldc_double state.code 0.0;
+  state.acc_live <- true;
+  state.acc_kind <- K_float
+
 (* [caml_ml_string_length s]: [s.length()]. *)
 let emit_string_length state =
   ensure_kind state K_string;

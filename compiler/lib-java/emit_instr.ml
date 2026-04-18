@@ -37,76 +37,86 @@ let emit_instr state (ins : instr) =
           ~descriptor:"Ljava/lang/Object;"
       | None -> ());
      Jvm.Code.mark_label state.code lbl;
-     (match Hashtbl.find_opt state.branch_target_state ins.pc with
-      | Some snap ->
-        state.oc_stack_depth <- snap.s_oc_stack_depth;
-        state.slots <- snap.s_slots
-      | None -> ());
+     (* Label prologue: restore the full emitter context from the
+        snapshot taken at the first branch to this target. The
+        pending-handler path is special — the handler starts with
+        the [CamlException.value] on the JVM stack (already pushed
+        above), so acc_live=true / acc_kind=K_obj regardless of
+        what any snapshot says. *)
      if Hashtbl.mem state.pending_handlers ins.pc
      then (
+       (match Hashtbl.find_opt state.branch_target_state ins.pc with
+        | Some snap ->
+          state.oc_stack_depth <- snap.s_oc_stack_depth;
+          state.slots <- snap.s_slots
+        | None -> ());
        state.acc_live <- true;
        state.acc_kind <- K_obj)
      else (
-       state.acc_live <- false;
-       state.acc_kind <- K_int);
+       match Hashtbl.find_opt state.branch_target_state ins.pc with
+       | Some snap ->
+         state.oc_stack_depth <- snap.s_oc_stack_depth;
+         state.slots <- snap.s_slots;
+         state.acc_live <- snap.s_acc_live;
+         state.acc_kind <- snap.s_acc_kind
+       | None ->
+         (* Label reached only via fall-through — no snapshot, state
+            is already whatever the previous instruction left it. *)
+         ());
      state.pending_cmp <- None
    | None -> ());
   let op = ins.opcode in
-  if not (is_cmp_nullary op || op = Bytecode.Op.branchif || op = Bytecode.Op.branchifnot)
+  if not (is_cmp_nullary op)
   then Emit_branch.flush_pending_cmp state;
   if is_cmp_nullary op
   then state.pending_cmp <- Some (Emit_branch.cmp_of_opcode op)
   else if op = Bytecode.Op.branchifnot
   then (
-    match state.pending_cmp with
-    | Some cmp ->
-      let target_pc = ins.pc + ins.args.(0) + 1 in
-      Emit_branch.emit_fused_branch state ~cmp ~target_pc ~branch_if_true:false;
-      state.pending_cmp <- None
-    | None ->
-      let target_pc = ins.pc + ins.args.(0) + 1 in
-      (match state.acc_kind with
-       | K_int ->
-         Jvm.Code.ldc_int state.code 0;
-         Jvm.Code.if_icmpeq state.code (label_at state target_pc)
-       | K_obj ->
-         Emit_branch.emit_branch_on_val_int_zero
-           state
-           ~target_pc
-           ~branch_if_zero:true
-       | K_block _ | K_closure _ | K_string ->
-         Jvm.Code.pop_top state.code
-       | K_float ->
-         failwith "java_of_ocaml: BRANCHIFNOT on a float acc");
-      record_branch_target state target_pc;
-      state.acc_live <- false;
-      state.acc_kind <- K_int)
+    let target_pc = ins.pc + ins.args.(0) + 1 in
+    (* BRANCHIFNOT preserves acc per OCaml semantics. Every arm
+       below has to leave acc on the JVM stack on both the taken
+       and fall-through edges, so a caller label's snapshot and
+       our fall-through walker state agree on acc_live=true. *)
+    (match state.acc_kind with
+     | K_int ->
+       Jvm.Code.dup state.code;
+       Jvm.Code.ldc_int state.code 0;
+       Jvm.Code.if_icmpeq state.code (label_at state target_pc)
+     | K_obj ->
+       Emit_branch.emit_branch_on_val_int_zero
+         state
+         ~target_pc
+         ~branch_if_zero:true
+     | K_block _ | K_closure _ | K_string ->
+       (* Reference kinds are never [Val_false] (= Integer 0), so
+          BRANCHIFNOT never takes; fall through keeping acc on the
+          stack. Record a caller anyway in case another path
+          reaches it. *)
+       ()
+     | K_float ->
+       failwith "java_of_ocaml: BRANCHIFNOT on a float acc");
+    record_branch_target state target_pc)
   else if op = Bytecode.Op.branchif
   then (
-    match state.pending_cmp with
-    | Some cmp ->
-      let target_pc = ins.pc + ins.args.(0) + 1 in
-      Emit_branch.emit_fused_branch state ~cmp ~target_pc ~branch_if_true:true;
-      state.pending_cmp <- None
-    | None ->
-      let target_pc = ins.pc + ins.args.(0) + 1 in
-      (match state.acc_kind with
-       | K_int ->
-         Jvm.Code.ldc_int state.code 0;
-         Jvm.Code.if_icmpne state.code (label_at state target_pc)
-       | K_obj ->
-         Emit_branch.emit_branch_on_val_int_zero
-           state
-           ~target_pc
-           ~branch_if_zero:false
-       | K_block _ | K_closure _ | K_string ->
-         Jvm.Code.pop_top state.code;
-         Jvm.Code.goto state.code (label_at state target_pc)
-       | K_float ->
-         failwith "java_of_ocaml: BRANCHIF on a float acc");
-      record_branch_target state target_pc;
-      state.acc_live <- false;
-      state.acc_kind <- K_int)
+    let target_pc = ins.pc + ins.args.(0) + 1 in
+    (match state.acc_kind with
+     | K_int ->
+       Jvm.Code.dup state.code;
+       Jvm.Code.ldc_int state.code 0;
+       Jvm.Code.if_icmpne state.code (label_at state target_pc)
+     | K_obj ->
+       Emit_branch.emit_branch_on_val_int_zero
+         state
+         ~target_pc
+         ~branch_if_zero:false
+     | K_block _ | K_closure _ | K_string ->
+       (* Reference kinds are never Val_false; BRANCHIF always
+          takes. Preserve acc on the way to a caller via a
+          plain goto. *)
+       Jvm.Code.goto state.code (label_at state target_pc)
+     | K_float ->
+       failwith "java_of_ocaml: BRANCHIF on a float acc");
+    record_branch_target state target_pc)
   else if op = Bytecode.Op.switch
   then Emit_branch.emit_switch state ins
   else if op = Bytecode.Op.pushtrap
@@ -170,7 +180,7 @@ let emit_instr state (ins : instr) =
         in
         gather 1 [ k0 ]
       in
-      let acc_local = allocate_local state in
+      let acc_local = allocate_local_for_kind state state.acc_kind in
       emit_store_for_kind state.code acc_local state.acc_kind;
       let fields_local = allocate_local state in
       Jvm.Code.ldc_int state.code size;
@@ -834,7 +844,10 @@ let emit_instr state (ins : instr) =
        | P_string_length -> Emit_primitive.emit_string_length state
        | P_string_equal -> Emit_primitive.emit_string_equal state ~invert:false
        | P_string_notequal -> Emit_primitive.emit_string_equal state ~invert:true
-       | P_string_compare -> Emit_primitive.emit_string_compare state)
+       | P_string_compare -> Emit_primitive.emit_string_compare state
+       | P_noop1 -> Emit_primitive.emit_noop state ~nargs:1
+       | P_noop2 -> Emit_primitive.emit_noop state ~nargs:2
+       | P_noop_float1 -> Emit_primitive.emit_noop_float1 state)
     | None ->
       let name =
         if prim_idx >= 0 && prim_idx < Array.length state.prims

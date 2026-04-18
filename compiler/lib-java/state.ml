@@ -8,6 +8,8 @@ type slot_info = { kind : kind; local : int }
 type branch_snapshot =
   { s_oc_stack_depth : int
   ; s_slots : slot_info list
+  ; s_acc_live : bool
+  ; s_acc_kind : kind
   }
 
 type state =
@@ -60,6 +62,12 @@ let ensure_kind state target =
            (jvm_type_of_kind state.acc_kind)
            (jvm_type_of_kind target))
 
+(* First-write-wins: subsequent branches to the same label must agree
+   with the snapshot we've already recorded. Capturing [acc_live] /
+   [acc_kind] alongside the OCaml-stack state means the label
+   prologue can restore the full emitter context, not just the stack
+   half — necessary for code that reaches a label with a live acc
+   (e.g. [CLOSURE] with nvars>0 uses acc as its first capture). *)
 let record_branch_target state target_pc =
   if not (Hashtbl.mem state.branch_target_state target_pc)
   then
@@ -68,6 +76,8 @@ let record_branch_target state target_pc =
       target_pc
       { s_oc_stack_depth = state.oc_stack_depth
       ; s_slots = state.slots
+      ; s_acc_live = state.acc_live
+      ; s_acc_kind = state.acc_kind
       }
 
 let stack_slot_local ~state k =

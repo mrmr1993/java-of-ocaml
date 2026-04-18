@@ -47,6 +47,16 @@ val emit_string_length : State.state -> unit
 val emit_string_equal : State.state -> invert:bool -> unit
 val emit_string_compare : State.state -> unit
 
+val emit_noop : State.state -> nargs:int -> unit
+(** Stub a C primitive as a unit-returning no-op: drops [nargs - 1]
+    stack slots (plus the acc), leaves [Val_unit = 0] in acc. Used
+    for Stdlib-init primitives that manage JVM-irrelevant state
+    (GC, signal handlers, backtrace control). *)
+
+val emit_noop_float1 : State.state -> unit
+(** Stub returning [0.0] as a K_float. Used for primitives that take
+    an Int32 / Int64 we can't materialise and return a double. *)
+
 val emit_obj_dup : State.state -> unit
 val emit_obj_tag : State.state -> unit
 val emit_obj_block : State.state -> unit

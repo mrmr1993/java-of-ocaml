@@ -15,6 +15,8 @@ type slot_info = { kind : kind; local : int }
 type branch_snapshot =
   { s_oc_stack_depth : int
   ; s_slots : slot_info list
+  ; s_acc_live : bool
+  ; s_acc_kind : kind
   }
 
 type state =

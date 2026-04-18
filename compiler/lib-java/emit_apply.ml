@@ -29,7 +29,11 @@ let emit_apply_invoke state ~nargs =
      emit_box_int state.code;
      Jvm.Code.checkcast state.code "Closure";
      state.acc_kind <- K_closure { name = "Closure"; captures = [] }
-   | K_float | K_string | K_block _ ->
+   | K_float ->
+     emit_box_float state.code;
+     Jvm.Code.checkcast state.code "Closure";
+     state.acc_kind <- K_closure { name = "Closure"; captures = [] }
+   | K_string | K_block _ ->
      failwith
        (Printf.sprintf
           "java_of_ocaml: APPLY%d called on a non-closure value (%s). \

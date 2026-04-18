@@ -18,16 +18,15 @@ let self_closure_ref state =
 
 let emit_offsetclosure0 state =
   let cref = self_closure_ref state in
-  if state.acc_live then Jvm.Code.pop_top state.code;
+  drop_live_acc state;
   Jvm.Code.aload state.code 0;
   state.acc_live <- true;
   state.acc_kind <- K_closure cref
 
 let emit_pushoffsetclosure0 state =
   let cref = self_closure_ref state in
-  let was_live = state.acc_live in
   Emit_stack.emit_push state;
-  if was_live then Jvm.Code.pop_top state.code;
+  drop_live_acc state;
   Jvm.Code.aload state.code 0;
   state.acc_live <- true;
   state.acc_kind <- K_closure cref
@@ -63,7 +62,7 @@ let emit_offsetclosure state offset =
   if offset = 0 then emit_offsetclosure0 state
   else (
     let self_fi, target_fi, target_idx = resolve_sibling state offset in
-    if state.acc_live then Jvm.Code.pop_top state.code;
+    drop_live_acc state;
     Jvm.Code.aload state.code 0;
     Jvm.Code.getfield
       state.code
@@ -77,9 +76,8 @@ let emit_pushoffsetclosure state offset =
   if offset = 0 then emit_pushoffsetclosure0 state
   else (
     let self_fi, target_fi, target_idx = resolve_sibling state offset in
-    let was_live = state.acc_live in
     Emit_stack.emit_push state;
-    if was_live then Jvm.Code.pop_top state.code;
+    drop_live_acc state;
     Jvm.Code.aload state.code 0;
     Jvm.Code.getfield
       state.code
@@ -115,14 +113,13 @@ let emit_envacc state k =
     | Some n -> n
     | None -> failwith "java_of_ocaml: ENVACC outside a function"
   in
-  if state.acc_live then Jvm.Code.pop_top state.code;
+  drop_live_acc state;
   Jvm.Code.aload state.code 0;
   Jvm.Code.getfield state.code ~class_ ~field:fname ~descriptor:desc;
   state.acc_live <- true;
   state.acc_kind <- kind
 
 let emit_pushenvacc state k =
-  let was_live = state.acc_live in
   Emit_stack.emit_push state;
   if k < 2
   then
@@ -137,7 +134,7 @@ let emit_pushenvacc state k =
     | Some n -> n
     | None -> failwith "java_of_ocaml: PUSHENVACC outside a function"
   in
-  if was_live then Jvm.Code.pop_top state.code;
+  drop_live_acc state;
   Jvm.Code.aload state.code 0;
   Jvm.Code.getfield state.code ~class_ ~field:fname ~descriptor:desc;
   state.acc_live <- true;
@@ -200,7 +197,7 @@ let emit_closure_creation state (fn_info : function_info) ~nvars ~is_rec =
           "java_of_ocaml: inconsistent capture kinds for function %s"
           fn_info.name));
   let cref = { name = fn_info.name; captures } in
-  if state.acc_live then Jvm.Code.pop_top state.code;
+  drop_live_acc state;
   Jvm.Code.new_ state.code fn_info.name;
   Jvm.Code.dup state.code;
   List.iter
@@ -282,7 +279,7 @@ let emit_closurerec state (ins : Instr.instr) =
                 "java_of_ocaml: inconsistent capture kinds for function %s"
                 fi.name)))
       group;
-    if state.acc_live then Jvm.Code.pop_top state.code;
+    drop_live_acc state;
     let instance_locals = Array.make n 0 in
     for k = 0 to n - 1 do
       let fi = group.(k) in
