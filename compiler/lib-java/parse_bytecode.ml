@@ -9,6 +9,18 @@ open Code
 
 exception Not_supported of string
 
+let trace_enabled =
+  lazy
+    (match Sys.getenv_opt "JAVA_OF_OCAML_DEBUG" with
+     | None -> false
+     | Some s ->
+       List.mem "ir_trace" (List.map String.trim (String.split_on_char ',' s)))
+
+let trace fmt =
+  if Lazy.force trace_enabled
+  then Format.kasprintf (fun s -> Format.eprintf "[ir_trace] %s@." s) fmt
+  else Format.ikfprintf (fun _ -> ()) Format.err_formatter fmt
+
 module IntSet = Set.Make (Int)
 module IntMap = Map.Make (Int)
 
@@ -76,6 +88,9 @@ type state =
   ; env : Var.t option
         (** [Some v] in a function body: [v] is the closure itself
             (read by ENVACC / OFFSETCLOSURE). [None] in main. *)
+  ; mutable current_pc : int
+        (** For diagnostics. *)
+  ; mutable current_block_start : int
   }
 
 let emit s i = s.body <- i :: s.body
@@ -159,7 +174,15 @@ let const_int s n =
    the top; stack[0] = top. *)
 let nth_stack s k =
   try List.nth s.stack k
-  with _ -> raise (Not_supported (Printf.sprintf "stack index %d out of range" k))
+  with _ ->
+    raise
+      (Not_supported
+         (Printf.sprintf
+            "stack index %d out of range (depth=%d at pc=%d, block_start=%d)"
+            k
+            (List.length s.stack)
+            s.current_pc
+            s.current_block_start))
 
 let acc s k = s.accu <- nth_stack s k
 
@@ -469,10 +492,13 @@ let step (state : state) (ins : Instr.instr) : last option =
       in
       pop_n nvars []
     in
-    (* Allocate fresh Vars for each sibling; bind them as
-       [Let (sibling_i, Closure { captures; body = (body_pc_i, []) })].
-       After allocation, accu = sibling_0, and siblings_1..n-1 are
-       pushed onto the stack. *)
+    (* Stack discipline per OCaml interp:
+       - emit Let for every sibling;
+       - set accu = sibling_0;
+       - PUSH sibling_0 (so it ends up on the stack as well as in accu);
+       - PUSH sibling_i for i = 1 .. nfuncs-1.
+       The resulting stack, top-to-bottom, is sibling_{n-1}, ...,
+       sibling_1, sibling_0, then whatever was below. *)
     let sibling_vars = Array.init nfuncs (fun _ -> Var.fresh ()) in
     for i = 0 to nfuncs - 1 do
       let body_pc = ins.pc + 3 + args.(2 + i) in
@@ -483,7 +509,8 @@ let step (state : state) (ins : Instr.instr) : last option =
            , Closure { captures; body = (body_pc, []) } ))
     done;
     state.accu <- V sibling_vars.(0);
-    for i = nfuncs - 1 downto 1 do
+    push_elt state (V sibling_vars.(0));
+    for i = 1 to nfuncs - 1 do
       push_elt state (V sibling_vars.(i))
     done;
     None)
@@ -546,19 +573,32 @@ let step (state : state) (ins : Instr.instr) : last option =
      handler at [pc + arg + 1]. *)
   else if op = Bytecode.Op.pushtrap
   then (
-    (* OCaml stack grows by 4 Dummy slots in the protected region. *)
-    push_elt state Dummy;
-    push_elt state Dummy;
-    push_elt state Dummy;
-    push_elt state Dummy;
+    (* Capture the handler-entry state *before* the 4 trap-frame
+       dummies are pushed. When the exception fires, the runtime
+       pops the dummies and jumps to the handler with accu = exn and
+       the stack exactly as it was here. *)
     let handler_pc = ins.pc + args.(0) + 1 in
     let body_pc = ins.pc + 2 in
     let exn_var = Var.fresh () in
-    Some
-      (Pushtrap
-         ( make_cont state body_pc
-         , exn_var
-         , (handler_pc, [ exn_var ]) )))
+    let handler_stack_vars =
+      List.map
+        (function
+          | V v -> v
+          | Dummy ->
+            let v = Var.fresh () in
+            state.body <- Let (v, Constant Null) :: state.body;
+            v)
+        state.stack
+    in
+    let handler_cont = (handler_pc, exn_var :: handler_stack_vars) in
+    let _ = params_for state handler_pc ~accu_and_stack:(snd handler_cont) in
+    (* Now push 4 Dummies for the protected body and record the
+       body_cont. *)
+    push_elt state Dummy;
+    push_elt state Dummy;
+    push_elt state Dummy;
+    push_elt state Dummy;
+    Some (Pushtrap (make_cont state body_pc, exn_var, handler_cont)))
   (* POPTRAP — pop the 4 trap-frame dummies and resume in the next
      block. *)
   else if op = Bytecode.Op.poptrap
@@ -936,10 +976,12 @@ let process_block state start_pc next_starts addr_map =
   state.accu <- V accu_v;
   state.stack <- List.map (fun v -> V v) stack_vs;
   state.body <- [];
+  state.current_block_start <- start_pc;
+  trace "block pc=%d params=%d" start_pc (List.length params);
   let rec walk pc =
+    state.current_pc <- pc;
     if IntSet.mem pc next_starts && pc <> start_pc
     then (
-      (* Fall through to next block. *)
       let cont = make_cont state pc in
       Branch cont)
     else
@@ -948,6 +990,13 @@ let process_block state start_pc next_starts addr_map =
         raise
           (Not_supported (Printf.sprintf "PC %d has no decoded instr" pc))
       | Some ins ->
+        trace
+          "  pc=%d op=%s args=[%s] depth_before=%d"
+          pc
+          (Bytecode.opcode_name ins.Instr.opcode)
+          (String.concat ";"
+             (Array.to_list (Array.map string_of_int ins.Instr.args)))
+          (List.length state.stack);
         (match step state ins with
          | Some last -> last
          | None ->
@@ -978,6 +1027,8 @@ let parse_generic_with_stack instrs ~start_pc ~end_pc ~initial_stack ~env =
     ; body = []
     ; target_params = Hashtbl.create 32
     ; env
+    ; current_pc = start_pc
+    ; current_block_start = start_pc
     }
   in
   (* DFS from [start_pc] so every block's canonical params are
