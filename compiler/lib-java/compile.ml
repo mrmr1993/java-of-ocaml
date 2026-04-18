@@ -1885,6 +1885,19 @@ let emit_instr state (ins : instr) =
        emit_load_for_kind state.code top.local top.kind;
        box_if_int state.code top.kind;
        Jvm.Code.aastore state.code
+     | K_obj ->
+       (* Record / mutable block arrived as an opaque Object (e.g. a
+          function arg). Cast and proceed. *)
+       Jvm.Code.checkcast state.code "Block";
+       Jvm.Code.getfield
+         state.code
+         ~class_:"Block"
+         ~field:"fields"
+         ~descriptor:"[Ljava/lang/Object;";
+       Jvm.Code.ldc_int state.code field;
+       emit_load_for_kind state.code top.local top.kind;
+       box_if_int state.code top.kind;
+       Jvm.Code.aastore state.code
      | _ ->
        failwith
          (Printf.sprintf
@@ -1897,6 +1910,7 @@ let emit_instr state (ins : instr) =
   then (
     (match state.acc_kind with
      | K_block _ -> ()
+     | K_obj -> Jvm.Code.checkcast state.code "Block"
      | _ ->
        failwith
          (Printf.sprintf "java_of_ocaml: VECTLENGTH on non-block at pc %d" ins.pc));
@@ -1914,6 +1928,7 @@ let emit_instr state (ins : instr) =
     let n = ins.args.(0) in
     (match state.acc_kind with
      | K_block _ -> ()
+     | K_obj -> Jvm.Code.checkcast state.code "Block"
      | _ ->
        failwith
          (Printf.sprintf "java_of_ocaml: OFFSETREF on non-ref at pc %d" ins.pc));
@@ -2187,7 +2202,33 @@ let classify_return_kind_at arr i func_list current_fn =
          know the exact field shape without more analysis, so classify as
          K_obj and let callers unbox lazily. *)
       K_obj
-    else K_int
+    else if
+      (* Ops that unambiguously produce a JVM int. Everything else
+         (notably ACC / ENVACC / GETFIELD / APPLY-return) could be a
+         reference, so default to K_obj and let callers use
+         ensure_kind lazily. *)
+      let op = prev.opcode in
+      op = Bytecode.Op.const0
+      || op = Bytecode.Op.const1
+      || op = Bytecode.Op.const2
+      || op = Bytecode.Op.const3
+      || op = Bytecode.Op.constint
+      || op = Bytecode.Op.pushconst0
+      || op = Bytecode.Op.pushconst1
+      || op = Bytecode.Op.pushconst2
+      || op = Bytecode.Op.pushconst3
+      || op = Bytecode.Op.pushconstint
+      || op = Bytecode.Op.offsetint
+      || op = Bytecode.Op.addint
+      || op = Bytecode.Op.subint
+      || op = Bytecode.Op.mulint
+      || op = Bytecode.Op.divint
+      || op = Bytecode.Op.modint
+      || op = Bytecode.Op.vectlength
+      || op = Bytecode.Op.isint
+      || is_cmp_nullary op
+    then K_int
+    else K_obj
 
 let kinds_agree a b =
   match a, b with

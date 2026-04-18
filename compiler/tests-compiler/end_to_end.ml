@@ -660,6 +660,87 @@ let%expect_test "recursive variant: arithmetic expression evaluator" =
          caml_java_print_int (eval (Mul (Add (Num 2, Num 3), Num 4))) |};
   [%expect {| 20 |}]
 
+let%expect_test "record passed through a function argument" =
+  compile_and_run
+    {| external caml_java_print_int : int -> unit = "caml_java_print_int"
+       external caml_java_print_endline : string -> unit = "caml_java_print_endline"
+       type person = { name : string; age : int; score : int }
+       let older_of a b = if a.age > b.age then a else b
+       let bump p = { p with age = p.age + 1 }
+       let () =
+         let alice = { name = "Alice"; age = 30; score = 100 } in
+         let bob = { name = "Bob"; age = 25; score = 90 } in
+         let senior = older_of alice bob in
+         caml_java_print_endline senior.name;
+         let alice_next = bump alice in
+         caml_java_print_int alice_next.age |};
+  [%expect {|
+    Alice
+    31 |}]
+
+let%expect_test "mutable record fields through function calls" =
+  compile_and_run
+    {| external caml_java_print_int : int -> unit = "caml_java_print_int"
+       type counter = { mutable count : int; step : int }
+       let make_counter step = { count = 0; step }
+       let tick c = c.count <- c.count + c.step
+       let get c = c.count
+       let describe { count; step } = count * step
+       let () =
+         let c = make_counter 5 in
+         tick c; tick c; tick c;
+         caml_java_print_int (get c);
+         caml_java_print_int (describe c) |};
+  [%expect {|
+    15
+    75 |}]
+
+let%expect_test "GADT: type-refined evaluator over int and pair expressions" =
+  compile_and_run
+    {| external caml_java_print_int : int -> unit = "caml_java_print_int"
+       type _ expr =
+         | Lit : int -> int expr
+         | Pair : int expr * int expr -> (int * int) expr
+         | Fst : (int * int) expr -> int expr
+         | Snd : (int * int) expr -> int expr
+         | Add : int expr * int expr -> int expr
+       let rec eval : type a. a expr -> a = function
+         | Lit n -> n
+         | Pair (a, b) -> (eval a, eval b)
+         | Fst e -> let (a, _) = eval e in a
+         | Snd e -> let (_, b) = eval e in b
+         | Add (a, b) -> eval a + eval b
+       let () =
+         caml_java_print_int (eval (Add (Lit 10, Lit 32)));
+         caml_java_print_int (eval (Fst (Pair (Lit 7, Lit 99))));
+         caml_java_print_int (eval (Snd (Pair (Lit 7, Lit 99)))) |};
+  [%expect {|
+    42
+    7
+    99 |}]
+
+let%expect_test "GADT: length-indexed vector sum and length" =
+  compile_and_run
+    {| external caml_java_print_int : int -> unit = "caml_java_print_int"
+       type z = Z
+       type 'n s = S of 'n
+       type (_, _) vec =
+         | Nil  : (z, 'a) vec
+         | Cons : 'a * ('n, 'a) vec -> ('n s, 'a) vec
+       let rec sum : type n. (n, int) vec -> int = function
+         | Nil -> 0
+         | Cons (h, t) -> h + sum t
+       let rec length : type n a. (n, a) vec -> int = function
+         | Nil -> 0
+         | Cons (_, t) -> 1 + length t
+       let () =
+         let v = Cons (10, Cons (20, Cons (30, Nil))) in
+         caml_java_print_int (sum v);
+         caml_java_print_int (length v) |};
+  [%expect {|
+    60
+    3 |}]
+
 let%expect_test "polymorphic variant with zero-arg and data cases" =
   compile_and_run
     {| external caml_java_print_int : int -> unit = "caml_java_print_int"
