@@ -596,12 +596,12 @@ let process_block state start_pc next_starts addr_map =
   let br = walk start_pc in
   { params; body = List.rev state.body; branch = br }
 
-let parse_generic instrs ~start_pc ~end_pc =
+let parse_generic_with_stack instrs ~start_pc ~end_pc ~initial_stack =
   let starts = block_starts instrs ~start_pc ~end_pc in
   let addr_map = build_addr_map instrs in
   let state =
     { accu = V (Var.fresh ())
-    ; stack = []
+    ; stack = List.map (fun v -> V v) initial_stack
     ; body = []
     ; target_params = Hashtbl.create 32
     }
@@ -616,13 +616,20 @@ let parse_generic instrs ~start_pc ~end_pc =
 
 let parse_function instrs ~start_pc ~end_pc ~nargs ~ncaps =
   Var.reset ();
-  let params =
-    List.init nargs (fun _ -> Var.fresh ())
-    @ List.init ncaps (fun _ -> Var.fresh ())
+  let arg_vars = List.init nargs (fun _ -> Var.fresh ()) in
+  let cap_vars = List.init ncaps (fun _ -> Var.fresh ()) in
+  let params = arg_vars @ cap_vars in
+  (* OCaml bytecode enters a function body with args on the OCaml
+     stack: arg[nargs-1] at bottom, arg[0] on top (ACC0 reads the
+     first argument). The caller hands us [arg_vars] in declaration
+     order (arg[0] first), so we reverse-then-push to leave arg[0]
+     at the top. *)
+  let prog =
+    let initial_stack = List.rev arg_vars in
+    parse_generic_with_stack instrs ~start_pc ~end_pc ~initial_stack
   in
-  let prog = parse_generic instrs ~start_pc ~end_pc in
   (prog, params)
 
 let parse_main instrs ~start_pc ~end_pc =
   Var.reset ();
-  parse_generic instrs ~start_pc ~end_pc
+  parse_generic_with_stack instrs ~start_pc ~end_pc ~initial_stack:[]

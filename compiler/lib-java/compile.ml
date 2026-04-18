@@ -8,6 +8,57 @@ let debug_times = Debug.find "times"
 let debug_primitives = Debug.find "primitives"
 let debug_functions = Debug.find "functions"
 let debug_labels = Debug.find "labels"
+let debug_ir = Debug.find "ir"
+
+(* Attempt to lower a function body (or the main init range) to the new
+   Code IR via [Parse_bytecode]. This is a smoke pass for Phase 1 — the
+   legacy forward-walk emitter still runs unconditionally. Failures are
+   logged under the [ir] debug flag and otherwise silent; opcodes we
+   haven't ported yet (CLOSURE, PUSHTRAP, SWITCH, ENVACC, ...) raise
+   [Not_supported], which is expected. *)
+let ir_smoke_function arr (fi : Function_info.function_info) =
+  if not (debug_ir ())
+  then ()
+  else (
+    let body_pc = arr.(fi.body_start_idx).pc in
+    let end_pc = arr.(fi.body_end_idx).pc in
+    let instrs = Array.to_list arr in
+    try
+      let _prog, _params =
+        Parse_bytecode.parse_function
+          instrs
+          ~start_pc:body_pc
+          ~end_pc:(end_pc + 1)
+          ~nargs:fi.nargs
+          ~ncaps:fi.ncaps
+      in
+      Format.eprintf "[ir] %s: parsed ok@." fi.name
+    with
+    | Parse_bytecode.Not_supported msg ->
+      Format.eprintf "[ir] %s: Not_supported — %s@." fi.name msg
+    | exn ->
+      Format.eprintf
+        "[ir] %s: unexpected exception — %s@."
+        fi.name
+        (Printexc.to_string exn))
+
+let ir_smoke_main arr =
+  if not (debug_ir ())
+  then ()
+  else (
+    let instrs = Array.to_list arr in
+    let start_pc = arr.(0).pc in
+    let end_pc = arr.(Array.length arr - 1).pc + 1 in
+    try
+      let _prog = Parse_bytecode.parse_main instrs ~start_pc ~end_pc in
+      Format.eprintf "[ir] main: parsed ok@."
+    with
+    | Parse_bytecode.Not_supported msg ->
+      Format.eprintf "[ir] main: Not_supported — %s@." msg
+    | exn ->
+      Format.eprintf
+        "[ir] main: unexpected exception — %s@."
+        (Printexc.to_string exn))
 
 let time_phase name f =
   if not (debug_times ())
@@ -270,6 +321,10 @@ let compile ~bc ~out_dir =
   List.iter
     (fun (fi : function_info) -> Hashtbl.add fn_by_name fi.name fi)
     !func_list;
+  if debug_ir ()
+  then (
+    ir_smoke_main arr;
+    List.iter (fun fi -> ir_smoke_function arr fi) !func_list);
   time_phase "kind-inference" (fun () ->
     List.iter
       (fun (fi : function_info) ->
