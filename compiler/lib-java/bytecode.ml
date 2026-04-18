@@ -70,6 +70,7 @@ module Op = struct
   let branch = 84
   let branchif = 85
   let branchifnot = 86
+  let switch = 87
   let stop = 143
   let apply = 32
   let apply1 = 33

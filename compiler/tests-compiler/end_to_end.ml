@@ -456,3 +456,62 @@ let%expect_test "array of strings" =
     one
     two
     three |}]
+
+let%expect_test "option match: Some vs None" =
+  compile_and_run
+    {| external caml_java_print_int : int -> unit = "caml_java_print_int"
+       let describe = function
+         | None -> 0
+         | Some n -> n
+       let () =
+         caml_java_print_int (describe (Some 42));
+         caml_java_print_int (describe None) |};
+  [%expect {|
+    42
+    0 |}]
+
+let%expect_test "enum variant: Red / Green / Blue" =
+  compile_and_run
+    {| external caml_java_print_int : int -> unit = "caml_java_print_int"
+       type color = Red | Green | Blue
+       let rank = function
+         | Red -> 1
+         | Green -> 2
+         | Blue -> 3
+       let () =
+         caml_java_print_int (rank Red);
+         caml_java_print_int (rank Green);
+         caml_java_print_int (rank Blue) |};
+  [%expect {|
+    1
+    2
+    3 |}]
+
+let%expect_test "variant with payload in closure capture" =
+  compile_and_run
+    {| external caml_java_print_int : int -> unit = "caml_java_print_int"
+       let unwrap_or default = function
+         | None -> default
+         | Some n -> n
+       let () =
+         caml_java_print_int (unwrap_or 99 (Some 7));
+         caml_java_print_int (unwrap_or 99 None) |};
+  [%expect {|
+    7
+    99 |}]
+
+let%expect_test "variant with mixed immediate and data constructors" =
+  compile_and_run
+    {| external caml_java_print_int : int -> unit = "caml_java_print_int"
+       type tree = Leaf | Node of int
+       let value_of = function
+         | Leaf -> -1
+         | Node n -> n
+       let () =
+         caml_java_print_int (value_of Leaf);
+         caml_java_print_int (value_of (Node 17));
+         caml_java_print_int (value_of (Node 42)) |};
+  [%expect {|
+    -1
+    17
+    42 |}]

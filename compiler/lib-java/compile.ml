@@ -139,6 +139,7 @@ let is_user_op (ins : instr) =
   || op = Bytecode.Op.branch
   || op = Bytecode.Op.branchif
   || op = Bytecode.Op.branchifnot
+  || op = Bytecode.Op.switch
   || is_cmp_jump op
   || is_c_call op
   || op = closurerec_op
@@ -233,6 +234,29 @@ let branch_target (ins : instr) =
   else if is_cmp_jump op
   then Some (ins.pc + ins.args.(1) + 2)
   else None
+
+(* All branch targets an instruction may jump to. For SWITCH that's the
+   full offsets table (one per int case + one per tag case); for normal
+   jumps it's the single [branch_target]. *)
+let branch_targets (ins : instr) =
+  if ins.opcode = Bytecode.Op.switch
+  then (
+    let sizes = ins.args.(0) in
+    let num_ints = sizes land 0xffff in
+    let num_tags = (sizes lsr 16) land 0xffff in
+    let total = num_ints + num_tags in
+    let targets = ref [] in
+    for i = 0 to total - 1 do
+      (* All offsets are interpreted relative to the same anchor (the
+         position of offsets[0] = [ins.pc + 2]). This mirrors the OCaml
+         interpreter's [pc += pc[index]] where [pc] stays at offsets[0]. *)
+      targets := (ins.pc + 2 + ins.args.(1 + i)) :: !targets
+    done;
+    !targets)
+  else
+    match branch_target ins with
+    | Some t -> [ t ]
+    | None -> []
 
 (* -------------------------------------------------------------------------- *)
 (* Value kinds: tracked compile-time so we know whether a JVM int slot holds
@@ -404,10 +428,11 @@ let find_function_body_range arr body_pc =
     else
       let ins = arr.(i) in
       outstanding := Int_set.remove ins.pc !outstanding;
-      (match branch_target ins with
-       | Some t when t <> ins.pc ->
-         outstanding := Int_set.add t !outstanding
-       | _ -> ());
+      List.iter
+        (fun t ->
+          if t <> ins.pc
+          then outstanding := Int_set.add t !outstanding)
+        (branch_targets ins);
       let ends_here =
         (ins.opcode = return_op
          || ins.opcode = appterm_op
@@ -1213,6 +1238,113 @@ let cmp_of_opcode op =
          "java_of_ocaml: cmp_of_opcode on non-comparison %d"
          op)
 
+(* BRANCHIFNOT / BRANCHIF on a K_obj acc (i.e. a variant value that may be
+   either a boxed Integer — for immediate constructors like [None] or enum
+   tags — or a [Block] — for data constructors like [Some x]). OCaml's
+   branchifnot branches if the value equals [Val_long(0)]; in our
+   representation that means the value is an [Integer] whose [intValue] is
+   zero. A [Block] always counts as "truthy". Emits the dual-dispatch that
+   handles both shapes at runtime. Assumes acc is already on the JVM
+   operand stack. *)
+let emit_branch_on_val_int_zero state ~target_pc ~branch_if_zero =
+  let l_non_integer = Jvm.Code.fresh_label state.code in
+  let l_end = Jvm.Code.fresh_label state.code in
+  let target_lbl = label_at state target_pc in
+  Jvm.Code.dup state.code;
+  Jvm.Code.instanceof_ state.code "java/lang/Integer";
+  Jvm.Code.ifeq state.code l_non_integer;
+  Jvm.Code.checkcast state.code "java/lang/Integer";
+  Jvm.Code.invokevirtual
+    state.code
+    ~class_:"java/lang/Integer"
+    ~method_:"intValue"
+    ~descriptor:"()I";
+  (if branch_if_zero
+   then Jvm.Code.ifeq state.code target_lbl
+   else Jvm.Code.ifne state.code target_lbl);
+  Jvm.Code.goto state.code l_end;
+  Jvm.Code.mark_label state.code l_non_integer;
+  Jvm.Code.pop_top state.code;
+  if not branch_if_zero then Jvm.Code.goto state.code target_lbl;
+  Jvm.Code.mark_label state.code l_end
+
+(* Compile a [(case_value, target_pc)] table to a dispatch chain. Each
+   target is reached with the JVM operand stack empty (the scrutinee has
+   been popped). Fall-through after the chain also leaves the stack empty.
+   The scrutinee must be on the op stack as a raw int at entry. *)
+let emit_int_case_chain state ~cases ~to_target_pc =
+  List.iter
+    (fun case_index ->
+      let target_pc = to_target_pc case_index in
+      let l_skip = Jvm.Code.fresh_label state.code in
+      Jvm.Code.dup state.code;
+      Jvm.Code.ldc_int state.code case_index;
+      Jvm.Code.if_icmpne state.code l_skip;
+      Jvm.Code.pop_top state.code;
+      Jvm.Code.goto state.code (label_at state target_pc);
+      Jvm.Code.mark_label state.code l_skip;
+      record_branch_target state target_pc)
+    cases;
+  Jvm.Code.pop_top state.code
+
+let emit_switch state (ins : instr) =
+  let sizes = ins.args.(0) in
+  let num_ints = sizes land 0xffff in
+  let num_tags = (sizes lsr 16) land 0xffff in
+  let int_target i = ins.pc + 2 + ins.args.(1 + i) in
+  let tag_target j = ins.pc + 2 + ins.args.(1 + num_ints + j) in
+  let int_cases = List.init num_ints (fun i -> i) in
+  let tag_cases = List.init num_tags (fun j -> j) in
+  (match state.acc_kind with
+   | K_int ->
+     (* All values are immediates; tag cases are unreachable. *)
+     emit_int_case_chain state ~cases:int_cases ~to_target_pc:int_target
+   | K_obj ->
+     if num_tags = 0
+     then (
+       Jvm.Code.checkcast state.code "java/lang/Integer";
+       Jvm.Code.invokevirtual
+         state.code
+         ~class_:"java/lang/Integer"
+         ~method_:"intValue"
+         ~descriptor:"()I";
+       emit_int_case_chain state ~cases:int_cases ~to_target_pc:int_target)
+     else if num_ints = 0
+     then (
+       Jvm.Code.checkcast state.code "Block";
+       Jvm.Code.getfield state.code ~class_:"Block" ~field:"tag" ~descriptor:"I";
+       emit_int_case_chain state ~cases:tag_cases ~to_target_pc:tag_target)
+     else (
+       let l_is_block = Jvm.Code.fresh_label state.code in
+       let l_end = Jvm.Code.fresh_label state.code in
+       Jvm.Code.dup state.code;
+       Jvm.Code.instanceof_ state.code "Block";
+       Jvm.Code.ifne state.code l_is_block;
+       (* Immediate path: unbox Integer and dispatch on value. *)
+       Jvm.Code.checkcast state.code "java/lang/Integer";
+       Jvm.Code.invokevirtual
+         state.code
+         ~class_:"java/lang/Integer"
+         ~method_:"intValue"
+         ~descriptor:"()I";
+       emit_int_case_chain state ~cases:int_cases ~to_target_pc:int_target;
+       Jvm.Code.goto state.code l_end;
+       Jvm.Code.mark_label state.code l_is_block;
+       Jvm.Code.checkcast state.code "Block";
+       Jvm.Code.getfield state.code ~class_:"Block" ~field:"tag" ~descriptor:"I";
+       emit_int_case_chain state ~cases:tag_cases ~to_target_pc:tag_target;
+       Jvm.Code.mark_label state.code l_end)
+   | K_block _ ->
+     Jvm.Code.getfield state.code ~class_:"Block" ~field:"tag" ~descriptor:"I";
+     emit_int_case_chain state ~cases:tag_cases ~to_target_pc:tag_target
+   | other ->
+     failwith
+       (Printf.sprintf
+          "java_of_ocaml: SWITCH on unsupported kind %s"
+          (jvm_type_of_kind other)));
+  state.acc_live <- false;
+  state.acc_kind <- K_int
+
 let emit_fused_branch state ~cmp ~target_pc ~branch_if_true =
   (* acc (value1) is on the JVM op stack. Unbox it to int if it's still an
      Object reference (e.g. an apply-method arg that hasn't been touched by
@@ -1284,9 +1416,20 @@ let emit_instr state (ins : instr) =
       state.pending_cmp <- None
     | None ->
       let target_pc = ins.pc + ins.args.(0) + 1 in
-      ensure_kind state K_int;
-      Jvm.Code.ldc_int state.code 0;
-      Jvm.Code.if_icmpeq state.code (label_at state target_pc);
+      (match state.acc_kind with
+       | K_int ->
+         Jvm.Code.ldc_int state.code 0;
+         Jvm.Code.if_icmpeq state.code (label_at state target_pc)
+       | K_obj ->
+         emit_branch_on_val_int_zero
+           state
+           ~target_pc
+           ~branch_if_zero:true
+       | other ->
+         failwith
+           (Printf.sprintf
+              "java_of_ocaml: branchifnot on non-int/obj kind %s"
+              (jvm_type_of_kind other)));
       record_branch_target state target_pc;
       state.acc_live <- false;
       state.acc_kind <- K_int)
@@ -1299,12 +1442,25 @@ let emit_instr state (ins : instr) =
       state.pending_cmp <- None
     | None ->
       let target_pc = ins.pc + ins.args.(0) + 1 in
-      ensure_kind state K_int;
-      Jvm.Code.ldc_int state.code 0;
-      Jvm.Code.if_icmpne state.code (label_at state target_pc);
+      (match state.acc_kind with
+       | K_int ->
+         Jvm.Code.ldc_int state.code 0;
+         Jvm.Code.if_icmpne state.code (label_at state target_pc)
+       | K_obj ->
+         emit_branch_on_val_int_zero
+           state
+           ~target_pc
+           ~branch_if_zero:false
+       | other ->
+         failwith
+           (Printf.sprintf
+              "java_of_ocaml: branchif on non-int/obj kind %s"
+              (jvm_type_of_kind other)));
       record_branch_target state target_pc;
       state.acc_live <- false;
       state.acc_kind <- K_int)
+  else if op = Bytecode.Op.switch
+  then emit_switch state ins
   else if op = Bytecode.Op.const0 then emit_int_const state 0
   else if op = Bytecode.Op.const1 then emit_int_const state 1
   else if op = Bytecode.Op.const2 then emit_int_const state 2
@@ -1424,6 +1580,20 @@ let emit_instr state (ins : instr) =
       Jvm.Code.aaload state.code;
       emit_unbox_to_kind state.code fk;
       state.acc_kind <- fk
+    | K_obj ->
+      (* Variant value whose shape is only knowable at runtime. We already
+         dispatched past the immediate-constructor case via BRANCHIFNOT, so
+         the value must be a [Block]. Cast it, pluck the field, and leave
+         the result as K_obj (its kind is inferred lazily by the next op). *)
+      Jvm.Code.checkcast state.code "Block";
+      Jvm.Code.getfield
+        state.code
+        ~class_:"Block"
+        ~field:"fields"
+        ~descriptor:"[Ljava/lang/Object;";
+      Jvm.Code.ldc_int state.code field;
+      Jvm.Code.aaload state.code;
+      state.acc_kind <- K_obj
     | _ ->
       failwith
         (Printf.sprintf
@@ -1836,13 +2006,13 @@ let collect_pc_to_label
   for i = scan_lo to scan_hi do
     if not (Hashtbl.mem skip_pcs arr.(i).pc)
     then
-      match branch_target arr.(i) with
-      | None -> ()
-      | Some target_pc ->
-        if target_pc >= tgt_lo_pc
-           && target_pc <= tgt_hi_pc
-           && not (Hashtbl.mem tbl target_pc)
-        then Hashtbl.add tbl target_pc (Jvm.Code.fresh_label code)
+      List.iter
+        (fun target_pc ->
+          if target_pc >= tgt_lo_pc
+             && target_pc <= tgt_hi_pc
+             && not (Hashtbl.mem tbl target_pc)
+          then Hashtbl.add tbl target_pc (Jvm.Code.fresh_label code))
+        (branch_targets arr.(i))
   done;
   tbl
 

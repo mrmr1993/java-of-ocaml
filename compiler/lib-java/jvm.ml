@@ -406,7 +406,16 @@ module Code = struct
   let if_icmpgt t lbl = emit_branch t lbl 0xA3 ~stack_delta:(-2)
   let if_icmple t lbl = emit_branch t lbl 0xA4 ~stack_delta:(-2)
 
+  let ifeq t lbl = emit_branch t lbl 0x99 ~stack_delta:(-1)
+  let ifne t lbl = emit_branch t lbl 0x9A ~stack_delta:(-1)
+
   let goto t lbl = emit_branch t lbl 0xA7 ~stack_delta:0
+
+  let instanceof_ t class_name =
+    let idx = Cp.class_ t.cp class_name in
+    add_u1 t.buf 0xC1;
+    add_u2 t.buf idx
+    (* pops ref, pushes int — net 0 *)
 
   let getstatic t ~class_ ~field ~descriptor =
     let idx = Cp.fieldref t.cp ~class_ ~field ~descriptor in

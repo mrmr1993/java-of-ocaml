@@ -80,6 +80,7 @@ module Op : sig
   val branch : int
   val branchif : int
   val branchifnot : int
+  val switch : int
   val stop : int
   val apply : int
   val apply1 : int

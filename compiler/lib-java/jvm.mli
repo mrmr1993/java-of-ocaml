@@ -140,7 +140,17 @@ module Code : sig
   val if_icmpgt : t -> label -> unit
   val if_icmpge : t -> label -> unit
 
+  val ifeq : t -> label -> unit
+  (** Branch if the top int on the stack is zero (JVM [ifeq]). *)
+
+  val ifne : t -> label -> unit
+  (** Branch if the top int on the stack is non-zero (JVM [ifne]). *)
+
   val goto : t -> label -> unit
+
+  val instanceof_ : t -> string -> unit
+  (** Pop a reference, push 1 if it's an instance of the named class, else
+      0 (JVM [instanceof]). *)
 
   (** {2 Static/virtual dispatch} *)
 
