@@ -83,6 +83,41 @@ around this by binding the underlying `external` directly. Lift
 once Stdlib compilation (or a targeted materialisation of
 `Stdlib.Invalid_argument` / `Stdlib.invalid_arg`) lands.
 
+## Whole-bytecode compilation (Stdlib Phase 1)
+
+The plan in
+`/home/mathew/.claude/plans/we-need-to-create-glistening-turing.md`
+targets full Stdlib support by compiling the whole bytecode
+(Stdlib init + every Stdlib module + user code), not just a user-
+code slice. Foundation work has landed — a runtime [Main.GLOBALS]
+table, runtime-resolved GETGLOBAL fall-backs, new opcode
+dispatches for SETGLOBAL / ATOM* / MAKEFLOATBLOCK / GETFLOATFIELD /
+SETFLOATFIELD / ULTINT / UGEINT / BULTINT / BUGEINT / STOP /
+GETSTRINGCHAR / C_CALLN, stubs for the OO / effects family, and
+runtime errors for unregistered C primitives.
+
+The flip to whole-bytecode itself is gated behind a
+`JAVA_OF_OCAML_WHOLE_BYTECODE=1` environment variable so we can
+iterate without breaking the existing test suite. Two known
+blockers keep it out of the default path:
+
+- **Kind-tracking at label joins.** Our emitter walks forward
+  through the bytecode once, resetting `acc_live=false` at every
+  label. Code reached only by fall-through with a live acc on the
+  JVM stack loses that information, and the next instruction (a
+  CLOSURE with nvars>0, or an APPLY) fails the emitter's
+  invariant. `record_branch_target` captures slot state but not
+  acc state; either capture acc too, or move to a structural IR
+  that makes these joins explicit.
+- **Mid-function K_int closures.** Some Stdlib bodies land with
+  `acc_kind=K_int` at an APPLY site where the real value is a
+  closure. A temporary box + checkcast fall-back is in place so
+  compilation no longer aborts; the runtime raises
+  ClassCastException if the kind inference is genuinely wrong.
+  The proper fix is to rewrite return-kind inference (closer to
+  jsoo's `Flow.Info`) so it doesn't over-commit to K_int for
+  opaque returns.
+
 ## Known representation gaps
 
 - **Integer width** — our ints run as JVM 32-bit `int`, not OCaml's
