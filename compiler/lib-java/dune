@@ -1,4 +1,5 @@
 (library
  (name java_of_ocaml_compiler)
  (public_name java_of_ocaml.compiler)
+ (libraries java_of_ocaml_runtime_bytes)
  (wrapped true))

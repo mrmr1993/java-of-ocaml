@@ -1,0 +1,23 @@
+(executable
+ (name embed_class_bytes)
+ (modules embed_class_bytes))
+
+(rule
+ (targets Block.class Closure.class PartialClosure.class CamlException.class)
+ (deps Block.java Closure.java PartialClosure.java CamlException.java)
+ (action
+  (run javac -d . %{deps})))
+
+(rule
+ (targets runtime_bytes.ml)
+ (deps
+  (:cls Block.class Closure.class PartialClosure.class CamlException.class))
+ (action
+  (with-stdout-to
+   %{targets}
+   (run %{dep:embed_class_bytes.exe} %{cls}))))
+
+(library
+ (name java_of_ocaml_runtime_bytes)
+ (public_name java_of_ocaml.runtime_bytes)
+ (modules runtime_bytes))
