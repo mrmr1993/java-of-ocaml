@@ -84,6 +84,7 @@ module Op : sig
   val pushtrap : int
   val poptrap : int
   val raise_ : int
+  val isint : int
   val reraise : int
   val raise_notrace : int
   val stop : int

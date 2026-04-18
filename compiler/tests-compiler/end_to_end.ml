@@ -616,6 +616,67 @@ let%expect_test "try/with matching specific exceptions" =
     111
     222 |}]
 
+let%expect_test "variant: multiple data constructors with different tags" =
+  compile_and_run
+    {| external caml_java_print_int : int -> unit = "caml_java_print_int"
+       type shape = Circle of int | Square of int | Rectangle of int * int
+       let area = function
+         | Circle r -> 3 * r * r
+         | Square s -> s * s
+         | Rectangle (w, h) -> w * h
+       let () =
+         caml_java_print_int (area (Circle 5));
+         caml_java_print_int (area (Square 4));
+         caml_java_print_int (area (Rectangle (3, 7))) |};
+  [%expect {|
+    75
+    16
+    21 |}]
+
+let%expect_test "recursive variant: binary tree sum" =
+  compile_and_run
+    {| external caml_java_print_int : int -> unit = "caml_java_print_int"
+       type tree = Leaf | Node of tree * int * tree
+       let rec sum = function
+         | Leaf -> 0
+         | Node (l, v, r) -> sum l + v + sum r
+       let t =
+         Node (Node (Leaf, 1, Node (Leaf, 2, Leaf)), 3, Node (Leaf, 4, Leaf))
+       let () = caml_java_print_int (sum t) |};
+  [%expect {| 10 |}]
+
+let%expect_test "recursive variant: arithmetic expression evaluator" =
+  compile_and_run
+    {| external caml_java_print_int : int -> unit = "caml_java_print_int"
+       type expr =
+         | Num of int
+         | Add of expr * expr
+         | Mul of expr * expr
+       let rec eval = function
+         | Num n -> n
+         | Add (a, b) -> eval a + eval b
+         | Mul (a, b) -> eval a * eval b
+       let () =
+         caml_java_print_int (eval (Mul (Add (Num 2, Num 3), Num 4))) |};
+  [%expect {| 20 |}]
+
+let%expect_test "polymorphic variant with zero-arg and data cases" =
+  compile_and_run
+    {| external caml_java_print_int : int -> unit = "caml_java_print_int"
+       let describe = function
+         | `Red -> 1
+         | `Green -> 2
+         | `Blue -> 3
+         | `Rgb (r, _, _) -> r
+       let () =
+         caml_java_print_int (describe `Red);
+         caml_java_print_int (describe `Blue);
+         caml_java_print_int (describe (`Rgb (42, 0, 0))) |};
+  [%expect {|
+    1
+    3
+    42 |}]
+
 let%expect_test "exception propagates through one frame into try" =
   compile_and_run
     {| external caml_java_print_int : int -> unit = "caml_java_print_int"

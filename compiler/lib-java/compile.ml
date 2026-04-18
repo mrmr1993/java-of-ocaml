@@ -160,6 +160,7 @@ let is_user_op (ins : instr) =
   || op = Bytecode.Op.raise_
   || op = Bytecode.Op.reraise
   || op = Bytecode.Op.raise_notrace
+  || op = Bytecode.Op.isint
   || is_cmp_jump op
   || is_c_call op
   || op = closurerec_op
@@ -1140,6 +1141,30 @@ let emit_fresh_oo_id state =
   state.acc_live <- true;
   state.acc_kind <- K_int
 
+(* OCaml [ISINT]: [acc := Val_bool(Is_long(acc))]. Used by polymorphic-
+   variant match bytecode to dispatch between zero-arg cases (stored as
+   tagged ints whose value is the hash of the variant name) and
+   data-carrying cases (stored as blocks).
+
+   If acc's kind is known statically (K_int ⇒ always immediate,
+   K_block / K_closure / K_string ⇒ never immediate), fold the result
+   to a constant. Otherwise (K_obj) emit a runtime [instanceof
+   java/lang/Integer] test. *)
+let emit_isint state =
+  (match state.acc_kind with
+   | K_int ->
+     if state.acc_live then Jvm.Code.pop_top state.code;
+     Jvm.Code.ldc_int state.code 1
+   | K_block _ | K_closure _ | K_string ->
+     if state.acc_live then Jvm.Code.pop_top state.code;
+     Jvm.Code.ldc_int state.code 0
+   | K_obj ->
+     (* Pops objectref, pushes int (0 or 1). acc now represents the
+        boolean as a JVM int. *)
+     Jvm.Code.instanceof_ state.code "java/lang/Integer");
+  state.acc_live <- true;
+  state.acc_kind <- K_int
+
 (* caml_array_set_addr: C_CALL3 — args acc=block, stack[0]=index,
    stack[1]=value, result=unit. *)
 let emit_array_set state =
@@ -1691,6 +1716,8 @@ let emit_instr state (ins : instr) =
        || op = Bytecode.Op.reraise
        || op = Bytecode.Op.raise_notrace
   then emit_raise state
+  else if op = Bytecode.Op.isint
+  then emit_isint state
   else if op = Bytecode.Op.const0 then emit_int_const state 0
   else if op = Bytecode.Op.const1 then emit_int_const state 1
   else if op = Bytecode.Op.const2 then emit_int_const state 2

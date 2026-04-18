@@ -74,6 +74,7 @@ module Op = struct
   let pushtrap = 89
   let poptrap = 90
   let raise_ = 91
+  let isint = 129
   let reraise = 146
   let raise_notrace = 147
   let stop = 143
