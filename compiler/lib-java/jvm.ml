@@ -27,3 +27,5 @@ let partial_closure_class_bytes = Jvm_runtime.partial_closure_class_bytes
 let camlexception_class_bytes = Jvm_runtime.camlexception_class_bytes
 
 let compare_class_bytes = Jvm_runtime.compare_class_bytes
+
+let channel_class_bytes = Jvm_runtime.channel_class_bytes

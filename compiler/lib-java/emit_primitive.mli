@@ -111,3 +111,15 @@ val emit_float_of_int : State.state -> unit
 val emit_float_print : State.state -> unit
 (** Test-only [caml_java_print_float] — prints the double via
     [Double.toString] + [System.out.println]. *)
+
+val emit_open_descriptor_out : State.state -> unit
+(** [caml_ml_open_descriptor_out fd]: [Channel.forDescriptor(fd)]. *)
+
+val emit_ml_output : State.state -> unit
+(** [caml_ml_output(chan, buf, ofs, len)]: [chan.output(buf, ofs, len)]. *)
+
+val emit_ml_output_char : State.state -> unit
+(** [caml_ml_output_char(chan, c)]: [chan.outputChar(c)]. *)
+
+val emit_ml_flush : State.state -> unit
+(** [caml_ml_flush(chan)]: [chan.flush()]. *)

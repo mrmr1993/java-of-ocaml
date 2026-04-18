@@ -898,7 +898,12 @@ let emit_instr state (ins : instr) =
        | P_poly_greaterthan ->
          Emit_primitive.emit_poly_cmp state ~method_name:"greaterthan"
        | P_poly_greaterequal ->
-         Emit_primitive.emit_poly_cmp state ~method_name:"greaterequal")
+         Emit_primitive.emit_poly_cmp state ~method_name:"greaterequal"
+       | P_ml_open_descriptor_out ->
+         Emit_primitive.emit_open_descriptor_out state
+       | P_ml_output -> Emit_primitive.emit_ml_output state
+       | P_ml_output_char -> Emit_primitive.emit_ml_output_char state
+       | P_ml_flush -> Emit_primitive.emit_ml_flush state)
     | None ->
       let name =
         if prim_idx >= 0 && prim_idx < Array.length state.prims

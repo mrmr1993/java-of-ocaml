@@ -1048,3 +1048,93 @@ let emit_array_set state =
   Jvm.Code.ldc_int state.code 0;
   state.acc_live <- true;
   state.acc_kind <- K_int
+
+(* [caml_ml_open_descriptor_out fd]: return [Channel.stdout] for
+   fd=1 and [Channel.stderr] for fd=2. Our implementation ignores
+   other descriptors and falls back to stdout — we don't track
+   open files on the JVM side. *)
+let emit_open_descriptor_out state =
+  ensure_kind state K_int;
+  Jvm.Code.invokestatic
+    state.code
+    ~class_:"Channel"
+    ~method_:"forDescriptor"
+    ~descriptor:"(I)LChannel;";
+  state.acc_live <- true;
+  state.acc_kind <- K_obj
+
+let emit_cast_channel state =
+  match state.acc_kind with
+  | K_obj -> Jvm.Code.checkcast state.code "Channel"
+  | _ ->
+    failwith
+      (Printf.sprintf
+         "java_of_ocaml: expected Channel for caml_ml_* primitive, got %s"
+         (jvm_type_of_kind state.acc_kind))
+
+(* [caml_ml_output(chan, buf, ofs, len)] — [buf] is a bytes/string
+   pair in our representation (both flow as JVM [String]). The
+   Channel's [output] method takes [(String, int, int)]. *)
+let emit_ml_output state =
+  let buf = List.nth state.slots 0 in
+  let ofs = List.nth state.slots 1 in
+  let len = List.nth state.slots 2 in
+  emit_cast_channel state;
+  emit_load_for_kind state.code buf.local buf.kind;
+  box_if_int state.code buf.kind;
+  (match buf.kind with
+   | K_string -> ()
+   | _ -> Jvm.Code.checkcast state.code "java/lang/String");
+  emit_load_for_kind state.code ofs.local ofs.kind;
+  (match ofs.kind with
+   | K_int -> ()
+   | K_obj -> emit_unbox_to_kind state.code K_int
+   | _ ->
+     failwith "java_of_ocaml: caml_ml_output: ofs must be int");
+  emit_load_for_kind state.code len.local len.kind;
+  (match len.kind with
+   | K_int -> ()
+   | K_obj -> emit_unbox_to_kind state.code K_int
+   | _ ->
+     failwith "java_of_ocaml: caml_ml_output: len must be int");
+  Jvm.Code.invokevirtual
+    state.code
+    ~class_:"Channel"
+    ~method_:"output"
+    ~descriptor:"(Ljava/lang/String;II)V";
+  pop_slots state 3;
+  Jvm.Code.ldc_int state.code 0;
+  state.acc_live <- true;
+  state.acc_kind <- K_int
+
+(* [caml_ml_output_char(chan, c)] — writes one byte as a char. *)
+let emit_ml_output_char state =
+  let c = List.hd state.slots in
+  emit_cast_channel state;
+  emit_load_for_kind state.code c.local c.kind;
+  (match c.kind with
+   | K_int -> ()
+   | K_obj -> emit_unbox_to_kind state.code K_int
+   | _ ->
+     failwith "java_of_ocaml: caml_ml_output_char: c must be int");
+  Jvm.Code.invokevirtual
+    state.code
+    ~class_:"Channel"
+    ~method_:"outputChar"
+    ~descriptor:"(I)V";
+  pop_slots state 1;
+  Jvm.Code.ldc_int state.code 0;
+  state.acc_live <- true;
+  state.acc_kind <- K_int
+
+(* [caml_ml_flush(chan)] — flushes any buffered output. *)
+let emit_ml_flush state =
+  emit_cast_channel state;
+  Jvm.Code.invokevirtual
+    state.code
+    ~class_:"Channel"
+    ~method_:"flush"
+    ~descriptor:"()V";
+  Jvm.Code.ldc_int state.code 0;
+  state.acc_live <- true;
+  state.acc_kind <- K_int

@@ -55,6 +55,10 @@ type prim_handler =
   | P_poly_lessequal
   | P_poly_greaterthan
   | P_poly_greaterequal
+  | P_ml_open_descriptor_out
+  | P_ml_output
+  | P_ml_output_char
+  | P_ml_flush
     (* Stub: 1 arg, returns a dummy K_float (0.0). For Int64/Int32 bit
        conversions we don't implement yet; Stdlib init calls them to
        set up infinity / nan / max_float, which would be wrong but at
@@ -138,7 +142,12 @@ let primitives : prim_entry list =
      NullPointerException at first-use for a
      ClassCastException at the call site. *)
   ; { name = "caml_ml_open_descriptor_in"; handler = P_noop_null1; seed = false }
-  ; { name = "caml_ml_open_descriptor_out"; handler = P_noop_null1; seed = false }
+  ; { name = "caml_ml_open_descriptor_out"; handler = P_ml_open_descriptor_out; seed = false }
+  ; { name = "caml_ml_output"; handler = P_ml_output; seed = false }
+  ; { name = "caml_ml_output_bytes"; handler = P_ml_output; seed = false }
+  ; { name = "caml_ml_output_string"; handler = P_ml_output; seed = false }
+  ; { name = "caml_ml_output_char"; handler = P_ml_output_char; seed = false }
+  ; { name = "caml_ml_flush"; handler = P_ml_flush; seed = false }
   (* Returns an OCaml list (nil = Val_int 0). *)
   ; { name = "caml_ml_out_channels_list"; handler = P_noop1; seed = false }
   ; { name = "caml_channel_descriptor"; handler = P_noop_null1; seed = false }

@@ -21,3 +21,11 @@ val compare_class_bytes : unit -> string
 (** Static methods for polymorphic structural comparison on the
     runtime-value shapes our compiler emits — used by
     [caml_compare] / [caml_equal] / [caml_lessthan] / etc. *)
+
+val channel_class_bytes : unit -> string
+(** Output channel wrapper. Holds a [java.io.PrintStream] and
+    exposes [output] / [outputChar] / [flush] for
+    [caml_ml_output] / [caml_ml_output_char] / [caml_ml_flush].
+    Static [stdout] / [stderr] fields plus a [forDescriptor]
+    helper so [caml_ml_open_descriptor_out] can return the right
+    one. *)

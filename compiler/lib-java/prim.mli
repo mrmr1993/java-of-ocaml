@@ -61,6 +61,10 @@ type prim_handler =
   | P_poly_lessequal
   | P_poly_greaterthan
   | P_poly_greaterequal
+  | P_ml_open_descriptor_out
+  | P_ml_output
+  | P_ml_output_char
+  | P_ml_flush
 
 type prim_entry =
   { name : string

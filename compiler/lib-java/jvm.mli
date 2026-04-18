@@ -302,6 +302,11 @@ val compare_class_bytes : unit -> string
 (** Bytes of the [Compare] class — polymorphic structural compare /
     equal / lessthan / … helpers. *)
 
+val channel_class_bytes : unit -> string
+(** Bytes of the [Channel] class — [caml_ml_output] /
+    [caml_ml_output_char] / [caml_ml_flush] wire through static
+    [stdout] / [stderr] instances. *)
+
 val closure_class_bytes : unit -> string
 
 val partial_closure_class_bytes : unit -> string
