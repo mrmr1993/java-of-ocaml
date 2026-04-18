@@ -66,18 +66,32 @@ Working:
   we can't materialise yet — tests bind the underlying externals
   directly.
 
+- **Real Stdlib output** — `print_endline` / `print_string` /
+  `print_int` / `print_newline` compile through `CamlinternalOO`
+  and run correctly. Backed by a `Channel` runtime class wrapping
+  `java.io.PrintStream`, wired via `caml_ml_output` /
+  `caml_ml_output_char` / `caml_ml_flush` / `caml_ml_open_descriptor_out`.
+- **Real Stdlib string concat** — `(^)` works end-to-end, backed
+  by a `Bytes` runtime class (mutable `StringBuilder` wrapper) +
+  `caml_create_bytes` / `caml_blit_string` / `caml_string_of_bytes`
+  / `caml_bytes_of_string` / `caml_bytes_{get,set,equal,compare}`.
+- **Real Stdlib List** — `List.length`, `List.fold_left`,
+  `List.iter`, `List.sort` run through their compiled Stdlib
+  bodies under whole-bytecode.
+
 Not yet supported:
 
-- No general `Stdlib` — e.g. `print_endline`, `^`, `@`, `List.iter`
-  would still fall back to Stdlib's compiled bytecode, which isn't
-  compiled. Tests use custom C primitives (`caml_java_print_int`,
-  `caml_java_print_endline`, `caml_java_print_float`) for output.
-  `Stdlib.nan` and similar constants live in the Stdlib module
-  record and can't be materialised yet.
+- `Printf.printf` / `CamlinternalFormat` — hits an `ENVACC
+  capture N out of range` during emission of the printf-dispatch
+  closures; closure-analysis bug when a nested ENVACC chain sees
+  the wrong `ncaps` count.
+- `Stdlib.invalid_arg` / `Stdlib.failwith` / `Stdlib.raise` of
+  specific constructors — the exception values live in the
+  `Stdlib` module record and aren't materialised end-to-end.
 - `module rec` — OCaml lowers these via `CamlinternalMod`'s
   lazy-initialised placeholders.
 - `Lazy.t` / `lazy` / `Lazy.force`.
-- IO, threads, effects.
+- Threads, effects.
 
 ### Reference submodules
 

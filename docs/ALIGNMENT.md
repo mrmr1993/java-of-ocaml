@@ -95,12 +95,30 @@ block-parameter locals (see `Cfg` + `State.spill_to_block_params`
 `List.fold_left (+) 0 xs` compile, pass the JVM verifier, and
 run correctly.
 
-The remaining gaps to getting real Stdlib programs running end-
-to-end are all about primitive coverage: anything touching I/O
-(`print_endline`, `Printf.*`) still throws `UnsupportedOperation`
-because `caml_ml_output` / `caml_ml_output_char` /
-`caml_ml_flush` are unimplemented. Extending `Prim` + adding
-matching emitters is the next body of work.
+Working through Stdlib today (all end-to-end under whole-bytecode,
+with no custom externals):
+
+- `print_endline`, `print_string`, `print_int`, `print_newline`
+  (I/O via the `Channel` runtime class — `caml_ml_output` /
+  `caml_ml_output_char` / `caml_ml_flush` / `caml_ml_open_descriptor_out`).
+- `(^)` string concat (via `caml_create_bytes` / `caml_blit_string`
+  / `caml_string_of_bytes` backed by the `Bytes` runtime class —
+  `StringBuilder`-wrapped mutable byte buffer).
+- `List.length` / `List.fold_left` / `List.sort` / `List.iter`.
+
+Remaining gaps on the path to `Printf.printf` and the fuller
+Stdlib surface:
+
+- `Printf` via `CamlinternalFormat` hits an `ENVACC capture
+  index N out of range` during compilation — looks like a
+  closure-analysis mismatch where a deeply-nested capture chain
+  isn't being sized correctly by the CLOSUREREC pre-scan.
+- The `max_stack` tracker is off-by-1 around a narrow class of
+  `apply5`-at-peak-stack shapes; papered over with a [+8]
+  margin in `jvm_class_file`.
+- A handful of stub primitives (`caml_channel_descriptor`,
+  `caml_sys_get_argv`, etc.) still return `null`; programs that
+  subsequently read fields off the returned value NPE at runtime.
 
 ## Known representation gaps
 
