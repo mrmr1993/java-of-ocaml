@@ -103,11 +103,29 @@ module Code : sig
   val invokevirtual :
     t -> class_:string -> method_:string -> descriptor:string -> unit
 
+  val invokestatic :
+    t -> class_:string -> method_:string -> descriptor:string -> unit
+
   val return_void : t -> unit
+
+  val ireturn : t -> unit
 end
 
+(** A method definition: its name, JVM descriptor, access flags, and body. *)
+type method_desc =
+  { name : string
+  ; descriptor : string
+  ; access_flags : int
+  ; code : Code.t
+  }
+
+val assemble_class :
+  class_name:string -> cp:Cp.t -> methods:method_desc list -> string
+(** Build a class file containing the given methods. All methods share the
+    supplied constant pool. The returned bytes are ready to write to
+    [<class_name>.class]. *)
+
 val assemble_main_class : (Cp.t -> Code.t -> unit) -> string
-(** Build a class file with a public static [main(String[])] method. The
-    supplied callback receives a fresh constant pool and code builder; it
-    should emit the method body (including the terminating [return_void]).
-    The returned bytes are ready to write to [Main.class]. *)
+(** Convenience wrapper over {!assemble_class} for a single-method [Main]
+    class whose public static [main(String[])V] body is produced by the
+    callback. *)

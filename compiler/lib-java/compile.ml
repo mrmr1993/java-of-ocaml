@@ -65,6 +65,17 @@ let is_pushacc op =
   (op >= Bytecode.Op.pushacc0 && op <= Bytecode.Op.pushacc7)
   || op = Bytecode.Op.pushacc
 
+(* Closure-related. *)
+let closurerec_op = 44
+
+(* Debug-info no-ops. Emitted by [ocamlc -g] between real instructions. *)
+let event_op = 144
+let break_op = 145
+let offsetclosure0_op = 46
+let pushoffsetclosure0_op = 50
+let apply1_op = 33
+let return_op = 40
+
 let is_user_op (ins : instr) =
   let op = ins.opcode in
   op = Bytecode.Op.push
@@ -93,6 +104,13 @@ let is_user_op (ins : instr) =
   || op = Bytecode.Op.branchifnot
   || is_cmp_jump op
   || is_c_call op
+  || op = closurerec_op
+  || op = offsetclosure0_op
+  || op = pushoffsetclosure0_op
+  || op = apply1_op
+  || op = return_op
+  || op = event_op
+  || op = break_op
 
 (* -------------------------------------------------------------------------- *)
 (* Globals. *)
@@ -110,14 +128,7 @@ let string_of_global (globals : Obj.t array) n =
   else Some (Obj.magic v : string)
 
 (* -------------------------------------------------------------------------- *)
-(* Branch-target arithmetic.
-
-   Offsets are relative to the opcode position; the constant added depends on
-   the opcode's kind (number of arg slots already consumed when the branch
-   is taken in the interpreter).
-     KJump / KCond_jump: target = pc + offset + 1
-     KCmp_jump         : target = pc + offset + 2
-*)
+(* Branch-target arithmetic. *)
 
 let branch_target (ins : instr) =
   let op = ins.opcode in
@@ -130,51 +141,143 @@ let branch_target (ins : instr) =
   else None
 
 (* -------------------------------------------------------------------------- *)
-(* Forward emitter.
+(* Value kinds: tracked compile-time so we know whether a JVM int slot holds
+   a genuine integer or a placeholder for a closure reference. *)
 
-   Model: the OCaml accumulator is kept on top of the JVM operand stack
-   (when [acc_live = true]). The OCaml bytecode stack is mirrored in JVM
-   locals: local [local_base + i] holds the i-th element (bottom-indexed)
-   of the OCaml stack. [local_base = 1] (slot 0 holds the method's
-   [String[] args] parameter).
+type kind =
+  | K_int
+  | K_closure of string
 
-   PUSH is [dup ; istore N]: the operand stack keeps acc intact on top, and
-   the freshly-stored local serves as the saved OCaml-stack entry. Later
-   arithmetic/ACC ops [iload N] to recover the saved value, and decrement
-   [oc_stack_depth] if they consume it. *)
+(* -------------------------------------------------------------------------- *)
+(* Function discovery + body range.
+
+   A CLOSUREREC instruction references one or more function bodies by PC;
+   we treat each as a JVM static method. For the walk, we compute each
+   function body's instruction-array range by linear scan starting at the
+   body's PC and tracking outstanding forward branches: a RETURN ends the
+   function only when no forward branches are still outstanding within it. *)
+
+type function_info =
+  { name : string
+  ; closurerec_pc : int [@warning "-69"]
+  ; body_pc : int [@warning "-69"]
+  ; body_start_idx : int
+  ; body_end_idx : int
+  }
+
+module Int_set = Set.Make (Int)
+
+let find_function_body_range arr body_pc =
+  let n = Array.length arr in
+  let start_idx = ref (-1) in
+  for i = 0 to n - 1 do
+    if !start_idx < 0 && arr.(i).pc = body_pc then start_idx := i
+  done;
+  if !start_idx < 0
+  then failwith (Printf.sprintf "java_of_ocaml: no instruction at body_pc %d" body_pc);
+  let outstanding = ref Int_set.empty in
+  let rec loop i =
+    if i >= n
+    then failwith "java_of_ocaml: walked past end of code while tracing function body"
+    else
+      let ins = arr.(i) in
+      outstanding := Int_set.remove ins.pc !outstanding;
+      (match branch_target ins with
+       | Some t when t <> ins.pc ->
+         outstanding := Int_set.add t !outstanding
+       | _ -> ());
+      let ends_here =
+        (ins.opcode = return_op || ins.opcode = Bytecode.Op.stop)
+        && Int_set.is_empty !outstanding
+      in
+      if ends_here then i else loop (i + 1)
+  in
+  let end_idx = loop !start_idx in
+  !start_idx, end_idx
+
+(* -------------------------------------------------------------------------- *)
+(* Forward emitter. *)
 
 type cmp_op = Eq | Ne | Lt | Le | Gt | Ge
+
+(* Snapshot of the emitter's OCaml-side state at a branch target. We capture
+   it at each branch emission and restore it when we mark a caller
+   label, so that the linear instruction walk doesn't carry state from the
+   [RETURN] / fall-through path into a caller's emission. *)
+type branch_snapshot =
+  { s_oc_stack_depth : int
+  ; s_slot_kinds : kind list
+  }
 
 type state =
   { code : Jvm.Code.t
   ; globals : Obj.t array
   ; supported_prims : (int, string * arg_kind) Hashtbl.t
+  ; functions : (int, function_info) Hashtbl.t
+      (* closurerec_pc -> function_info *)
   ; pc_to_label : (int, Jvm.Code.label) Hashtbl.t
+  ; branch_target_state : (int, branch_snapshot) Hashtbl.t
+      (* Target PC -> state to restore when we mark that target's label. *)
   ; mutable acc_live : bool
+  ; mutable acc_kind : kind
+  ; mutable slot_kinds : kind list
+      (* most-recently-pushed first; head of list is the top of the OCaml
+         stack. Length always equals [oc_stack_depth]. *)
   ; mutable oc_stack_depth : int
   ; mutable pending_cmp : cmp_op option
-      (* A comparison opcode was just seen; we haven't emitted anything yet
-         because we want to fuse it with the next branch if possible. *)
+  ; local_base : int
+      (* JVM local index of OCaml-stack slot 0 (bottom). 1 for main (slot 0
+         is [String[] args]); 0 for function bodies (slot 0 is the arg). *)
+  ; enclosing_function_name : string option
+      (* [None] when emitting [main]; [Some name] inside a function body.
+         OFFSETCLOSURE0 uses this to tag acc as the self-closure. *)
   }
 
-let local_base = 1 (* slot 0 is for [String[] args] *)
+let record_branch_target state target_pc =
+  if not (Hashtbl.mem state.branch_target_state target_pc)
+  then
+    Hashtbl.add
+      state.branch_target_state
+      target_pc
+      { s_oc_stack_depth = state.oc_stack_depth
+      ; s_slot_kinds = state.slot_kinds
+      }
 
-(* Local assigned to the k-th-from-top OCaml stack slot, given the current
-   depth. *)
-let stack_slot_local ~oc_stack_depth k =
-  if k < 0 || k >= oc_stack_depth
+let stack_slot_local ~state k =
+  if k < 0 || k >= state.oc_stack_depth
   then
     failwith
       (Printf.sprintf
-         "java_of_ocaml: stack slot %d out of range (depth %d)"
+         "java_of_ocaml: stack slot %d out of range (depth %d, \
+          local_base %d, in_fn=%s)"
          k
-         oc_stack_depth);
-  local_base + (oc_stack_depth - 1 - k)
+         state.oc_stack_depth
+         state.local_base
+         (match state.enclosing_function_name with
+          | Some n -> n
+          | None -> "<main>"));
+  state.local_base + (state.oc_stack_depth - 1 - k)
 
-(* Local assigned to the TOP of the OCaml stack, used by arithmetic and
-   comparison ops that pop one value. *)
-let top_slot_local ~oc_stack_depth =
-  stack_slot_local ~oc_stack_depth 0
+let top_slot_local ~state = stack_slot_local ~state 0
+
+let kind_of_slot_from_top ~state k =
+  List.nth state.slot_kinds k
+
+let push_slot state kind =
+  state.slot_kinds <- kind :: state.slot_kinds;
+  state.oc_stack_depth <- state.oc_stack_depth + 1
+
+let pop_slots state n =
+  let rec drop lst n =
+    if n <= 0 then lst
+    else
+      match lst with
+      | _ :: rest -> drop rest (n - 1)
+      | [] ->
+        failwith "java_of_ocaml: tried to pop beyond the OCaml stack bottom"
+  in
+  state.slot_kinds <- drop state.slot_kinds n;
+  state.oc_stack_depth <- state.oc_stack_depth - n
 
 let find_supported_prims bc =
   let table = Hashtbl.create 4 in
@@ -189,89 +292,161 @@ let find_supported_prims bc =
 let label_at state pc =
   Hashtbl.find state.pc_to_label pc
 
-(* Push a fresh int onto the operand stack as the new acc, popping any
-   stale acc first. *)
-let emit_int_const state n =
+(* Replace acc (pop any live value, push new). *)
+let overwrite_acc state kind emit =
   if state.acc_live then Jvm.Code.pop_top state.code;
-  Jvm.Code.ldc_int state.code n;
-  state.acc_live <- true
+  emit ();
+  state.acc_live <- true;
+  state.acc_kind <- kind
+
+let emit_int_const state n =
+  overwrite_acc state K_int (fun () -> Jvm.Code.ldc_int state.code n)
 
 let emit_string_const state s =
-  if state.acc_live then Jvm.Code.pop_top state.code;
-  Jvm.Code.ldc_string state.code s;
-  state.acc_live <- true
+  overwrite_acc state K_int (* treated as plain reference-as-int for now *)
+    (fun () -> Jvm.Code.ldc_string state.code s)
 
-(* OCaml PUSH: save current acc onto the OCaml stack (a fresh JVM local).
-   The operand stack retains the original acc on top thanks to [dup]. *)
+(* OCaml PUSH: stack := stack++[acc]; acc unchanged. On JVM, dup acc so the
+   operand stack still has acc on top; the dup'd copy becomes a named local
+   for later ACC access. *)
 let emit_push state =
   if not state.acc_live
   then
-    (* A PUSH immediately after a C_CALL is a save-PUSH that would stash
-       the return value for later; our compile stops before any op that
-       would read it back, so skip. *)
+    (* A PUSH immediately after a C_CALL is a save-PUSH for its return value.
+       Our compile stops before anything would read it back, so skip. *)
     ()
   else (
-    let slot = local_base + state.oc_stack_depth in
+    let slot = state.local_base + state.oc_stack_depth in
     Jvm.Code.dup state.code;
     Jvm.Code.istore state.code slot;
-    state.oc_stack_depth <- state.oc_stack_depth + 1)
+    push_slot state state.acc_kind)
 
 let emit_acc state k =
-  let slot = stack_slot_local ~oc_stack_depth:state.oc_stack_depth k in
-  if state.acc_live then Jvm.Code.pop_top state.code;
-  Jvm.Code.iload state.code slot;
-  state.acc_live <- true
+  if k >= state.oc_stack_depth
+  then
+    (* ACC past the end of our tracked OCaml stack — the compiler emits such
+       an access in the module-init trailer to fetch the top-level binding
+       for MAKEBLOCK. Our emission stops before MAKEBLOCK, so this access
+       is dead; skip it. *)
+    ()
+  else (
+    let slot = stack_slot_local ~state k in
+    let new_kind = kind_of_slot_from_top ~state k in
+    if state.acc_live then Jvm.Code.pop_top state.code;
+    Jvm.Code.iload state.code slot;
+    state.acc_live <- true;
+    state.acc_kind <- new_kind)
 
 let emit_pushacc state k =
-  emit_push state;
-  (* After PUSH the depth grew by one; ACC reads from the extended stack. *)
-  emit_acc state k
+  if not state.acc_live
+  then
+    (* A PUSHACC at a "dead" point — the most common example is right after
+       a C_CALL returning unit, used by the module-init trailer to stash
+       the return value and then load a binding for MAKEBLOCK. We don't
+       emit MAKEBLOCK, so skipping this is correct. *)
+    ()
+  else (
+    emit_push state;
+    emit_acc state k)
 
 let emit_int_push state n =
-  (* PUSHCONSTi / PUSHCONSTINT n: semantic [PUSH ; CONST n]. If acc was
-     live, [emit_push] duplicated it and stored the copy in a local; we
-     then pop the original off the op stack and push the new constant. If
-     acc wasn't live (e.g. immediately after a C_CALL return), [emit_push]
-     is a no-op and we just push the new constant. *)
   let was_live = state.acc_live in
   emit_push state;
   if was_live then Jvm.Code.pop_top state.code;
   Jvm.Code.ldc_int state.code n;
-  state.acc_live <- true
+  state.acc_live <- true;
+  state.acc_kind <- K_int
 
 let emit_string_push state s =
   let was_live = state.acc_live in
   emit_push state;
   if was_live then Jvm.Code.pop_top state.code;
   Jvm.Code.ldc_string state.code s;
-  state.acc_live <- true
+  state.acc_live <- true;
+  state.acc_kind <- K_int
+
+let emit_offsetclosure0 state =
+  match state.enclosing_function_name with
+  | None ->
+    failwith
+      "java_of_ocaml: OFFSETCLOSURE0 outside a function body — \
+       top-level closure references aren't supported yet"
+  | Some fname ->
+    overwrite_acc
+      state
+      (K_closure fname)
+      (fun () -> Jvm.Code.ldc_int state.code 0 (* sentinel *))
+
+let emit_pushoffsetclosure0 state =
+  let was_live = state.acc_live in
+  emit_push state;
+  if was_live then Jvm.Code.pop_top state.code;
+  Jvm.Code.ldc_int state.code 0;
+  state.acc_live <- true;
+  state.acc_kind <-
+    (match state.enclosing_function_name with
+     | None ->
+       failwith
+         "java_of_ocaml: PUSHOFFSETCLOSURE0 outside a function body"
+     | Some n -> K_closure n)
+
+(* CLOSUREREC: create (nfuncs) closures. For nfuncs=1, nvars=0 we just push a
+   sentinel and tag acc as the single closure. *)
+let emit_closurerec state (ins : instr) =
+  let nfuncs = ins.args.(0) in
+  let nvars = ins.args.(1) in
+  if nfuncs <> 1 || nvars <> 0
+  then
+    failwith
+      (Printf.sprintf
+         "java_of_ocaml: CLOSUREREC nfuncs=%d nvars=%d not yet supported"
+         nfuncs
+         nvars);
+  let fn_info =
+    try Hashtbl.find state.functions ins.pc with
+    | Not_found ->
+      failwith
+        (Printf.sprintf
+           "java_of_ocaml: CLOSUREREC at pc %d not registered"
+           ins.pc)
+  in
+  (* Semantics mirror [push acc; acc := closure]. We reach this with
+     [acc_live] meaningful only for save-PUSH handling; CLOSUREREC
+     unconditionally pushes, so we dup+istore whatever acc currently is (if
+     live), then overwrite with the closure sentinel. *)
+  if state.acc_live
+  then (
+    let slot = state.local_base + state.oc_stack_depth in
+    Jvm.Code.dup state.code;
+    Jvm.Code.istore state.code slot;
+    push_slot state state.acc_kind;
+    Jvm.Code.pop_top state.code);
+  Jvm.Code.ldc_int state.code 0;
+  state.acc_live <- true;
+  state.acc_kind <- K_closure fn_info.name;
+  (* And then push acc onto the OCaml stack (CLOSUREREC's own push). *)
+  let slot = state.local_base + state.oc_stack_depth in
+  Jvm.Code.dup state.code;
+  Jvm.Code.istore state.code slot;
+  push_slot state state.acc_kind
 
 let consume_top state =
-  state.oc_stack_depth <- state.oc_stack_depth - 1
-
-(* Arithmetic ops — OCaml semantics (from runtime/interp.c):
-     ADDINT: acc := acc + stack.pop()    (commutative)
-     SUBINT: acc := acc - stack.pop()    (non-commutative, acc on the left)
-     MULINT: acc := acc * stack.pop()    (commutative)
-   Our JVM state has acc on top of the operand stack; the popped value lives
-   in the local for [stack[0] from top]. Loading it puts it above acc, so
-   for JVM's [isub] which computes [value1 - value2] (value1 below, value2
-   top), we get [acc - sp] naturally. No swap needed. *)
+  pop_slots state 1
 
 let emit_addint state =
-  let slot = top_slot_local ~oc_stack_depth:state.oc_stack_depth in
+  let slot = top_slot_local ~state in
   Jvm.Code.iload state.code slot;
   Jvm.Code.iadd state.code;
   consume_top state
 
 let emit_subint state =
-  let slot = top_slot_local ~oc_stack_depth:state.oc_stack_depth in
+  let slot = top_slot_local ~state in
   Jvm.Code.iload state.code slot;
   Jvm.Code.isub state.code;
   consume_top state
 
 let emit_mulint state =
-  let slot = top_slot_local ~oc_stack_depth:state.oc_stack_depth in
+  let slot = top_slot_local ~state in
   Jvm.Code.iload state.code slot;
   Jvm.Code.imul state.code;
   consume_top state
@@ -297,42 +472,62 @@ let emit_c_call state ~kind =
     ~class_:"java/io/PrintStream"
     ~method_:"println"
     ~descriptor:desc;
-  state.acc_live <- false
+  state.acc_live <- false;
+  state.acc_kind <- K_int
 
-(* Fused Cmp_jump opcode (BEQ/BNEQ/BLTINT/…) taking an immediate and a
-   branch offset. OCaml semantics: branch iff [imm TST acc]. *)
+(* APPLY1: the arg is at stack[0 from top] in a local; acc holds the
+   closure sentinel. Dispatch to the known function via invokestatic. *)
+let emit_apply1 state =
+  match state.acc_kind with
+  | K_closure name ->
+    let arg_slot = top_slot_local ~state in
+    (* Discard sentinel from op stack. *)
+    if state.acc_live then Jvm.Code.pop_top state.code;
+    Jvm.Code.iload state.code arg_slot;
+    Jvm.Code.invokestatic
+      state.code
+      ~class_:"Main"
+      ~method_:name
+      ~descriptor:"(I)I";
+    consume_top state;
+    state.acc_live <- true;
+    state.acc_kind <- K_int
+  | K_int ->
+    failwith
+      "java_of_ocaml: APPLY1 called on a non-closure value (K_int). \
+       Did the closure analysis lose its tag?"
+
+let emit_return state =
+  (* We discard the OCaml frame's stack depth — the JVM method's locals are
+     all dead once we return. Just emit ireturn. *)
+  Jvm.Code.ireturn state.code;
+  state.acc_live <- false;
+  state.acc_kind <- K_int;
+  state.oc_stack_depth <- 0;
+  state.slot_kinds <- []
+
 let emit_cmp_jump state (ins : instr) =
   let imm = ins.args.(0) in
   let target_pc = ins.pc + ins.args.(1) + 2 in
   let lbl = label_at state target_pc in
   Jvm.Code.ldc_int state.code imm;
-  (* Now value1 = acc (below), value2 = imm (top). JVM's if_icmp<cond>
-     evaluates [value1 <cond> value2 = acc <cond> imm]. Translate each
-     fused op's "[imm TST acc]" to "[acc (inverse TST) imm]". *)
   (match ins.opcode with
-   | 131 (* BEQ:    imm == acc ↔ acc == imm *) ->
-     Jvm.Code.if_icmpeq state.code lbl
-   | 132 (* BNEQ:   imm != acc ↔ acc != imm *) ->
-     Jvm.Code.if_icmpne state.code lbl
-   | 133 (* BLTINT: imm  < acc ↔ acc  > imm *) ->
-     Jvm.Code.if_icmpgt state.code lbl
-   | 134 (* BLEINT: imm <= acc ↔ acc >= imm *) ->
-     Jvm.Code.if_icmpge state.code lbl
-   | 135 (* BGTINT: imm  > acc ↔ acc  < imm *) ->
-     Jvm.Code.if_icmplt state.code lbl
-   | 136 (* BGEINT: imm >= acc ↔ acc <= imm *) ->
-     Jvm.Code.if_icmple state.code lbl
+   | 131 -> Jvm.Code.if_icmpeq state.code lbl
+   | 132 -> Jvm.Code.if_icmpne state.code lbl
+   | 133 -> Jvm.Code.if_icmpgt state.code lbl
+   | 134 -> Jvm.Code.if_icmpge state.code lbl
+   | 135 -> Jvm.Code.if_icmplt state.code lbl
+   | 136 -> Jvm.Code.if_icmple state.code lbl
    | other ->
      failwith
        (Printf.sprintf
           "java_of_ocaml: unexpected cmp_jump opcode %d"
           other));
-  state.acc_live <- false
-
-(* Non-fused comparison (EQ/NEQ/LTINT/…): stored as [pending_cmp] and
-   consumed on the next BRANCHIF/BRANCHIFNOT. We raise if a comparison
-   isn't immediately followed by a branch — materialising a 0/1 boolean
-   on the stack is possible but not yet exercised by any test. *)
+  (* Cmp_jump reads acc (= accu of [acc TST imm]) but doesn't touch the
+     OCaml stack; a caller sees the same stack as the branch point. *)
+  record_branch_target state target_pc;
+  state.acc_live <- false;
+  state.acc_kind <- K_int
 
 let cmp_of_opcode op =
   if op = Bytecode.Op.eq then Eq
@@ -348,13 +543,7 @@ let cmp_of_opcode op =
          op)
 
 let emit_fused_branch state ~cmp ~target_pc ~branch_if_true =
-  (* OCaml GTINT etc. semantics: [acc := acc OP stack.pop()] where [OP]
-     names the predicate (Gt/Lt/...). On JVM, acc is already on top; we
-     load the top-of-stack local, placing it ABOVE the acc, so the JVM
-     if_icmp<cond> sees [value1 = acc ; value2 = stack.pop()]. OCaml's
-     [acc OP value2] is the condition we want to branch on (for
-     BRANCHIF) or whose negation we want to branch on (for BRANCHIFNOT). *)
-  let slot = top_slot_local ~oc_stack_depth:state.oc_stack_depth in
+  let slot = top_slot_local ~state in
   Jvm.Code.iload state.code slot;
   let lbl = label_at state target_pc in
   let branch_cond =
@@ -377,18 +566,32 @@ let emit_fused_branch state ~cmp ~target_pc ~branch_if_true =
    | Gt -> Jvm.Code.if_icmpgt state.code lbl
    | Ge -> Jvm.Code.if_icmpge state.code lbl);
   consume_top state;
-  state.acc_live <- false
+  record_branch_target state target_pc;
+  state.acc_live <- false;
+  state.acc_kind <- K_int
 
 let emit_instr state (ins : instr) =
-  (* Pin the label for this PC if there is one. *)
   (match Hashtbl.find_opt state.pc_to_label ins.pc with
-   | Some lbl -> Jvm.Code.mark_label state.code lbl
+   | Some lbl ->
+     Jvm.Code.mark_label state.code lbl;
+     (* Reset state to the snapshot taken at the first branch into this
+        target. Any linear-walk mutations between here and the preceding
+        [RETURN] / fall-through are effectively dead code from the JVM's
+        point of view; we just need consistent state going forward. *)
+     (match Hashtbl.find_opt state.branch_target_state ins.pc with
+      | Some snap ->
+        state.oc_stack_depth <- snap.s_oc_stack_depth;
+        state.slot_kinds <- snap.s_slot_kinds
+      | None -> ());
+     state.acc_live <- false;
+     state.acc_kind <- K_int;
+     state.pending_cmp <- None
    | None -> ());
   let op = ins.opcode in
   if is_cmp_nullary op
   then state.pending_cmp <- Some (cmp_of_opcode op)
   else if op = Bytecode.Op.branchifnot
-  then
+  then (
     match state.pending_cmp with
     | Some cmp ->
       let target_pc = ins.pc + ins.args.(0) + 1 in
@@ -398,9 +601,11 @@ let emit_instr state (ins : instr) =
       let target_pc = ins.pc + ins.args.(0) + 1 in
       Jvm.Code.ldc_int state.code 0;
       Jvm.Code.if_icmpeq state.code (label_at state target_pc);
-      state.acc_live <- false
+      record_branch_target state target_pc;
+      state.acc_live <- false;
+      state.acc_kind <- K_int)
   else if op = Bytecode.Op.branchif
-  then
+  then (
     match state.pending_cmp with
     | Some cmp ->
       let target_pc = ins.pc + ins.args.(0) + 1 in
@@ -410,7 +615,9 @@ let emit_instr state (ins : instr) =
       let target_pc = ins.pc + ins.args.(0) + 1 in
       Jvm.Code.ldc_int state.code 0;
       Jvm.Code.if_icmpne state.code (label_at state target_pc);
-      state.acc_live <- false
+      record_branch_target state target_pc;
+      state.acc_live <- false;
+      state.acc_kind <- K_int)
   else if op = Bytecode.Op.const0 then emit_int_const state 0
   else if op = Bytecode.Op.const1 then emit_int_const state 1
   else if op = Bytecode.Op.const2 then emit_int_const state 2
@@ -445,9 +652,7 @@ let emit_instr state (ins : instr) =
   else if op = Bytecode.Op.pushacc6 then emit_pushacc state 6
   else if op = Bytecode.Op.pushacc7 then emit_pushacc state 7
   else if op = Bytecode.Op.pushacc then emit_pushacc state ins.args.(0)
-  else if op = Bytecode.Op.pop
-  then
-    state.oc_stack_depth <- state.oc_stack_depth - ins.args.(0)
+  else if op = Bytecode.Op.pop then pop_slots state ins.args.(0)
   else if op = Bytecode.Op.getglobal
   then
     match string_of_global state.globals ins.args.(0) with
@@ -471,10 +676,20 @@ let emit_instr state (ins : instr) =
            ins.args.(0)
            ins.pc)
   else if op = Bytecode.Op.branch
-  then
+  then (
     let target = ins.pc + ins.args.(0) + 1 in
-    Jvm.Code.goto state.code (label_at state target)
+    Jvm.Code.goto state.code (label_at state target);
+    record_branch_target state target)
   else if is_cmp_jump op then emit_cmp_jump state ins
+  else if op = closurerec_op then emit_closurerec state ins
+  else if op = offsetclosure0_op then emit_offsetclosure0 state
+  else if op = pushoffsetclosure0_op then emit_pushoffsetclosure0 state
+  else if op = apply1_op then emit_apply1 state
+  else if op = return_op then emit_return state
+  else if op = event_op || op = break_op then
+    (* Debug markers from [ocamlc -g]. Nothing to emit; they're there for
+       the OCaml debugger only. *)
+    ()
   else if is_c_call op
   then (
     match Hashtbl.find_opt state.supported_prims ins.args.(0) with
@@ -536,11 +751,40 @@ let walk_forward_user_end arr end_idx =
   loop (end_idx + 1)
 
 (* -------------------------------------------------------------------------- *)
-(* Driver. *)
+(* Compile-wide driver. *)
+
+let find_supported_prims_map = find_supported_prims
+
+let collect_pc_to_label
+    code
+    ~arr
+    ~scan_range:(scan_lo, scan_hi)
+    ~target_range:(tgt_lo_pc, tgt_hi_pc)
+    ~skip_pcs
+  =
+  let tbl = Hashtbl.create 4 in
+  for i = scan_lo to scan_hi do
+    if not (Hashtbl.mem skip_pcs arr.(i).pc)
+    then
+      match branch_target arr.(i) with
+      | None -> ()
+      | Some target_pc ->
+        if target_pc >= tgt_lo_pc
+           && target_pc <= tgt_hi_pc
+           && not (Hashtbl.mem tbl target_pc)
+        then Hashtbl.add tbl target_pc (Jvm.Code.fresh_label code)
+  done;
+  tbl
+
+let emit_range state arr (lo, hi) ~skip_pcs =
+  for i = lo to hi do
+    if not (Hashtbl.mem skip_pcs arr.(i).pc)
+    then emit_instr state arr.(i)
+  done
 
 let compile ~bc ~out_dir =
   let parsed = Bytecode.read_exe bc in
-  let prim_table = find_supported_prims parsed in
+  let prim_table = find_supported_prims_map parsed in
   if Hashtbl.length prim_table = 0
   then
     failwith
@@ -556,43 +800,135 @@ let compile ~bc ~out_dir =
   in
   let start_idx = walk_back_user_start arr first_idx in
   let end_idx = walk_forward_user_end arr last_idx in
-  let class_bytes =
-    Jvm.assemble_main_class (fun _cp code ->
-      let pc_to_label = Hashtbl.create 4 in
-      let post_end_pc =
-        if end_idx + 1 < Array.length arr
-        then arr.(end_idx + 1).pc
-        else max_int
+  (* Pre-scan for CLOSUREREC within the user range. *)
+  let functions = Hashtbl.create 2 in
+  let func_list = ref [] in
+  let fn_body_pcs = Hashtbl.create 4 in
+  let fn_count = ref 0 in
+  for i = start_idx to end_idx do
+    let ins = arr.(i) in
+    if ins.opcode = closurerec_op
+    then (
+      let nfuncs = ins.args.(0) in
+      let nvars = ins.args.(1) in
+      if nfuncs <> 1 || nvars <> 0
+      then
+        failwith
+          (Printf.sprintf
+             "java_of_ocaml: CLOSUREREC nfuncs=%d nvars=%d at pc %d — \
+              only (1, 0) is currently supported"
+             nfuncs
+             nvars
+             ins.pc);
+      let body_pc = ins.pc + 3 + ins.args.(2) in
+      let body_start_idx, body_end_idx =
+        find_function_body_range arr body_pc
       in
-      for i = start_idx to end_idx do
-        match branch_target arr.(i) with
-        | None -> ()
-        | Some target_pc ->
-          let in_range =
-            target_pc >= arr.(start_idx).pc
-            && target_pc <= post_end_pc
-          in
-          if in_range && not (Hashtbl.mem pc_to_label target_pc)
-          then
-            Hashtbl.add pc_to_label target_pc (Jvm.Code.fresh_label code)
-      done;
-      let state =
-        { code
-        ; globals = parsed.globals
-        ; supported_prims = prim_table
-        ; pc_to_label
-        ; acc_live = false
-        ; oc_stack_depth = 0
-        ; pending_cmp = None
+      let name = Printf.sprintf "ocaml_fn_%d" !fn_count in
+      incr fn_count;
+      let info =
+        { name
+        ; closurerec_pc = ins.pc
+        ; body_pc
+        ; body_start_idx
+        ; body_end_idx
         }
       in
-      for i = start_idx to end_idx do
-        emit_instr state arr.(i)
-      done;
-      (match Hashtbl.find_opt pc_to_label post_end_pc with
-       | Some lbl -> Jvm.Code.mark_label code lbl
-       | None -> ());
-      Jvm.Code.return_void code)
+      Hashtbl.add functions ins.pc info;
+      func_list := info :: !func_list;
+      for j = body_start_idx to body_end_idx do
+        Hashtbl.replace fn_body_pcs arr.(j).pc ()
+      done)
+  done;
+  let cp = Jvm.Cp.create () in
+  (* Emit each function body as a static method. *)
+  let fn_methods =
+    List.map
+      (fun fn_info ->
+        let fn_code = Jvm.Code.create cp in
+        let pc_to_label =
+          collect_pc_to_label
+            fn_code
+            ~arr
+            ~scan_range:(fn_info.body_start_idx, fn_info.body_end_idx)
+            ~target_range:
+              (arr.(fn_info.body_start_idx).pc, arr.(fn_info.body_end_idx).pc)
+            ~skip_pcs:(Hashtbl.create 0)
+        in
+        let state =
+          { code = fn_code
+          ; globals = parsed.globals
+          ; supported_prims = prim_table
+          ; functions
+          ; pc_to_label
+          ; branch_target_state = Hashtbl.create 4
+          ; acc_live = false
+          ; acc_kind = K_int
+          ; slot_kinds = [ K_int ]
+          ; oc_stack_depth = 1
+          ; pending_cmp = None
+          ; local_base = 0 (* slot 0 is the method parameter *)
+          ; enclosing_function_name = Some fn_info.name
+          }
+        in
+        emit_range
+          state
+          arr
+          (fn_info.body_start_idx, fn_info.body_end_idx)
+          ~skip_pcs:(Hashtbl.create 0);
+        { Jvm.name = fn_info.name
+        ; descriptor = "(I)I"
+        ; access_flags = 0x000A (* ACC_PRIVATE | ACC_STATIC *)
+        ; code = fn_code
+        })
+      !func_list
+  in
+  (* Emit main, skipping function-body PCs. *)
+  let main_code = Jvm.Code.create cp in
+  let post_end_pc =
+    if end_idx + 1 < Array.length arr then arr.(end_idx + 1).pc else max_int
+  in
+  let pc_to_label =
+    collect_pc_to_label
+      main_code
+      ~arr
+      ~scan_range:(start_idx, end_idx)
+      ~target_range:(arr.(start_idx).pc, post_end_pc)
+      ~skip_pcs:fn_body_pcs
+  in
+  let state =
+    { code = main_code
+    ; globals = parsed.globals
+    ; supported_prims = prim_table
+    ; functions
+    ; pc_to_label
+    ; branch_target_state = Hashtbl.create 4
+    ; acc_live = false
+    ; acc_kind = K_int
+    ; slot_kinds = []
+    ; oc_stack_depth = 0
+    ; pending_cmp = None
+    ; local_base = 1 (* slot 0 is [String[] args] *)
+    ; enclosing_function_name = None
+    }
+  in
+  emit_range state arr (start_idx, end_idx) ~skip_pcs:fn_body_pcs;
+  (match Hashtbl.find_opt pc_to_label post_end_pc with
+   | Some lbl -> Jvm.Code.mark_label main_code lbl
+   | None -> ());
+  Jvm.Code.return_void main_code;
+  let main_method =
+    { Jvm.name = "main"
+    ; descriptor = "([Ljava/lang/String;)V"
+    ; access_flags = 0x0009 (* ACC_PUBLIC | ACC_STATIC *)
+    ; code = main_code
+    }
+  in
+  let class_bytes =
+    Jvm.assemble_class
+      ~class_name:"Main"
+      ~cp
+      ~methods:(main_method :: fn_methods)
   in
   let out_path = Filename.concat out_dir "Main.class" in
   let oc = open_out_bin out_path in

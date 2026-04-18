@@ -132,3 +132,25 @@ let%expect_test "min of two let bindings" =
          if x < y then caml_java_print_int x
          else caml_java_print_int y |};
   [%expect {| 5 |}]
+
+let%expect_test "recursive fibonacci" =
+  compile_and_run
+    {| external caml_java_print_int : int -> unit = "caml_java_print_int"
+       let rec fib n = if n < 2 then n else fib (n - 1) + fib (n - 2)
+       let () = caml_java_print_int (fib 10) |};
+  [%expect {| 55 |}]
+
+let%expect_test "fib of small values" =
+  compile_and_run
+    {| external caml_java_print_int : int -> unit = "caml_java_print_int"
+       let rec fib n = if n < 2 then n else fib (n - 1) + fib (n - 2)
+       let () =
+         caml_java_print_int (fib 0);
+         caml_java_print_int (fib 1);
+         caml_java_print_int (fib 5);
+         caml_java_print_int (fib 15) |};
+  [%expect {|
+    0
+    1
+    5
+    610 |}]

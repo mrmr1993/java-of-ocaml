@@ -313,8 +313,23 @@ module Code = struct
     then pop t net
     else push t (-net)
 
+  let invokestatic t ~class_ ~method_ ~descriptor =
+    let idx = Cp.methodref t.cp ~class_ ~method_ ~descriptor in
+    add_u1 t.buf 0xB8;
+    add_u2 t.buf idx;
+    let net =
+      stack_effect_of_call_descriptor descriptor ~is_virtual:false
+    in
+    if net >= 0
+    then pop t net
+    else push t (-net)
+
   let return_void t =
     add_u1 t.buf 0xB1 (* return *);
+    t.stack <- 0
+
+  let ireturn t =
+    add_u1 t.buf 0xAC (* ireturn *);
     t.stack <- 0
 
   (* Resolve all forward references: for each label, patch the placeholder
@@ -360,19 +375,60 @@ end
 
 (* --- Class assembly --- *)
 
-let assemble_main_class build =
-  let cp = Cp.create () in
-  let code = Code.create cp in
-  build cp code;
-  let code_bytes = Code.contents code in
-  let code_len = String.length code_bytes in
-  (* Pre-register structural constants so the CP serialisation order is
-     stable even though emitting instructions may have already appended. *)
-  let this_class = Cp.class_ cp "Main" in
+type method_desc =
+  { name : string
+  ; descriptor : string
+  ; access_flags : int
+  ; code : Code.t
+  }
+
+(* A method's CP indices are captured up-front so they can be interned
+   BEFORE the constant pool is serialised. Code bytes are realised at the
+   same time (triggering label resolution and any final CP additions). *)
+type method_layout =
+  { m : method_desc
+  ; code_bytes : string
+  ; name_idx : int
+  ; desc_idx : int
+  ; code_attr_idx : int
+  }
+
+let emit_method_info out (l : method_layout) =
+  let code_len = String.length l.code_bytes in
+  add_u2 out l.m.access_flags;
+  add_u2 out l.name_idx;
+  add_u2 out l.desc_idx;
+  add_u2 out 1 (* one Code attribute *);
+  add_u2 out l.code_attr_idx;
+  let attr_len = 2 + 2 + 4 + code_len + 2 + 2 in
+  add_u4 out attr_len;
+  add_u2 out (Code.max_stack l.m.code);
+  add_u2 out (Code.max_locals l.m.code);
+  add_u4 out code_len;
+  Buffer.add_string out l.code_bytes;
+  add_u2 out 0 (* exception_table_length *);
+  add_u2 out 0 (* nested attributes_count *)
+
+let assemble_class ~class_name ~cp ~methods =
+  (* Phase 1: realise bytes and intern all CP entries the methods or class
+     header need. The bytes have to be computed first — [Code.contents]
+     runs label resolution and may append CP entries (e.g. via methodref
+     lookup deferred to branch emission). *)
+  let layouts =
+    List.map
+      (fun m ->
+        let bytes = Code.contents m.code in
+        { m
+        ; code_bytes = bytes
+        ; name_idx = Cp.utf8 cp m.name
+        ; desc_idx = Cp.utf8 cp m.descriptor
+        ; code_attr_idx = Cp.utf8 cp "Code"
+        })
+      methods
+  in
+  let this_class = Cp.class_ cp class_name in
   let super_class = Cp.class_ cp "java/lang/Object" in
-  let main_name = Cp.utf8 cp "main" in
-  let main_desc = Cp.utf8 cp "([Ljava/lang/String;)V" in
-  let code_attr_name = Cp.utf8 cp "Code" in
+  (* Phase 2: serialise. The CP is now stable. *)
   let out = Buffer.create 512 in
   add_u4 out 0xCAFEBABE;
   add_u2 out 0 (* minor_version *);
@@ -386,22 +442,22 @@ let assemble_main_class build =
   add_u2 out super_class;
   add_u2 out 0 (* interfaces_count *);
   add_u2 out 0 (* fields_count *);
-  add_u2 out 1 (* methods_count *);
-  add_u2 out 0x0009 (* ACC_PUBLIC | ACC_STATIC *);
-  add_u2 out main_name;
-  add_u2 out main_desc;
-  add_u2 out 1 (* one Code attribute on the method *);
-  add_u2 out code_attr_name;
-  let attr_len =
-    2 (* max_stack *) + 2 (* max_locals *) + 4 (* code_length *) + code_len
-    + 2 (* exception_table_length *) + 2 (* Code attributes_count *)
-  in
-  add_u4 out attr_len;
-  add_u2 out (Code.max_stack code);
-  add_u2 out (Code.max_locals code);
-  add_u4 out code_len;
-  Buffer.add_string out code_bytes;
-  add_u2 out 0 (* exception_table_length *);
-  add_u2 out 0 (* nested attributes_count *);
+  add_u2 out (List.length methods);
+  List.iter (emit_method_info out) layouts;
   add_u2 out 0 (* class attributes_count *);
   Buffer.contents out
+
+let assemble_main_class build =
+  let cp = Cp.create () in
+  let main_code = Code.create cp in
+  build cp main_code;
+  assemble_class
+    ~class_name:"Main"
+    ~cp
+    ~methods:
+      [ { name = "main"
+        ; descriptor = "([Ljava/lang/String;)V"
+        ; access_flags = 0x0009 (* ACC_PUBLIC | ACC_STATIC *)
+        ; code = main_code
+        }
+      ]
