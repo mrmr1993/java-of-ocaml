@@ -486,64 +486,6 @@ let emit_closurerec state (ins : instr) =
     done;
     ignore ins)
 
-let consume_top state =
-  pop_slots state 1
-
-(* Load the top OCaml-stack slot as an [int], unboxing from Integer if the
-   slot currently holds an opaque Object. *)
-let emit_iload_top_as_int state =
-  let si = List.hd state.slots in
-  emit_load_for_kind state.code si.local si.kind;
-  match si.kind with
-  | K_int -> ()
-  | K_obj ->
-    Jvm.Code.checkcast state.code "java/lang/Integer";
-    Jvm.Code.invokevirtual
-      state.code
-      ~class_:"java/lang/Integer"
-      ~method_:"intValue"
-      ~descriptor:"()I"
-  | _ ->
-    failwith
-      (Printf.sprintf
-         "java_of_ocaml: arithmetic on non-int slot (%s)"
-         (jvm_type_of_kind si.kind))
-
-let emit_addint state =
-  ensure_kind state K_int;
-  emit_iload_top_as_int state;
-  Jvm.Code.iadd state.code;
-  consume_top state
-
-let emit_subint state =
-  ensure_kind state K_int;
-  emit_iload_top_as_int state;
-  Jvm.Code.isub state.code;
-  consume_top state
-
-let emit_mulint state =
-  ensure_kind state K_int;
-  emit_iload_top_as_int state;
-  Jvm.Code.imul state.code;
-  consume_top state
-
-let emit_divint state =
-  ensure_kind state K_int;
-  emit_iload_top_as_int state;
-  Jvm.Code.idiv state.code;
-  consume_top state
-
-let emit_modint state =
-  ensure_kind state K_int;
-  emit_iload_top_as_int state;
-  Jvm.Code.irem state.code;
-  consume_top state
-
-let emit_offsetint state n =
-  ensure_kind state K_int;
-  Jvm.Code.ldc_int state.code n;
-  Jvm.Code.iadd state.code
-
 let emit_println state ~int_arg =
   if int_arg
   then ensure_kind state K_int
@@ -875,98 +817,6 @@ let emit_push_retaddr state =
     push_slot state K_obj local
   done;
   state.pending_retaddrs <- state.pending_retaddrs + 1
-
-(* Box acc's value into an Object on the JVM op stack, so it can be used
-   as the [Object] return from an [apply] method or as a capture /
-   exception payload. *)
-let box_acc_to_object state =
-  match state.acc_kind with
-  | K_int -> emit_box_int state.code
-  | K_string | K_block _ | K_closure _ | K_obj ->
-    () (* already a reference *)
-
-(* OCaml [RAISE]: box acc into a [CamlException] and [athrow].
-
-   Leaves the OCaml-level state dead: after the throw, control exits the
-   method, so anything the linear walker emits after this point is
-   unreachable from normal flow (only the JVM exception handler at a
-   pushtrap can jump back in). *)
-let emit_raise state =
-  box_acc_to_object state;
-  let exc_val_local = allocate_local state in
-  Jvm.Code.astore state.code exc_val_local;
-  Jvm.Code.new_ state.code "CamlException";
-  Jvm.Code.dup state.code;
-  Jvm.Code.aload state.code exc_val_local;
-  Jvm.Code.invokespecial
-    state.code
-    ~class_:"CamlException"
-    ~method_:"<init>"
-    ~descriptor:"(Ljava/lang/Object;)V";
-  Jvm.Code.athrow state.code;
-  state.acc_live <- false;
-  state.acc_kind <- K_int;
-  state.oc_stack_depth <- 0;
-  state.slots <- []
-
-(* OCaml [PUSHTRAP L]: opens a try region whose handler lives at bytecode
-   PC [L].
-
-   - Snapshot the current OCaml-side state so when we later materialise
-     the handler label we can restore [slots] / [oc_stack_depth] to their
-     pre-pushtrap values (OCaml's [RAISE] unwinds the trap frame and
-     resumes at the handler with the stack it had before PUSHTRAP).
-   - Inflate [oc_stack_depth] by 4 with dummy slots so any following
-     [acc K] / [push] in the protected body resolves to the right index
-     (OCaml's interpreter pushes 4 trap-frame words at PUSHTRAP).
-   - Mark a fresh JVM label at the current byte offset: this is the
-     [start_pc] of the JVM exception-table entry the matching POPTRAP
-     will install.
-   - Allocate a fresh JVM label [prelude_lbl] and record it in
-     [pending_handlers] keyed by the bytecode PC [L]. When [emit_instr]
-     reaches that PC it will emit the JVM-side prelude (unwrap the
-     caught [CamlException]) at [prelude_lbl] before continuing into the
-     OCaml handler's own bytecode. *)
-let emit_pushtrap state (ins : instr) =
-  let handler_pc = ins.pc + ins.args.(0) + 1 in
-  record_branch_target state handler_pc;
-  let prelude_lbl =
-    match Hashtbl.find_opt state.pending_handlers handler_pc with
-    | Some lbl -> lbl
-    | None ->
-      let lbl = Jvm.Code.fresh_label state.code in
-      Hashtbl.add state.pending_handlers handler_pc lbl;
-      lbl
-  in
-  let start_lbl = Jvm.Code.fresh_label state.code in
-  Jvm.Code.mark_label state.code start_lbl;
-  for _ = 1 to 4 do
-    let local = allocate_local state in
-    push_slot state K_obj local
-  done;
-  state.open_traps <- (start_lbl, prelude_lbl) :: state.open_traps
-
-(* OCaml [POPTRAP]: closes the innermost try region and installs the JVM
-   exception-table entry. Pops the 4 dummy trap slots we inflated at the
-   matching [PUSHTRAP]. Emits no JVM bytes — the [end_lbl] marks the
-   current byte offset as the exclusive end of the protected range. *)
-let emit_poptrap state =
-  match state.open_traps with
-  | [] ->
-    failwith
-      "java_of_ocaml: POPTRAP without a matching PUSHTRAP — \
-       exception-scope tracking is broken"
-  | (start_lbl, prelude_lbl) :: rest ->
-    state.open_traps <- rest;
-    let end_lbl = Jvm.Code.fresh_label state.code in
-    Jvm.Code.mark_label state.code end_lbl;
-    Jvm.Code.add_exception_handler
-      state.code
-      ~start_lbl
-      ~end_lbl
-      ~handler_lbl:prelude_lbl
-      ~catch_class:(Some "CamlException");
-    pop_slots state 4
 
 (* APPTERM_N: tail call — same as APPLY followed by return. Because the
    callee's result and our method's return type are both [Object], we
@@ -1334,13 +1184,13 @@ let emit_instr state (ins : instr) =
   else if op = Bytecode.Op.switch
   then emit_switch state ins
   else if op = Bytecode.Op.pushtrap
-  then emit_pushtrap state ins
+  then Emit_exception.emit_pushtrap state ins
   else if op = Bytecode.Op.poptrap
-  then emit_poptrap state
+  then Emit_exception.emit_poptrap state
   else if op = Bytecode.Op.raise_
        || op = Bytecode.Op.reraise
        || op = Bytecode.Op.raise_notrace
-  then emit_raise state
+  then Emit_exception.emit_raise state
   else if op = Bytecode.Op.isint
   then emit_isint state
   else if op = Bytecode.Op.push_retaddr
@@ -1368,7 +1218,7 @@ let emit_instr state (ins : instr) =
   else if op = Bytecode.Op.pushconst3 then emit_int_push state 3
   else if op = Bytecode.Op.pushconstint
   then emit_int_push state ins.args.(0)
-  else if op = Bytecode.Op.offsetint then emit_offsetint state ins.args.(0)
+  else if op = Bytecode.Op.offsetint then Emit_arith.emit_offsetint state ins.args.(0)
   else if op = Bytecode.Op.makeblock
        || op = Bytecode.Op.makeblock1
        || op = Bytecode.Op.makeblock2
@@ -1593,11 +1443,11 @@ let emit_instr state (ins : instr) =
     Jvm.Code.pop_top state.code;
     Jvm.Code.ldc_int state.code 0;
     state.acc_kind <- K_int)
-  else if op = Bytecode.Op.addint then emit_addint state
-  else if op = Bytecode.Op.subint then emit_subint state
-  else if op = Bytecode.Op.mulint then emit_mulint state
-  else if op = Bytecode.Op.divint then emit_divint state
-  else if op = Bytecode.Op.modint then emit_modint state
+  else if op = Bytecode.Op.addint then Emit_arith.emit_addint state
+  else if op = Bytecode.Op.subint then Emit_arith.emit_subint state
+  else if op = Bytecode.Op.mulint then Emit_arith.emit_mulint state
+  else if op = Bytecode.Op.divint then Emit_arith.emit_divint state
+  else if op = Bytecode.Op.modint then Emit_arith.emit_modint state
   else if op = Bytecode.Op.push then emit_push state
   else if op = Bytecode.Op.acc0 then emit_acc state 0
   else if op = Bytecode.Op.acc1 then emit_acc state 1

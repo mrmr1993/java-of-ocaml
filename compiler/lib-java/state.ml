@@ -109,6 +109,8 @@ let pop_slots state n =
   state.slots <- drop state.slots n;
   state.oc_stack_depth <- state.oc_stack_depth - n
 
+let consume_top state = pop_slots state 1
+
 let label_at state pc = Hashtbl.find state.pc_to_label pc
 
 let overwrite_acc state kind emit =
@@ -116,3 +118,8 @@ let overwrite_acc state kind emit =
   emit ();
   state.acc_live <- true;
   state.acc_kind <- kind
+
+let box_acc_to_object state =
+  match state.acc_kind with
+  | K_int -> emit_box_int state.code
+  | K_string | K_block _ | K_closure _ | K_obj -> ()

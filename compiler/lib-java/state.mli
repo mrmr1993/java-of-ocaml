@@ -82,9 +82,19 @@ val push_slot : state -> kind -> int -> unit
 
 val pop_slots : state -> int -> unit
 
+val consume_top : state -> unit
+(** [pop_slots state 1] — one-arg arithmetic consumes the top slot
+    (acc + top). Used by every arith emitter. *)
+
 val label_at : state -> int -> Jvm.Code.label
 
 val overwrite_acc : state -> kind -> (unit -> unit) -> unit
 (** [overwrite_acc state kind emit] pops the current live acc (if any),
     calls [emit] to produce the new acc value, and records the new
     [kind]. *)
+
+val box_acc_to_object : state -> unit
+(** If [state.acc_kind = K_int], emit [Integer.valueOf] to box the acc
+    into an Object reference. Otherwise a no-op. Does not touch
+    [state.acc_kind] — callers that care about the resulting kind
+    update it themselves. *)
