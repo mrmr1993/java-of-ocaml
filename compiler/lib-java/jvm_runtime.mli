@@ -40,3 +40,10 @@ val ephemeron_class_bytes : unit -> string
 (** OCaml ephemerons / weak refs. Keys are held as
     [java.lang.ref.WeakReference]s; data slot is cleared when any
     key's referent has been collected. *)
+
+val java_ffi_class_bytes : unit -> string
+(** Reflective dispatcher backing [Java.Unsafe]. Static helpers for
+    invoking methods / reading fields / allocating objects when the
+    target is a runtime-computed name rather than known at compile
+    time. Users of the PPX / typed-external path don't need this
+    class; it's linked in unconditionally for simplicity. *)

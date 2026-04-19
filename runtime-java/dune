@@ -12,7 +12,8 @@
   Channel.class
   Bytes.class
   Format.class
-  Ephemeron.class)
+  Ephemeron.class
+  JavaFFI.class)
  (deps
   Block.java
   Closure.java
@@ -22,7 +23,8 @@
   Channel.java
   Bytes.java
   Format.java
-  Ephemeron.java)
+  Ephemeron.java
+  JavaFFI.java)
  (action
   (run javac -d . %{deps})))
 
@@ -38,7 +40,8 @@
    Channel.class
    Bytes.class
    Format.class
-   Ephemeron.class))
+   Ephemeron.class
+   JavaFFI.class))
  (action
   (with-stdout-to
    %{targets}

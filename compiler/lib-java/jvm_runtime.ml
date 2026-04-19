@@ -15,3 +15,4 @@ let channel_class_bytes () = R.channel
 let bytes_class_bytes () = R.bytes
 let format_class_bytes () = R.format
 let ephemeron_class_bytes () = R.ephemeron
+let java_ffi_class_bytes () = R.java_f_f_i

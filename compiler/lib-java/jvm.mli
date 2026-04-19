@@ -350,6 +350,11 @@ val ephemeron_class_bytes : unit -> string
     approximating OCaml's "data reachable iff all keys reachable"
     semantics. *)
 
+val java_ffi_class_bytes : unit -> string
+(** Bytes of the [JavaFFI] runtime class — static reflective
+    helpers used by [Java.Unsafe] in OCaml when a caller method
+    name / descriptor is only known at runtime. *)
+
 val closure_class_bytes : unit -> string
 
 val partial_closure_class_bytes : unit -> string
