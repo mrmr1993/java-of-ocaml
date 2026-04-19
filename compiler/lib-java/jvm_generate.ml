@@ -871,7 +871,15 @@ let emit_ccall ctx name args =
     Jvm.Code.ldc_int ctx.code 0;
     Kind.K_int
   | "caml_sys_const_max_wosize" ->
-    Jvm.Code.ldc_int ctx.code 1073741823;
+    (* Stdlib's Sys.max_string_length is computed from this as
+       [word_size / 8 * max_wosize - 1]. With our word_size = 64
+       and JVM 32-bit ints, max_wosize * 8 must stay in int32
+       range; clamp to 2^28 - 1 so [8 * 268435455 - 1 = 2147483639]
+       fits. OCaml's canonical value (2^54 - 1 on 64-bit) would
+       overflow our 32-bit arithmetic to a negative number,
+       causing Buffer.create / Bytes.create to receive absurd
+       sizes. *)
+    Jvm.Code.ldc_int ctx.code 268435455;
     Kind.K_int
   | "caml_sys_const_min_int" -> Jvm.Code.ldc_int ctx.code min_int; Kind.K_int
   | "caml_sys_const_max_int" -> Jvm.Code.ldc_int ctx.code max_int; Kind.K_int
