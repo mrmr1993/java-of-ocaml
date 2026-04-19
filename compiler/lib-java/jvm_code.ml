@@ -68,6 +68,9 @@ type t =
   ; mutable next_label_id : int
   ; mutable labels : label list
   ; mutable exceptions : exception_entry list
+  ; mutable line_entries : (int * int) list
+        (* (jvm_pc, source_line), pushed in reverse chronological
+           order. See [mark_line] / [line_entries]. *)
   }
 
 let create cp =
@@ -79,7 +82,27 @@ let create cp =
   ; next_label_id = 0
   ; labels = []
   ; exceptions = []
+  ; line_entries = []
   }
+
+(* Record that the JVM bytecode starting at the current buffer position
+   originates from [line] in the source file. Collapses redundant
+   entries:
+   - if the previous entry sits at the same JVM pc, overwrite it
+     (the later call is more specific);
+   - otherwise if it reports the same [line] already in effect, skip
+     (no change to the running line).  *)
+let mark_line t line =
+  if line > 0 && line <= 0xffff
+  then
+    let pc = Buffer.length t.buf in
+    match t.line_entries with
+    | (prev_pc, _) :: rest when prev_pc = pc ->
+      t.line_entries <- (pc, line) :: rest
+    | (_, prev_line) :: _ when prev_line = line -> ()
+    | _ -> t.line_entries <- (pc, line) :: t.line_entries
+
+let line_entries t = List.rev t.line_entries
 
 let add_exception_handler t ~start_lbl ~end_lbl ~handler_lbl ~catch_class =
   let idx =

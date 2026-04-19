@@ -35,5 +35,10 @@ val emit_program :
           [Main.GLOBALS]. Used by [caml_sys_getenv] to raise on
           missing env lookups. Defaults to 6 (OCaml's standard
           predef-exn ordering). *)
+  -> ?line_of_pc:(int -> int option)
+      (** Look up the source line for a bytecode pc (a
+          [Code.Addr.t]). When [Some line] is returned, [emit_block]
+          emits a [LineNumberTable] marker at the block's JVM
+          bytecode entry. Default: always [None] (no line info). *)
   -> Code.program
   -> unit

@@ -1091,8 +1091,26 @@ let process_block state start_pc next_starts addr_map =
   let br = walk start_pc in
   { params; body = List.rev state.body; branch = br }
 
-let parse_generic_with_stack instrs ~start_pc ~end_pc ~initial_stack ~env =
+let parse_generic_with_stack
+    ?(extra_starts = [])
+    instrs
+    ~start_pc
+    ~end_pc
+    ~initial_stack
+    ~env
+  =
   let starts = block_starts instrs ~start_pc ~end_pc in
+  (* Extra boundaries come from the caller (debug-event PCs, so each
+     source line gets its own block and its own LineNumberTable
+     marker). Only PCs inside the current range that actually land on
+     a decoded instruction are accepted. *)
+  let starts =
+    List.fold_left
+      (fun acc pc ->
+        if pc > start_pc && pc < end_pc then IntSet.add pc acc else acc)
+      starts
+      extra_starts
+  in
   if Lazy.force trace_enabled
   then (
     let near_1354 =
@@ -1198,7 +1216,7 @@ let parse_generic_with_stack instrs ~start_pc ~end_pc ~initial_stack ~env =
   List.iter visit pending;
   { start = start_pc; blocks = !blocks; free_pc = end_pc }
 
-let parse_function instrs ~start_pc ~end_pc ~nargs ~ncaps =
+let parse_function ?extra_starts instrs ~start_pc ~end_pc ~nargs ~ncaps =
   Var.reset ();
   let arg_vars = List.init nargs (fun _ -> Var.fresh ()) in
   let cap_vars = List.init ncaps (fun _ -> Var.fresh ()) in
@@ -1213,6 +1231,7 @@ let parse_function instrs ~start_pc ~end_pc ~nargs ~ncaps =
   let prog =
     let initial_stack = arg_vars in
     parse_generic_with_stack
+      ?extra_starts
       instrs
       ~start_pc
       ~end_pc
@@ -1221,9 +1240,10 @@ let parse_function instrs ~start_pc ~end_pc ~nargs ~ncaps =
   in
   (prog, params, env_var)
 
-let parse_main instrs ~start_pc ~end_pc =
+let parse_main ?extra_starts instrs ~start_pc ~end_pc =
   Var.reset ();
   parse_generic_with_stack
+    ?extra_starts
     instrs
     ~start_pc
     ~end_pc

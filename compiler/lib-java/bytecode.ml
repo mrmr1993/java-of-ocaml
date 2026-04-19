@@ -1,7 +1,14 @@
+type debug_loc =
+  { file : string
+  ; line : int
+  ; modname : string
+  }
+
 type t =
   { code : int array
   ; prims : string array
   ; globals : Obj.t array
+  ; debug : (int, debug_loc) Hashtbl.t
   }
 
 module Op = struct
@@ -429,8 +436,43 @@ let read_exe path =
       seek_in ic off;
       (Marshal.from_channel ic : Obj.t array)
   in
+  let debug =
+    let table = Hashtbl.create 64 in
+    (match find_section "DBUG" with
+     | None -> ()
+     | Some (off, _len) ->
+       seek_in ic off;
+       (* DBUG layout (see OCaml's [Bytelink.output_debug_info]):
+            num_lists : u32 BE
+            for each list:
+              orig : u32 BE  (byte offset of unit's code start in CODE)
+              evl  : Instruct.debug_event list (Marshal)
+              dirs : string list                (Marshal)
+          Each event's [ev_pos] is a byte offset within its unit; the
+          absolute word-pc is [(orig + ev_pos) / 4]. *)
+       let num_lists = input_binary_int ic in
+       for _ = 1 to num_lists do
+         let orig = input_binary_int ic in
+         let evl : Instruct.debug_event list = input_value ic in
+         let _dirs : string list = input_value ic in
+         List.iter
+           (fun (ev : Instruct.debug_event) ->
+             let pc = (orig + ev.ev_pos) / 4 in
+             let loc_start = ev.ev_loc.Location.loc_start in
+             let file = loc_start.Lexing.pos_fname in
+             let line = loc_start.Lexing.pos_lnum in
+             if file <> "_none_" && line > 0
+             then
+               Hashtbl.replace
+                 table
+                 pc
+                 { file; line; modname = ev.ev_module })
+           evl
+       done);
+    table
+  in
   close_in ic;
-  { code; prims; globals }
+  { code; prims; globals; debug }
 
 let prim_index t name =
   let n = Array.length t.prims in

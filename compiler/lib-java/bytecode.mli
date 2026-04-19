@@ -1,9 +1,20 @@
 (** Reader for OCaml bytecode executables. *)
 
+type debug_loc =
+  { file : string      (** Source file name as recorded in the DBUG event
+                           ([ev_loc.loc_start.pos_fname]). *)
+  ; line : int         (** Source line number (1-based). *)
+  ; modname : string   (** OCaml module name from the event. *)
+  }
+
 type t =
   { code : int array            (** CODE section, decoded as signed int32 words *)
   ; prims : string array        (** PRIM section, null-separated primitive names *)
   ; globals : Obj.t array       (** DATA section, the marshalled globals table *)
+  ; debug : (int, debug_loc) Hashtbl.t
+        (** DBUG section, keyed by bytecode word-pc. Empty if the executable
+            was built without [-g]. Multiple events may share a pc; last
+            writer wins. *)
   }
 
 val read_exe : string -> t

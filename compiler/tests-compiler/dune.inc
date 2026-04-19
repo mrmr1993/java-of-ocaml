@@ -216,6 +216,18 @@
   (pps ppx_expect)))
 
 (library
+ ;; compiler/tests-compiler/source_map.ml
+ (name source_map_15)
+ (enabled_if true)
+ (modules source_map)
+ (libraries unix str java_of_ocaml_expect_tests_helper)
+ (inline_tests
+  (enabled_if true))
+ (flags (:standard -open Java_of_ocaml_expect_tests_helper))
+ (preprocess
+  (pps ppx_expect)))
+
+(library
  ;; compiler/tests-compiler/strings.ml
  (name strings_15)
  (enabled_if true)

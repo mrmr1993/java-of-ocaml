@@ -52,6 +52,11 @@ module Code : sig
   (** Ensure [max_locals] is at least [n]. Used to reserve slots for
       method parameters that the body may not touch directly. *)
 
+  val mark_line : t -> int -> unit
+  (** Record that bytecode emitted from the current position onward
+      maps to source line [line]. Populates the [LineNumberTable]
+      sub-attribute of [Code]. *)
+
   (** {2 Loads / stack manipulation} *)
 
   val ldc_string : t -> string -> unit
@@ -283,16 +288,19 @@ type field_desc =
   }
 
 val assemble_class :
-  class_name:string
+  ?source_file:string
+  -> class_name:string
   -> super_name:string
   -> cp:Cp.t
   -> fields:field_desc list
   -> methods:method_desc list
   -> access_flags:int
+  -> unit
   -> string
 (** Build a class file containing the given methods. All methods share the
     supplied constant pool. The returned bytes are ready to write to
-    [<class_name>.class]. *)
+    [<class_name>.class]. If [source_file] is given, it is emitted as
+    the class [SourceFile] attribute. *)
 
 val assemble_main_class : (Cp.t -> Code.t -> unit) -> string
 (** Convenience wrapper over {!assemble_class} for a single-method [Main]

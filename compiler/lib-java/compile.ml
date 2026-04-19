@@ -332,6 +332,109 @@ let compile ~bc ~out_dir =
      between IR and legacy for the main body, so a failed IR attempt
      doesn't leave half-written globals-init bytes in [main_code]. *)
   let _ = end_idx in
+  (* Block addresses land on OCaml branch targets, which rarely coincide
+     with a debug-event pc (events sit at expression boundaries). To
+     still attribute each block to a line, fall back to the line of
+     the next event with pc >= [pc]. Pre-sort the pcs once so each
+     lookup is O(log n). *)
+  let sorted_debug_pcs =
+    let arr =
+      Hashtbl.fold
+        (fun pc (d : Bytecode.debug_loc) acc -> (pc, d.line) :: acc)
+        parsed.debug
+        []
+      |> List.sort (fun (a, _) (b, _) -> compare a b)
+      |> Array.of_list
+    in
+    arr
+  in
+  let line_of_pc pc =
+    let n = Array.length sorted_debug_pcs in
+    if n = 0
+    then None
+    else
+      let lo = ref 0 and hi = ref (n - 1) and found = ref (-1) in
+      while !lo <= !hi do
+        let mid = (!lo + !hi) / 2 in
+        let mpc, _ = sorted_debug_pcs.(mid) in
+        if mpc >= pc
+        then (
+          found := mid;
+          hi := mid - 1)
+        else lo := mid + 1
+      done;
+      if !found = -1
+      then None
+      else
+        let _, line = sorted_debug_pcs.(!found) in
+        Some line
+  in
+  (match Sys.getenv_opt "JAVA_OF_OCAML_DEBUG" with
+   | Some s when List.mem "dbug" (String.split_on_char ',' s) ->
+     Format.eprintf "[dbug] %d events@." (Hashtbl.length parsed.debug);
+     let pcs =
+       Hashtbl.fold (fun pc d acc -> (pc, d) :: acc) parsed.debug []
+       |> List.sort (fun (a, _) (b, _) -> compare a b)
+     in
+     List.iter
+       (fun (pc, (d : Bytecode.debug_loc)) ->
+         Format.eprintf
+           "[dbug] pc=%d file=%s line=%d mod=%s@."
+           pc
+           d.file
+           d.line
+           d.modname)
+       pcs
+   | _ -> ());
+  (* Resolve a [SourceFile] class attribute from the debug table:
+     the file of the lowest-pc event at or after [from_pc]. Returns
+     [None] when [-g] wasn't used (debug table empty). *)
+  let source_file_from pc_range_start =
+    let best = ref None in
+    Hashtbl.iter
+      (fun pc (d : Bytecode.debug_loc) ->
+        if pc >= pc_range_start && d.file <> ""
+        then
+          match !best with
+          | Some (prev_pc, _) when prev_pc <= pc -> ()
+          | _ -> best := Some (pc, d.file))
+      parsed.debug;
+    match !best with
+    | Some (_, f) -> Some (Filename.basename f)
+    | None -> None
+  in
+  (* Pick a source file for the Main class. Heuristic: the file of
+     the highest-pc event before Std_exit whose module isn't in the
+     Stdlib/Camlinternal* set — that is the user's last compilation
+     unit. Fall back to the first event if none matches (e.g. only
+     the Stdlib itself was compiled with [-g]). *)
+  let main_source_file =
+    let std_exit_pc = ref max_int in
+    Hashtbl.iter
+      (fun pc (d : Bytecode.debug_loc) ->
+        if d.modname = "Std_exit" && pc < !std_exit_pc then std_exit_pc := pc)
+      parsed.debug;
+    let is_user_module m =
+      m <> "Stdlib"
+      && not
+           (String.length m >= 7 && String.sub m 0 7 = "Stdlib_")
+      && not
+           (String.length m >= 13 && String.sub m 0 13 = "Camlinternal")
+      && m <> "Std_exit"
+    in
+    let best = ref None in
+    Hashtbl.iter
+      (fun pc (d : Bytecode.debug_loc) ->
+        if pc < !std_exit_pc && is_user_module d.modname
+        then
+          match !best with
+          | Some (p, _) when p >= pc -> ()
+          | _ -> best := Some (pc, d.file))
+      parsed.debug;
+    match !best with
+    | Some (_, f) -> Some (Filename.basename f)
+    | None -> source_file_from 0
+  in
   time_phase "emit-main" (fun () ->
     let body_pc_to_fi = Hashtbl.create 64 in
     List.iter
@@ -376,6 +479,7 @@ let compile ~bc ~out_dir =
                ~name_of_body
                ~fn_info_of_body
                ~prim_name
+               ~line_of_pc
                prog;
              if debug_ir_emit ()
              then Format.eprintf "[ir_emit] <main>: used IR@.";
@@ -411,6 +515,7 @@ let compile ~bc ~out_dir =
          ~name_of_body
          ~fn_info_of_body
          ~prim_name
+         ~line_of_pc
          prog
      | None ->
        emit_globals_init main_code parsed.globals;
@@ -446,12 +551,14 @@ let compile ~bc ~out_dir =
   in
   let main_class_bytes =
     Jvm.assemble_class
+      ?source_file:main_source_file
       ~class_name:"Main"
       ~super_name:"java/lang/Object"
       ~cp
       ~fields:[ globals_field; dls_field ]
       ~methods:[ main_method ]
       ~access_flags:0x0021 (* ACC_PUBLIC | ACC_SUPER *)
+      ()
   in
   let closure_class_files = time_phase "emit-closures" (fun () ->
     List.map
@@ -530,6 +637,7 @@ let compile ~bc ~out_dir =
                 ~prim_name
                 ~arg_vars
                 ~enclosing:(fn_info, env_var)
+                ~line_of_pc
                 prog;
               if debug_ir_emit ()
               then Format.eprintf "[ir_emit] %s: used IR@." fn_info.name;
@@ -640,14 +748,17 @@ let compile ~bc ~out_dir =
           ; code = arity_code
           }
         in
+        let fn_source_file = source_file_from fn_info.body_pc in
         let bytes =
           Jvm.assemble_class
+            ?source_file:fn_source_file
             ~class_name:fn_info.name
             ~super_name:"Closure"
             ~cp:fn_cp
             ~fields
             ~methods:[ ctor; arity_method; apply_method ]
             ~access_flags:0x0031
+            ()
         in
         fn_info.name, bytes)
       !func_list)

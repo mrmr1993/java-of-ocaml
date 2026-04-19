@@ -47,3 +47,14 @@ val compile_and_javap :
     the emitted JVM bytecode of a representative program, so that
     emission regressions show up as a diff even when the program's
     stdout is unchanged. *)
+
+val compile_and_javap_lines :
+     ?flags:string list
+  -> ?ocaml_flags:string list
+  -> ?debug:bool
+  -> ?unix:bool
+  -> string
+  -> unit
+(** Compile [s] through to [Main.class], then [javap -l] the result
+    and print the listing (includes [SourceFile] and per-method
+    [LineNumberTable] info). Used for source-map snapshots. *)

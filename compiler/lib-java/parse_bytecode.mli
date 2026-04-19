@@ -22,7 +22,8 @@ exception Not_supported of string
     - [ncaps] : capture count. Captures are also bound to fresh Vars;
       ENVACC references read them directly. *)
 val parse_function :
-     Instr.instr list
+     ?extra_starts:int list
+  -> Instr.instr list
   -> start_pc:int
   -> end_pc:int
   -> nargs:int
@@ -32,6 +33,14 @@ val parse_function :
      * Code.Var.t (* env Var — the closure self-ref used by ENVACC /
                       OFFSETCLOSURE *)
 
-(** [parse_main instrs ~start_pc ~end_pc] is for the top-level init code
-    (no args, no captures). *)
-val parse_main : Instr.instr list -> start_pc:int -> end_pc:int -> Code.program
+(** [parse_main ?extra_starts instrs ~start_pc ~end_pc] is for the
+    top-level init code (no args, no captures). [extra_starts], if
+    given, is a list of extra PCs to treat as block boundaries;
+    callers pass debug-event PCs here to get a per-source-line
+    block split. *)
+val parse_main :
+     ?extra_starts:int list
+  -> Instr.instr list
+  -> start_pc:int
+  -> end_pc:int
+  -> Code.program

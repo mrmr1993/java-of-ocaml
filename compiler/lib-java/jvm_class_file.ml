@@ -24,18 +24,25 @@ type method_layout =
   ; name_idx : int
   ; desc_idx : int
   ; code_attr_idx : int
+  ; line_entries : (int * int) list
+  ; line_number_table_idx : int
+        (* CP utf8 index for "LineNumberTable", or 0 if no entries. *)
   }
 
 let emit_method_info out (l : method_layout) =
   let code_len = String.length l.code_bytes in
   let entries = Code.exception_entries l.m.code in
   let n_entries = List.length entries in
+  let n_lines = List.length l.line_entries in
+  let nested_attrs = if n_lines > 0 then 1 else 0 in
+  let lnt_attr_len = 2 + (4 * n_lines) in
+  let lnt_total = if n_lines > 0 then 6 + lnt_attr_len else 0 in
   add_u2 out l.m.access_flags;
   add_u2 out l.name_idx;
   add_u2 out l.desc_idx;
   add_u2 out 1 (* one Code attribute *);
   add_u2 out l.code_attr_idx;
-  let attr_len = 2 + 2 + 4 + code_len + 2 + (8 * n_entries) + 2 in
+  let attr_len = 2 + 2 + 4 + code_len + 2 + (8 * n_entries) + 2 + lnt_total in
   add_u4 out attr_len;
   (* The forward-walk tracker under-declares around spill/reload
      scaffolding and join-block prologues that re-push acc after
@@ -53,7 +60,17 @@ let emit_method_info out (l : method_layout) =
       add_u2 out handler_pc;
       add_u2 out catch_type)
     entries;
-  add_u2 out 0 (* nested attributes_count *)
+  add_u2 out nested_attrs;
+  if n_lines > 0
+  then (
+    add_u2 out l.line_number_table_idx;
+    add_u4 out lnt_attr_len;
+    add_u2 out n_lines;
+    List.iter
+      (fun (jvm_pc, line) ->
+        add_u2 out (jvm_pc land 0xffff);
+        add_u2 out (line land 0xffff))
+      l.line_entries)
 
 type field_layout =
   { f : field_desc
@@ -68,12 +85,14 @@ let emit_field_info out (l : field_layout) =
   add_u2 out 0
 
 let assemble_class
+    ?source_file
     ~class_name
     ~super_name
     ~cp
     ~fields
     ~methods
     ~access_flags
+    ()
   =
   let method_layouts =
     List.map
@@ -84,11 +103,17 @@ let assemble_class
             failwith
               (Printf.sprintf "%s (in method %s.%s)" msg class_name m.name)
         in
+        let line_entries = Code.line_entries m.code in
+        let line_number_table_idx =
+          if line_entries = [] then 0 else Cp.utf8 cp "LineNumberTable"
+        in
         { m
         ; code_bytes = bytes
         ; name_idx = Cp.utf8 cp m.name
         ; desc_idx = Cp.utf8 cp m.descriptor
         ; code_attr_idx = Cp.utf8 cp "Code"
+        ; line_entries
+        ; line_number_table_idx
         })
       methods
   in
@@ -101,6 +126,15 @@ let assemble_class
         })
       fields
   in
+  let source_file_attr =
+    match source_file with
+    | None -> None
+    | Some name ->
+      let attr_idx = Cp.utf8 cp "SourceFile" in
+      let name_idx = Cp.utf8 cp name in
+      Some (attr_idx, name_idx)
+  in
+  let class_attrs_count = if source_file_attr = None then 0 else 1 in
   let this_class = Cp.class_ cp class_name in
   let super_class = Cp.class_ cp super_name in
   let out = Buffer.create 512 in
@@ -118,7 +152,13 @@ let assemble_class
   List.iter (emit_field_info out) field_layouts;
   add_u2 out (List.length methods);
   List.iter (emit_method_info out) method_layouts;
-  add_u2 out 0;
+  add_u2 out class_attrs_count;
+  (match source_file_attr with
+   | None -> ()
+   | Some (attr_idx, name_idx) ->
+     add_u2 out attr_idx;
+     add_u4 out 2;
+     add_u2 out name_idx);
   Buffer.contents out
 
 let assemble_main_class build =
@@ -138,3 +178,4 @@ let assemble_main_class build =
         }
       ]
     ~access_flags:0x0021
+    ()

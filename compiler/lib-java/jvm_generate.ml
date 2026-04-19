@@ -26,6 +26,9 @@ type ctx =
         (* Index into Main.GLOBALS of the [Not_found] exception
            descriptor. Populated by the driver. *)
   ; mutable next_local : int
+  ; line_of_pc : int -> int option
+        (* Source line of a bytecode-pc (Addr), if known. Used to
+           populate the LineNumberTable via [Jvm.Code.mark_line]. *)
   ; block_start : (Code.Addr.t, Jvm.Code.label) Hashtbl.t
         (* Start label per block (same as [labels]; kept for
            clarity). *)
@@ -2531,6 +2534,9 @@ let emit_block ctx prog addr (b : Code.block) =
   List.iter (fun v -> ignore (local_of ctx v)) b.params;
   let start_lbl = label_of ctx addr in
   Jvm.Code.mark_label ctx.code start_lbl;
+  (match ctx.line_of_pc addr with
+   | Some line -> Jvm.Code.mark_line ctx.code line
+   | None -> ());
   Hashtbl.replace ctx.block_start addr start_lbl;
   List.iter (fun i -> emit_instr ctx i) b.body;
   emit_last ctx prog b.branch;
@@ -2549,6 +2555,7 @@ let emit_program
     ?(arg_vars = [])
     ?enclosing
     ?(not_found_idx = 6)
+    ?(line_of_pc = fun _ -> None)
     (prog : Code.program)
   =
   let ctx =
@@ -2563,6 +2570,7 @@ let emit_program
     ; fresh_oo_id = ref 0
     ; not_found_idx = ref not_found_idx
     ; next_local = 1
+    ; line_of_pc
     ; block_start = Hashtbl.create 32
     ; block_end = Hashtbl.create 32
     ; pending_handlers = []

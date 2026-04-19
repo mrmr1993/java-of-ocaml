@@ -304,6 +304,27 @@ let javap_class file =
     ~cmd:(Format.sprintf "%s -c -cp %s %s" javap dir classname)
     ()
 
+let javap_class_lines file =
+  let path = Filetype.path_of_class_file file in
+  let dir = Filename.dirname path in
+  let classname = Filename.basename path |> Filename.remove_extension in
+  exec_to_string_exn
+    ~fail:true
+    ~cmd:(Format.sprintf "%s -l -cp %s %s" javap dir classname)
+    ()
+
+let compile_and_javap_lines ?(flags = []) ?(ocaml_flags = []) ?debug ?unix s =
+  with_temp_dir ~f:(fun () ->
+    let bytecode_file =
+      s
+      |> Filetype.ocaml_text_of_string
+      |> Filetype.write_ocaml ~name:"test.ml"
+      |> compile_ocaml_to_bc ?debug ?unix ~ocaml_flags
+    in
+    let class_file = compile_bc_to_class ~flags bytecode_file in
+    let listing = javap_class_lines class_file in
+    print_endline listing)
+
 let compile_and_javap ?(flags = []) ?(ocaml_flags = []) ?debug ?unix s =
   with_temp_dir ~f:(fun () ->
     let bytecode_file =
