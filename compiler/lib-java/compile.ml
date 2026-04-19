@@ -126,6 +126,60 @@ and emit_materialise_block_constant code tag fields =
    blocks, etc.). Globals whose shape we can't classify statically are
    left [null]; anything that reads them before a SETGLOBAL writes
    them will trip NullPointerException at runtime. *)
+(* Populate [Main.ARGV] from [main]'s [String[]] argument: wrap the
+   argv array as a new [Block(0, Object[])] and stash it in the
+   static field. Called at the very top of [main], before
+   [emit_globals_init], so [caml_sys_argv] can read it safely as
+   soon as any code runs. *)
+let emit_sys_argv_prologue code =
+  (* Build [ARGV = new Block(0, ["Main"; args.0; args.1; ...])].
+     Java's [main(String[] args)] omits the program name so we
+     synthesise one — [Sys.argv.(0)] is never empty in OCaml.
+
+     Layout:
+       fresh[0]    = "Main"
+       fresh[1..n] = args[0..n-1]  via System.arraycopy
+     where [n = args.length]. *)
+  Jvm.Code.new_ code "Block";
+  Jvm.Code.dup code;
+  Jvm.Code.ldc_int code 0 (* tag *);
+  Jvm.Code.aload code 0 (* args *);
+  Jvm.Code.arraylength code;
+  Jvm.Code.ldc_int code 1;
+  Jvm.Code.iadd code;
+  Jvm.Code.anewarray code "java/lang/Object";
+  let fresh = 1 in
+  Jvm.Code.set_min_locals code (fresh + 1);
+  Jvm.Code.astore code fresh;
+  (* fresh[0] = "Main" *)
+  Jvm.Code.aload code fresh;
+  Jvm.Code.ldc_int code 0;
+  Jvm.Code.ldc_string code "Main";
+  Jvm.Code.aastore code;
+  (* System.arraycopy(args, 0, fresh, 1, args.length) *)
+  Jvm.Code.aload code 0;
+  Jvm.Code.ldc_int code 0;
+  Jvm.Code.aload code fresh;
+  Jvm.Code.ldc_int code 1;
+  Jvm.Code.aload code 0;
+  Jvm.Code.arraylength code;
+  Jvm.Code.invokestatic
+    code
+    ~class_:"java/lang/System"
+    ~method_:"arraycopy"
+    ~descriptor:"(Ljava/lang/Object;ILjava/lang/Object;II)V";
+  Jvm.Code.aload code fresh;
+  Jvm.Code.invokespecial
+    code
+    ~class_:"Block"
+    ~method_:"<init>"
+    ~descriptor:"(I[Ljava/lang/Object;)V";
+  Jvm.Code.putstatic
+    code
+    ~class_:"Main"
+    ~field:"ARGV"
+    ~descriptor:"LBlock;"
+
 (* Emit the bytecode that populates a single [Main.GLOBALS[i]] slot,
    given [i] and the classified entry. Shared between the inline and
    chunked-helper paths below. *)
@@ -659,6 +713,7 @@ let compile_t
     in
     (match try_main_ir () with
      | Some (head, typing, helpers) ->
+       emit_sys_argv_prologue main_code;
        let globals_helpers =
          emit_globals_init cp parsed.globals ~main_code
        in
@@ -706,6 +761,7 @@ let compile_t
            "[ir_emit] <main>: used IR (helpers=%d)@."
            (List.length helpers)
      | None ->
+       emit_sys_argv_prologue main_code;
        let globals_helpers =
          emit_globals_init cp parsed.globals ~main_code
        in
@@ -743,13 +799,22 @@ let compile_t
     ; access_flags = 0x0009
     }
   in
+  (* [Sys.argv] backing store. Populated from [main(String[])]'s
+     argument at method entry (see [emit_sys_argv_prologue]), read
+     by [caml_sys_argv] / [caml_sys_executable_name]. *)
+  let argv_field =
+    { Jvm.name = "ARGV"
+    ; descriptor = "LBlock;"
+    ; access_flags = 0x0009
+    }
+  in
   let main_class_bytes =
     Jvm.assemble_class
       ?source_file:main_source_file
       ~class_name:"Main"
       ~super_name:"java/lang/Object"
       ~cp
-      ~fields:[ globals_field; dls_field ]
+      ~fields:[ globals_field; dls_field; argv_field ]
       ~methods:(main_method :: !main_split_helpers)
       ~access_flags:0x0021 (* ACC_PUBLIC | ACC_SUPER *)
       ()

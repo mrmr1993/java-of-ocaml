@@ -963,9 +963,18 @@ let rec emit_ccall ctx name args =
        Jvm.Code.mark_label ctx.code lbl_nn;
        Kind.K_string
      | _ -> raise (Unsupported "caml_sys_getenv arity"))
+  | "caml_sys_argv" ->
+    (* Return [Main.ARGV] — the driver populates it at [main(args)]
+       entry from the [String[]] parameter. *)
+    Jvm.Code.getstatic
+      ctx.code
+      ~class_:"Main"
+      ~field:"ARGV"
+      ~descriptor:"LBlock;";
+    Kind.K_obj
   | "caml_sys_get_argv" ->
-    (* Return ("a.out", [|"a.out"|]) — a tuple so [Sys.argv] / [Sys.argv.(0)]
-       / [Sys.executable_name] work without NPE. *)
+    (* Returns a tuple [(argv0, argv)] — [Sys.get_argv ()] shape.
+       [argv0] is the first element (the program name). *)
     Jvm.Code.new_ ctx.code "Block";
     Jvm.Code.dup ctx.code;
     Jvm.Code.ldc_int ctx.code 0;
@@ -973,23 +982,27 @@ let rec emit_ccall ctx name args =
     Jvm.Code.anewarray ctx.code "java/lang/Object";
     Jvm.Code.dup ctx.code;
     Jvm.Code.ldc_int ctx.code 0;
-    Jvm.Code.ldc_string ctx.code "a.out";
-    Jvm.Code.aastore ctx.code;
-    Jvm.Code.dup ctx.code;
-    Jvm.Code.ldc_int ctx.code 1;
-    Jvm.Code.new_ ctx.code "Block";
-    Jvm.Code.dup ctx.code;
-    Jvm.Code.ldc_int ctx.code 0;
-    Jvm.Code.ldc_int ctx.code 1;
-    Jvm.Code.anewarray ctx.code "java/lang/Object";
-    Jvm.Code.dup ctx.code;
-    Jvm.Code.ldc_int ctx.code 0;
-    Jvm.Code.ldc_string ctx.code "a.out";
-    Jvm.Code.aastore ctx.code;
-    Jvm.Code.invokespecial ctx.code
+    (* argv[0] — read [ARGV.fields[0]]. *)
+    Jvm.Code.getstatic
+      ctx.code
+      ~class_:"Main"
+      ~field:"ARGV"
+      ~descriptor:"LBlock;";
+    Jvm.Code.getfield
+      ctx.code
       ~class_:"Block"
-      ~method_:"<init>"
-      ~descriptor:"(I[Ljava/lang/Object;)V";
+      ~field:"fields"
+      ~descriptor:"[Ljava/lang/Object;";
+    Jvm.Code.ldc_int ctx.code 0;
+    Jvm.Code.aaload ctx.code;
+    Jvm.Code.aastore ctx.code;
+    Jvm.Code.dup ctx.code;
+    Jvm.Code.ldc_int ctx.code 1;
+    Jvm.Code.getstatic
+      ctx.code
+      ~class_:"Main"
+      ~field:"ARGV"
+      ~descriptor:"LBlock;";
     Jvm.Code.aastore ctx.code;
     Jvm.Code.invokespecial ctx.code
       ~class_:"Block"

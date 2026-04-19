@@ -20,10 +20,12 @@ let%expect_test "SourceFile attribute names the user's .ml file" =
 
       public static java.lang.Object DLS_STATE;
 
+      public static Block ARGV;
+
       public static void main(java.lang.String[]);
         LineNumberTable:
-          line 528: 1023
-          line 299: 1030
-          line 24: 1113
+          line 528: 1057
+          line 299: 1064
+          line 24: 1147
     }
     |}]
