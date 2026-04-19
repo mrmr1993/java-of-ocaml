@@ -48,6 +48,18 @@
   (pps ppx_expect)))
 
 (library
+ ;; compiler/tests-compiler/cmo_reader.ml
+ (name cmo_reader_15)
+ (enabled_if true)
+ (modules cmo_reader)
+ (libraries unix str java_of_ocaml_expect_tests_helper)
+ (inline_tests
+  (enabled_if true))
+ (flags (:standard -open Java_of_ocaml_expect_tests_helper))
+ (preprocess
+  (pps ppx_expect)))
+
+(library
  ;; compiler/tests-compiler/corecursion.ml
  (name corecursion_15)
  (enabled_if true)
@@ -180,6 +192,18 @@
   (pps ppx_expect)))
 
 (library
+ ;; compiler/tests-compiler/linker.ml
+ (name linker_15)
+ (enabled_if true)
+ (modules linker)
+ (libraries unix str java_of_ocaml_expect_tests_helper)
+ (inline_tests
+  (enabled_if true))
+ (flags (:standard -open Java_of_ocaml_expect_tests_helper))
+ (preprocess
+  (pps ppx_expect)))
+
+(library
  ;; compiler/tests-compiler/lists.ml
  (name lists_15)
  (enabled_if true)
@@ -220,6 +244,18 @@
  (name obj_module_15)
  (enabled_if true)
  (modules obj_module)
+ (libraries unix str java_of_ocaml_expect_tests_helper)
+ (inline_tests
+  (enabled_if true))
+ (flags (:standard -open Java_of_ocaml_expect_tests_helper))
+ (preprocess
+  (pps ppx_expect)))
+
+(library
+ ;; compiler/tests-compiler/pure_fun.ml
+ (name pure_fun_15)
+ (enabled_if true)
+ (modules pure_fun)
  (libraries unix str java_of_ocaml_expect_tests_helper)
  (inline_tests
   (enabled_if true))

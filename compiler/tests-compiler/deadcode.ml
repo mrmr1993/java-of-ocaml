@@ -87,6 +87,33 @@ let%expect_test "drop_dead_lets removes unused pure bindings" =
       return live_0
     |}]
 
+(* A [Let] whose RHS is a [Prim (Extern _, _)] named in
+   [Pure_fun]'s allow-list is dropped when the bound var is
+   unused. [caml_compare] is on the list; [caml_ml_flush] is not. *)
+let%expect_test "drop_dead_lets removes unused known-pure externs" =
+  Code.Var.reset ();
+  let unused = Code.Var.fresh_n "unused" in
+  let a = Code.Var.fresh_n "a" in
+  let b = Code.Var.fresh_n "b" in
+  let blocks =
+    Code.Addr.Map.singleton
+      0
+      { Code.params = [ a; b ]
+      ; body =
+          [ Let (unused, Prim (Extern "caml_compare", [ Pv a; Pv b ])) ]
+      ; branch = Stop
+      }
+  in
+  let prog = { Code.start = 0; blocks; free_pc = 1 } in
+  run_and_report prog;
+  [%expect
+    {|
+    deleted_blocks=0 deleted_instrs=1 remaining_blocks=1
+    program (start = 0):
+    block 0(a_1, b_2):
+      stop
+    |}]
+
 (* A [Let] whose RHS is a [Prim (Extern _, _)] is conservatively
    kept even when the bound var is unused — we don't know if the
    primitive has a side effect. *)

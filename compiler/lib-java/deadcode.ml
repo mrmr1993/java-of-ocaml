@@ -110,23 +110,20 @@ let count_uses (prog : program) : int VarTbl.t =
 
 (* --- Purity -----------------------------------------------------------
 
-   Conservative: a pure expression's removal never changes program
-   behaviour. We stay on the safe side of jsoo's [Pure_fun] analysis
-   by treating every [Extern] primitive as impure, and every
-   non-[Let] instruction as impure. *)
+   A pure expression can be dropped without changing program
+   behaviour. Delegated to [Pure_fun]: that module provides the
+   [Var.Set.t] of closure-bound vars whose bodies are known to have
+   no observable side effect, plus a hardcoded allow-list of pure C
+   primitives (comparison / structural equality / tag / Sys
+   constants).
 
-let pure_expr = function
-  | Block _ | Field _ | Closure _ | Constant _ -> true
-  | Prim (prim, _args) ->
-    (match prim with
-     | Vectlength | Not | IsInt | Eq | Neq | Lt | Le | Gt | Ge | Ult | Uge ->
-       true
-     | Array_get ->
-       (* May raise [Invalid_argument] out-of-bounds at runtime;
-          keep it. *)
-       false
-     | Extern _ -> false)
-  | Apply _ -> false
+   [Apply { exact = false; _ }] remains impure: we don't know which
+   closure [f] eventually dispatches to through the PartialClosure
+   path, so we can't claim purity. The bytecode frontend currently
+   emits all applies as [exact = false], so in practice this path
+   only kicks in when a future pass promotes known-arity calls. *)
+
+let pure_expr pure_funs e = Pure_fun.pure_expr pure_funs e
 
 (* --- Passes ---------------------------------------------------------- *)
 
@@ -139,13 +136,13 @@ let prune_unreachable (prog : program) : program * int =
   let after = Addr.Map.cardinal blocks in
   { prog with blocks }, before - after
 
-let drop_dead_lets (prog : program) : program * int =
+let drop_dead_lets ~pure_funs (prog : program) : program * int =
   let uses = count_uses prog in
   let deleted = ref 0 in
   let keep_instr = function
     | Let (x, e) as i ->
       let used = try VarTbl.find uses x > 0 with Not_found -> false in
-      if (not used) && pure_expr e
+      if (not used) && pure_expr pure_funs e
       then (
         incr deleted;
         None)
@@ -162,8 +159,12 @@ let drop_dead_lets (prog : program) : program * int =
 (* --- Entry points ---------------------------------------------------- *)
 
 let run prog =
+  (* Compute purity before pruning: the reachability filter drops
+     closure-body blocks that are only referenced through [Closure],
+     and [Pure_fun] needs those bodies to classify the closure. *)
+  let pure_funs = Pure_fun.f prog in
   let prog, deleted_blocks = prune_unreachable prog in
-  let prog, deleted_instrs = drop_dead_lets prog in
+  let prog, deleted_instrs = drop_dead_lets ~pure_funs prog in
   prog, { deleted_blocks; deleted_instrs }
 
 let f prog =

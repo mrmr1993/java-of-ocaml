@@ -9,10 +9,14 @@
        [Stop]).
 
     2. Dead-[Let] removal drops [Let (x, e)] bindings where [x] has
-       no uses and [e] is side-effect free. Side-effects: [Apply],
-       [Prim (Extern _, _)] (conservative; we don't track a
-       [Pure_fun.t] set), [Prim (Array_get, _)] (may raise), and
-       any non-[Let] instruction.
+       no uses and [e] is side-effect free. Purity is determined by
+       {!Pure_fun}: pure primitives (comparison / structural /
+       allow-listed externs), allocation-only expressions ([Block],
+       [Closure], [Constant], [Field]), and [Apply { exact = true;
+       f; _ }] when [f] is a known-pure closure. [Apply { exact =
+       false; _ }], [Prim (Extern _)] outside the allow-list, [Prim
+       (Array_get, _)] (may raise), and every non-[Let] instruction
+       stay impure.
 
     The pass is idempotent and conservative — it never removes an
     impure expression, never drops a block that might be a branch
