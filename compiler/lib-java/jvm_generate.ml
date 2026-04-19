@@ -935,7 +935,7 @@ and emit_ccall_named ctx name args =
          ~descriptor:"(Ljava/lang/String;)D";
        Kind.K_float
      | _ -> raise (Unsupported "caml_float_of_string arity"))
-  | "caml_int32_format" | "caml_int64_format" | "caml_nativeint_format" ->
+  | "caml_int32_format" ->
     (match args with
      | [ Pv _fmt; Pv n ] ->
        as_int n;
@@ -944,6 +944,22 @@ and emit_ccall_named ctx name args =
          ~class_:"java/lang/Integer"
          ~method_:"toString"
          ~descriptor:"(I)Ljava/lang/String;";
+       Kind.K_string
+     | _ -> raise (Unsupported (name ^ " arity")))
+  | "caml_int64_format" | "caml_nativeint_format" ->
+    (* Format a boxed [Long] via [Long.toString]. The [fmt] arg
+       carries OCaml's [%d]/[%x]/[%o]/etc. encoding; we ignore it
+       and always emit decimal — matches our [caml_format_int]
+       stub's current shape. *)
+    (match args with
+     | [ Pv _fmt; Pv n ] ->
+       emit_load ctx n;
+       Kind.emit_unbox_long ctx.code;
+       Jvm.Code.invokestatic
+         ctx.code
+         ~class_:"java/lang/Long"
+         ~method_:"toString"
+         ~descriptor:"(J)Ljava/lang/String;";
        Kind.K_string
      | _ -> raise (Unsupported (name ^ " arity")))
   | "caml_hexstring_of_float" ->
@@ -1256,9 +1272,58 @@ and emit_ccall_named ctx name args =
   | "caml_sys_file_exists" ->
     Jvm.Code.aconst_null ctx.code;
     Kind.K_obj
-  | "caml_int64_float_of_bits" | "caml_int32_float_of_bits" ->
-    Jvm.Code.ldc_double ctx.code 0.0;
-    Kind.K_float
+  | "caml_int64_float_of_bits" ->
+    (* Reinterpret a 64-bit bit pattern as a [double]. Stdlib's
+       [infinity] / [nan] / [max_float] / [min_float] are constructed
+       this way at init. *)
+    (match args with
+     | [ Pv v ] ->
+       emit_load ctx v;
+       Kind.emit_unbox_long ctx.code;
+       Jvm.Code.invokestatic
+         ctx.code
+         ~class_:"java/lang/Double"
+         ~method_:"longBitsToDouble"
+         ~descriptor:"(J)D";
+       Kind.K_float
+     | _ -> raise (Unsupported "caml_int64_float_of_bits arity"))
+  | "caml_int64_bits_of_float" ->
+    (match args with
+     | [ Pv v ] ->
+       emit_load ctx v;
+       (match kind_of ctx v with
+        | K_float -> ()
+        | _ ->
+          Jvm.Code.checkcast ctx.code "java/lang/Double";
+          Jvm.Code.invokevirtual
+            ctx.code
+            ~class_:"java/lang/Double"
+            ~method_:"doubleValue"
+            ~descriptor:"()D");
+       Jvm.Code.invokestatic
+         ctx.code
+         ~class_:"java/lang/Double"
+         ~method_:"doubleToRawLongBits"
+         ~descriptor:"(D)J";
+       Kind.emit_box_long ctx.code;
+       Kind.K_obj
+     | _ -> raise (Unsupported "caml_int64_bits_of_float arity"))
+  | "caml_int32_float_of_bits" ->
+    (* Reinterpret a 32-bit bit pattern as a JVM [float], then widen
+       to [double] — OCaml's [Int32.float_of_bits] returns an OCaml
+       float (= JVM double), so the single→double widening is
+       value-preserving and that's what the caller expects. *)
+    (match args with
+     | [ Pv v ] ->
+       as_int v;
+       Jvm.Code.invokestatic
+         ctx.code
+         ~class_:"java/lang/Float"
+         ~method_:"intBitsToFloat"
+         ~descriptor:"(I)F";
+       Jvm.Code.f2d ctx.code;
+       Kind.K_float
+     | _ -> raise (Unsupported "caml_int32_float_of_bits arity"))
   (* int64 / int32 / nativeint ops — our int is 32-bit JVM int, so
      these collapse to the identity / pass-through operations on
      the boxed Integer representation. Not bit-accurate for values
@@ -1300,100 +1365,232 @@ and emit_ccall_named ctx name args =
        Jvm.Code.iand ctx.code;
        Kind.K_int
      | _ -> raise (Unsupported "caml_string_hash arity"))
-  | "caml_int64_of_int" | "caml_int32_of_int" | "caml_nativeint_of_int"
-  | "caml_int_of_int64" | "caml_int_of_int32" | "caml_int_of_nativeint" ->
+  (* ==== Int32 arithmetic ==== identity-on-32-bit int semantics.
+     Values flow as boxed [java.lang.Integer]. *)
+  | "caml_int32_of_int" | "caml_int_of_int32" ->
+    (match args with
+     | [ Pv v ] ->
+       as_int v;
+       Kind.emit_box_int ctx.code;
+       Kind.K_obj
+     | _ -> raise (Unsupported (name ^ " arity")))
+  | "caml_int32_add" ->
+    (match args with
+     | [ Pv a; Pv b ] ->
+       as_int a; as_int b;
+       Jvm.Code.iadd ctx.code; Kind.emit_box_int ctx.code; Kind.K_obj
+     | _ -> raise (Unsupported (name ^ " arity")))
+  | "caml_int32_sub" ->
+    (match args with
+     | [ Pv a; Pv b ] ->
+       as_int a; as_int b;
+       Jvm.Code.isub ctx.code; Kind.emit_box_int ctx.code; Kind.K_obj
+     | _ -> raise (Unsupported (name ^ " arity")))
+  | "caml_int32_mul" ->
+    (match args with
+     | [ Pv a; Pv b ] ->
+       as_int a; as_int b;
+       Jvm.Code.imul ctx.code; Kind.emit_box_int ctx.code; Kind.K_obj
+     | _ -> raise (Unsupported (name ^ " arity")))
+  | "caml_int32_xor" ->
+    (match args with
+     | [ Pv a; Pv b ] ->
+       as_int a; as_int b;
+       Jvm.Code.ixor ctx.code; Kind.emit_box_int ctx.code; Kind.K_obj
+     | _ -> raise (Unsupported (name ^ " arity")))
+  | "caml_int32_and" ->
+    (match args with
+     | [ Pv a; Pv b ] ->
+       as_int a; as_int b;
+       Jvm.Code.iand ctx.code; Kind.emit_box_int ctx.code; Kind.K_obj
+     | _ -> raise (Unsupported (name ^ " arity")))
+  | "caml_int32_or" ->
+    (match args with
+     | [ Pv a; Pv b ] ->
+       as_int a; as_int b;
+       Jvm.Code.ior ctx.code; Kind.emit_box_int ctx.code; Kind.K_obj
+     | _ -> raise (Unsupported (name ^ " arity")))
+  | "caml_int32_shift_left" ->
+    (match args with
+     | [ Pv a; Pv b ] ->
+       as_int a; as_int b;
+       Jvm.Code.ishl ctx.code; Kind.emit_box_int ctx.code; Kind.K_obj
+     | _ -> raise (Unsupported (name ^ " arity")))
+  | "caml_int32_shift_right" ->
+    (match args with
+     | [ Pv a; Pv b ] ->
+       as_int a; as_int b;
+       Jvm.Code.ishr ctx.code; Kind.emit_box_int ctx.code; Kind.K_obj
+     | _ -> raise (Unsupported (name ^ " arity")))
+  | "caml_int32_shift_right_unsigned" ->
+    (match args with
+     | [ Pv a; Pv b ] ->
+       as_int a; as_int b;
+       Jvm.Code.iushr ctx.code; Kind.emit_box_int ctx.code; Kind.K_obj
+     | _ -> raise (Unsupported (name ^ " arity")))
+  | "caml_int32_to_int" ->
+    (match args with
+     | [ Pv v ] ->
+       as_int v; Kind.emit_box_int ctx.code; Kind.K_obj
+     | _ -> raise (Unsupported (name ^ " arity")))
+  (* ==== Int64 / Nativeint arithmetic ==== JVM [long] semantics.
+     Values flow as boxed [java.lang.Long]. *)
+  | "caml_int64_of_int" | "caml_nativeint_of_int" ->
+    (match args with
+     | [ Pv v ] ->
+       as_int v;
+       Jvm.Code.i2l ctx.code;
+       Kind.emit_box_long ctx.code;
+       Kind.K_obj
+     | _ -> raise (Unsupported (name ^ " arity")))
+  | "caml_int_of_int64" | "caml_int_of_nativeint" ->
+    (match args with
+     | [ Pv v ] ->
+       emit_load ctx v;
+       Kind.emit_unbox_long ctx.code;
+       Jvm.Code.l2i ctx.code;
+       Kind.emit_box_int ctx.code;
+       Kind.K_obj
+     | _ -> raise (Unsupported (name ^ " arity")))
+  | "caml_int64_add" | "caml_nativeint_add" ->
+    (match args with
+     | [ Pv a; Pv b ] ->
+       emit_load ctx a; Kind.emit_unbox_long ctx.code;
+       emit_load ctx b; Kind.emit_unbox_long ctx.code;
+       Jvm.Code.ladd ctx.code; Kind.emit_box_long ctx.code; Kind.K_obj
+     | _ -> raise (Unsupported (name ^ " arity")))
+  | "caml_int64_sub" | "caml_nativeint_sub" ->
+    (match args with
+     | [ Pv a; Pv b ] ->
+       emit_load ctx a; Kind.emit_unbox_long ctx.code;
+       emit_load ctx b; Kind.emit_unbox_long ctx.code;
+       Jvm.Code.lsub ctx.code; Kind.emit_box_long ctx.code; Kind.K_obj
+     | _ -> raise (Unsupported (name ^ " arity")))
+  | "caml_int64_mul" | "caml_nativeint_mul" ->
+    (match args with
+     | [ Pv a; Pv b ] ->
+       emit_load ctx a; Kind.emit_unbox_long ctx.code;
+       emit_load ctx b; Kind.emit_unbox_long ctx.code;
+       Jvm.Code.lmul ctx.code; Kind.emit_box_long ctx.code; Kind.K_obj
+     | _ -> raise (Unsupported (name ^ " arity")))
+  | "caml_int64_div" | "caml_nativeint_div" ->
+    (match args with
+     | [ Pv a; Pv b ] ->
+       emit_load ctx a; Kind.emit_unbox_long ctx.code;
+       emit_load ctx b; Kind.emit_unbox_long ctx.code;
+       Jvm.Code.ldiv ctx.code; Kind.emit_box_long ctx.code; Kind.K_obj
+     | _ -> raise (Unsupported (name ^ " arity")))
+  | "caml_int64_mod" | "caml_nativeint_mod" ->
+    (match args with
+     | [ Pv a; Pv b ] ->
+       emit_load ctx a; Kind.emit_unbox_long ctx.code;
+       emit_load ctx b; Kind.emit_unbox_long ctx.code;
+       Jvm.Code.lrem ctx.code; Kind.emit_box_long ctx.code; Kind.K_obj
+     | _ -> raise (Unsupported (name ^ " arity")))
+  | "caml_int64_neg" | "caml_nativeint_neg" ->
+    (match args with
+     | [ Pv a ] ->
+       emit_load ctx a; Kind.emit_unbox_long ctx.code;
+       Jvm.Code.lneg ctx.code; Kind.emit_box_long ctx.code; Kind.K_obj
+     | _ -> raise (Unsupported (name ^ " arity")))
+  | "caml_int64_xor" | "caml_nativeint_xor" ->
+    (match args with
+     | [ Pv a; Pv b ] ->
+       emit_load ctx a; Kind.emit_unbox_long ctx.code;
+       emit_load ctx b; Kind.emit_unbox_long ctx.code;
+       Jvm.Code.lxor_ ctx.code; Kind.emit_box_long ctx.code; Kind.K_obj
+     | _ -> raise (Unsupported (name ^ " arity")))
+  | "caml_int64_and" | "caml_nativeint_and" ->
+    (match args with
+     | [ Pv a; Pv b ] ->
+       emit_load ctx a; Kind.emit_unbox_long ctx.code;
+       emit_load ctx b; Kind.emit_unbox_long ctx.code;
+       Jvm.Code.land_ ctx.code; Kind.emit_box_long ctx.code; Kind.K_obj
+     | _ -> raise (Unsupported (name ^ " arity")))
+  | "caml_int64_or" | "caml_nativeint_or" ->
+    (match args with
+     | [ Pv a; Pv b ] ->
+       emit_load ctx a; Kind.emit_unbox_long ctx.code;
+       emit_load ctx b; Kind.emit_unbox_long ctx.code;
+       Jvm.Code.lor_ ctx.code; Kind.emit_box_long ctx.code; Kind.K_obj
+     | _ -> raise (Unsupported (name ^ " arity")))
+  | "caml_int64_shift_left" | "caml_nativeint_shift_left" ->
+    (* JVM [lshl] takes a long on bottom and an int shift count on
+       top — the shift count's low 6 bits are used. *)
+    (match args with
+     | [ Pv a; Pv b ] ->
+       emit_load ctx a; Kind.emit_unbox_long ctx.code;
+       as_int b;
+       Jvm.Code.lshl ctx.code; Kind.emit_box_long ctx.code; Kind.K_obj
+     | _ -> raise (Unsupported (name ^ " arity")))
+  | "caml_int64_shift_right" | "caml_nativeint_shift_right" ->
+    (match args with
+     | [ Pv a; Pv b ] ->
+       emit_load ctx a; Kind.emit_unbox_long ctx.code;
+       as_int b;
+       Jvm.Code.lshr ctx.code; Kind.emit_box_long ctx.code; Kind.K_obj
+     | _ -> raise (Unsupported (name ^ " arity")))
+  | "caml_int64_shift_right_unsigned" | "caml_nativeint_shift_right_unsigned" ->
+    (match args with
+     | [ Pv a; Pv b ] ->
+       emit_load ctx a; Kind.emit_unbox_long ctx.code;
+       as_int b;
+       Jvm.Code.lushr ctx.code; Kind.emit_box_long ctx.code; Kind.K_obj
+     | _ -> raise (Unsupported (name ^ " arity")))
+  | "caml_int64_to_int" | "caml_nativeint_to_int" ->
+    (match args with
+     | [ Pv v ] ->
+       emit_load ctx v;
+       Kind.emit_unbox_long ctx.code;
+       Jvm.Code.l2i ctx.code;
+       Kind.emit_box_int ctx.code;
+       Kind.K_obj
+     | _ -> raise (Unsupported (name ^ " arity")))
+  | "caml_int64_of_float" ->
     (match args with
      | [ Pv v ] ->
        emit_load ctx v;
        (match kind_of ctx v with
-        | K_int -> Kind.emit_box_int ctx.code
-        | K_float -> Kind.emit_box_float ctx.code
-        | _ -> ());
+        | K_float -> ()
+        | _ ->
+          Jvm.Code.checkcast ctx.code "java/lang/Double";
+          Jvm.Code.invokevirtual
+            ctx.code ~class_:"java/lang/Double" ~method_:"doubleValue" ~descriptor:"()D");
+       Jvm.Code.d2l ctx.code;
+       Kind.emit_box_long ctx.code;
        Kind.K_obj
-     | _ -> raise (Unsupported (name ^ " arity")))
-  | "caml_int64_add" | "caml_int32_add" | "caml_nativeint_add" ->
-    (match args with
-     | [ Pv a; Pv b ] ->
-       as_int a; as_int b;
-       Jvm.Code.iadd ctx.code;
-       Kind.emit_box_int ctx.code;
-       Kind.K_obj
-     | _ -> raise (Unsupported (name ^ " arity")))
-  | "caml_int64_sub" | "caml_int32_sub" | "caml_nativeint_sub" ->
-    (match args with
-     | [ Pv a; Pv b ] ->
-       as_int a; as_int b;
-       Jvm.Code.isub ctx.code;
-       Kind.emit_box_int ctx.code;
-       Kind.K_obj
-     | _ -> raise (Unsupported (name ^ " arity")))
-  | "caml_int64_mul" | "caml_int32_mul" | "caml_nativeint_mul" ->
-    (match args with
-     | [ Pv a; Pv b ] ->
-       as_int a; as_int b;
-       Jvm.Code.imul ctx.code;
-       Kind.emit_box_int ctx.code;
-       Kind.K_obj
-     | _ -> raise (Unsupported (name ^ " arity")))
-  | "caml_int64_xor" | "caml_int32_xor" | "caml_nativeint_xor" ->
-    (match args with
-     | [ Pv a; Pv b ] ->
-       as_int a; as_int b;
-       Jvm.Code.ixor ctx.code;
-       Kind.emit_box_int ctx.code;
-       Kind.K_obj
-     | _ -> raise (Unsupported (name ^ " arity")))
-  | "caml_int64_and" | "caml_int32_and" | "caml_nativeint_and" ->
-    (match args with
-     | [ Pv a; Pv b ] ->
-       as_int a; as_int b;
-       Jvm.Code.iand ctx.code;
-       Kind.emit_box_int ctx.code;
-       Kind.K_obj
-     | _ -> raise (Unsupported (name ^ " arity")))
-  | "caml_int64_or" | "caml_int32_or" | "caml_nativeint_or" ->
-    (match args with
-     | [ Pv a; Pv b ] ->
-       as_int a; as_int b;
-       Jvm.Code.ior ctx.code;
-       Kind.emit_box_int ctx.code;
-       Kind.K_obj
-     | _ -> raise (Unsupported (name ^ " arity")))
-  | "caml_int64_shift_left" | "caml_int32_shift_left"
-  | "caml_nativeint_shift_left" ->
-    (match args with
-     | [ Pv a; Pv b ] ->
-       as_int a; as_int b;
-       Jvm.Code.ishl ctx.code;
-       Kind.emit_box_int ctx.code;
-       Kind.K_obj
-     | _ -> raise (Unsupported (name ^ " arity")))
-  | "caml_int64_shift_right" | "caml_int32_shift_right"
-  | "caml_nativeint_shift_right" ->
-    (match args with
-     | [ Pv a; Pv b ] ->
-       as_int a; as_int b;
-       Jvm.Code.ishr ctx.code;
-       Kind.emit_box_int ctx.code;
-       Kind.K_obj
-     | _ -> raise (Unsupported (name ^ " arity")))
-  | "caml_int64_shift_right_unsigned" | "caml_int32_shift_right_unsigned"
-  | "caml_nativeint_shift_right_unsigned" ->
-    (match args with
-     | [ Pv a; Pv b ] ->
-       as_int a; as_int b;
-       Jvm.Code.iushr ctx.code;
-       Kind.emit_box_int ctx.code;
-       Kind.K_obj
-     | _ -> raise (Unsupported (name ^ " arity")))
-  | "caml_int64_to_int" | "caml_int32_to_int" | "caml_nativeint_to_int" ->
+     | _ -> raise (Unsupported "caml_int64_of_float arity"))
+  | "caml_int64_to_float" ->
     (match args with
      | [ Pv v ] ->
        emit_load ctx v;
-       (match kind_of ctx v with
-        | K_int -> Kind.emit_box_int ctx.code
-        | K_float -> Kind.emit_box_float ctx.code
-        | _ -> ());
+       Kind.emit_unbox_long ctx.code;
+       Jvm.Code.l2d ctx.code;
+       Kind.K_float
+     | _ -> raise (Unsupported "caml_int64_to_float arity"))
+  | "caml_int64_compare" | "caml_nativeint_compare" ->
+    (match args with
+     | [ Pv a; Pv b ] ->
+       emit_load ctx a; Kind.emit_unbox_long ctx.code;
+       emit_load ctx b; Kind.emit_unbox_long ctx.code;
+       Jvm.Code.lcmp ctx.code;
+       Kind.K_int
+     | _ -> raise (Unsupported (name ^ " arity")))
+  | "caml_int64_of_int32" | "caml_nativeint_of_int32" ->
+    (match args with
+     | [ Pv v ] ->
+       as_int v;
+       Jvm.Code.i2l ctx.code;
+       Kind.emit_box_long ctx.code;
+       Kind.K_obj
+     | _ -> raise (Unsupported (name ^ " arity")))
+  | "caml_int64_to_int32" | "caml_nativeint_to_int32" ->
+    (match args with
+     | [ Pv v ] ->
+       emit_load ctx v;
+       Kind.emit_unbox_long ctx.code;
+       Jvm.Code.l2i ctx.code;
+       Kind.emit_box_int ctx.code;
        Kind.K_obj
      | _ -> raise (Unsupported (name ^ " arity")))
   | "caml_atomic_load" ->

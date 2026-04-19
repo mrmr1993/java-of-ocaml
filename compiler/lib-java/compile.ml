@@ -87,14 +87,13 @@ let rec emit_materialise_value code (v : Global_view.global_field_value) =
     Jvm.Code.ldc_double code d;
     Kind.emit_box_float code
   | Gv_int64 n ->
-    (* Truncate to JVM int — most DATA-section int32/int64/nativeint
-       constants (Int32.zero, Int64.one, Nativeint.minus_one, etc.)
-       fit in 32 bits. Box as Integer so downstream [as_int] unboxes
-       via the usual checkcast+intValue. Lossy for 64-bit payloads
-       (double-bit-pattern constants, large int64 literals); those
-       cases are tracked separately. *)
-    Jvm.Code.ldc_int code (Int64.to_int n);
-    Kind.emit_box_int code
+    (* Preserve the full 64-bit payload as a boxed [java.lang.Long].
+       Stdlib's [infinity] / [nan] / [max_float] / [min_float] are
+       constructed via [caml_int64_float_of_bits] on specific bit
+       patterns (e.g. [0x7FF0_0000_0000_0000L]); truncating to 32
+       bits silently zeros the high half and yields 0.0 at init. *)
+    Jvm.Code.ldc_long code n;
+    Kind.emit_box_long code
   | Gv_block (tag, fields) ->
     emit_materialise_block_constant code tag fields
   | Gv_null -> Jvm.Code.aconst_null code
@@ -223,8 +222,8 @@ let emit_globals_entry code i =
       ~field:"GLOBALS"
       ~descriptor:"[Ljava/lang/Object;";
     Jvm.Code.ldc_int code i;
-    Jvm.Code.ldc_int code (Int64.to_int n);
-    Kind.emit_box_int code;
+    Jvm.Code.ldc_long code n;
+    Kind.emit_box_long code;
     Jvm.Code.aastore code
   | G_block (tag, fields) ->
     Jvm.Code.getstatic
