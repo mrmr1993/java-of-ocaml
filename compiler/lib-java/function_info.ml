@@ -74,6 +74,12 @@ let find_function_body_range arr ?(pc_upper_bound = max_int) body_pc =
         || ins.opcode = Bytecode.Op.raise_
         || ins.opcode = Bytecode.Op.reraise
         || ins.opcode = Bytecode.Op.raise_notrace
+        (* OCaml 5 effect-handler tail variants: RESUMETERM resumes a
+           continuation in tail position; REPERFORMTERM re-performs
+           an effect in tail position. Neither falls through, so
+           they close a function body just like APPTERM / RAISE. *)
+        || ins.opcode = Bytecode.Op.resumeterm
+        || ins.opcode = Bytecode.Op.reperformterm
       in
       if is_terminator then last_terminator := i;
       let ends_here = is_terminator && Int_set.is_empty !outstanding in

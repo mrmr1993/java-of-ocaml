@@ -186,6 +186,11 @@ let is_terminator op =
   || op = appterm1_op
   || op = appterm2_op
   || op = appterm3_op
+  (* OCaml 5 effect handlers. RESUMETERM resumes a continuation in
+     tail position; REPERFORMTERM re-performs an effect in tail
+     position. Neither falls through. *)
+  || op = Bytecode.Op.resumeterm
+  || op = Bytecode.Op.reperformterm
 
 let branch_target (ins : instr) =
   let op = ins.opcode in

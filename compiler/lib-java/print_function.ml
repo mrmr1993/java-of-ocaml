@@ -29,16 +29,7 @@ let index_of_pc arr pc =
   in
   loop 0
 
-let is_terminator_opcode op =
-  op = return_op
-  || op = appterm_op
-  || op = appterm1_op
-  || op = appterm2_op
-  || op = appterm3_op
-  || op = Bytecode.Op.stop
-  || op = Bytecode.Op.raise_
-  || op = Bytecode.Op.reraise
-  || op = Bytecode.Op.raise_notrace
+let is_terminator_opcode op = Instr.is_terminator op
 
 let format_int_set s =
   if Int_set.is_empty s
