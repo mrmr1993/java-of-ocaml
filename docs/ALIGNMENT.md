@@ -33,10 +33,6 @@ with a PR-sized description — git history retains the details.
   `lib-wasm/generate.ml:1920`), and emits bytecode via
   `Jvm.Code`.
 
-The legacy forward-walk emitter — the old `Emit_instr` / `Emit_*` /
-`Inference` / `Cfg` / `State` modules that walked bytecode directly
-through a mutable state — is retired.
-
 ## Deferred: IR-dependent alignments
 
 The IR is in place; these would be natural layered additions now.
@@ -68,20 +64,25 @@ The IR is in place; these would be natural layered additions now.
 
 ## Deferred: tooling & feature gaps
 
-- **Proper CLI via Cmdliner** — done. `compiler/bin-java_of_ocaml/`
-  is split into `compile.ml` / `print_runtime.ml` plumbed through a
-  `Cmd.group` with `compile` as the default subcommand. The entry
-  point preserves the legacy positional invocation
-  (`java_of_ocaml foo.bc -o out`) by injecting `compile` before a
-  leading non-flag argument. New sub-commands can slot in next to
-  `compile` / `print-runtime` when linking / runtime checks arrive.
-- **Source maps** — partial. We read the DBUG section and emit JVM
-  `SourceFile` + `LineNumberTable` attributes so JVM stack traces
-  show the original OCaml file and line. Block-entry granularity
-  only — finer per-expression mapping and a JSR-45 SMAP layer for
-  stepped debugging are still open. See
-  `js_of_ocaml/compiler/lib/source_map.ml` and
-  `lib-wasm/wasm_source_map.ml` for the jsoo design.
+- **Missing sub-commands on the CLI** —
+  `js_of_ocaml/compiler/bin-js_of_ocaml/` defines `link`,
+  `build-fs`, `build-runtime`, `print-runtime`, `check-runtime`.
+  The Cmdliner scaffolding is in place (`compile` is the default,
+  `print-runtime` exists) but the rest don't yet have analogues.
+  `link` is the important one once `from_cmo` / `from_cma` lands;
+  `check-runtime` needs a runtime-primitive registry to validate
+  against, which we also don't have.
+- **Source maps: per-expression granularity + JSR-45 SMAP** —
+  `js_of_ocaml/compiler/lib/source_map.ml`,
+  `lib-wasm/wasm_source_map.ml`. We emit JVM `SourceFile` +
+  `LineNumberTable` from the DBUG section, but only at IR block
+  entries, so straight-line code inside one block reports the
+  block's starting line. Finer-grained mapping would need
+  per-instruction bytecode PCs threaded through `Code.instr`.
+  Stepped debugging in JVM tooling would additionally need a
+  `SourceDebugExtension` (SMAP / JSR-45) attribute — different
+  mapping target from jsoo's but the design is a useful
+  reference.
 - **Target-backend signature** —
   `js_of_ocaml/compiler/lib-wasm/target_sig.ml`. Only pays off
   once we have more than one backend (Dalvik, CIL, …), but even
