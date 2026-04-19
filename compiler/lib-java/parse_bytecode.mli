@@ -14,6 +14,16 @@
 
 exception Not_supported of string
 
+val range_indices :
+     Instr.instr array
+  -> start_pc:int
+  -> end_pc:int
+  -> int * int
+(** Binary-search a pc-sorted [instrs] array for the index range
+    covering [[start_pc, end_pc)]. Returns [(lo, hi)] such that
+    [instrs.(i).pc >= start_pc] for [i >= lo] and
+    [instrs.(i).pc >= end_pc] for [i >= hi]. *)
+
 (** [parse_function instrs ~start_pc ~end_pc ~nargs ~ncaps] lowers the
     half-open PC range [start_pc..end_pc) into a program.
 

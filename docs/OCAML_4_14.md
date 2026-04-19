@@ -1,19 +1,20 @@
-# Building on OCaml 4.14.2 for a large test binary
+# Building on OCaml 4.14.2
 
 The default build uses the local switch at `./_opam` (OCaml 5.3). That
 path keeps the full test suite green and is what everyday development
 runs against.
 
-When we need to read bytecode from an OCaml 4.14 producer — today, the
-[a large test binary](https://github.com/a test project/a large test binary) client — we build the
-compiler on a **second, named global switch** pinned to 4.14.2. Because
-4.14 and 5.x changed the `Cmo_format` layout incompatibly (see
-[`compiler/lib-java/bytecode_compat.mli`](../compiler/lib-java/bytecode_compat.mli)),
-the compiler linked to one major version cannot unmarshal `.cmo` / `.cma`
-files produced by the other — the on-disk records carry the writer's
-record shape, and `Marshal.from_channel` reads them back into the
-running compiler's own type definition. Mismatched layouts silently
-misalign fields.
+To read bytecode produced by an OCaml 4.14 toolchain — any `.cmo` /
+`.cma` / `.bc` artefact output by a `(lang dune ...)` project pinned
+to `ocaml 4.14.*` — we build the compiler on a **second, named global
+switch** pinned to 4.14.2. 4.14 and 5.x changed the `Cmo_format`
+record layout incompatibly (see
+[`compiler/lib-java/bytecode_compat.mli`](../compiler/lib-java/bytecode_compat.mli));
+the compiler linked to one major version cannot unmarshal `.cmo` /
+`.cma` files produced by the other — the on-disk records carry the
+writer's record shape, and `Marshal.from_channel` reads them back
+into the running compiler's own type definition. Mismatched layouts
+silently misalign fields.
 
 ## Switch bootstrap (one-time)
 
@@ -24,7 +25,7 @@ opam switch create java_of_ocaml_414 ocaml-base-compiler.4.14.2 --no-switch
 opam install --switch=java_of_ocaml_414 -y dune cmdliner
 ```
 
-`ppxlib` / `ppx_expect` are deliberately omitted here — the 4.14 build
+`ppxlib` / `ppx_expect` are deliberately omitted — the 4.14 build
 targets the compiler binary and the runtime classes. The expect-test
 suite under `compiler/tests-compiler/` stays on the 5.3 switch.
 
@@ -54,33 +55,34 @@ Switching back to 5.3 is `eval $(opam env --switch=. --set-switch)`
   "5")) (copy# bytecode_compat_4.ml bytecode_compat.ml))` and its 5.x
   twin pick the right file at build time.
 
-Adding a new compat point means: add an entry to `bytecode_compat.mli`,
-implement it in both `_4.ml` and `_5.ml`, reference via `Bytecode_compat.*`.
+Adding a new compat point means: add an entry to
+`bytecode_compat.mli`, implement it in both `_4.ml` and `_5.ml`,
+reference via `Bytecode_compat.*`.
 
-## Smoke-testing against a large test binary artefacts
+## Smoke-testing against external 4.14 artefacts
 
-typical `_build/default/` contains per-library `.cmo` files (under
-`.<name>.objs/byte/`) and `.cma` archives. A quick sanity check
-the reader digests them cleanly:
+A typical dune-based project's `_build/default/` contains per-library
+`.cmo` files (under `.<name>.objs/byte/`) and `.cma` archives. A
+quick sanity check the reader digests them cleanly:
 
 ```bash
 _build_414/default/compiler/bin-java_of_ocaml/java_of_ocaml.exe \
   --list-missing-prims \
-  ../a large test binary/_build/default/src/lib/some_library/some_library.cma
+  <path>/_build/default/src/.../some_library.cma
 ```
 
-A successful run prints whatever a large test binary-specific C primitives still need
-JVM-side implementations (e.g. `some_native_primitive`, `ml_z_to_bits`).
-A failed run would mean the shim is missing a field — treat that as a
-format-compat bug, not a primitive-coverage bug.
+A successful run prints any C primitives that still need JVM-side
+implementations. A failed run would mean the shim is missing a
+field — treat that as a format-compat bug, not a primitive-coverage
+bug.
 
-Full end-to-end (compile to classes, no execution yet — primitives
-typically still missing):
+Full end-to-end (compile to classes, execution of course still
+requires any missing primitives to be implemented):
 
 ```bash
-mkdir -p /tmp/a large test binary-out
+mkdir -p /tmp/out
 _build_414/default/compiler/bin-java_of_ocaml/java_of_ocaml.exe \
-  ../a large test binary/_build/default/src/lib/.../some_module.cmo \
-  -o /tmp/a large test binary-out
-ls /tmp/a large test binary-out   # Main.class + runtime classes
+  <path>/_build/default/src/.../some_module.cmo \
+  -o /tmp/out
+ls /tmp/out   # Main.class + runtime classes
 ```

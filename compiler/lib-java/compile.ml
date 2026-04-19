@@ -405,12 +405,12 @@ let compile_t
   in
   let pc_upper_bound_after pc =
     let n = Array.length sorted_body_pcs in
-    let rec find i =
-      if i >= n then max_int
-      else if sorted_body_pcs.(i) > pc then sorted_body_pcs.(i)
-      else find (i + 1)
-    in
-    find 0
+    let lo = ref 0 and hi = ref n in
+    while !lo < !hi do
+      let mid = (!lo + !hi) / 2 in
+      if sorted_body_pcs.(mid) > pc then hi := mid else lo := mid + 1
+    done;
+    if !lo >= n then max_int else sorted_body_pcs.(!lo)
   in
   List.iter
     (fun pc ->
@@ -459,13 +459,8 @@ let compile_t
         group.(k) <- info;
         if k = 0 then Hashtbl.add functions ins.pc info;
         func_list := info :: !func_list;
-        let pre_start =
-          let rec find i =
-            if i >= Array.length arr then i
-            else if arr.(i).pc = body_pc then i
-            else find (i + 1)
-          in
-          find 0
+        let pre_start, _ =
+          Parse_bytecode.range_indices arr ~start_pc:body_pc ~end_pc:(body_pc + 1)
         in
         for j = pre_start to body_end_idx do
           Hashtbl.replace fn_body_pcs arr.(j).pc ()
