@@ -466,6 +466,55 @@ let find_cut_toward ~cache prog ~target =
   | None -> None
   | Some (_, cut) -> Some cut
 
+(* Reverse post-order of reachable blocks (exits first). Candidates
+   near the front dominate small tails, so when [find_end_cut]
+   walks this order it finds a cut whose tail-cost fits under the
+   limit early — no need to score every candidate against a balance
+   target. *)
+let reverse_postorder prog ~start =
+  let visited = ref Addr.Set.empty in
+  let order = ref [] in
+  let rec visit addr =
+    if Addr.Set.mem addr !visited
+    then ()
+    else (
+      visited := Addr.Set.add addr !visited;
+      List.iter visit (successors prog addr);
+      order := addr :: !order)
+  in
+  visit start;
+  !order
+
+let sum_cost ~cache set =
+  Addr.Set.fold
+    (fun a acc ->
+      acc + (try Hashtbl.find cache.cache_block_cost a with Not_found -> 0))
+    set
+    0
+
+(* Suffix-chop cut selection: walk candidates in reverse post-order
+   (deepest-first) and return the first valid cut whose tail fits
+   within [limit]. This is the primary strategy — exits "from the
+   end" to produce a helper-sized chunk without recomputing
+   anything per-candidate beyond the [try_cut] structural checks.
+   Returns [None] if no valid tail-under-limit cut exists. *)
+let find_end_cut ~cache prog ~limit =
+  let reachable = reachable_from prog ~start:prog.start in
+  let candidates = reverse_postorder prog ~start:prog.start in
+  let rec find = function
+    | [] -> None
+    | a :: rest when a = prog.start -> find rest
+    | a :: rest ->
+      (match try_cut ~reachable prog cache.cache_regions ~cut_addr:a with
+       | None -> find rest
+       | Some cut ->
+         let tail_cost = sum_cost ~cache cut.tail in
+         if tail_cost > 0 && tail_cost <= limit
+         then Some cut
+         else find rest)
+  in
+  find candidates
+
 let program_cost ~cache (prog : program) =
   Addr.Map.fold
     (fun a _ acc ->
@@ -715,7 +764,17 @@ let split ~limit ~class_name ~is_static ~return_kind ?env_var prog =
         cost
         limit
         (Addr.Map.cardinal prog.blocks);
-      match find_cut_toward ~cache prog ~target:(limit / 2) with
+      (* Prefer the suffix-chop strategy: take a tail of size ≤
+         limit off the end. Falls back to the balanced-cut search
+         when no valid end-cut exists (pathological CFG shapes
+         where every tail is either too big or rejected by
+         try_cut). *)
+      let cut_opt =
+        match find_end_cut ~cache prog ~limit with
+        | Some _ as r -> r
+        | None -> find_cut_toward ~cache prog ~target:(limit / 2)
+      in
+      match cut_opt with
       | Some cut ->
         let forwarded = cut_forwarded_vars ~env_var prog cut in
         let prog = augment_cut_params prog cut forwarded in
