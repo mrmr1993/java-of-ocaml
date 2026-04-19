@@ -91,6 +91,14 @@ Every feature below is covered by at least one test under
   `float_of_int`. Floats flow as JVM `double`, boxed to
   `java.lang.Double` when crossing into `Object`-typed slots.
   Float locals are 2-wide (`Kind.local_slots_for_kind`).
+- **`Int64` / `Nativeint`** — bit-accurate 64-bit arithmetic via
+  native JVM `long` ops (`ladd` / `lsub` / `lmul` / `ldiv` /
+  `lrem` / `lneg` / `land` / `lor` / `lxor` / `lshl` / `lshr` /
+  `lushr` / `lcmp`). Values flow as boxed `java.lang.Long`.
+  `caml_int64_float_of_bits` / `_bits_of_float` use
+  `Double.longBitsToDouble` / `doubleToRawLongBits`, so stdlib's
+  `infinity` / `nan` / `max_float` / `min_float` initialise to
+  the correct bit patterns.
 - **`Array`** — `Array.make`, `Array.length`, safe and unsafe indexed
   get/set, `caml_array_sub` / `caml_array_blit` / `caml_array_fill`
   / `caml_array_append`. Arrays are the `Block` representation.
@@ -143,8 +151,10 @@ the error only fires if the call path is actually reached.
   records with full Stdlib wired through) still hit runtime
   failures.
 - Threads, OCaml 5 effects, a real GC.
-- Int64 / unsigned 64-bit arithmetic — JVM `int` wraps at 32 bits;
-  `caml_int64_float_of_bits` and friends are stubbed.
+- Plain OCaml `int` still runs as JVM 32-bit `int` (not 63-bit);
+  bitwise / overflow-sensitive code that expects OCaml's full
+  width will diverge. `Int64` / `Nativeint` use JVM `long` and
+  are bit-accurate.
 
 ### Reference submodules
 

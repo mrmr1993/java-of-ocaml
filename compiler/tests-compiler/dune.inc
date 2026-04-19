@@ -192,6 +192,18 @@
   (pps ppx_expect)))
 
 (library
+ ;; compiler/tests-compiler/int64_module.ml
+ (name int64_module_15)
+ (enabled_if true)
+ (modules int64_module)
+ (libraries unix str java_of_ocaml_expect_tests_helper)
+ (inline_tests
+  (enabled_if true))
+ (flags (:standard -open Java_of_ocaml_expect_tests_helper))
+ (preprocess
+  (pps ppx_expect)))
+
+(library
  ;; compiler/tests-compiler/int_module.ml
  (name int_module_15)
  (enabled_if true)

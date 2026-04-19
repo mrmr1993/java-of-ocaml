@@ -24,8 +24,8 @@ let%expect_test "SourceFile attribute names the user's .ml file" =
 
       public static void main(java.lang.String[]);
         LineNumberTable:
-          line 528: 1057
-          line 299: 1064
-          line 24: 1147
+          line 528: 1063
+          line 299: 1070
+          line 24: 1153
     }
     |}]
