@@ -1,41 +1,53 @@
 import java.lang.ref.WeakReference;
 
-// OCaml ephemeron runtime. An ephemeron is an array of [size] weak
-// keys plus one "data" slot. In OCaml's intended GC semantics the
-// data is considered reachable only while every set key is reachable;
+// OCaml ephemeron runtime. An ephemeron is [size] weak key slots
+// plus one "data" slot. In OCaml's intended GC semantics the data
+// is considered reachable only while every set key is reachable;
 // when any key is collected, the data becomes unreachable too. We
-// approximate that on the JVM by storing keys as [WeakReference]s and
-// clearing [data] the first time a read notices a key has been
-// collected. Operations are exposed as static methods so
-// [jvm_generate]'s [emit_ccall] can invokestatic them directly.
-public final class Ephemeron {
-    // Each slot is either null (unset) or a WeakReference<Object>.
-    private final WeakReference<?>[] keys;
-    // Strong reference to the data. Cleared when a dead key is
-    // observed during read or during [set_data].
-    private Object data;
+// approximate that on the JVM by storing keys as [WeakReference]s
+// and clearing [data] the first time a read notices a key has been
+// collected.
+//
+// Extends [Block] so values produced by [caml_ephe_create] satisfy
+// the [checkcast Block] that OCaml's [Obj] module emits on them
+// (Base's [Ephemeron] implementation uses [Obj.size] / [Obj.field]
+// to traverse the structure). The layout matches what
+// [Obj.Ephemeron.length] expects: [Obj.size t - additional_values
+// = length], with [additional_values = 2]. That is, the [fields]
+// array has [n + 2] slots: [[list_head_sentinel, data, key_0, ...,
+// key_{n-1}]]. The sentinel is a placeholder the native OCaml
+// runtime uses for its ephemeron-list bookkeeping; we don't need
+// it, but keeping the slot makes [length] arithmetic match.
+// Tag is 251 (Abstract_tag) to match OCaml's own representation.
+public final class Ephemeron extends Block {
+
+    // Key slots start at index [KEY_OFFSET]; [DATA_OFFSET] is the
+    // data slot; index 0 is the list-head sentinel.
+    private static final int DATA_OFFSET = 1;
+    private static final int KEY_OFFSET = 2;
 
     public Ephemeron(int size) {
-        this.keys = new WeakReference<?>[size];
-        this.data = null;
+        super(251, new Object[size + 2]);
+        // Sentinel placeholder — some non-null value so callers
+        // that introspect the raw fields see a populated slot.
+        this.fields[0] = Integer.valueOf(0);
     }
 
-    // Return true if every non-null key slot still has a live
-    // referent; side-effect: null out any slot whose referent has
-    // been collected (matches jsoo's lazy-clear behaviour), so
-    // subsequent [check_key] / [get_key] calls see a consistent
-    // state.
+    // Sweep: clear any weak slot whose referent has been collected
+    // and, if any key died, clear the data slot too. Returns true
+    // iff every set key is still live afterwards.
     private boolean allKeysLive() {
         boolean ok = true;
-        for (int i = 0; i < keys.length; i++) {
-            WeakReference<?> w = keys[i];
-            if (w == null) continue;
-            if (w.get() == null) {
-                keys[i] = null;
+        for (int i = KEY_OFFSET; i < this.fields.length; i++) {
+            Object slot = this.fields[i];
+            if (slot == null) continue;
+            if (slot instanceof WeakReference<?>
+                && ((WeakReference<?>) slot).get() == null) {
+                this.fields[i] = null;
                 ok = false;
             }
         }
-        if (!ok) data = null;
+        if (!ok) this.fields[DATA_OFFSET] = null;
         return ok;
     }
 
@@ -45,42 +57,44 @@ public final class Ephemeron {
 
     public static Object set_key(Object e, int i, Object v) {
         Ephemeron t = (Ephemeron) e;
-        t.keys[i] = new WeakReference<Object>(v);
+        t.fields[i + KEY_OFFSET] = new WeakReference<Object>(v);
         return Integer.valueOf(0);
     }
 
     public static Object unset_key(Object e, int i) {
         Ephemeron t = (Ephemeron) e;
-        t.keys[i] = null;
+        t.fields[i + KEY_OFFSET] = null;
         return Integer.valueOf(0);
     }
 
     // Returns [None] = 0, or [Some v] = new Block(0, [v]).
     public static Object get_key(Object e, int i) {
         Ephemeron t = (Ephemeron) e;
-        WeakReference<?> w = t.keys[i];
-        if (w == null) return Integer.valueOf(0);
+        Object slot = t.fields[i + KEY_OFFSET];
+        if (slot == null) return Integer.valueOf(0);
+        @SuppressWarnings("unchecked")
+        WeakReference<Object> w = (WeakReference<Object>) slot;
         Object v = w.get();
         if (v == null) {
-            t.keys[i] = null;
-            t.data = null;
+            t.fields[i + KEY_OFFSET] = null;
+            t.fields[DATA_OFFSET] = null;
             return Integer.valueOf(0);
         }
         return new Block(0, new Object[] { v });
     }
 
-    // [get_key_copy] semantics: same as get_key for immediate
-    // values; for block values OCaml wants a shallow copy. We do
-    // the copy via [Block.dup] when the referent is a [Block];
-    // otherwise the value is immutable and aliasing is safe.
+    // Same as [get_key] for immediate values; for block values we
+    // shallow-copy to match [Obj.Ephemeron.get_key_copy] semantics.
     public static Object get_key_copy(Object e, int i) {
         Ephemeron t = (Ephemeron) e;
-        WeakReference<?> w = t.keys[i];
-        if (w == null) return Integer.valueOf(0);
+        Object slot = t.fields[i + KEY_OFFSET];
+        if (slot == null) return Integer.valueOf(0);
+        @SuppressWarnings("unchecked")
+        WeakReference<Object> w = (WeakReference<Object>) slot;
         Object v = w.get();
         if (v == null) {
-            t.keys[i] = null;
-            t.data = null;
+            t.fields[i + KEY_OFFSET] = null;
+            t.fields[DATA_OFFSET] = null;
             return Integer.valueOf(0);
         }
         Object copy = (v instanceof Block) ? ((Block) v).dup() : v;
@@ -89,11 +103,13 @@ public final class Ephemeron {
 
     public static int check_key(Object e, int i) {
         Ephemeron t = (Ephemeron) e;
-        WeakReference<?> w = t.keys[i];
-        if (w == null) return 0;
+        Object slot = t.fields[i + KEY_OFFSET];
+        if (slot == null) return 0;
+        @SuppressWarnings("unchecked")
+        WeakReference<Object> w = (WeakReference<Object>) slot;
         if (w.get() == null) {
-            t.keys[i] = null;
-            t.data = null;
+            t.fields[i + KEY_OFFSET] = null;
+            t.fields[DATA_OFFSET] = null;
             return 0;
         }
         return 1;
@@ -101,37 +117,35 @@ public final class Ephemeron {
 
     public static Object set_data(Object e, Object v) {
         Ephemeron t = (Ephemeron) e;
-        if (!t.allKeysLive()) {
-            t.data = null;
-        } else {
-            t.data = v;
-        }
+        t.fields[DATA_OFFSET] = t.allKeysLive() ? v : null;
         return Integer.valueOf(0);
     }
 
     public static Object unset_data(Object e) {
-        ((Ephemeron) e).data = null;
+        Ephemeron t = (Ephemeron) e;
+        t.fields[DATA_OFFSET] = null;
         return Integer.valueOf(0);
     }
 
     public static Object get_data(Object e) {
         Ephemeron t = (Ephemeron) e;
-        if (t.data == null) return Integer.valueOf(0);
+        if (t.fields[DATA_OFFSET] == null) return Integer.valueOf(0);
         if (!t.allKeysLive()) return Integer.valueOf(0);
-        return new Block(0, new Object[] { t.data });
+        return new Block(0, new Object[] { t.fields[DATA_OFFSET] });
     }
 
     public static Object get_data_copy(Object e) {
         Ephemeron t = (Ephemeron) e;
-        if (t.data == null) return Integer.valueOf(0);
+        if (t.fields[DATA_OFFSET] == null) return Integer.valueOf(0);
         if (!t.allKeysLive()) return Integer.valueOf(0);
-        Object copy = (t.data instanceof Block) ? ((Block) t.data).dup() : t.data;
+        Object v = t.fields[DATA_OFFSET];
+        Object copy = (v instanceof Block) ? ((Block) v).dup() : v;
         return new Block(0, new Object[] { copy });
     }
 
     public static int check_data(Object e) {
         Ephemeron t = (Ephemeron) e;
-        if (t.data == null) return 0;
+        if (t.fields[DATA_OFFSET] == null) return 0;
         if (!t.allKeysLive()) return 0;
         return 1;
     }
@@ -139,22 +153,25 @@ public final class Ephemeron {
     public static Object blit_data(Object src, Object dst) {
         Ephemeron s = (Ephemeron) src;
         Ephemeron d = (Ephemeron) dst;
-        d.data = s.allKeysLive() ? s.data : null;
+        d.fields[DATA_OFFSET] = s.allKeysLive() ? s.fields[DATA_OFFSET] : null;
         return Integer.valueOf(0);
     }
 
     // blit_key(a1, i1, a2, i2, len): copy [len] key slots from a1[i1..]
-    // to a2[i2..], preserving whether each slot is unset / weak-referenced.
+    // to a2[i2..], preserving unset / weak representation.
     public static Object blit_key(Object e1, int i1, Object e2, int i2, int len) {
         Ephemeron a = (Ephemeron) e1;
         Ephemeron b = (Ephemeron) e2;
-        // Handle overlap even though a1 and a2 are usually distinct,
-        // by copying forward when non-overlapping and backward when
-        // necessary.
+        // Account for the data slot offset (+1). Handle overlap
+        // when copying in-place.
         if (a == b && i2 > i1) {
-            for (int k = len - 1; k >= 0; k--) b.keys[i2 + k] = a.keys[i1 + k];
+            for (int k = len - 1; k >= 0; k--) {
+                b.fields[i2 + KEY_OFFSET + k] = a.fields[i1 + KEY_OFFSET + k];
+            }
         } else {
-            for (int k = 0; k < len; k++) b.keys[i2 + k] = a.keys[i1 + k];
+            for (int k = 0; k < len; k++) {
+                b.fields[i2 + KEY_OFFSET + k] = a.fields[i1 + KEY_OFFSET + k];
+            }
         }
         return Integer.valueOf(0);
     }

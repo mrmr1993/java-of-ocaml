@@ -5,7 +5,10 @@
 // variant constructors (0 for default, subsequent integers for the
 // other data-carrying cases); [fields] carries the payload, one entry
 // per constructor argument / record field / tuple component.
-public final class Block {
+// Not [final] — [Ephemeron] subclasses it so [Obj.size] /
+// [Obj.field] traversals via [checkcast Block] succeed on
+// [caml_ephe_*]-produced values.
+public class Block {
     public final int tag;
     public final Object[] fields;
 
