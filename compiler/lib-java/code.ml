@@ -88,6 +88,15 @@ type instr =
   | Set_field of Var.t * int * Var.t
   | Offset_ref of Var.t * int
   | Array_set of Var.t * Var.t * Var.t
+  | Source_pc of int
+      (** Pseudo-instruction recording the bytecode PC of the
+          following real instruction. The emitter resolves this to
+          an OCaml source line (via [ctx.line_of_pc]) and attaches
+          it to the current JVM bytecode position via
+          [Jvm.Code.mark_line], populating [LineNumberTable] at
+          per-bytecode-instruction granularity instead of only at
+          block entries. Produces no IR value and has no effect on
+          dataflow / typing / cost / liveness. *)
 
 type last =
   | Return of Var.t
@@ -211,6 +220,7 @@ module Print = struct
     | Offset_ref (x, i) -> Format.fprintf fmt "%a[0] += %d" Var.print x i
     | Array_set (a, i, v) ->
       Format.fprintf fmt "%a[%a] <- %a" Var.print a Var.print i Var.print v
+    | Source_pc pc -> Format.fprintf fmt ";; source pc=%d" pc
 
   let cont fmt (addr, args) =
     Format.fprintf fmt "%d(%a)" addr var_list args

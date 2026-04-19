@@ -83,6 +83,7 @@ let count_uses (prog : program) : int VarTbl.t =
       bump uses a;
       bump uses i;
       bump uses v
+    | Source_pc _ -> ()
   in
   let cont_uses (_, args) = List.iter (bump uses) args in
   Addr.Map.iter

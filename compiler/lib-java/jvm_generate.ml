@@ -4190,6 +4190,14 @@ let emit_instr ctx (i : Code.instr) =
      | K_float -> Kind.emit_box_float ctx.code
      | _ -> ());
     Jvm.Code.aastore ctx.code
+  | Source_pc pc ->
+    (* Attach the OCaml source line (if DBUG has one for this PC) to
+       the current JVM bytecode position. [mark_line] dedupes on
+       line, so many consecutive Source_pc markers with the same
+       line only produce one LineNumberTable entry. *)
+    (match ctx.line_of_pc pc with
+     | Some line -> Jvm.Code.mark_line ctx.code line
+     | None -> ())
 
 (* Emit a branch edge: parallel-rename the [args] into a caller's
    [param] locals, then [goto] a caller's entry label. To avoid

@@ -63,7 +63,7 @@ let infer (program : Code.program) : t =
         (fun i ->
           match (i : Code.instr) with
           | Let (x, e) -> set x (kind_of_expr e)
-          | Set_field _ | Offset_ref _ | Array_set _ -> ())
+          | Set_field _ | Offset_ref _ | Array_set _ | Source_pc _ -> ())
         b.body)
     program.blocks;
   { kinds }

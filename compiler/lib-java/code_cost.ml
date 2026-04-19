@@ -48,6 +48,7 @@ let instr = function
   | Set_field _ -> 14
   | Offset_ref _ -> 14
   | Array_set _ -> 18
+  | Source_pc _ -> 0                    (* no emitted bytes *)
 
 let last = function
   | Return _ -> 8

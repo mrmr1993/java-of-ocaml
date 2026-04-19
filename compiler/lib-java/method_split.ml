@@ -45,10 +45,11 @@ let fv_instr = function
   | Offset_ref (x, _) -> Var.Set.singleton x
   | Array_set (a, i, v) ->
     Var.Set.add a (Var.Set.add i (Var.Set.singleton v))
+  | Source_pc _ -> Var.Set.empty
 
 let defs_of_instr = function
   | Let (v, _) -> Var.Set.singleton v
-  | Set_field _ | Offset_ref _ | Array_set _ -> Var.Set.empty
+  | Set_field _ | Offset_ref _ | Array_set _ | Source_pc _ -> Var.Set.empty
 
 let fv_cont (_, args) = fv_set_of_list args
 

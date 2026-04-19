@@ -98,6 +98,11 @@ type instr =
   | Set_field of Var.t * int * Var.t
   | Offset_ref of Var.t * int
   | Array_set of Var.t * Var.t * Var.t
+  | Source_pc of int
+      (** Pseudo-instruction carrying the bytecode PC of the
+          following real instruction so the emitter can populate
+          [LineNumberTable] at per-bytecode-instruction granularity.
+          Produces no IR value and has no effect on dataflow. *)
 
 type last =
   | Return of Var.t

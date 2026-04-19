@@ -1084,6 +1084,11 @@ let process_block state start_pc next_starts addr_map =
           (String.concat ";"
              (Array.to_list (Array.map string_of_int ins.Instr.args)))
           (List.length state.stack);
+        (* Record the bytecode PC so the emitter can populate
+           LineNumberTable at per-bytecode-instruction granularity.
+           [mark_line] dedupes on resolved line, so consecutive
+           bytecode instrs that share a line only produce one entry. *)
+        emit state (Source_pc pc);
         (match step state ins with
          | Some last -> last
          | None ->

@@ -64,17 +64,17 @@ Add new items as they are spotted.
   `link` is the important one once `from_cmo` / `from_cma` lands;
   `check-runtime` needs a runtime-primitive registry to validate
   against, which we also don't have.
-- **Source maps: per-expression granularity + JSR-45 SMAP** —
-  `js_of_ocaml/compiler/lib/source_map.ml`,
+- **Source maps: JSR-45 SMAP** — `js_of_ocaml/compiler/lib/source_map.ml`,
   `lib-wasm/wasm_source_map.ml`. We emit JVM `SourceFile` +
-  `LineNumberTable` from the DBUG section, but only at IR block
-  entries, so straight-line code inside one block reports the
-  block's starting line. Finer-grained mapping would need
-  per-instruction bytecode PCs threaded through `Code.instr`.
-  Stepped debugging in JVM tooling would additionally need a
-  `SourceDebugExtension` (SMAP / JSR-45) attribute — different
-  mapping target from jsoo's but the design is a useful
-  reference.
+  `LineNumberTable` at per-bytecode-instruction granularity: IR
+  carries a [Source_pc] pseudo-instruction at each bytecode-pc
+  boundary, and the emitter resolves it to an OCaml source line
+  via DBUG and calls [mark_line] (which dedupes, so consecutive
+  PCs sharing a line produce one entry). Stepped debugging in JVM
+  tooling would additionally need a [SourceDebugExtension] (SMAP /
+  JSR-45) attribute so stack frames show OCaml file paths + lines
+  rather than synthesised .ml names; design reference in jsoo's
+  source_map.ml.
 - **Target-backend signature** —
   `js_of_ocaml/compiler/lib-wasm/target_sig.ml`. Only pays off
   once we have more than one backend (Dalvik, CIL, …), but even

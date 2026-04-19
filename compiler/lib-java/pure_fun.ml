@@ -66,6 +66,7 @@ let pure_expr pure_funs = function
 let pure_instr pure_funs = function
   | Let (_, e) -> pure_expr pure_funs e
   | Set_field _ | Offset_ref _ | Array_set _ -> false
+  | Source_pc _ -> true
 
 (* --- Traversal ------------------------------------------------------
    Walk each block reachable from a starting pc. A block is pure when:
