@@ -336,6 +336,18 @@
   (pps ppx_expect)))
 
 (library
+ ;; compiler/tests-compiler/stdlib_link.ml
+ (name stdlib_link_15)
+ (enabled_if true)
+ (modules stdlib_link)
+ (libraries unix str java_of_ocaml_expect_tests_helper)
+ (inline_tests
+  (enabled_if true))
+ (flags (:standard -open Java_of_ocaml_expect_tests_helper))
+ (preprocess
+  (pps ppx_expect)))
+
+(library
  ;; compiler/tests-compiler/strings.ml
  (name strings_15)
  (enabled_if true)

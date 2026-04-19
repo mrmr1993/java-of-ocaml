@@ -108,6 +108,24 @@ let used_in_blocks prog addrs =
     addrs
     Var.Set.empty
 
+
+(* Vars needing to be forwarded into the helper when cutting at
+   [cut.cut_addr]. Under SSA-lite's single-def-per-Var invariant,
+   [used_in_tail \ defined_in_tail] coincides with the classical
+   live-in set at [cut_addr], so we compute it as a single set-diff
+   per candidate rather than iterating a full dataflow fixed point.
+   Defining "defined in tail" to include the entry block's params
+   drops those (they're already supplied via the caller's branch
+   args); subtracting [env_var] drops [this] (loaded via
+   [aload 0]). *)
+let cut_forwarded_vars ~env_var prog (cut : cut) =
+  let used = used_in_blocks prog cut.tail in
+  let defined = defined_in_blocks prog cut.tail in
+  let live = Var.Set.diff used defined in
+  match env_var with
+  | Some e -> Var.Set.remove e live
+  | None -> live
+
 (* --- Graph analysis -------------------------------------------------- *)
 
 (* Edges followed by the emitter. Edges to blocks NOT present in the
@@ -217,24 +235,6 @@ let cut_is_self_contained prog ~cut_addr ~head ~tail =
   in
   head_ok && tail_ok
 
-let cut_extras ~env_var prog (cut : cut) =
-  let used = used_in_blocks prog cut.tail in
-  let defined = defined_in_blocks prog cut.tail in
-  let extras = Var.Set.diff used defined in
-  match env_var with
-  | Some e -> Var.Set.remove e extras
-  | None -> extras
-
-(* A cut is "closed" when its tail references no var that's not
-   already defined in the tail (modulo the enclosing [env_var]).
-   An earlier design tried to thread Let-defined vars from the head
-   through as extra cut-params, but doing so safely requires
-   per-predecessor live-in analysis — without it, a predecessor
-   whose path never defined the var ends up passing an uninitialised
-   local as an arg. Stricter is simpler; the driver falls back to a
-   stub when the splitter can't carve main down under the limit. *)
-let cut_is_closed ~env_var prog (cut : cut) =
-  Var.Set.is_empty (cut_extras ~env_var prog cut)
 
 let debug_split = Debug.find "split"
 
@@ -273,12 +273,40 @@ let try_cut ?env_var prog regions ~cut_addr =
         None)
       else (
         let c = { cut_addr; head; tail } in
-        if cut_is_closed ~env_var prog c
-        then Some c
-        else (
+        let forwarded = cut_forwarded_vars ~env_var prog c in
+        (* Strictly reject any cut whose tail references a var
+           defined outside the tail. The safer alternatives
+           (dominance analysis / live-vars-with-Assign-awareness)
+           are a follow-up; in the meantime, this keeps correctness
+           at the cost of passing on some size reduction. *)
+        if not (Var.Set.is_empty forwarded)
+        then (
           if debug_split ()
-          then Format.eprintf "[split]   cut=%d reject: not closed@." cut_addr;
-          None))))
+          then
+            Format.eprintf
+              "[split]   cut=%d reject: non-empty forward set@."
+              cut_addr;
+          None)
+        else Some c)))
+
+(* Score a cut by how well it balances the head against [target]
+   (the primary goal: halve the body toward the limit) penalised by
+   the number of vars that have to be forwarded into the helper
+   (secondary: fewer live-through params means smaller helper
+   descriptors and smaller call-site byte counts). The penalty is
+   per-var, scaled so it matters at the margin but doesn't veto a
+   cut that would otherwise halve the program cleanly. *)
+(* Score a cut: primary term balances head cost against [target]
+   (halve toward the limit); secondary term penalises the number
+   of vars that must be forwarded, since each adds to helper
+   descriptor length, call-site byte count, and stack pressure. *)
+let score_cut ~env_var ~target prog (cut : cut) =
+  let head_cost = Code_cost.subset prog cut.head in
+  let balance_cost = abs (head_cost - target) in
+  let forward_penalty =
+    Var.Set.cardinal (cut_forwarded_vars ~env_var prog cut) * 50
+  in
+  balance_cost + forward_penalty
 
 let find_cut_toward ?env_var prog ~target =
   let regions = pushtrap_regions prog in
@@ -289,8 +317,7 @@ let find_cut_toward ?env_var prog ~target =
       match try_cut ?env_var prog regions ~cut_addr:a with
       | None -> ()
       | Some cut ->
-        let head_cost = Code_cost.subset prog cut.head in
-        let score = abs (head_cost - target) in
+        let score = score_cut ~env_var ~target prog cut in
         (match !best with
          | None -> best := Some (score, cut)
          | Some (s, _) when score < s -> best := Some (score, cut)
@@ -474,6 +501,46 @@ let try_intrasplit ~limit prog =
   | Some (addr, _) -> split_block_at prog ~addr ~target:(limit / 2)
 
 (* --- Top-level split pipeline --------------------------------------- *)
+
+(* Thread the [forwarded] vars through as extra params of
+   [cut.cut_addr], and as extra args on every branch to
+   [cut.cut_addr] in the program. Live-vars analysis guarantees the
+   forwarded vars are defined at every predecessor, so extending
+   the branch args is always well-formed. *)
+let _augment_cut_params prog (cut : cut) forwarded =
+  if Var.Set.is_empty forwarded
+  then prog
+  else (
+    let extra_list = Var.Set.elements forwarded in
+    let update_cont ((a, args) as c) =
+      if a = cut.cut_addr then a, args @ extra_list else c
+    in
+    let update_branch = function
+      | Branch c -> Branch (update_cont c)
+      | Cond (v, c1, c2) -> Cond (v, update_cont c1, update_cont c2)
+      | Switch (v, ints, tags) ->
+        Switch (v, Array.map update_cont ints, Array.map update_cont tags)
+      | Pushtrap (body, x, handler) ->
+        Pushtrap (update_cont body, x, update_cont handler)
+      | Poptrap c -> Poptrap (update_cont c)
+      | (Return _ | Raise _ | Stop | Invoke_tail _) as b -> b
+    in
+    let cut_block = Addr.Map.find cut.cut_addr prog.blocks in
+    let new_cut_block =
+      { cut_block with
+        params = cut_block.params @ extra_list
+      ; branch = update_branch cut_block.branch
+      }
+    in
+    let blocks =
+      Addr.Map.mapi
+        (fun a b ->
+          if a = cut.cut_addr
+          then new_cut_block
+          else { b with branch = update_branch b.branch })
+        prog.blocks
+    in
+    { prog with blocks })
 
 let trace fmt =
   if debug_split ()
