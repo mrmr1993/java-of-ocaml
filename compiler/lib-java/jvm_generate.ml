@@ -1808,7 +1808,9 @@ and emit_ccall_named ctx name args =
   | "caml_gc_compaction" | "caml_gc_major_slice" | "caml_gc_set"
   | "caml_final_register" | "caml_final_register_called_without_value"
   | "caml_final_release" | "caml_install_signal_handler"
-  | "caml_register_channel_for_spacetime" ->
+  | "caml_register_channel_for_spacetime"
+  | "caml_memprof_start" | "caml_memprof_stop" | "caml_memprof_discard"
+  | "caml_set_parser_trace" | "caml_restore_raw_backtrace" ->
     Jvm.Code.ldc_int ctx.code 0;
     Kind.K_int
   | "caml_gc_minor_words" | "caml_get_minor_free"
