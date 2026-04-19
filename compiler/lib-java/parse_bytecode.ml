@@ -1178,7 +1178,7 @@ let parse_generic_with_stack
       blocks := Addr.Map.add pc blk !blocks;
       let step_cont (addr, _args) = visit addr in
       match blk.branch with
-      | Return _ | Raise _ | Stop -> ()
+      | Return _ | Raise _ | Stop | Invoke_tail _ -> ()
       | Branch c | Poptrap c -> step_cont c
       | Cond (_, c1, c2) -> step_cont c1; step_cont c2
       | Switch (_, ints, tags) ->

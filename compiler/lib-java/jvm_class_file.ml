@@ -15,6 +15,16 @@ type field_desc =
   ; access_flags : int
   }
 
+exception Method_too_large of
+    { class_name : string
+    ; method_name : string
+    ; size : int
+    }
+
+(* Maximum byte length of a JVM [Code] attribute's code array (u4 field,
+   but JVMS §4.7.3 caps it at 65535). *)
+let code_size_limit = 65535
+
 (* A method's CP indices are captured up-front so they can be interned
    BEFORE the constant pool is serialised. Code bytes are realised at the
    same time (triggering label resolution and any final CP additions). *)
@@ -103,6 +113,12 @@ let assemble_class
             failwith
               (Printf.sprintf "%s (in method %s.%s)" msg class_name m.name)
         in
+        let size = String.length bytes in
+        if size > code_size_limit
+        then
+          raise
+            (Method_too_large
+               { class_name; method_name = m.name; size });
         let line_entries = Code.line_entries m.code in
         let line_number_table_idx =
           if line_entries = [] then 0 else Cp.utf8 cp "LineNumberTable"

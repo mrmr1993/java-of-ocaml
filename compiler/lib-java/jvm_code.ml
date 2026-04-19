@@ -841,6 +841,10 @@ let contents t =
   resolve t;
   Buffer.contents t.buf
 
+let resolved_size t =
+  resolve t;
+  Buffer.length t.buf
+
 let max_stack t = t.max_stack
 
 let max_locals t = t.max_locals

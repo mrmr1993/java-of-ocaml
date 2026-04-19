@@ -216,6 +216,42 @@
   (pps ppx_expect)))
 
 (library
+ ;; compiler/tests-compiler/method_size_limit.ml
+ (name method_size_limit_15)
+ (enabled_if true)
+ (modules method_size_limit)
+ (libraries unix str java_of_ocaml_expect_tests_helper)
+ (inline_tests
+  (enabled_if true))
+ (flags (:standard -open Java_of_ocaml_expect_tests_helper))
+ (preprocess
+  (pps ppx_expect)))
+
+(library
+ ;; compiler/tests-compiler/method_split.ml
+ (name method_split_15)
+ (enabled_if true)
+ (modules method_split)
+ (libraries unix str java_of_ocaml_expect_tests_helper)
+ (inline_tests
+  (enabled_if true))
+ (flags (:standard -open Java_of_ocaml_expect_tests_helper))
+ (preprocess
+  (pps ppx_expect)))
+
+(library
+ ;; compiler/tests-compiler/method_split_e2e.ml
+ (name method_split_e2e_15)
+ (enabled_if true)
+ (modules method_split_e2e)
+ (libraries unix str java_of_ocaml_expect_tests_helper)
+ (inline_tests
+  (enabled_if true))
+ (flags (:standard -open Java_of_ocaml_expect_tests_helper))
+ (preprocess
+  (pps ppx_expect)))
+
+(library
  ;; compiler/tests-compiler/modules.ml
  (name modules_15)
  (enabled_if true)

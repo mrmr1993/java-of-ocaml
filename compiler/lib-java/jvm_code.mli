@@ -199,6 +199,13 @@ val areturn : t -> unit
 
 val contents : t -> string
 
+val resolved_size : t -> int
+(** Resolve branches and return the final byte length of the method
+    body. Safe to call before [contents]; the buffer is left in its
+    resolved state, so a subsequent [contents] observes the same bytes.
+    Used to probe for the 65535-byte JVM [Code] attribute limit before
+    committing to a method. *)
+
 val max_stack : t -> int
 
 val max_locals : t -> int

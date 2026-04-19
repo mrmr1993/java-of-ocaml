@@ -7,6 +7,19 @@ let debug_times = Debug.find "times"
 let debug_primitives = Debug.find "primitives"
 let debug_functions = Debug.find "functions"
 let debug_ir_emit = Debug.find "ir_emit"
+
+(* Method-body size limit, normally the JVM's 65535-byte [Code]-attribute
+   cap. Tests can set [JAVA_OF_OCAML_SPLIT_THRESHOLD=<bytes>] to force
+   splitting on smaller bodies — far easier than coaxing OCaml into
+   producing a genuine 64 KB method. *)
+let method_size_limit =
+  lazy
+    (match Sys.getenv_opt "JAVA_OF_OCAML_SPLIT_THRESHOLD" with
+     | Some s ->
+       (match int_of_string_opt (String.trim s) with
+        | Some n when n > 0 -> n
+        | _ -> 65535)
+     | None -> 65535)
 let debug_deadcode = Debug.find "deadcode"
 let debug_eval = Debug.find "eval"
 
@@ -393,6 +406,11 @@ let compile_t
       !func_list;
   let cp = Jvm.Cp.create () in
   let main_code = Jvm.Code.create cp in
+  let main_split_helpers = ref [] in
+  (* If post-split main still overflows 65535 bytes, the driver
+     replaces [main_code] with the fallback stub below. Tracked
+     via this ref because [Jvm.Code.t] has no reset. *)
+  let main_code_override = ref None in
   (* Globals-init prelude is emitted later — after we've decided
      between IR and legacy for the main body, so a failed IR attempt
      doesn't leave half-written globals-init bytes in [main_code]. *)
@@ -531,25 +549,49 @@ let compile_t
           let last = List.nth instrs (List.length instrs - 1) in
           let start_pc = first.pc in
           let end_pc = last.pc + 1 in
-          (* Emit into a scratch code so we can discard on IR
-             failure without contaminating main_code. *)
-          let scratch = Jvm.Code.create cp in
-          Jvm.Code.set_min_locals scratch 1;
           (try
              let prog = Parse_bytecode.parse_main instrs ~start_pc ~end_pc in
-             let prog = optimize ~what:"<main> scratch" prog in
+             let prog = optimize ~what:"<main>" prog in
              let typing = Jvm_typing.infer prog in
-             Jvm_generate.emit_program
-               ~code:scratch
-               ~typing
-               ~name_of_body
-               ~fn_info_of_body
-               ~prim_name
-               ~line_of_pc
-               prog;
-             if debug_ir_emit ()
-             then Format.eprintf "[ir_emit] <main>: used IR@.";
-             Some scratch
+             (* Run the splitter as an IR pass on main too. Main's
+                helpers are static methods on the [Main] class;
+                [Invoke_tail { is_static = true }] gets emitted as
+                [invokestatic], matching. *)
+             let limit = Lazy.force method_size_limit in
+             let split_result =
+               Method_split.split
+                 ~limit
+                 ~class_name:"Main"
+                 ~is_static:true
+                 ~return_kind:Method_split.Return_void
+                 prog
+             in
+             let helpers =
+               List.map
+                 (fun (h : Method_split.helper) ->
+                   let helper_code = Jvm.Code.create cp in
+                   Jvm.Code.set_min_locals
+                     helper_code
+                     (List.length h.params);
+                   Jvm_generate.emit_program
+                     ~code:helper_code
+                     ~typing
+                     ~name_of_body
+                     ~fn_info_of_body
+                     ~prim_name
+                     ~arg_vars:h.params
+                     ~line_of_pc
+                     ~unbox_args:true
+                     ~is_static:true
+                     h.prog;
+                   { Jvm.name = h.method_name
+                   ; descriptor = h.descriptor
+                   ; access_flags = 0x0009 (* ACC_PUBLIC | ACC_STATIC *)
+                   ; code = helper_code
+                   })
+                 split_result.helpers
+             in
+             Some (split_result.head, typing, helpers)
            with
            | Parse_bytecode.Not_supported msg ->
              if debug_ir_emit ()
@@ -563,19 +605,9 @@ let compile_t
              None)
     in
     (match try_main_ir () with
-     | Some _scratch_ir_code ->
+     | Some (head, typing, helpers) ->
+       main_split_helpers := helpers;
        emit_globals_init main_code parsed.globals;
-       let instrs = Array.to_list arr in
-       let first = List.hd instrs in
-       let last = List.nth instrs (List.length instrs - 1) in
-       let prog =
-         Parse_bytecode.parse_main
-           instrs
-           ~start_pc:first.pc
-           ~end_pc:(last.pc + 1)
-       in
-       let prog = optimize ~what:"<main>" prog in
-       let typing = Jvm_typing.infer prog in
        Jvm_generate.emit_program
          ~code:main_code
          ~typing
@@ -583,7 +615,41 @@ let compile_t
          ~fn_info_of_body
          ~prim_name
          ~line_of_pc
-         prog
+         head;
+       let size = Jvm.Code.resolved_size main_code in
+       if size > 65535
+       then (
+         if debug_ir_emit ()
+         then
+           Format.eprintf
+             "[ir_emit] <main>: post-split still oversized (size=%d) \
+              — stubbing@."
+             size;
+         main_split_helpers := [];
+         (* Build a fresh stub into a new [Code.t]; the emitter
+            never exposes a reset, so we swap [main_code] out at
+            assembly time via [main_code_override]. *)
+         let stub = Jvm.Code.create cp in
+         Jvm.Code.set_min_locals stub 1;
+         Jvm.Code.new_ stub "java/lang/UnsupportedOperationException";
+         Jvm.Code.dup stub;
+         Jvm.Code.ldc_string
+           stub
+           (Printf.sprintf
+              "Main body too large to split (%d bytes > 65535)"
+              size);
+         Jvm.Code.invokespecial
+           stub
+           ~class_:"java/lang/UnsupportedOperationException"
+           ~method_:"<init>"
+           ~descriptor:"(Ljava/lang/String;)V";
+         Jvm.Code.athrow stub;
+         main_code_override := Some stub)
+       else if debug_ir_emit ()
+       then
+         Format.eprintf
+           "[ir_emit] <main>: used IR (helpers=%d)@."
+           (List.length helpers)
      | None ->
        emit_globals_init main_code parsed.globals;
        Jvm.Code.new_ main_code "java/lang/UnsupportedOperationException";
@@ -601,7 +667,10 @@ let compile_t
     { Jvm.name = "main"
     ; descriptor = "([Ljava/lang/String;)V"
     ; access_flags = 0x0009 (* ACC_PUBLIC | ACC_STATIC *)
-    ; code = main_code
+    ; code =
+        (match !main_code_override with
+         | Some c -> c
+         | None -> main_code)
     }
   in
   let globals_field =
@@ -623,7 +692,7 @@ let compile_t
       ~super_name:"java/lang/Object"
       ~cp
       ~fields:[ globals_field; dls_field ]
-      ~methods:[ main_method ]
+      ~methods:(main_method :: !main_split_helpers)
       ~access_flags:0x0021 (* ACC_PUBLIC | ACC_SUPER *)
       ()
   in
@@ -697,6 +766,47 @@ let compile_t
                 then raise Not_found
                 else parsed.prims.(idx)
               in
+              (* Run the 64 KB splitter as an IR pass: it returns the
+                 (possibly rewritten) head plus an ordered list of
+                 helper programs. Each helper is emitted as its own
+                 method; the head carries [Invoke_tail] terminators
+                 that the emitter lowers to [invokevirtual; areturn]
+                 at the cut boundaries. *)
+              let limit = Lazy.force method_size_limit in
+              let split_result =
+                Method_split.split
+                  ~limit
+                  ~class_name:fn_info.name
+                  ~is_static:false
+                  ~return_kind:Method_split.Return_object
+                  ~env_var
+                  prog
+              in
+              let split_helpers =
+                List.map
+                  (fun (h : Method_split.helper) ->
+                    let helper_code = Jvm.Code.create fn_cp in
+                    Jvm.Code.set_min_locals
+                      helper_code
+                      (1 + List.length h.params);
+                    Jvm_generate.emit_program
+                      ~code:helper_code
+                      ~typing
+                      ~name_of_body
+                      ~fn_info_of_body
+                      ~prim_name
+                      ~arg_vars:h.params
+                      ~enclosing:(fn_info, env_var)
+                      ~line_of_pc
+                      ~unbox_args:true
+                      h.prog;
+                    { Jvm.name = h.method_name
+                    ; descriptor = h.descriptor
+                    ; access_flags = 0x0001 (* ACC_PUBLIC *)
+                    ; code = helper_code
+                    })
+                  split_result.helpers
+              in
               Jvm_generate.emit_program
                 ~code:ir_code
                 ~typing
@@ -706,10 +816,36 @@ let compile_t
                 ~arg_vars
                 ~enclosing:(fn_info, env_var)
                 ~line_of_pc
-                prog;
-              if debug_ir_emit ()
-              then Format.eprintf "[ir_emit] %s: used IR@." fn_info.name;
-              Some ir_code
+                split_result.head;
+              let head_size = Jvm.Code.resolved_size ir_code in
+              let helper_sizes =
+                List.map
+                  (fun (m : Jvm.method_desc) ->
+                    Jvm.Code.resolved_size m.code)
+                  split_helpers
+              in
+              let too_big size = size > 65535 in
+              if too_big head_size || List.exists too_big helper_sizes
+              then (
+                if debug_ir_emit ()
+                then
+                  Format.eprintf
+                    "[ir_emit] %s: post-split still oversized \
+                     (head=%d helpers=[%s])@."
+                    fn_info.name
+                    head_size
+                    (String.concat
+                       ","
+                       (List.map string_of_int helper_sizes));
+                None)
+              else (
+                if debug_ir_emit ()
+                then
+                  Format.eprintf
+                    "[ir_emit] %s: used IR (helpers=%d)@."
+                    fn_info.name
+                    (List.length split_helpers);
+                Some (ir_code, split_helpers))
             with
             | Parse_bytecode.Not_supported msg ->
               if debug_ir_emit ()
@@ -728,9 +864,9 @@ let compile_t
                   msg;
               None
         in
-        let apply_code =
+        let apply_code, split_helpers =
           match try_ir () with
-          | Some ir_code -> ir_code
+          | Some (ir_code, helpers) -> ir_code, helpers
           | None ->
             (* IR couldn't handle this function. Emit a method body
                that throws at runtime so the class still loads;
@@ -754,7 +890,7 @@ let compile_t
               ~method_:"<init>"
               ~descriptor:"(Ljava/lang/String;)V";
             Jvm.Code.athrow apply_code;
-            apply_code
+            apply_code, []
         in
         let cap_fields =
           List.mapi
@@ -824,7 +960,7 @@ let compile_t
             ~super_name:"Closure"
             ~cp:fn_cp
             ~fields
-            ~methods:[ ctor; arity_method; apply_method ]
+            ~methods:([ ctor; arity_method; apply_method ] @ split_helpers)
             ~access_flags:0x0031
             ()
         in

@@ -99,6 +99,18 @@ type last =
   | Switch of Var.t * cont array * cont array
   | Pushtrap of cont * Var.t * cont
   | Poptrap of cont
+  | Invoke_tail of
+      { class_ : string
+      ; method_ : string
+      ; descriptor : string
+      ; args : Var.t list
+      ; is_static : bool
+      }
+      (** Tail-call a helper method on the same class (or on Main for
+          static helpers), load each arg as a JVM [Object], and
+          [areturn] the result. Emitted by [Method_split] when a
+          program is rewritten to spill blocks into auxiliary methods
+          for the JVM 65535-byte [Code]-attribute limit. *)
 
 type block =
   { params : Var.t list
@@ -235,6 +247,16 @@ module Print = struct
         cont
         handler
     | Poptrap c -> Format.fprintf fmt "poptrap %a" cont c
+    | Invoke_tail { class_; method_; descriptor; args; is_static } ->
+      Format.fprintf
+        fmt
+        "invoke_tail %s%s.%s%s(%a)"
+        (if is_static then "static " else "")
+        class_
+        method_
+        descriptor
+        var_list
+        args
 
   let block fmt addr { params; body; branch = br } =
     Format.fprintf fmt "block %d(%a):@\n" addr var_list params;
@@ -252,7 +274,7 @@ let fold_children p addr f init =
   let b = Addr.Map.find addr p.blocks in
   let step (a, _args) acc = f a acc in
   match b.branch with
-  | Return _ | Raise _ | Stop -> init
+  | Return _ | Raise _ | Stop | Invoke_tail _ -> init
   | Branch c -> step c init
   | Cond (_, c1, c2) -> init |> step c1 |> step c2
   | Switch (_, ints, tags) ->

@@ -270,6 +270,12 @@ module Code : sig
   val ireturn : t -> unit
 
   val areturn : t -> unit
+
+  val resolved_size : t -> int
+  (** Resolve branches and return the final byte length of the method
+      body. Used to probe for the 65535-byte JVM [Code] attribute limit
+      before committing to a method; the driver stubs out oversized
+      bodies instead of producing a class file the JVM will reject. *)
 end
 
 (** A method definition: its name, JVM descriptor, access flags, and body. *)

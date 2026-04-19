@@ -13,6 +13,16 @@ type field_desc =
   ; access_flags : int
   }
 
+exception Method_too_large of
+    { class_name : string
+    ; method_name : string
+    ; size : int
+    }
+(** Raised by [assemble_class] when a method's resolved [Code] attribute
+    would exceed the JVM's 65535-byte limit. Driver code is expected to
+    pre-check method sizes with [Jvm_code.resolved_size] and substitute
+    a stub body; this exception is the belt-and-braces safety net. *)
+
 val assemble_class :
   ?source_file:string
   -> class_name:string

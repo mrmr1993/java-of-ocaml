@@ -19,7 +19,7 @@ let reachable_addrs (prog : program) : Addr.Set.t =
       | Some b ->
         let step (a, _) = visit a in
         match b.branch with
-        | Return _ | Raise _ | Stop -> ()
+        | Return _ | Raise _ | Stop | Invoke_tail _ -> ()
         | Branch c | Poptrap c -> step c
         | Cond (_, c1, c2) ->
           step c1;
@@ -104,7 +104,8 @@ let count_uses (prog : program) : int VarTbl.t =
         Array.iter cont_uses tags
       | Pushtrap (body, _exn, handler) ->
         cont_uses body;
-        cont_uses handler)
+        cont_uses handler
+      | Invoke_tail { args; _ } -> List.iter (bump uses) args)
     prog.blocks;
   uses
 

@@ -108,13 +108,51 @@ Add new items as they are spotted.
   as a JS number. We should pick a strategy before `int64`
   arithmetic or `Sys.int_size`-dependent code (popcount,
   leading_zeros) starts mattering.
-- **JVM method bodies past 64 KB** — even with branch relaxation
-  in place (`Jvm_code.resolve` widens overflowing short branches
-  to `goto_w` / trampolines), a single method's `Code` attribute
-  is capped at 65 535 bytes by the class-file format. We haven't
-  hit this yet, but deep Stdlib internals will eventually. The
-  jsoo escape hatch here is splitting: spill long runs of straight
-  -line code into auxiliary methods that the main body calls.
+- **JVM method bodies past 64 KB** — splitting is in place as an
+  IR-level pass. Branch relaxation widens overflowing short branches
+  (`Jvm_code.resolve`); the `Code` attribute itself is still capped
+  at 65 535 bytes.
+  - `Code_cost.program` estimates the emitted byte count over the
+    IR without running the emitter, conservative-rounded high so
+    splitting triggers before the verifier would reject the result.
+  - `Method_split.split` rewrites `Code.program → Code.program +
+    helpers`, cutting the program at a block `cut_addr` whose head
+    and tail are disjoint (no back-edges) and whose `Pushtrap`
+    regions and handlers stay on a single side. When no structural
+    cut exists, an intra-block splitter breaks the heaviest block
+    into prefix/suffix joined by a synthetic `Branch`, giving the
+    structural pass a candidate. Helpers are spelled as
+    first-class IR: the head's `Branch (cut_addr, …)` becomes
+    `Invoke_tail { class_; method_; descriptor; args; is_static }`
+    and the emitter lowers that verbatim to `invokevirtual /
+    invokestatic; areturn / return_void`.
+  - All helper params are typed as `Ljava/lang/Object;` — SSA-
+    carried values default to `K_obj` at block edges. Helpers
+    receive args boxed and unbox/narrow on entry (`emit_program
+    ~unbox_args:true`): `K_int` / `K_float` args land in fresh
+    primitive-typed locals; `K_block` / `K_closure` / `K_string`
+    args are `checkcast` in place so the verifier sees the right
+    reference type at later uses. A follow-up could specialise
+    descriptors to the inferred kind when that actually helps.
+  - Both closure apply methods and `<main>` go through the splitter.
+    Main's helpers are `ACC_PUBLIC STATIC` on `Main` and return
+    `V`; closure helpers are `ACC_PUBLIC` instance methods
+    returning `Ljava/lang/Object;`.
+  - `Jvm_class_file.Method_too_large` remains as the belt-and-
+    braces safety net if a method still overflows after splitting
+    (rare — would require a body that admits no valid structural
+    cut and where intra-block splitting can't make progress). The
+    driver replaces it with a runtime-throwing stub in that case.
+  - The limit is `65535` in production and overridable at test time
+    via `JAVA_OF_OCAML_SPLIT_THRESHOLD=<bytes>`; the
+    `method_split_e2e` test uses this hook to force splitting on a
+    modest function.
+  - Remaining work: closed-form analysis on cuts whose tail
+    references head-Let-defined vars (today those cuts are
+    rejected; full acceptance requires per-predecessor live-in
+    analysis). Getting this to land will unlock the remaining
+    unsplittable oversize functions, most notably the stdlib-
+    linked `<main>`.
 
 ## Stdlib wrapper functions needing `Invalid_argument`
 

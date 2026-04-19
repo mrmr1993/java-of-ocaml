@@ -90,7 +90,7 @@ let fold_children_blocks blocks pc f init =
   let b = Addr.Map.find pc blocks in
   let step (a, _args) acc = f a acc in
   match b.branch with
-  | Return _ | Raise _ | Stop -> init
+  | Return _ | Raise _ | Stop | Invoke_tail _ -> init
   | Branch c -> step c init
   | Cond (_, c1, c2) -> init |> step c1 |> step c2
   | Switch (_, ints, tags) ->
@@ -127,7 +127,7 @@ and block blocks pc visited pure_blocks funs =
   let b = Addr.Map.find pc blocks in
   let term_pure =
     match b.branch with
-    | Raise _ -> false
+    | Raise _ | Invoke_tail _ -> false
     | _ -> true
   in
   List.fold_left

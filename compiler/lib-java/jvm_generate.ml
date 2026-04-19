@@ -2483,7 +2483,7 @@ let emit_last ctx prog (l : Code.last) =
         | Some b ->
           let step (a, _args) = collect a in
           (match b.branch with
-           | Return _ | Raise _ | Stop -> ()
+           | Return _ | Raise _ | Stop | Invoke_tail _ -> ()
            | Poptrap _ ->
              (* A Poptrap exits the region; don't follow. *)
              ()
@@ -2526,6 +2526,24 @@ let emit_last ctx prog (l : Code.last) =
     (* POPTRAP at the IR level is just a branch: the JVM exception
        table entry was closed at end_lbl in the enclosing Pushtrap. *)
     emit_cont ctx prog c
+  | Invoke_tail { class_; method_; descriptor; args; is_static } ->
+    (* [Method_split] output: call a helper method on this class
+       (virtual, through [this]) or on a host class (static), then
+       return. Args are loaded boxed-to-Object. Return shape follows
+       the descriptor's return type: [)V] — [return_void]; else
+       [areturn]. *)
+    if not is_static then Jvm.Code.aload ctx.code 0;
+    List.iter (fun a -> emit_load_as_obj ctx a) args;
+    if is_static
+    then Jvm.Code.invokestatic ctx.code ~class_ ~method_ ~descriptor
+    else Jvm.Code.invokevirtual ctx.code ~class_ ~method_ ~descriptor;
+    let returns_void =
+      let n = String.length descriptor in
+      n >= 2 && descriptor.[n - 1] = 'V' && descriptor.[n - 2] = ')'
+    in
+    if returns_void
+    then Jvm.Code.return_void ctx.code
+    else Jvm.Code.areturn ctx.code
 
 let emit_block ctx prog addr (b : Code.block) =
   if debug_ir_gen_trace
@@ -2556,6 +2574,8 @@ let emit_program
     ?enclosing
     ?(not_found_idx = 6)
     ?(line_of_pc = fun _ -> None)
+    ?(is_static = false)
+    ?(unbox_args = false)
     (prog : Code.program)
   =
   let ctx =
@@ -2576,17 +2596,83 @@ let emit_program
     ; pending_handlers = []
     }
   in
-  (* Apply-method locals 1..N are the formal args by JVM calling
-     convention. Pin each arg Var to its local before block emission
-     so [emit_load arg_i] reads from the right slot. Args are all
-     [K_obj] in the apply signature; we coerce to arg_vars' typed
-     kinds on first use via the normal emit_load path. *)
+  (* For an instance method, local 0 is [this] and args start at
+     local 1; for a static method, args start at local 0. Advance
+     [next_local] past the arg block up-front so any unbox-into-
+     fresh-local grabs a slot beyond it. *)
+  let arg_base = if is_static then 0 else 1 in
+  ctx.next_local <- arg_base + List.length arg_vars;
+  (* When [unbox_args] is set (the [Method_split]-produced helper
+     case), an arg Var's inferred kind may be [K_int] or [K_float]
+     because the same Var is Let-bound elsewhere in the program —
+     reading its arg slot via [iload] / [dload] would then mismatch
+     the [Object] type JVM calling convention stored there. In that
+     case we allocate a fresh local for the unboxed value, emit a
+     [checkcast + unbox; store] prologue, and bind the Var to the
+     new local. The original arg slot retains its [Object] type. *)
+  let unbox_prologue = ref [] in
   List.iteri
     (fun i v ->
-      Hashtbl.replace ctx.var_local (Code.Var.idx v) (i + 1);
-      if ctx.next_local <= i + 1 then ctx.next_local <- i + 2)
+      let arg_slot = arg_base + i in
+      let k = kind_of ctx v in
+      Hashtbl.replace ctx.var_local (Code.Var.idx v) arg_slot;
+      if ctx.next_local <= arg_slot then ctx.next_local <- arg_slot + 1;
+      if unbox_args
+      then (
+        match k with
+        | Kind.K_int | Kind.K_float ->
+          (* Need a separate local slot because the JVM verifier
+             types a single local as Object after astore; widening
+             it to int/double via istore/dstore on the same slot
+             would be a type conflict on subsequent loads. Allocate
+             a fresh wide-enough slot and rebind the Var to it. *)
+          let slots = Kind.local_slots_for_kind k in
+          let new_slot = ctx.next_local in
+          ctx.next_local <- ctx.next_local + slots;
+          Hashtbl.replace ctx.var_local (Code.Var.idx v) new_slot;
+          unbox_prologue := `Unbox (arg_slot, new_slot, k) :: !unbox_prologue
+        | Kind.K_closure _ | Kind.K_block _ | Kind.K_string ->
+          (* Reference-typed — narrow in place so the verifier
+             treats the local as the specific reference type from
+             this point on. The body's [emit_load] expects the
+             narrowed type (e.g. invokevirtual on [Closure]). *)
+          unbox_prologue := `Narrow (arg_slot, k) :: !unbox_prologue
+        | Kind.K_obj -> ()))
     arg_vars;
   Jvm.Code.set_min_locals ctx.code ctx.next_local;
+  let narrow_class = function
+    | Kind.K_closure _ -> "Closure"
+    | Kind.K_block _ -> "Block"
+    | Kind.K_string -> "java/lang/String"
+    | _ -> assert false
+  in
+  List.iter
+    (function
+      | `Unbox (arg_slot, new_slot, k) ->
+        Jvm.Code.aload ctx.code arg_slot;
+        (match k with
+         | Kind.K_int ->
+           Jvm.Code.checkcast ctx.code "java/lang/Integer";
+           Jvm.Code.invokevirtual
+             ctx.code
+             ~class_:"java/lang/Integer"
+             ~method_:"intValue"
+             ~descriptor:"()I";
+           Jvm.Code.istore ctx.code new_slot
+         | Kind.K_float ->
+           Jvm.Code.checkcast ctx.code "java/lang/Double";
+           Jvm.Code.invokevirtual
+             ctx.code
+             ~class_:"java/lang/Double"
+             ~method_:"doubleValue"
+             ~descriptor:"()D";
+           Jvm.Code.dstore ctx.code new_slot
+         | _ -> assert false)
+      | `Narrow (arg_slot, k) ->
+        Jvm.Code.aload ctx.code arg_slot;
+        Jvm.Code.checkcast ctx.code (narrow_class k);
+        Jvm.Code.astore ctx.code arg_slot)
+    (List.rev !unbox_prologue);
   (* Initialise every entry-block param that isn't a pre-bound
      apply-method arg to [null]. This covers the "start_accu" Var
      (the entry block's nominal accu, which in OCaml's bytecode is
