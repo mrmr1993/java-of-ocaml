@@ -135,6 +135,12 @@ Every feature below is covered by at least one test under
   `caml_compare`, `caml_lessthan`, `caml_greaterthan`,
   `caml_lessequal`, `caml_greaterequal` route through the `Compare`
   runtime class.
+- **`Mutex` / `Condition`** — `Mutex.{create,lock,try_lock,unlock}`
+  and `Condition.{create,wait,signal,broadcast}` backed by
+  `java.util.concurrent.locks.ReentrantLock` (in `Mutex`) and a
+  lazily-bound `Condition` (in `CondVar`). Behaves correctly under
+  real contention; in the single-threaded case the lock ops are
+  cheap and `signal` / `broadcast` are no-ops.
 - **`Lazy`** — `lazy expr` and `Lazy.force` round-trip through
   `CamlinternalLazy` + the four tag-transition primitives
   (`caml_lazy_update_to_forcing` / `caml_lazy_reset_to_lazy` /

@@ -379,6 +379,14 @@ val java_ffi_class_bytes : unit -> string
     helpers used by [Java.Unsafe] in OCaml when a caller method
     name / descriptor is only known at runtime. *)
 
+val mutex_class_bytes : unit -> string
+(** Bytes of the [Mutex] runtime class — wraps a
+    [java.util.concurrent.locks.ReentrantLock]. *)
+
+val cond_var_class_bytes : unit -> string
+(** Bytes of the [CondVar] runtime class — OCaml [Condition.t]
+    backed by a lazily-bound [java.util.concurrent.locks.Condition]. *)
+
 val closure_class_bytes : unit -> string
 
 val partial_closure_class_bytes : unit -> string

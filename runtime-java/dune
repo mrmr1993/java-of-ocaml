@@ -13,7 +13,9 @@
   Bytes.class
   Format.class
   Ephemeron.class
-  JavaFFI.class)
+  JavaFFI.class
+  Mutex.class
+  CondVar.class)
  (deps
   Block.java
   Closure.java
@@ -24,7 +26,9 @@
   Bytes.java
   Format.java
   Ephemeron.java
-  JavaFFI.java)
+  JavaFFI.java
+  Mutex.java
+  CondVar.java)
  (action
   (run javac -d . %{deps})))
 
@@ -41,7 +45,9 @@
    Bytes.class
    Format.class
    Ephemeron.class
-   JavaFFI.class))
+   JavaFFI.class
+   Mutex.class
+   CondVar.class))
  (action
   (with-stdout-to
    %{targets}

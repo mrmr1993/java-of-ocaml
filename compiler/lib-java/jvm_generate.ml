@@ -1304,6 +1304,82 @@ and emit_ccall_named ctx name args =
          ~descriptor:"(I)I";
        Kind.K_int
      | _ -> raise (Unsupported "caml_sys_close arity"))
+  | "caml_ml_mutex_new" ->
+    (match args with
+     | [ _ ] ->
+       Jvm.Code.invokestatic
+         ctx.code
+         ~class_:"Mutex"
+         ~method_:"create"
+         ~descriptor:"()LMutex;";
+       Kind.K_obj
+     | _ -> raise (Unsupported "caml_ml_mutex_new arity"))
+  | "caml_ml_mutex_lock" ->
+    (match args with
+     | [ Pv m ] ->
+       emit_load ctx m;
+       Jvm.Code.checkcast ctx.code "Mutex";
+       Jvm.Code.invokevirtual
+         ctx.code ~class_:"Mutex" ~method_:"mlock" ~descriptor:"()I";
+       Kind.K_int
+     | _ -> raise (Unsupported "caml_ml_mutex_lock arity"))
+  | "caml_ml_mutex_try_lock" ->
+    (match args with
+     | [ Pv m ] ->
+       emit_load ctx m;
+       Jvm.Code.checkcast ctx.code "Mutex";
+       Jvm.Code.invokevirtual
+         ctx.code ~class_:"Mutex" ~method_:"mtry_lock" ~descriptor:"()I";
+       Kind.K_int
+     | _ -> raise (Unsupported "caml_ml_mutex_try_lock arity"))
+  | "caml_ml_mutex_unlock" ->
+    (match args with
+     | [ Pv m ] ->
+       emit_load ctx m;
+       Jvm.Code.checkcast ctx.code "Mutex";
+       Jvm.Code.invokevirtual
+         ctx.code ~class_:"Mutex" ~method_:"munlock" ~descriptor:"()I";
+       Kind.K_int
+     | _ -> raise (Unsupported "caml_ml_mutex_unlock arity"))
+  | "caml_ml_condition_new" ->
+    (match args with
+     | [ _ ] ->
+       Jvm.Code.invokestatic
+         ctx.code
+         ~class_:"CondVar"
+         ~method_:"create"
+         ~descriptor:"()LCondVar;";
+       Kind.K_obj
+     | _ -> raise (Unsupported "caml_ml_condition_new arity"))
+  | "caml_ml_condition_wait" ->
+    (match args with
+     | [ Pv c; Pv m ] ->
+       emit_load ctx c;
+       Jvm.Code.checkcast ctx.code "CondVar";
+       emit_load ctx m;
+       Jvm.Code.checkcast ctx.code "Mutex";
+       Jvm.Code.invokevirtual
+         ctx.code ~class_:"CondVar" ~method_:"cwait" ~descriptor:"(LMutex;)I";
+       Kind.K_int
+     | _ -> raise (Unsupported "caml_ml_condition_wait arity"))
+  | "caml_ml_condition_signal" ->
+    (match args with
+     | [ Pv c ] ->
+       emit_load ctx c;
+       Jvm.Code.checkcast ctx.code "CondVar";
+       Jvm.Code.invokevirtual
+         ctx.code ~class_:"CondVar" ~method_:"csignal" ~descriptor:"()I";
+       Kind.K_int
+     | _ -> raise (Unsupported "caml_ml_condition_signal arity"))
+  | "caml_ml_condition_broadcast" ->
+    (match args with
+     | [ Pv c ] ->
+       emit_load ctx c;
+       Jvm.Code.checkcast ctx.code "CondVar";
+       Jvm.Code.invokevirtual
+         ctx.code ~class_:"CondVar" ~method_:"cbroadcast" ~descriptor:"()I";
+       Kind.K_int
+     | _ -> raise (Unsupported "caml_ml_condition_broadcast arity"))
   | "caml_sys_time" | "caml_sys_time_include_children" ->
     (* Seconds since an arbitrary epoch as an OCaml float.
        [System.nanoTime()] gives relative nanos; scale to seconds. *)

@@ -37,3 +37,7 @@ let format_class_bytes = Jvm_runtime.format_class_bytes
 let ephemeron_class_bytes = Jvm_runtime.ephemeron_class_bytes
 
 let java_ffi_class_bytes = Jvm_runtime.java_ffi_class_bytes
+
+let mutex_class_bytes = Jvm_runtime.mutex_class_bytes
+
+let cond_var_class_bytes = Jvm_runtime.cond_var_class_bytes

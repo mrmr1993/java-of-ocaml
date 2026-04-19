@@ -47,3 +47,10 @@ val java_ffi_class_bytes : unit -> string
     target is a runtime-computed name rather than known at compile
     time. Users of the PPX / typed-external path don't need this
     class; it's linked in unconditionally for simplicity. *)
+
+val mutex_class_bytes : unit -> string
+(** OCaml [Mutex.t] backed by a [java.util.concurrent.locks.ReentrantLock]. *)
+
+val cond_var_class_bytes : unit -> string
+(** OCaml [Condition.t] backed by [java.util.concurrent.locks.Condition]
+    (lazily bound to the mutex on first wait). *)
