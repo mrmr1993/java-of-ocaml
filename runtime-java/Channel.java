@@ -179,6 +179,37 @@ public class Channel {
     return 0;
   }
 
+  // MD5 of the next [len] bytes (or to EOF if len < 0). Drains the
+  // buffered window first, then pulls from the stream.
+  public String md5(int len) throws IOException {
+    if (in == null) throw new IOException("not an input channel");
+    try {
+      java.security.MessageDigest md = java.security.MessageDigest.getInstance("MD5");
+      byte[] chunk = new byte[4096];
+      int remaining = len < 0 ? Integer.MAX_VALUE : len;
+      while (remaining > 0) {
+        if (bufCurr < bufEnd) {
+          int take = Math.min(bufEnd - bufCurr, remaining);
+          md.update(buf, bufCurr, take);
+          bufCurr += take;
+          remaining -= take;
+        } else {
+          int want = Math.min(chunk.length, remaining);
+          int n = in.read(chunk, 0, want);
+          if (n <= 0) break;
+          md.update(chunk, 0, n);
+          remaining -= n;
+        }
+      }
+      byte[] digest = md.digest();
+      char[] chars = new char[digest.length];
+      for (int i = 0; i < digest.length; i++) chars[i] = (char) (digest[i] & 0xFF);
+      return new String(chars);
+    } catch (java.security.NoSuchAlgorithmException e) {
+      throw new RuntimeException(e);
+    }
+  }
+
   public int close() throws IOException {
     if (in != null) in.close();
     if (out != null && out != System.out && out != System.err) out.close();

@@ -1511,6 +1511,20 @@ and emit_ccall_named ctx name args =
          ~descriptor:"(I)I";
        Kind.K_int
      | _ -> raise (Unsupported "caml_sys_close arity"))
+  | "caml_md5_chan" ->
+    (* MD5 of the remaining contents of an input channel (or [len]
+       bytes if len >= 0). Delegates to [Channel.md5] which consumes
+       from the buffered input. *)
+    (match args with
+     | [ Pv chan; Pv len ] ->
+       emit_load ctx chan;
+       Jvm.Code.checkcast ctx.code "Channel";
+       as_int len;
+       Jvm.Code.invokevirtual
+         ctx.code ~class_:"Channel" ~method_:"md5"
+         ~descriptor:"(I)Ljava/lang/String;";
+       Kind.K_string
+     | _ -> raise (Unsupported "caml_md5_chan arity"))
   | "caml_md5_bytes" | "caml_md5_string" ->
     (* 16-byte MD5 digest of [s[ofs..ofs+len)] as a Bytes. Routes
        through a static [Bytes.md5] helper that wraps
