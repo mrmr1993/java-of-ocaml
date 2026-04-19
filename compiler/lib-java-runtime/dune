@@ -1,0 +1,10 @@
+; User-facing OCaml library for calling into Java from OCaml.
+; Users [open Java] or reference [Java.Unsafe] to declare FFI
+; primitives. The [external] declarations here have primitive names of
+; the form "java:<op>:<class>:<member>:<descriptor>", recognised by
+; the java_of_ocaml backend's [Jvm_generate.emit_java_ffi].
+
+(library
+ (name java_of_ocaml_runtime)
+ (public_name java_of_ocaml.runtime)
+ (wrapped false))
