@@ -1081,7 +1081,16 @@ let process_block state start_pc next_starts addr_map =
                if IntMap.mem p' addr_map
                then p'
                else if p' > pc + 256
-               then raise (Not_supported "can't find successor pc")
+               then
+                 raise
+                   (Not_supported
+                      (Printf.sprintf
+                         "can't find successor pc (fell off block at \
+                          pc=%d, op=%s — likely an opcode [step] \
+                          returned [None] for without recording a \
+                          successor)"
+                         pc
+                         (Bytecode.opcode_name ins.Instr.opcode)))
                else find p'
              in
              find ins.pc

@@ -175,7 +175,12 @@ let emit_globals_init code globals =
       Jvm.Code.aastore code
   done
 
-let compile_t ?(print_functions = []) ~parsed ~out_dir () =
+let compile_t
+      ?(print_functions = [])
+      ?(print_ir = [])
+      ~parsed
+      ~out_dir
+      () =
   let total = if debug_times () then Some (Timer.make ()) else None in
   let prim_table = Prim.find_supported_prims parsed in
   (* A zero-primitive input is legitimate for separate-compilation
@@ -342,6 +347,32 @@ let compile_t ?(print_functions = []) ~parsed ~out_dir () =
   List.iter
     (fun (fi : function_info) -> Hashtbl.add fn_by_name fi.name fi)
     !func_list;
+  (* --print-ir PC debug dumps. Resolve PCs against the function-info
+     table once it's populated, so we know which are main vs function
+     bodies and can feed the right nargs/ncaps to parse_function. *)
+  (match print_ir with
+   | [] -> ()
+   | pcs ->
+     let fn_info_of_body =
+       let by_body = Hashtbl.create 64 in
+       List.iter
+         (fun (fi : function_info) ->
+           Hashtbl.replace by_body fi.body_pc fi)
+         !func_list;
+       fun pc -> Hashtbl.find_opt by_body pc
+     in
+     let main_start_pc =
+       if Array.length arr = 0 then 0 else arr.(0).pc
+     in
+     List.iter
+       (fun pc ->
+         Print_ir.print
+           Format.err_formatter
+           ~arr
+           ~fn_info_of_body
+           ~main_start_pc
+           ~pc)
+       pcs);
   (* Legacy-only kind inference removed. The IR path uses
      [Jvm_typing.infer] on each function's Code.program instead. *)
   if debug_functions ()
@@ -830,7 +861,12 @@ let compile_t ?(print_functions = []) ~parsed ~out_dir () =
    a fully-linked globals table, so mixing it with separately-
    compiled inputs would double-assign slots. Callers either hand us
    one [.bc] or a list of [.cmo]/[.cma]. *)
-let compile ?(print_functions = []) ~bcs ~out_dir () =
+let compile
+      ?(print_functions = [])
+      ?(print_ir = [])
+      ~bcs
+      ~out_dir
+      () =
   let parsed =
     time_phase "read-bytecode" (fun () ->
       match List.map Bytecode.read_file bcs with
@@ -852,4 +888,4 @@ let compile ?(print_functions = []) ~bcs ~out_dir () =
         in
         Linker.link units)
   in
-  compile_t ~print_functions ~parsed ~out_dir ()
+  compile_t ~print_functions ~print_ir ~parsed ~out_dir ()

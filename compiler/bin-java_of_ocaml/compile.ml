@@ -3,7 +3,7 @@
 
 open Cmdliner
 
-let run inputs output_dir debug_flags print_functions =
+let run inputs output_dir debug_flags print_functions print_ir =
   List.iter Java_of_ocaml_compiler.Debug.enable debug_flags;
   match inputs, output_dir with
   | [], _ -> `Error (true, "missing input file(s)")
@@ -12,6 +12,7 @@ let run inputs output_dir debug_flags print_functions =
     (try
        Java_of_ocaml_compiler.Compile.compile
          ~print_functions
+         ~print_ir
          ~bcs
          ~out_dir
          ();
@@ -55,6 +56,19 @@ let print_function_arg =
     & opt_all int []
     & info [ "print-function" ] ~docv:"PC" ~doc)
 
+let print_ir_arg =
+  let doc =
+    "Dump the IR ([Code.program]) produced by $(b,Parse_bytecode) \
+     for the function body starting at $(b,PC), or the \
+     [Not_supported] message if lowering fails. Pass $(b,0) (or \
+     the program's first pc) to target the main init code. May be \
+     repeated."
+  in
+  Arg.(
+    value
+    & opt_all int []
+    & info [ "print-ir" ] ~docv:"PC" ~doc)
+
 let term =
   Term.(
     ret
@@ -62,7 +76,8 @@ let term =
        $ input_arg
        $ output_arg
        $ debug_arg
-       $ print_function_arg))
+       $ print_function_arg
+       $ print_ir_arg))
 
 let info =
   let doc = "Compile OCaml bytecode to JVM class files." in
