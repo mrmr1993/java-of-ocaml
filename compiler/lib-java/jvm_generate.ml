@@ -6,6 +6,12 @@
 
 exception Unsupported of string
 
+let debug_ir_gen_trace =
+  match Sys.getenv_opt "JAVA_OF_OCAML_DEBUG" with
+  | None -> false
+  | Some s ->
+    List.mem "ir_gen_trace" (List.map String.trim (String.split_on_char ',' s))
+
 type ctx =
   { code : Jvm.Code.t
   ; typing : Jvm_typing.t
@@ -1756,12 +1762,6 @@ let params_of_block (prog : Code.program) addr =
   match Code.Addr.Map.find_opt addr prog.blocks with
   | Some b -> b.params
   | None -> raise (Unsupported (Printf.sprintf "missing block %d" addr))
-
-let debug_ir_gen_trace =
-  match Sys.getenv_opt "JAVA_OF_OCAML_DEBUG" with
-  | None -> false
-  | Some s ->
-    List.mem "ir_gen_trace" (List.map String.trim (String.split_on_char ',' s))
 
 let emit_cont ctx prog (addr, args) =
   if debug_ir_gen_trace

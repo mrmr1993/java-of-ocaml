@@ -558,7 +558,8 @@ let step (state : state) (ins : Instr.instr) : last option =
     let all_args = List.map (fun v -> Pv v) (a :: rest) in
     set_accu_let state (Prim (Extern prim_name, all_args));
     None)
-  (* BULTINT / BUGEINT — unsigned fused compare-and-branch. *)
+  (* BULTINT / BUGEINT — unsigned fused compare-and-branch. Same
+     [imm tst accu] operand order as the signed family above. *)
   else if op = Bytecode.Op.bultint || op = Bytecode.Op.bugeint
   then (
     let a = var_of state.accu in
@@ -566,7 +567,7 @@ let step (state : state) (ins : Instr.instr) : last option =
     let c = Var.fresh () in
     emit state (Let (c, Constant (Int args.(0))));
     let r = Var.fresh () in
-    emit state (Let (r, Prim (cmp, [ Pv a; Pv c ])));
+    emit state (Let (r, Prim (cmp, [ Pv c; Pv a ])));
     let then_pc = ins.pc + args.(1) + 2 in
     let else_pc = ins.pc + 3 in
     Some (Cond (r, make_cont state then_pc, make_cont state else_pc)))
@@ -931,6 +932,13 @@ let step (state : state) (ins : Instr.instr) : last option =
     Some (Cond (v, make_cont state then_pc, make_cont state else_pc)))
   else if Instr.is_cmp_jump op
   then (
+    (* OCaml's fused compare-and-branch family
+       (BEQ/BNEQ/BLTINT/BLEINT/BGTINT/BGEINT) has semantics
+       [imm tst accu], NOT [accu tst imm]. That is, BLTINT 0 L
+       fires when [0 < accu] (i.e. the accu is positive), and
+       BGEINT 0 L fires when [0 >= accu] (accu non-positive).
+       Encode the IR comparison with operands in the same order
+       [imm, accu] so the IR matches OCaml's bytecode semantics. *)
     let a = var_of state.accu in
     let cmp =
       if op = 131 then Eq
@@ -943,7 +951,7 @@ let step (state : state) (ins : Instr.instr) : last option =
     let c = Var.fresh () in
     emit state (Let (c, Constant (Int args.(0))));
     let r = Var.fresh () in
-    emit state (Let (r, Prim (cmp, [ Pv a; Pv c ])));
+    emit state (Let (r, Prim (cmp, [ Pv c; Pv a ])));
     let then_pc = ins.pc + args.(1) + 2 in
     let else_pc = ins.pc + 3 in
     Some (Cond (r, make_cont state then_pc, make_cont state else_pc)))
