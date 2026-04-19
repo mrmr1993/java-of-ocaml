@@ -45,7 +45,6 @@ let expr = function
 
 let instr = function
   | Let (_, e) -> 6 + expr e            (* expr result + store to local *)
-  | Assign _ -> 8                        (* load + possible cast + store *)
   | Set_field _ -> 14
   | Offset_ref _ -> 14
   | Array_set _ -> 18

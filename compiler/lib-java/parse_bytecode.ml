@@ -2,7 +2,7 @@
 
    Mirrors js_of_ocaml/compiler/lib/parse_bytecode.ml in structure:
    compute block boundaries by scanning branches, then process each
-   block with a State threading accu + stack, emitting Let/Assign/etc
+   block with a State threading accu + stack, emitting Let / etc
    and a block terminator. *)
 
 open Code

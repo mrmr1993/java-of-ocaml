@@ -75,7 +75,6 @@ let count_uses (prog : program) : int VarTbl.t =
   in
   let instr_uses = function
     | Let (_, e) -> expr_uses e
-    | Assign (_, y) -> bump uses y
     | Set_field (b, _, v) ->
       bump uses b;
       bump uses v

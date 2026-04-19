@@ -65,7 +65,6 @@ let pure_expr pure_funs = function
 
 let pure_instr pure_funs = function
   | Let (_, e) -> pure_expr pure_funs e
-  | Assign _ -> true
   | Set_field _ | Offset_ref _ | Array_set _ -> false
 
 (* --- Traversal ------------------------------------------------------

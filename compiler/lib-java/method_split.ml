@@ -41,7 +41,6 @@ let fv_expr = function
 
 let fv_instr = function
   | Let (_, e) -> fv_expr e
-  | Assign (_, y) -> Var.Set.singleton y
   | Set_field (x, _, y) -> Var.Set.add x (Var.Set.singleton y)
   | Offset_ref (x, _) -> Var.Set.singleton x
   | Array_set (a, i, v) ->
@@ -49,7 +48,6 @@ let fv_instr = function
 
 let defs_of_instr = function
   | Let (v, _) -> Var.Set.singleton v
-  | Assign (v, _) -> Var.Set.singleton v
   | Set_field _ | Offset_ref _ | Array_set _ -> Var.Set.empty
 
 let fv_cont (_, args) = fv_set_of_list args

@@ -1,5 +1,5 @@
 (* IR-to-JVM emitter. Phase 2 scope: int arith / comparisons /
-   constants / Assign / Branch / Cond / Return / Stop. Every other
+   constants / Branch / Cond / Return / Stop. Every other
    expr or terminator raises [Unsupported]. Callers in [compile.ml]
    can catch and fall back to the legacy per-opcode emitter during
    the transition. *)
@@ -2475,9 +2475,6 @@ let emit_instr ctx (i : Code.instr) =
   | Let (x, e) ->
     let produced = emit_expr ctx e in
     emit_store ctx x ~from:produced
-  | Assign (x, y) ->
-    emit_load ctx y;
-    emit_store ctx x ~from:(kind_of ctx y)
   | Set_field (x, i, y) ->
     emit_load ctx x;
     Jvm.Code.checkcast ctx.code "Block";

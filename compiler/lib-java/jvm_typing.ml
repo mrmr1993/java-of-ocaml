@@ -63,13 +63,6 @@ let infer (program : Code.program) : t =
         (fun i ->
           match (i : Code.instr) with
           | Let (x, e) -> set x (kind_of_expr e)
-          | Assign (x, y) ->
-            let yk =
-              match Code.Var.Hashtbl.find_opt kinds y with
-              | Some k -> k
-              | None -> Kind.K_obj
-            in
-            set x yk
           | Set_field _ | Offset_ref _ | Array_set _ -> ())
         b.body)
     program.blocks;

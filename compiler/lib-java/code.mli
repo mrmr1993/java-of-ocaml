@@ -7,9 +7,13 @@
     straight-line [body] of [instr]s, and a terminator [branch] that
     fans out to zero or more continuations.
 
-    SSA-lite: [Let (x, e)] binds a fresh [Var.t]; [Assign (x, y)] copies
-    one var's current value into another (used only for OCaml's ASSIGN
-    bytecode, which updates a slot shared across exception handlers).
+    Strict SSA: [Let (x, e)] binds a fresh [Var.t], and that's the
+    only way to define a Var. OCaml's ASSIGN bytecode is handled in
+    the parser by reseating the stack slot's [Var.t] rather than by
+    emitting a re-definition, so every Var has exactly one def.
+    Downstream passes rely on this — most importantly [Method_split],
+    which forwards live-through vars at a cut without needing
+    per-predecessor dominance analysis.
 
     Not ported from jsoo: CPS/effects (Special), Event debug info,
     native-string distinction, typed constants (Int32/Int64/NativeInt),
@@ -91,7 +95,6 @@ type expr =
 
 type instr =
   | Let of Var.t * expr
-  | Assign of Var.t * Var.t
   | Set_field of Var.t * int * Var.t
   | Offset_ref of Var.t * int
   | Array_set of Var.t * Var.t * Var.t

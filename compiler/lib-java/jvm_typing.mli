@@ -1,8 +1,9 @@
 (** Per-[Var.t] kind inference over the [Code] IR.
 
-    Forward dataflow pass: walks the program's blocks, pinning each
-    Var's kind from its defining expression and joining across
-    [Assign]s. Block params default to [K_obj] (the universal carrier);
+    Forward dataflow pass: walks the program's blocks and pins each
+    Var's kind from its defining [Let] expression. Under strict SSA
+    every Var has exactly one def, so no lattice join is needed.
+    Block params default to [K_obj] (the universal carrier);
     downstream uses unbox via the emitter's [ensure_kind] at point of
     use.
 
