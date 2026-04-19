@@ -1,0 +1,11 @@
+; Syntax sugar for the Java FFI — rewrites [obj##meth args] /
+; [obj##.field] / [obj##.field <- v] / [new%java "Class" args] into
+; calls against the [Java.Unsafe] surface declared in the
+; [java_of_ocaml_runtime] library.
+
+(library
+ (name ppx_java)
+ (public_name java_of_ocaml.ppx_java)
+ (kind ppx_rewriter)
+ (libraries ppxlib)
+ (preprocess (pps ppxlib.metaquot)))

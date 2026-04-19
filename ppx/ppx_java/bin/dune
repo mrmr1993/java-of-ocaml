@@ -1,0 +1,4 @@
+(executable
+ (name main)
+ (public_name ppx_java)
+ (libraries ppx_java ppxlib))
