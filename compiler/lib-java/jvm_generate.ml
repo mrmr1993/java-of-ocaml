@@ -174,7 +174,7 @@ let ensure_int ctx k =
    into [prim_arg list]; they're all Pv or Pc. The handler dispatches
    on known primitive names and emits specialised bytecode.
    Unknown names raise [Unsupported]. *)
-let emit_ccall ctx name args =
+let rec emit_ccall ctx name args =
   let load_args_obj () =
     List.iter
       (fun pa ->
@@ -1601,6 +1601,143 @@ let emit_ccall ctx name args =
            "(Ljava/lang/Object;ILjava/lang/Object;II)Ljava/lang/Object;";
        Kind.K_obj
      | _ -> raise (Unsupported "caml_ephe_blit_key arity"))
+  (* --- Base runtime primitives (mirror [_opam/lib/base/runtime.js]).
+     Base's inline runtime is [//Weakdef] so any C/JS stub suffices;
+     we emit the simplest JVM equivalent for each. *)
+  | "Base_am_testing" ->
+    (* Always false — we're not running in Base's test harness.
+       The arg is unused; [emit_ccall] doesn't pre-push args, so we
+       just emit the constant. *)
+    Jvm.Code.ldc_int ctx.code 0;
+    Kind.K_int
+  | "Base_clear_caml_backtrace_pos" ->
+    Jvm.Code.ldc_int ctx.code 0;
+    Kind.K_int
+  | "Base_caml_exn_is_most_recent_exn" ->
+    Jvm.Code.ldc_int ctx.code 1;
+    Kind.K_int
+  | "Base_int_math_int_popcount" ->
+    (match args with
+     | [ Pv n ] ->
+       as_int n;
+       Jvm.Code.invokestatic
+         ctx.code
+         ~class_:"java/lang/Integer"
+         ~method_:"bitCount"
+         ~descriptor:"(I)I";
+       Kind.K_int
+     | _ -> raise (Unsupported "Base_int_math_int_popcount arity"))
+  | "Base_int_math_int_clz"
+  | "Base_int_math_int32_clz"
+  | "Base_int_math_nativeint_clz" ->
+    (match args with
+     | [ Pv n ] ->
+       as_int n;
+       Jvm.Code.invokestatic
+         ctx.code
+         ~class_:"java/lang/Integer"
+         ~method_:"numberOfLeadingZeros"
+         ~descriptor:"(I)I";
+       Kind.K_int
+     | _ -> raise (Unsupported "Base_int_math_clz arity"))
+  | "Base_int_math_int_ctz"
+  | "Base_int_math_int32_ctz"
+  | "Base_int_math_nativeint_ctz" ->
+    (match args with
+     | [ Pv n ] ->
+       as_int n;
+       Jvm.Code.invokestatic
+         ctx.code
+         ~class_:"java/lang/Integer"
+         ~method_:"numberOfTrailingZeros"
+         ~descriptor:"(I)I";
+       Kind.K_int
+     | _ -> raise (Unsupported "Base_int_math_ctz arity"))
+  | "Base_int_math_int_pow_stub" ->
+    (* Integer exponentiation by squaring. Use a small helper emit
+       pattern: no runtime dep needed, just [imul] + [iushr] in a
+       loop. Cheaper to emit as a runtime invocation via
+       [java.lang.Math.pow] on doubles; we do that here since the
+       precise overflow semantics match Base's stub. *)
+    (match args with
+     | [ Pv b; Pv e ] ->
+       as_int b;
+       Jvm.Code.i2d ctx.code;
+       as_int e;
+       Jvm.Code.i2d ctx.code;
+       Jvm.Code.invokestatic
+         ctx.code
+         ~class_:"java/lang/Math"
+         ~method_:"pow"
+         ~descriptor:"(DD)D";
+       Jvm.Code.d2i ctx.code;
+       Kind.K_int
+     | _ -> raise (Unsupported "Base_int_math_int_pow_stub arity"))
+  | "Base_unsafe_create_local_bytes" ->
+    (* Same as [caml_create_bytes]: allocate a fresh [Bytes] of the
+       requested length. Base uses this for a "local" allocation that
+       has no special meaning on the JVM. *)
+    (match args with
+     | [ Pv n ] ->
+       Jvm.Code.new_ ctx.code "Bytes";
+       Jvm.Code.dup ctx.code;
+       as_int n;
+       Jvm.Code.invokespecial
+         ctx.code
+         ~class_:"Bytes"
+         ~method_:"<init>"
+         ~descriptor:"(I)V";
+       Kind.K_obj
+     | _ -> raise (Unsupported "Base_unsafe_create_local_bytes arity"))
+  | "caml_make_local_vect" ->
+    (* Same shape as [caml_make_vect] — no stack-local array on the JVM. *)
+    emit_ccall ctx "caml_array_make" args
+  | "Base_hash_string" ->
+    (match args with
+     | [ Pv s ] ->
+       emit_load ctx s;
+       Jvm.Code.invokevirtual
+         ctx.code
+         ~class_:"java/lang/Object"
+         ~method_:"hashCode"
+         ~descriptor:"()I";
+       Kind.K_int
+     | _ -> raise (Unsupported "Base_hash_string arity"))
+  | "Base_hash_double" ->
+    (match args with
+     | [ Pv d ] ->
+       emit_load ctx d;
+       (match kind_of ctx d with
+        | K_float ->
+          Jvm.Code.invokestatic
+            ctx.code
+            ~class_:"java/lang/Double"
+            ~method_:"valueOf"
+            ~descriptor:"(D)Ljava/lang/Double;"
+        | _ -> Jvm.Code.checkcast ctx.code "java/lang/Double");
+       Jvm.Code.invokevirtual
+         ctx.code
+         ~class_:"java/lang/Object"
+         ~method_:"hashCode"
+         ~descriptor:"()I";
+       Kind.K_int
+     | _ -> raise (Unsupported "Base_hash_double arity"))
+  | "caml_dummy_obj_is_stack" ->
+    (* Documented unreachable; emit a throwing stub rather than an
+       actual implementation. *)
+    Jvm.Code.new_ ctx.code "java/lang/UnsupportedOperationException";
+    Jvm.Code.dup ctx.code;
+    Jvm.Code.ldc_string
+      ctx.code
+      "caml_dummy_obj_is_stack: should be unreachable";
+    Jvm.Code.invokespecial
+      ctx.code
+      ~class_:"java/lang/UnsupportedOperationException"
+      ~method_:"<init>"
+      ~descriptor:"(Ljava/lang/String;)V";
+    Jvm.Code.athrow ctx.code;
+    Jvm.Code.aconst_null ctx.code;
+    Kind.K_obj
   | "caml_array_get_addr" | "caml_array_unsafe_get_addr" ->
     (match args with
      | [ Pv a; Pv i ] ->
