@@ -69,6 +69,24 @@ let%expect_test "java:static with String arg — String.valueOf(int)" =
     |};
   [%expect {| 123 |}]
 
+let%expect_test "reflective dispatch via JavaFFI.callStatic" =
+  (* Exercises the [JavaFFI] runtime class: invoke
+     [java.lang.Integer.parseInt] by name + arity, not by a
+     compile-time descriptor. [Array.make] gives us a [Block] whose
+     underlying [Object[] fields] is what the [emit_arg_coerced] path
+     extracts when the descriptor slot is [[Ljava/lang/Object;]. *)
+  compile_and_run
+    {|
+      external caml_java_print_int : int -> unit = "caml_java_print_int"
+      external call_static : string -> string -> Obj.t array -> Obj.t
+        = "java:static:JavaFFI:callStatic:(Ljava/lang/String;Ljava/lang/String;[Ljava/lang/Object;)Ljava/lang/Object;"
+      let () =
+        let args = Array.make 1 (Obj.repr "17") in
+        let r = call_static "java/lang/Integer" "parseInt" args in
+        caml_java_print_int (Obj.obj r)
+    |};
+  [%expect {| 17 |}]
+
 let%expect_test "java:instanceof returns bool" =
   compile_and_run
     {|

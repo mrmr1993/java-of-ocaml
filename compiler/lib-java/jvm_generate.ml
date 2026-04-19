@@ -267,8 +267,25 @@ let emit_arg_coerced ctx (pa : Code.prim_arg) target =
           real mismatch. *)
        Jvm.Code.checkcast ctx.code "java/lang/String"
      | _ -> Jvm.Code.checkcast ctx.code "java/lang/String")
+  | t when String.length t > 0 && t.[0] = '[' ->
+    (* JVM array target. OCaml arrays are [Block]s whose underlying
+       storage lives in [Object[] fields] — extract that directly for
+       uniform-object arrays. For element-typed arrays (e.g. [I]),
+       verifier acceptance requires a matching descriptor; we fall
+       back to a [checkcast] and let the JIT complain if the shapes
+       don't line up. *)
+    (match kind with
+     | Kind.K_block _ | Kind.K_obj ->
+       Jvm.Code.checkcast ctx.code "Block";
+       Jvm.Code.getfield
+         ctx.code
+         ~class_:"Block"
+         ~field:"fields"
+         ~descriptor:"[Ljava/lang/Object;";
+       if target <> "[Ljava/lang/Object;" then Jvm.Code.checkcast ctx.code target
+     | _ -> ())
   | _ ->
-    (* Reference or array target: box primitives to Object. *)
+    (* Reference target: box primitives to Object. *)
     (match kind with
      | Kind.K_int -> Kind.emit_box_int ctx.code
      | Kind.K_float -> Kind.emit_box_float ctx.code
