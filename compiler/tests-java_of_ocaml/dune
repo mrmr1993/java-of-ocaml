@@ -1,32 +1,29 @@
-(tests
- (names hello arith)
- (modes byte))
+; Every `<name>.ml` in this directory is an end-to-end smoke test.
+; For each one we:
+;   1. compile to OCaml bytecode with `ocamlc`,
+;   2. run that bytecode with `ocamlrun` and diff stdout against
+;      `<name>.expected` (sanity-check for the source program),
+;   3. compile the same bytecode to JVM classes with `java_of_ocaml`,
+;   4. run the classes with `java` and diff stdout against
+;      `<name>.expected` (the actual java_of_ocaml parity check).
+;
+; All four rules per test are generated into `dune.inc` by
+; `gen-rules/gen.exe`. To pick up a newly added `<name>.{ml,expected}`
+; pair, run `dune runtest` (it will fail with a diff against the
+; regenerated dune.inc) then `dune promote` to accept the change.
 
-; Phase 0 java_of_ocaml compilation: explicit rule wiring, pending a real
-; dune `java` mode. The jvm_hello.ml program uses only what the current
-; compiler supports (the custom `caml_java_print_endline` primitive).
-
-(rule
- (targets jvm_hello.bc)
- (deps jvm_hello.ml)
- (action
-  (run ocamlc -no-check-prims %{deps} -o %{targets})))
-
-(rule
- (targets Main.class)
- (deps jvm_hello.bc)
- (action
-  (run %{bin:java_of_ocaml} %{deps} -o .)))
+(include dune.inc)
 
 (rule
- (targets jvm_hello.output)
- (deps Main.class)
+ (deps
+  (glob_files *.ml)
+  (glob_files *.expected))
  (action
   (with-stdout-to
-   %{targets}
-   (run java -cp . Main))))
+   dune.inc.gen
+   (run gen-rules/gen.exe))))
 
 (rule
  (alias runtest)
  (action
-  (diff jvm_hello.expected jvm_hello.output)))
+  (diff dune.inc dune.inc.gen)))
