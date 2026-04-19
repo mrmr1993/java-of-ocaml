@@ -110,6 +110,15 @@ Every feature below is covered by at least one test under
   `caml_ml_output_char` / `caml_ml_flush` /
   `caml_ml_open_descriptor_out`, backed by the `Channel` runtime
   class (a `java.io.PrintStream` wrapper).
+- **File I/O** — `open_in` / `open_out` / `input_char` / `input_line`
+  / `input` / `close_in` / `close_out` / `Sys.remove` compile through
+  `caml_sys_open` / `caml_sys_close` / `caml_sys_remove` /
+  `caml_ml_{input,input_char,input_scan_line,close_channel}`, backed
+  by `Channel`'s buffered input mode (64 KB byte buffer implementing
+  the OCaml `input_scan_line` newline-search protocol). `End_of_file`
+  is raised as a `CamlException` wrapping the descriptor at
+  `GLOBALS[4]` — the main-init prelude seeds `Channel.endOfFileExn`
+  right after globals init.
 - **String concat** — `(^)` via `caml_create_bytes` /
   `caml_blit_string` / `caml_string_of_bytes` / `caml_bytes_of_string`
   / `caml_bytes_{get,set,equal,compare}`, backed by the `Bytes`

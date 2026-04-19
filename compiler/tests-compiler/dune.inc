@@ -144,6 +144,18 @@
   (pps ppx_expect)))
 
 (library
+ ;; compiler/tests-compiler/file_io.ml
+ (name file_io_15)
+ (enabled_if true)
+ (modules file_io)
+ (libraries unix str java_of_ocaml_expect_tests_helper)
+ (inline_tests
+  (enabled_if true))
+ (flags (:standard -open Java_of_ocaml_expect_tests_helper))
+ (preprocess
+  (pps ppx_expect)))
+
+(library
  ;; compiler/tests-compiler/float_module.ml
  (name float_module_15)
  (enabled_if true)
