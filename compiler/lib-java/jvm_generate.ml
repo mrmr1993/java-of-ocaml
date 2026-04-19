@@ -751,6 +751,48 @@ let emit_ccall ctx name args =
        Jvm.Code.ldc_int ctx.code 0;
        Kind.K_int
      | _ -> raise (Unsupported "caml_sys_exit arity"))
+  | "caml_sys_get_config" ->
+    (* Returns ("Unix", 32, false) triple. *)
+    Jvm.Code.new_ ctx.code "Block";
+    Jvm.Code.dup ctx.code;
+    Jvm.Code.ldc_int ctx.code 0;
+    Jvm.Code.ldc_int ctx.code 3;
+    Jvm.Code.anewarray ctx.code "java/lang/Object";
+    Jvm.Code.dup ctx.code;
+    Jvm.Code.ldc_int ctx.code 0;
+    Jvm.Code.ldc_string ctx.code "Unix";
+    Jvm.Code.aastore ctx.code;
+    Jvm.Code.dup ctx.code;
+    Jvm.Code.ldc_int ctx.code 1;
+    Jvm.Code.ldc_int ctx.code 32;
+    Kind.emit_box_int ctx.code;
+    Jvm.Code.aastore ctx.code;
+    Jvm.Code.dup ctx.code;
+    Jvm.Code.ldc_int ctx.code 2;
+    Jvm.Code.ldc_int ctx.code 0;
+    Kind.emit_box_int ctx.code;
+    Jvm.Code.aastore ctx.code;
+    Jvm.Code.invokespecial
+      ctx.code
+      ~class_:"Block"
+      ~method_:"<init>"
+      ~descriptor:"(I[Ljava/lang/Object;)V";
+    Kind.K_obj
+  | "caml_sys_const_int_size" -> Jvm.Code.ldc_int ctx.code 63; Kind.K_int
+  | "caml_sys_const_word_size" -> Jvm.Code.ldc_int ctx.code 64; Kind.K_int
+  | "caml_sys_const_big_endian"
+  | "caml_sys_const_ostype_unix" ->
+    Jvm.Code.ldc_int ctx.code 0;
+    Kind.K_int
+  | "caml_sys_const_ostype_cygwin" | "caml_sys_const_ostype_win32"
+  | "caml_sys_const_backend_type" ->
+    Jvm.Code.ldc_int ctx.code 0;
+    Kind.K_int
+  | "caml_sys_const_max_wosize" ->
+    Jvm.Code.ldc_int ctx.code 1073741823;
+    Kind.K_int
+  | "caml_sys_const_min_int" -> Jvm.Code.ldc_int ctx.code min_int; Kind.K_int
+  | "caml_sys_const_max_int" -> Jvm.Code.ldc_int ctx.code max_int; Kind.K_int
   | "caml_ensure_stack_capacity"
   | "caml_ml_set_binary_mode"
   | "caml_ml_set_channel_name"
