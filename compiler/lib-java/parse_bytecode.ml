@@ -1105,7 +1105,17 @@ let parse_generic_with_stack instrs ~start_pc ~end_pc ~initial_stack ~env =
       | Switch (_, ints, tags) ->
         Array.iter step_cont ints;
         Array.iter step_cont tags
-      | Pushtrap (b, _, h) -> step_cont b; step_cont h)
+      | Pushtrap (b, _, h) -> step_cont b; step_cont h);
+    (* Anything [make_cont] registered for a new PC during this
+       block's processing (especially PUSHTRAP's handler_cont, which
+       is params_for'd eagerly) must also be visited so prog.blocks
+       stays consistent with target_params. *)
+    Hashtbl.iter
+      (fun pc _ ->
+        if not (Hashtbl.mem visited pc)
+        && IntMap.mem pc addr_map
+        then visit pc)
+      state.target_params
   in
   visit start_pc;
   let starts = !starts_ref in

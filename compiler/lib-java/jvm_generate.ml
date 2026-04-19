@@ -1554,7 +1554,19 @@ let params_of_block (prog : Code.program) addr =
   | Some b -> b.params
   | None -> raise (Unsupported (Printf.sprintf "missing block %d" addr))
 
+let debug_ir_gen_trace =
+  match Sys.getenv_opt "JAVA_OF_OCAML_DEBUG" with
+  | None -> false
+  | Some s ->
+    List.mem "ir_gen_trace" (List.map String.trim (String.split_on_char ',' s))
+
 let emit_cont ctx prog (addr, args) =
+  if debug_ir_gen_trace
+  then
+    Format.eprintf
+      "[ir_gen_trace] emit_cont addr=%d args=%d@."
+      addr
+      (List.length args);
   let params = params_of_block prog addr in
   emit_edge ctx params args (label_of ctx addr)
 
