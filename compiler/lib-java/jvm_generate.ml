@@ -87,12 +87,12 @@ let emit_store ctx v ~from:from_kind =
    | Kind.K_int, Kind.K_obj -> Kind.emit_box_int ctx.code
    | Kind.K_float, Kind.K_obj -> Kind.emit_box_float ctx.code
    | Kind.K_obj, Kind.K_int ->
-     Jvm.Code.checkcast ctx.code "java/lang/Integer";
-     Jvm.Code.invokevirtual
+     Jvm.Code.invokestatic
        ctx.code
-       ~class_:"java/lang/Integer"
-       ~method_:"intValue"
-       ~descriptor:"()I"
+       ~class_:"Block"
+       ~method_:"asLong"
+       ~descriptor:"(Ljava/lang/Object;)J";
+     Jvm.Code.l2i ctx.code
    | Kind.K_obj, Kind.K_float ->
      Jvm.Code.checkcast ctx.code "java/lang/Double";
      Jvm.Code.invokevirtual
@@ -157,17 +157,19 @@ let emit_prim_arg ctx (pa : Code.prim_arg) : Kind.kind =
     kind_of ctx v
   | Pc c -> emit_constant ctx c
 
-(* Ensure top of stack is [K_int]. *)
+(* Ensure top of stack is [K_int]. Tolerant of boxed Long
+   (Int32 / Nativeint / small-Int64 globals): route through
+   [Block.asLong + l2i]. *)
 let ensure_int ctx k =
   match k with
   | Kind.K_int -> ()
   | Kind.K_obj ->
-    Jvm.Code.checkcast ctx.code "java/lang/Integer";
-    Jvm.Code.invokevirtual
+    Jvm.Code.invokestatic
       ctx.code
-      ~class_:"java/lang/Integer"
-      ~method_:"intValue"
-      ~descriptor:"()I"
+      ~class_:"Block"
+      ~method_:"asLong"
+      ~descriptor:"(Ljava/lang/Object;)J";
+    Jvm.Code.l2i ctx.code
   | _ -> raise (Unsupported "ensure_int: unexpected kind")
 
 (* ==== Java FFI: dispatch for [java:*] primitive names ====
@@ -451,12 +453,17 @@ and emit_ccall_named ctx name args =
     match kind_of ctx v with
     | K_int -> ()
     | _ ->
-      Jvm.Code.checkcast ctx.code "java/lang/Integer";
-      Jvm.Code.invokevirtual
+      (* Route through [Block.asLong + l2i]. Handles both Integer
+         (the usual OCaml-int carrier) and Long (Int32 / Nativeint /
+         Int64 globals materialised from custom-tag DATA-section
+         blocks). Without this, Int32 ops on a boxed-Long global
+         like [Nativeint.max_int] would [checkcast Integer] → CCE. *)
+      Jvm.Code.invokestatic
         ctx.code
-        ~class_:"java/lang/Integer"
-        ~method_:"intValue"
-        ~descriptor:"()I"
+        ~class_:"Block"
+        ~method_:"asLong"
+        ~descriptor:"(Ljava/lang/Object;)J";
+      Jvm.Code.l2i ctx.code
   in
   match name with
   | "caml_ml_string_length" | "caml_string_length" ->

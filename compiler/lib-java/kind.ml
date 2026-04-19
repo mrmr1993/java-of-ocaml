@@ -82,15 +82,19 @@ let emit_box_long code =
     ~method_:"valueOf"
     ~descriptor:"(J)Ljava/lang/Long;"
 
-(* Unbox [java.lang.Long] → JVM [long]. Top-of-stack must be an
-   [Object] reference to a [Long]; checkcasts first. *)
+(* Unbox a boxed number to a primitive [long]. Accepts both
+   [java.lang.Long] (the usual Int64 representation) and
+   [java.lang.Integer] (the materialisation used for custom-tag
+   globals from Int32 / Nativeint / small-Int64 module-level
+   constants — all three marshalled identically by the OCaml
+   bytecoder). Routes through [Block.asLong] which dispatches on
+   [instanceof]. *)
 let emit_unbox_long code =
-  Jvm.Code.checkcast code "java/lang/Long";
-  Jvm.Code.invokevirtual
+  Jvm.Code.invokestatic
     code
-    ~class_:"java/lang/Long"
-    ~method_:"longValue"
-    ~descriptor:"()J"
+    ~class_:"Block"
+    ~method_:"asLong"
+    ~descriptor:"(Ljava/lang/Object;)J"
 
 let emit_unbox_to_kind code kind =
   match kind with

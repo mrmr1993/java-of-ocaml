@@ -23,6 +23,23 @@ public class Block {
         this.fields = fields;
     }
 
+    // Widen any boxed-number representation (Integer from
+    // Int32/Nativeint/small-Int64 globals, or Long from
+    // Int64 operations) to a primitive long. Centralised here so
+    // every Int64 / Nativeint unbox path uses the same loose
+    // contract; the two OCaml types marshal into the same
+    // custom-tag block shape and the bytecode data section
+    // materialises them uniformly — so constants boxed as Integer
+    // (to match Int32 / old behaviour) need to flow into long-typed
+    // operations without a ClassCastException.
+    public static long asLong(Object o) {
+        if (o instanceof Long) return ((Long) o).longValue();
+        if (o instanceof Integer) return ((Integer) o).intValue();
+        if (o instanceof Number) return ((Number) o).longValue();
+        // Unknown; mirror Long.longValue() on a mis-cast.
+        return ((Long) o).longValue();
+    }
+
     // Shallow copy: fresh Block with the same tag and a copy of the
     // fields array. Used by caml_obj_dup / caml_array_dup /
     // caml_update_dummy patterns.
