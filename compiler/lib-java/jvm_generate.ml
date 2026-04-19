@@ -603,8 +603,11 @@ let emit_ccall ctx name args =
        Kind.K_string
      | _ -> raise (Unsupported (name ^ " arity")))
   | "caml_hexstring_of_float" ->
+    (* The real primitive takes (float, precision, style); we only
+       use the float and return Double.toHexString. First arg is the
+       float; drop any others (they've been pushed but unused). *)
     (match args with
-     | [ Pv f; _; _; _ ] | [ Pv f ] ->
+     | (Code.Pv f) :: _rest ->
        emit_load ctx f;
        (match kind_of ctx f with
         | K_float -> ()
