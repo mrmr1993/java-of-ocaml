@@ -1,7 +1,6 @@
 open Instr
 open Kind
 open Function_info
-open State
 
 (* Debug flags. Enable via [JAVA_OF_OCAML_DEBUG=times,primitives,functions,emit]. *)
 let debug_times = Debug.find "times"
@@ -36,6 +35,43 @@ let time_phase name f =
 (* Compile-wide driver. *)
 
 
+
+(* Emit bytecode that materialises a global-value tree into a live
+   [Block]. Used by the globals-init prelude (no State threading
+   needed since we target [main]'s [<clinit>]-style setup). Uses
+   a fresh JVM local to park the [Object[]] between anewarray and
+   the Block ctor call. *)
+let rec emit_materialise_value code (v : Global_view.global_field_value) =
+  match v with
+  | Gv_int n ->
+    Jvm.Code.ldc_int code n;
+    Kind.emit_box_int code
+  | Gv_string s -> Jvm.Code.ldc_string code s
+  | Gv_float d ->
+    Jvm.Code.ldc_double code d;
+    Kind.emit_box_float code
+  | Gv_block (tag, fields) ->
+    emit_materialise_block_constant code tag fields
+
+and emit_materialise_block_constant code tag fields =
+  let n = List.length fields in
+  Jvm.Code.new_ code "Block";
+  Jvm.Code.dup code;
+  Jvm.Code.ldc_int code tag;
+  Jvm.Code.ldc_int code n;
+  Jvm.Code.anewarray code "java/lang/Object";
+  List.iteri
+    (fun i fv ->
+      Jvm.Code.dup code;
+      Jvm.Code.ldc_int code i;
+      emit_materialise_value code fv;
+      Jvm.Code.aastore code)
+    fields;
+  Jvm.Code.invokespecial
+    code
+    ~class_:"Block"
+    ~method_:"<init>"
+    ~descriptor:"(I[Ljava/lang/Object;)V"
 
 (* Emit code that populates [Main.GLOBALS] from the bytecode's DATA
    section. Runs first thing in [Main.main] so module init (which
@@ -82,38 +118,7 @@ let emit_globals_init code globals =
         ~field:"GLOBALS"
         ~descriptor:"[Ljava/lang/Object;";
       Jvm.Code.ldc_int code i;
-      (* [emit_materialise_block_constant] needs a [state] for its
-         [allocate_local] calls — synthesise a throwaway one. *)
-      let throwaway_state =
-        { code
-        ; globals
-        ; prims = [||]
-        ; supported_prims = Hashtbl.create 0
-        ; functions = Hashtbl.create 0
-        ; fn_by_name = Hashtbl.create 0
-        ; pc_to_label = Hashtbl.create 0
-        ; branch_target_state = Hashtbl.create 0
-        ; cfg = None
-        ; block_params = Hashtbl.create 0
-        ; acc_live = false
-        ; acc_kind = K_int
-        ; slots = []
-        ; oc_stack_depth = 0
-        ; next_local = 1
-        ; pending_cmp = None
-        ; nargs = 0
-        ; ncaps = 0
-        ; capture_kinds = []
-        ; enclosing_function_name = None
-        ; pending_handlers = Hashtbl.create 0
-        ; open_traps = []
-        ; fresh_oo_id_counter = ref 0
-        ; pending_retaddrs = 0
-        ; last_was_terminator = true
-        ; slot_obj_locals = Hashtbl.create 8
-        }
-      in
-      Emit_stack.emit_materialise_block_constant throwaway_state tag fields;
+      emit_materialise_block_constant code tag fields;
       Jvm.Code.aastore code
   done
 
@@ -248,12 +253,8 @@ let compile ~bc ~out_dir =
   List.iter
     (fun (fi : function_info) -> Hashtbl.add fn_by_name fi.name fi)
     !func_list;
-  time_phase "kind-inference" (fun () ->
-    List.iter
-      (fun (fi : function_info) ->
-        fi.return_kind := Inference.infer_return_kind arr !func_list fi;
-        fi.arg_kinds := Inference.infer_arg_kinds arr prim_table fi)
-      !func_list);
+  (* Legacy-only kind inference removed. The IR path uses
+     [Jvm_typing.infer] on each function's Code.program instead. *)
   if debug_functions ()
   then
     List.iter
@@ -551,14 +552,28 @@ let compile ~bc ~out_dir =
         let fields = cap_fields @ sibling_fields in
         let ctor =
           { Jvm.name = "<init>"
-          ; descriptor = Emit_closure.ctor_descriptor_for_captures cap_kinds
+          ; descriptor =
+              (let b = Buffer.create 16 in
+               Buffer.add_char b '(';
+               List.iter
+                 (fun k -> Buffer.add_string b (jvm_type_of_kind k))
+                 cap_kinds;
+               Buffer.add_string b ")V";
+               Buffer.contents b)
           ; access_flags = 0x0001
           ; code = ctor_code
           }
         in
         let apply_method =
           { Jvm.name = Printf.sprintf "apply%d" fn_info.nargs
-          ; descriptor = Emit_apply.apply_descriptor_for_nargs fn_info.nargs
+          ; descriptor =
+              (let b = Buffer.create 16 in
+               Buffer.add_char b '(';
+               for _ = 1 to fn_info.nargs do
+                 Buffer.add_string b "Ljava/lang/Object;"
+               done;
+               Buffer.add_string b ")Ljava/lang/Object;";
+               Buffer.contents b)
           ; access_flags = 0x0001
           ; code = apply_code
           }

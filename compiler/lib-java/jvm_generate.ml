@@ -1376,7 +1376,14 @@ let emit_load_as_obj ctx v =
   | K_float -> Kind.emit_box_float ctx.code
   | _ -> ()
 
-let apply_descriptor_for_nargs = Emit_apply.apply_descriptor_for_nargs
+let apply_descriptor_for_nargs n =
+  let b = Buffer.create 16 in
+  Buffer.add_char b '(';
+  for _ = 1 to n do
+    Buffer.add_string b "Ljava/lang/Object;"
+  done;
+  Buffer.add_string b ")Ljava/lang/Object;";
+  Buffer.contents b
 
 let emit_expr ctx (e : Code.expr) : Kind.kind =
   match e with
