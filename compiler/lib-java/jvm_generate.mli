@@ -22,14 +22,13 @@ val emit_program :
      code:Jvm.Code.t
   -> typing:Jvm_typing.t
   -> name_of_body:(int -> string)
+  -> fn_info_of_body:(int -> Function_info.function_info option)
+      (* Look up the enclosing-fn metadata for a CLOSURE / CLOSUREREC
+         body pc so [Let (_, Closure {...})] can emit a ctor call
+         whose descriptor matches the callee's actual capture-kind
+         layout. *)
   -> prim_name:(int -> string)
-      (* Look up the C primitive name from its bytecode-table index;
-         used to resolve [Extern "ccall_N"] prims. Raise Not_found
-         for unknown indices. *)
   -> ?arg_vars:Code.Var.t list
-      (* The Vars that correspond to the JVM apply-method's formal
-         arguments; bound to locals 1, 2, .., N in order. Omit for
-         main (no args). *)
   -> ?enclosing:Function_info.function_info * Code.Var.t
   -> Code.program
   -> unit

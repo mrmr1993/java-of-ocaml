@@ -559,13 +559,17 @@ let step (state : state) (ins : Instr.instr) : last option =
     let sizes = args.(0) in
     let num_ints = sizes land 0xffff in
     let num_tags = (sizes lsr 16) land 0xffff in
-    let total = num_ints + num_tags in
-    let cases =
-      Array.init total (fun i ->
+    let int_cases =
+      Array.init num_ints (fun i ->
         let target_pc = ins.pc + 2 + args.(1 + i) in
         make_cont state target_pc)
     in
-    Some (Switch (a, cases)))
+    let tag_cases =
+      Array.init num_tags (fun i ->
+        let target_pc = ins.pc + 2 + args.(1 + num_ints + i) in
+        make_cont state target_pc)
+    in
+    Some (Switch (a, int_cases, tag_cases)))
   (* PUSHTRAP L — open a try/with region. The OCaml interp pushes four
      trap-frame words onto the stack (Dummies in our IR) and registers
      L as the handler. We lower to Pushtrap (body, exn_var, handler);
@@ -1098,7 +1102,9 @@ let parse_generic_with_stack instrs ~start_pc ~end_pc ~initial_stack ~env =
       | Return _ | Raise _ | Stop -> ()
       | Branch c | Poptrap c -> step_cont c
       | Cond (_, c1, c2) -> step_cont c1; step_cont c2
-      | Switch (_, arr) -> Array.iter step_cont arr
+      | Switch (_, ints, tags) ->
+        Array.iter step_cont ints;
+        Array.iter step_cont tags
       | Pushtrap (b, _, h) -> step_cont b; step_cont h)
   in
   visit start_pc;

@@ -102,7 +102,11 @@ type last =
   | Stop
   | Branch of cont
   | Cond of Var.t * cont * cont
-  | Switch of Var.t * cont array
+  | Switch of Var.t * cont array * cont array
+      (** [Switch (v, int_cases, tag_cases)] — OCaml's SWITCH dispatches
+          on [v]: if [v] is an immediate, [int_cases.(Long_val v)]; if
+          [v] is a block, [tag_cases.(Tag_val v)]. Either array may be
+          empty if the switch is monomorphic. *)
   | Pushtrap of cont * Var.t * cont
       (** [Pushtrap (body, exn_var, handler)] — protected region is
           [body]; if a CamlException is raised inside, [exn_var] binds

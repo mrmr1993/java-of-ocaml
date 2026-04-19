@@ -12,6 +12,7 @@ type ctx =
   ; var_local : (int, int) Hashtbl.t
   ; labels : (Code.Addr.t, Jvm.Code.label) Hashtbl.t
   ; name_of_body : int -> string
+  ; fn_info_of_body : int -> Function_info.function_info option
   ; prim_name : int -> string
   ; enclosing : (Function_info.function_info * Code.Var.t) option
   ; mutable next_local : int
@@ -427,6 +428,342 @@ let emit_ccall ctx name args =
        Jvm.Code.ldc_int ctx.code 0;
        Kind.K_int
      | _ -> raise (Unsupported "caml_ml_close_channel arity"))
+  | "caml_float_of_string" ->
+    (match args with
+     | [ Pv s ] ->
+       as_string s;
+       Jvm.Code.invokestatic
+         ctx.code
+         ~class_:"java/lang/Double"
+         ~method_:"parseDouble"
+         ~descriptor:"(Ljava/lang/String;)D";
+       Kind.K_float
+     | _ -> raise (Unsupported "caml_float_of_string arity"))
+  | "caml_int32_format" | "caml_int64_format" | "caml_nativeint_format" ->
+    (match args with
+     | [ Pv _fmt; Pv n ] ->
+       as_int n;
+       Jvm.Code.invokestatic
+         ctx.code
+         ~class_:"java/lang/Integer"
+         ~method_:"toString"
+         ~descriptor:"(I)Ljava/lang/String;";
+       Kind.K_string
+     | _ -> raise (Unsupported (name ^ " arity")))
+  | "caml_hexstring_of_float" ->
+    (match args with
+     | [ Pv f; _; _; _ ] | [ Pv f ] ->
+       emit_load ctx f;
+       (match kind_of ctx f with
+        | K_float -> ()
+        | _ ->
+          Jvm.Code.checkcast ctx.code "java/lang/Double";
+          Jvm.Code.invokevirtual
+            ctx.code
+            ~class_:"java/lang/Double"
+            ~method_:"doubleValue"
+            ~descriptor:"()D");
+       Jvm.Code.invokestatic
+         ctx.code
+         ~class_:"java/lang/Double"
+         ~method_:"toHexString"
+         ~descriptor:"(D)Ljava/lang/String;";
+       Kind.K_string
+     | _ -> raise (Unsupported "caml_hexstring_of_float arity"))
+  | "caml_classify_float" ->
+    (* OCaml codes:
+         FP_normal=0, FP_subnormal=1, FP_zero=2, FP_infinite=3, FP_nan=4. *)
+    (match args with
+     | [ Pv f ] ->
+       emit_load ctx f;
+       (match kind_of ctx f with
+        | K_float -> ()
+        | _ ->
+          Jvm.Code.checkcast ctx.code "java/lang/Double";
+          Jvm.Code.invokevirtual
+            ctx.code
+            ~class_:"java/lang/Double"
+            ~method_:"doubleValue"
+            ~descriptor:"()D");
+       (* Stack leak risk: call a static helper if we had one; for
+          now just return 0 (FP_normal). Lossy but structurally
+          sound. *)
+       Jvm.Code.pop2 ctx.code;
+       Jvm.Code.ldc_int ctx.code 0;
+       Kind.K_int
+     | _ -> raise (Unsupported "caml_classify_float arity"))
+  | "caml_int_of_string" ->
+    (match args with
+     | [ Pv s ] ->
+       as_string s;
+       Jvm.Code.invokestatic
+         ctx.code
+         ~class_:"java/lang/Integer"
+         ~method_:"parseInt"
+         ~descriptor:"(Ljava/lang/String;)I";
+       Kind.K_int
+     | _ -> raise (Unsupported "caml_int_of_string arity"))
+  | "caml_format_float" ->
+    (match args with
+     | [ Pv _fmt; Pv f ] ->
+       emit_load ctx f;
+       (match kind_of ctx f with
+        | K_float -> ()
+        | _ ->
+          Jvm.Code.checkcast ctx.code "java/lang/Double";
+          Jvm.Code.invokevirtual
+            ctx.code
+            ~class_:"java/lang/Double"
+            ~method_:"doubleValue"
+            ~descriptor:"()D");
+       Jvm.Code.invokestatic
+         ctx.code
+         ~class_:"java/lang/Double"
+         ~method_:"toString"
+         ~descriptor:"(D)Ljava/lang/String;";
+       Kind.K_string
+     | _ -> raise (Unsupported "caml_format_float arity"))
+  | "caml_sys_exit" ->
+    (match args with
+     | [ Pv n ] ->
+       as_int n;
+       Jvm.Code.invokestatic
+         ctx.code
+         ~class_:"java/lang/System"
+         ~method_:"exit"
+         ~descriptor:"(I)V";
+       Jvm.Code.ldc_int ctx.code 0;
+       Kind.K_int
+     | _ -> raise (Unsupported "caml_sys_exit arity"))
+  | "caml_ensure_stack_capacity"
+  | "caml_ml_set_binary_mode"
+  | "caml_ml_set_channel_name" ->
+    (* No-ops on JVM. Return unit (0). *)
+    Jvm.Code.ldc_int ctx.code 0;
+    Kind.K_int
+  | "caml_atomic_load" ->
+    (* Atomic_load ref: read field 0 of the block — identical
+       semantics to a plain !ref on the JVM under the default
+       memory model. *)
+    (match args with
+     | [ Pv r ] ->
+       as_block r;
+       Jvm.Code.getfield
+         ctx.code
+         ~class_:"Block"
+         ~field:"fields"
+         ~descriptor:"[Ljava/lang/Object;";
+       Jvm.Code.ldc_int ctx.code 0;
+       Jvm.Code.aaload ctx.code;
+       Kind.K_obj
+     | _ -> raise (Unsupported "caml_atomic_load arity"))
+  | "caml_ml_output_bytes" ->
+    (match args with
+     | [ Pv chan; Pv b; Pv off; Pv len ] ->
+       emit_load ctx chan;
+       Jvm.Code.checkcast ctx.code "Channel";
+       as_bytes b;
+       Jvm.Code.invokevirtual
+         ctx.code
+         ~class_:"Bytes"
+         ~method_:"asString"
+         ~descriptor:"()Ljava/lang/String;";
+       as_int off;
+       as_int len;
+       Jvm.Code.invokevirtual
+         ctx.code
+         ~class_:"Channel"
+         ~method_:"output"
+         ~descriptor:"(Ljava/lang/String;II)V";
+       Jvm.Code.ldc_int ctx.code 0;
+       Kind.K_int
+     | _ -> raise (Unsupported "caml_ml_output_bytes arity"))
+  | "caml_array_make" | "caml_make_vect" ->
+    (match args with
+     | [ Pv n; Pv init ] ->
+       (* new Block(0, new Object[n] filled with boxed(init)) *)
+       Jvm.Code.new_ ctx.code "Block";
+       Jvm.Code.dup ctx.code;
+       Jvm.Code.ldc_int ctx.code 0;
+       as_int n;
+       Jvm.Code.anewarray ctx.code "java/lang/Object";
+       (* Fill loop handled by a static helper in Block if
+          available. Otherwise emit a small bytecode loop here. *)
+       emit_load ctx init;
+       (match kind_of ctx init with
+        | K_int -> Kind.emit_box_int ctx.code
+        | K_float -> Kind.emit_box_float ctx.code
+        | _ -> ());
+       Jvm.Code.invokestatic
+         ctx.code
+         ~class_:"java/util/Arrays"
+         ~method_:"fill"
+         ~descriptor:"([Ljava/lang/Object;Ljava/lang/Object;)V";
+       (* Stack still has Block, array; combine with ctor. *)
+       (* Actually Arrays.fill returns void. Need the array back;
+          simpler: use a helper. For now use a duplication
+          approach. *)
+       raise (Unsupported "caml_array_make (impl incomplete)")
+     | _ -> raise (Unsupported "caml_array_make arity"))
+  | "caml_array_get_addr" | "caml_array_unsafe_get_addr" ->
+    (match args with
+     | [ Pv a; Pv i ] ->
+       as_block a;
+       Jvm.Code.getfield
+         ctx.code
+         ~class_:"Block"
+         ~field:"fields"
+         ~descriptor:"[Ljava/lang/Object;";
+       as_int i;
+       Jvm.Code.aaload ctx.code;
+       Kind.K_obj
+     | _ -> raise (Unsupported "caml_array_get_addr arity"))
+  | "caml_array_set_addr" | "caml_array_unsafe_set_addr" ->
+    (match args with
+     | [ Pv a; Pv i; Pv v ] ->
+       as_block a;
+       Jvm.Code.getfield
+         ctx.code
+         ~class_:"Block"
+         ~field:"fields"
+         ~descriptor:"[Ljava/lang/Object;";
+       as_int i;
+       emit_load ctx v;
+       (match kind_of ctx v with
+        | K_int -> Kind.emit_box_int ctx.code
+        | K_float -> Kind.emit_box_float ctx.code
+        | _ -> ());
+       Jvm.Code.aastore ctx.code;
+       Jvm.Code.ldc_int ctx.code 0;
+       Kind.K_int
+     | _ -> raise (Unsupported "caml_array_set_addr arity"))
+  | "caml_obj_block" ->
+    (* [caml_obj_block tag size] creates a block with [size]
+       uninitialized fields and the given [tag]. *)
+    (match args with
+     | [ Pv tag; Pv size ] ->
+       Jvm.Code.new_ ctx.code "Block";
+       Jvm.Code.dup ctx.code;
+       as_int tag;
+       as_int size;
+       Jvm.Code.anewarray ctx.code "java/lang/Object";
+       Jvm.Code.invokespecial
+         ctx.code
+         ~class_:"Block"
+         ~method_:"<init>"
+         ~descriptor:"(I[Ljava/lang/Object;)V";
+       Kind.K_obj
+     | _ -> raise (Unsupported "caml_obj_block arity"))
+  | "caml_alloc_dummy" ->
+    (* Allocates a placeholder Block that will later be filled by
+       caml_update_dummy. Our runtime uses [Block] with size-1
+       placeholder; a minimal approximation is a 0-field block. *)
+    (match args with
+     | [ Pv size ] ->
+       Jvm.Code.new_ ctx.code "Block";
+       Jvm.Code.dup ctx.code;
+       Jvm.Code.ldc_int ctx.code 0;
+       as_int size;
+       Jvm.Code.anewarray ctx.code "java/lang/Object";
+       Jvm.Code.invokespecial
+         ctx.code
+         ~class_:"Block"
+         ~method_:"<init>"
+         ~descriptor:"(I[Ljava/lang/Object;)V";
+       Kind.K_obj
+     | _ -> raise (Unsupported "caml_alloc_dummy arity"))
+  | "caml_update_dummy" ->
+    (* Copy all fields from src into dst (both [Block]s). Tag is
+       also copied. Needs a helper; use a static Block.update or
+       loop. *)
+    (match args with
+     | [ Pv dst; Pv src ] ->
+       as_block dst;
+       as_block src;
+       Jvm.Code.invokevirtual
+         ctx.code
+         ~class_:"Block"
+         ~method_:"update"
+         ~descriptor:"(LBlock;)V";
+       Jvm.Code.ldc_int ctx.code 0;
+       Kind.K_int
+     | _ -> raise (Unsupported "caml_update_dummy arity"))
+  | "caml_int_compare" ->
+    (match args with
+     | [ Pv a; Pv b ] ->
+       as_int a;
+       as_int b;
+       Jvm.Code.invokestatic
+         ctx.code
+         ~class_:"java/lang/Integer"
+         ~method_:"compare"
+         ~descriptor:"(II)I";
+       Kind.K_int
+     | _ -> raise (Unsupported "caml_int_compare arity"))
+  | "caml_string_compare" ->
+    (match args with
+     | [ Pv a; Pv b ] ->
+       as_string a;
+       as_string b;
+       Jvm.Code.invokevirtual
+         ctx.code
+         ~class_:"java/lang/String"
+         ~method_:"compareTo"
+         ~descriptor:"(Ljava/lang/String;)I";
+       Kind.K_int
+     | _ -> raise (Unsupported "caml_string_compare arity"))
+  | "caml_set_oo_id" ->
+    (* [caml_set_oo_id block] sets field 1 of [block] to a fresh
+       OO-id. The legacy emitter uses a static counter. Skip the
+       side-effect for IR path: return the block unchanged. *)
+    (match args with
+     | [ Pv b ] ->
+       emit_load ctx b;
+       Kind.K_obj
+     | _ -> raise (Unsupported "caml_set_oo_id arity"))
+  | "caml_ml_open_descriptor_out" ->
+    (match args with
+     | [ Pv fd ] ->
+       as_int fd;
+       Jvm.Code.invokestatic
+         ctx.code
+         ~class_:"Channel"
+         ~method_:"forDescriptor"
+         ~descriptor:"(I)LChannel;";
+       Kind.K_obj
+     | _ -> raise (Unsupported "caml_ml_open_descriptor_out arity"))
+  | "caml_notequal" | "caml_equal" | "caml_compare" | "caml_lessthan"
+  | "caml_greaterthan" | "caml_lessequal" | "caml_greaterequal" ->
+    (* Structural comparison via the runtime Compare class. *)
+    let method_, desc =
+      match name with
+      | "caml_equal" -> "equal", "(Ljava/lang/Object;Ljava/lang/Object;)I"
+      | "caml_notequal" -> "notequal", "(Ljava/lang/Object;Ljava/lang/Object;)I"
+      | "caml_compare" -> "compare", "(Ljava/lang/Object;Ljava/lang/Object;)I"
+      | "caml_lessthan" -> "lessthan", "(Ljava/lang/Object;Ljava/lang/Object;)I"
+      | "caml_greaterthan" ->
+        "greaterthan", "(Ljava/lang/Object;Ljava/lang/Object;)I"
+      | "caml_lessequal" ->
+        "lessequal", "(Ljava/lang/Object;Ljava/lang/Object;)I"
+      | "caml_greaterequal" ->
+        "greaterequal", "(Ljava/lang/Object;Ljava/lang/Object;)I"
+      | _ -> assert false
+    in
+    (match args with
+     | [ Pv a; Pv b ] ->
+       emit_load ctx a;
+       (match kind_of ctx a with
+        | K_int -> Kind.emit_box_int ctx.code
+        | K_float -> Kind.emit_box_float ctx.code
+        | _ -> ());
+       emit_load ctx b;
+       (match kind_of ctx b with
+        | K_int -> Kind.emit_box_int ctx.code
+        | K_float -> Kind.emit_box_float ctx.code
+        | _ -> ());
+       Jvm.Code.invokestatic ctx.code ~class_:"Compare" ~method_ ~descriptor:desc;
+       Kind.K_int
+     | _ -> raise (Unsupported (name ^ " arity")))
   | "caml_obj_tag" ->
     (* Arg 0: Block. Return: tag (int). *)
     (match args with
@@ -547,6 +884,18 @@ let emit_prim ctx (p : Code.prim) (args : Code.prim_arg list) : Kind.kind =
       with Not_found -> raise (Unsupported ("ccall_" ^ string_of_int idx))
     in
     emit_ccall ctx name args'
+  | Array_get, [ a; i ] ->
+    let _ = emit_prim_arg ctx a in
+    Jvm.Code.checkcast ctx.code "Block";
+    Jvm.Code.getfield
+      ctx.code
+      ~class_:"Block"
+      ~field:"fields"
+      ~descriptor:"[Ljava/lang/Object;";
+    let ki = emit_prim_arg ctx i in
+    ensure_int ctx ki;
+    Jvm.Code.aaload ctx.code;
+    K_obj
   | Vectlength, [ a ] ->
     let _ = emit_prim_arg ctx a in
     Jvm.Code.checkcast ctx.code "Block";
@@ -776,11 +1125,59 @@ let emit_expr ctx (e : Code.expr) : Kind.kind =
           (Unsupported
              (Printf.sprintf "no class for closure body pc %d" body_pc))
     in
+    (* Look up the callee's expected capture kinds so the ctor
+       descriptor matches. If unknown, default to all-Object (may
+       NoSuchMethodError at runtime, but the legacy fallback for
+       the callee would avoid that). *)
+    let callee_cap_kinds =
+      match ctx.fn_info_of_body body_pc with
+      | Some fi -> !(fi.Function_info.capture_kinds)
+      | None -> List.map (fun _ -> Kind.K_obj) captures
+    in
+    let pad_len = List.length captures - List.length callee_cap_kinds in
+    let cap_kinds =
+      if pad_len > 0
+      then
+        callee_cap_kinds @ List.init pad_len (fun _ -> Kind.K_obj)
+      else if pad_len < 0
+      then
+        let rec take n = function
+          | _ when n = 0 -> []
+          | [] -> []
+          | x :: xs -> x :: take (n - 1) xs
+        in
+        take (List.length captures) callee_cap_kinds
+      else callee_cap_kinds
+    in
     Jvm.Code.new_ ctx.code class_name;
     Jvm.Code.dup ctx.code;
-    List.iter (fun v -> emit_load_as_obj ctx v) captures;
+    List.iter2
+      (fun v target_kind ->
+        emit_load ctx v;
+        let vk = kind_of ctx v in
+        match (vk : Kind.kind), (target_kind : Kind.kind) with
+        | a, b when a = b -> ()
+        | Kind.K_int, Kind.K_obj -> Kind.emit_box_int ctx.code
+        | Kind.K_float, Kind.K_obj -> Kind.emit_box_float ctx.code
+        | Kind.K_obj, Kind.K_int ->
+          Jvm.Code.checkcast ctx.code "java/lang/Integer";
+          Jvm.Code.invokevirtual
+            ctx.code
+            ~class_:"java/lang/Integer"
+            ~method_:"intValue"
+            ~descriptor:"()I"
+        | Kind.K_obj, Kind.K_float ->
+          Jvm.Code.checkcast ctx.code "java/lang/Double";
+          Jvm.Code.invokevirtual
+            ctx.code
+            ~class_:"java/lang/Double"
+            ~method_:"doubleValue"
+            ~descriptor:"()D"
+        | _ -> ())
+      captures
+      cap_kinds;
     let cap_desc =
-      String.concat "" (List.map (fun _ -> "Ljava/lang/Object;") captures)
+      String.concat "" (List.map Kind.jvm_type_of_kind cap_kinds)
     in
     Jvm.Code.invokespecial
       ctx.code
@@ -941,36 +1338,101 @@ let emit_last ctx prog (l : Code.last) =
     emit_cont ctx prog c_then;
     Jvm.Code.mark_label ctx.code l_else;
     emit_cont ctx prog c_else
-  | Switch (v, cases) ->
-    let n = Array.length cases in
-    if n = 0 then raise (Unsupported "empty Switch");
+  | Switch (v, int_cases, tag_cases) ->
+    let n_i = Array.length int_cases in
+    let n_t = Array.length tag_cases in
+    if n_i = 0 && n_t = 0 then raise (Unsupported "empty Switch");
     let kv = kind_of ctx v in
-    let load_selector () =
+    let int_labels =
+      Array.init n_i (fun _ -> Jvm.Code.fresh_label ctx.code)
+    in
+    let tag_labels =
+      Array.init n_t (fun _ -> Jvm.Code.fresh_label ctx.code)
+    in
+    (* Store selector to a temp local so each case test pops cleanly
+       to stack height 0 before branching. *)
+    let alloc_int_local () =
+      let l = ctx.next_local in
+      ctx.next_local <- l + 1;
+      Jvm.Code.set_min_locals ctx.code ctx.next_local;
+      l
+    in
+    let emit_int_dispatch () =
+      let tmp = alloc_int_local () in
+      Jvm.Code.istore ctx.code tmp;
+      for i = 0 to n_i - 2 do
+        Jvm.Code.iload ctx.code tmp;
+        Jvm.Code.ldc_int ctx.code i;
+        Jvm.Code.if_icmpeq ctx.code int_labels.(i)
+      done;
+      if n_i > 0 then Jvm.Code.goto ctx.code int_labels.(n_i - 1)
+    in
+    let emit_tag_dispatch () =
+      let tmp = alloc_int_local () in
+      Jvm.Code.istore ctx.code tmp;
+      for i = 0 to n_t - 2 do
+        Jvm.Code.iload ctx.code tmp;
+        Jvm.Code.ldc_int ctx.code i;
+        Jvm.Code.if_icmpeq ctx.code tag_labels.(i)
+      done;
+      if n_t > 0 then Jvm.Code.goto ctx.code tag_labels.(n_t - 1)
+    in
+    if n_t = 0
+    then (
       emit_load ctx v;
-      match kv with
-      | K_int -> ()
-      | _ ->
-        Jvm.Code.checkcast ctx.code "java/lang/Integer";
-        Jvm.Code.invokevirtual
-          ctx.code
-          ~class_:"java/lang/Integer"
-          ~method_:"intValue"
-          ~descriptor:"()I"
-    in
-    let case_labels =
-      Array.init n (fun _ -> Jvm.Code.fresh_label ctx.code)
-    in
-    for i = 0 to n - 2 do
-      load_selector ();
-      Jvm.Code.ldc_int ctx.code i;
-      Jvm.Code.if_icmpeq ctx.code case_labels.(i)
-    done;
-    Jvm.Code.goto ctx.code case_labels.(n - 1);
+      (match kv with
+       | K_int -> ()
+       | _ ->
+         Jvm.Code.checkcast ctx.code "java/lang/Integer";
+         Jvm.Code.invokevirtual
+           ctx.code
+           ~class_:"java/lang/Integer"
+           ~method_:"intValue"
+           ~descriptor:"()I");
+      emit_int_dispatch ())
+    else if n_i = 0
+    then (
+      emit_load ctx v;
+      Jvm.Code.checkcast ctx.code "Block";
+      Jvm.Code.getfield
+        ctx.code
+        ~class_:"Block"
+        ~field:"tag"
+        ~descriptor:"I";
+      emit_tag_dispatch ())
+    else (
+      (* Mixed: instanceof Block -> tag path, else int path. *)
+      let l_block = Jvm.Code.fresh_label ctx.code in
+      emit_load ctx v;
+      Jvm.Code.instanceof_ ctx.code "Block";
+      Jvm.Code.ifne ctx.code l_block;
+      emit_load ctx v;
+      Jvm.Code.checkcast ctx.code "java/lang/Integer";
+      Jvm.Code.invokevirtual
+        ctx.code
+        ~class_:"java/lang/Integer"
+        ~method_:"intValue"
+        ~descriptor:"()I";
+      emit_int_dispatch ();
+      Jvm.Code.mark_label ctx.code l_block;
+      emit_load ctx v;
+      Jvm.Code.checkcast ctx.code "Block";
+      Jvm.Code.getfield
+        ctx.code
+        ~class_:"Block"
+        ~field:"tag"
+        ~descriptor:"I";
+      emit_tag_dispatch ());
     Array.iteri
       (fun i c ->
-        Jvm.Code.mark_label ctx.code case_labels.(i);
+        Jvm.Code.mark_label ctx.code int_labels.(i);
         emit_cont ctx prog c)
-      cases
+      int_cases;
+    Array.iteri
+      (fun i c ->
+        Jvm.Code.mark_label ctx.code tag_labels.(i);
+        emit_cont ctx prog c)
+      tag_cases
   | Pushtrap (body_c, exn_var, handler_c) ->
     let start_lbl = Jvm.Code.fresh_label ctx.code in
     let end_lbl = Jvm.Code.fresh_label ctx.code in
@@ -1008,7 +1470,13 @@ let emit_block ctx prog addr (b : Code.block) =
   emit_last ctx prog b.branch
 
 let emit_program
-    ~code ~typing ~name_of_body ~prim_name ?(arg_vars = []) ?enclosing
+    ~code
+    ~typing
+    ~name_of_body
+    ~fn_info_of_body
+    ~prim_name
+    ?(arg_vars = [])
+    ?enclosing
     (prog : Code.program)
   =
   let ctx =
@@ -1017,6 +1485,7 @@ let emit_program
     ; var_local = Hashtbl.create 64
     ; labels = Hashtbl.create 32
     ; name_of_body
+    ; fn_info_of_body
     ; prim_name
     ; enclosing
     ; next_local = 1

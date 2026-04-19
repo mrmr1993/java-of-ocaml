@@ -96,7 +96,7 @@ type last =
   | Stop
   | Branch of cont
   | Cond of Var.t * cont * cont
-  | Switch of Var.t * cont array
+  | Switch of Var.t * cont array * cont array
   | Pushtrap of cont * Var.t * cont
   | Poptrap of cont
 
@@ -212,13 +212,17 @@ module Print = struct
     | Branch c -> Format.fprintf fmt "branch %a" cont c
     | Cond (v, t, e) ->
       Format.fprintf fmt "if %a then %a else %a" Var.print v cont t cont e
-    | Switch (v, cases) ->
+    | Switch (v, ints, tags) ->
       Format.fprintf fmt "switch %a [" Var.print v;
       Array.iteri
         (fun i c ->
           if i > 0 then Format.fprintf fmt " | ";
-          Format.fprintf fmt "%d -> %a" i cont c)
-        cases;
+          Format.fprintf fmt "int %d -> %a" i cont c)
+        ints;
+      Array.iteri
+        (fun i c ->
+          Format.fprintf fmt " | tag %d -> %a" i cont c)
+        tags;
       Format.fprintf fmt "]"
     | Pushtrap (body, x, handler) ->
       Format.fprintf
@@ -251,6 +255,8 @@ let fold_children p addr f init =
   | Return _ | Raise _ | Stop -> init
   | Branch c -> step c init
   | Cond (_, c1, c2) -> init |> step c1 |> step c2
-  | Switch (_, arr) -> Array.fold_left (fun acc c -> step c acc) init arr
+  | Switch (_, ints, tags) ->
+    let after_ints = Array.fold_left (fun acc c -> step c acc) init ints in
+    Array.fold_left (fun acc c -> step c acc) after_ints tags
   | Pushtrap (body, _, handler) -> init |> step body |> step handler
   | Poptrap c -> step c init

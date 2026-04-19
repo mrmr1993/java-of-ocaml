@@ -26,6 +26,7 @@ let ir_emit_enabled () =
 let ir_smoke_function
     arr
     ~(name_of_body : int -> string)
+    ~(fn_info_of_body : int -> Function_info.function_info option)
     ~(prim_name : int -> string)
     (fi : Function_info.function_info)
   =
@@ -55,6 +56,7 @@ let ir_smoke_function
              ~code
              ~typing
              ~name_of_body
+             ~fn_info_of_body
              ~prim_name
              ~enclosing:(fi, env_var)
              prog;
@@ -70,8 +72,9 @@ let ir_smoke_function
         fi.name
         (Printexc.to_string exn))
 
-let ir_smoke_main arr ~name_of_body ~prim_name ~fn_body_pcs =
+let ir_smoke_main arr ~name_of_body ~fn_info_of_body ~prim_name ~fn_body_pcs =
   let _ = name_of_body in
+  let _ = fn_info_of_body in
   let _ = prim_name in
   if not (debug_ir ())
   then ()
@@ -361,24 +364,25 @@ let compile ~bc ~out_dir =
     !func_list;
   if debug_ir ()
   then (
-    let body_pc_to_name = Hashtbl.create 64 in
+    let body_pc_to_fi = Hashtbl.create 64 in
     List.iter
-      (fun (fi : function_info) ->
-        Hashtbl.replace body_pc_to_name fi.body_pc fi.name)
+      (fun (fi : function_info) -> Hashtbl.replace body_pc_to_fi fi.body_pc fi)
       !func_list;
     let name_of_body pc =
-      match Hashtbl.find_opt body_pc_to_name pc with
-      | Some n -> n
+      match Hashtbl.find_opt body_pc_to_fi pc with
+      | Some fi -> fi.name
       | None -> raise Not_found
     in
+    let fn_info_of_body pc = Hashtbl.find_opt body_pc_to_fi pc in
     let prim_name idx =
       if idx < 0 || idx >= Array.length parsed.prims
       then raise Not_found
       else parsed.prims.(idx)
     in
-    ir_smoke_main arr ~name_of_body ~prim_name ~fn_body_pcs;
+    ir_smoke_main arr ~name_of_body ~fn_info_of_body ~prim_name ~fn_body_pcs;
     List.iter
-      (fun fi -> ir_smoke_function arr ~name_of_body ~prim_name fi)
+      (fun fi ->
+        ir_smoke_function arr ~name_of_body ~fn_info_of_body ~prim_name fi)
       !func_list);
   time_phase "kind-inference" (fun () ->
     List.iter
@@ -613,19 +617,17 @@ let compile ~bc ~out_dir =
               let ir_code = Jvm.Code.create fn_cp in
               Jvm.Code.set_min_locals ir_code (1 + fn_info.nargs);
               let typing = Jvm_typing.infer prog in
-              let body_pc_to_name = Hashtbl.create 64 in
+              let body_pc_to_fi = Hashtbl.create 64 in
               Hashtbl.iter
                 (fun _name fi ->
-                  Hashtbl.replace
-                    body_pc_to_name
-                    fi.Function_info.body_pc
-                    fi.Function_info.name)
+                  Hashtbl.replace body_pc_to_fi fi.Function_info.body_pc fi)
                 fn_by_name;
               let name_of_body pc =
-                match Hashtbl.find_opt body_pc_to_name pc with
-                | Some n -> n
+                match Hashtbl.find_opt body_pc_to_fi pc with
+                | Some fi -> fi.Function_info.name
                 | None -> raise Not_found
               in
+              let fn_info_of_body pc = Hashtbl.find_opt body_pc_to_fi pc in
               let prim_name idx =
                 if idx < 0 || idx >= Array.length parsed.prims
                 then raise Not_found
@@ -635,6 +637,7 @@ let compile ~bc ~out_dir =
                 ~code:ir_code
                 ~typing
                 ~name_of_body
+                ~fn_info_of_body
                 ~prim_name
                 ~arg_vars
                 ~enclosing:(fn_info, env_var)
