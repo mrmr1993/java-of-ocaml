@@ -12,10 +12,13 @@ let debug_ir = Debug.find "ir"
 let debug_ir_gen = Debug.find "ir_gen"
 let debug_ir_emit = Debug.find "ir_emit"
 
+(* IR emission is on by default. Set [JAVA_OF_OCAML_IR=0] to disable
+   and use the legacy forward-walk emitter exclusively. Kept as an
+   escape hatch while we stabilise the IR path. *)
 let ir_emit_enabled () =
   match Sys.getenv_opt "JAVA_OF_OCAML_IR" with
-  | Some ("1" | "true" | "TRUE") -> true
-  | _ -> false
+  | Some ("0" | "false" | "FALSE") -> false
+  | _ -> true
 
 (* Attempt to lower a function body (or the main init range) to the new
    Code IR via [Parse_bytecode]. This is a smoke pass for Phase 1 — the
