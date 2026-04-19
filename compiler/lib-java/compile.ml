@@ -35,43 +35,7 @@ let time_phase name f =
 (* -------------------------------------------------------------------------- *)
 (* Compile-wide driver. *)
 
-let collect_pc_to_label
-    code
-    ~arr
-    ~scan_range:(scan_lo, scan_hi)
-    ~target_range:(tgt_lo_pc, tgt_hi_pc)
-    ~skip_pcs
-  =
-  let tbl = Hashtbl.create 4 in
-  let debug_labels = Debug.find "labels" in
-  for i = scan_lo to scan_hi do
-    if not (Hashtbl.mem skip_pcs arr.(i).pc)
-    then
-      List.iter
-        (fun target_pc ->
-          if target_pc >= tgt_lo_pc
-             && target_pc <= tgt_hi_pc
-             && not (Hashtbl.mem tbl target_pc)
-          then (
-            let lbl = Jvm.Code.fresh_label code in
-            if debug_labels ()
-            then
-              Format.eprintf
-                "[label] id=%d target_pc=%d from_pc=%d (%s)@."
-                (Jvm.Code.label_id lbl)
-                target_pc
-                arr.(i).pc
-                (Bytecode.opcode_name arr.(i).opcode);
-            Hashtbl.add tbl target_pc lbl))
-        (branch_targets arr.(i))
-  done;
-  tbl
 
-let emit_range state arr (lo, hi) ~skip_pcs =
-  for i = lo to hi do
-    if not (Hashtbl.mem skip_pcs arr.(i).pc)
-    then Emit_instr.emit_instr state arr.(i)
-  done
 
 (* Emit code that populates [Main.GLOBALS] from the bytecode's DATA
    section. Runs first thing in [Main.main] so module init (which
@@ -308,63 +272,10 @@ let compile ~bc ~out_dir =
       !func_list;
   let cp = Jvm.Cp.create () in
   let main_code = Jvm.Code.create cp in
-  let fresh_oo_id_counter = ref 0 in
   (* Globals-init prelude is emitted later — after we've decided
      between IR and legacy for the main body, so a failed IR attempt
      doesn't leave half-written globals-init bytes in [main_code]. *)
-  let post_end_pc =
-    if end_idx + 1 < Array.length arr then arr.(end_idx + 1).pc else max_int
-  in
-  (* Lazy [pc_to_label] allocation: only materialise labels in
-     [main_code] if we actually take the legacy emission path.
-     Allocating eagerly produces unmarked labels when IR wins (its
-     generator doesn't consume [pc_to_label]), which triggers
-     [label N referenced but never marked] at class-file assembly. *)
-  let pc_to_label_cell = ref None in
-  let pc_to_label () =
-    match !pc_to_label_cell with
-    | Some t -> t
-    | None ->
-      let t =
-        collect_pc_to_label
-          main_code
-          ~arr
-          ~scan_range:(start_idx, end_idx)
-          ~target_range:(arr.(start_idx).pc, post_end_pc)
-          ~skip_pcs:fn_body_pcs
-      in
-      pc_to_label_cell := Some t;
-      t
-  in
-  let make_legacy_state () =
-    { code = main_code
-    ; globals = parsed.globals
-    ; prims = parsed.prims
-    ; supported_prims = prim_table
-    ; functions
-    ; fn_by_name
-    ; pc_to_label = pc_to_label ()
-    ; branch_target_state = Hashtbl.create 4
-    ; cfg = None
-    ; block_params = Hashtbl.create 0
-    ; acc_live = false
-    ; acc_kind = K_int
-    ; slots = []
-    ; oc_stack_depth = 0
-    ; next_local = 1
-    ; pending_cmp = None
-    ; nargs = 0
-    ; ncaps = 0
-    ; capture_kinds = []
-    ; enclosing_function_name = None
-    ; pending_handlers = Hashtbl.create 2
-    ; open_traps = []
-    ; fresh_oo_id_counter
-    ; pending_retaddrs = 0
-    ; last_was_terminator = true
-    ; slot_obj_locals = Hashtbl.create 8
-    }
-  in
+  let _ = end_idx in
   time_phase "emit-main" (fun () ->
     let body_pc_to_fi = Hashtbl.create 64 in
     List.iter
@@ -450,13 +361,17 @@ let compile ~bc ~out_dir =
          prog
      | None ->
        emit_globals_init main_code parsed.globals;
-       let state = make_legacy_state () in
-       emit_range state arr (start_idx, end_idx) ~skip_pcs:fn_body_pcs;
-       (match Hashtbl.find_opt state.pc_to_label post_end_pc with
-        | Some lbl -> Jvm.Code.mark_label main_code lbl
-        | None -> ());
-       drop_live_acc state;
-       Jvm.Code.return_void main_code));
+       Jvm.Code.new_ main_code "java/lang/UnsupportedOperationException";
+       Jvm.Code.dup main_code;
+       Jvm.Code.ldc_string
+         main_code
+         "IR emitter gave up on main init; legacy retired";
+       Jvm.Code.invokespecial
+         main_code
+         ~class_:"java/lang/UnsupportedOperationException"
+         ~method_:"<init>"
+         ~descriptor:"(Ljava/lang/String;)V";
+       Jvm.Code.athrow main_code));
   let main_method =
     { Jvm.name = "main"
     ; descriptor = "([Ljava/lang/String;)V"
@@ -506,67 +421,6 @@ let compile ~bc ~out_dir =
         Jvm.Code.return_void ctor_code;
         let apply_code = Jvm.Code.create fn_cp in
         Jvm.Code.set_min_locals apply_code (1 + fn_info.nargs);
-        let initial_slots =
-          let rec make k =
-            if k >= fn_info.nargs
-            then []
-            else { kind = K_obj; local = k + 1 } :: make (k + 1)
-          in
-          make 0
-        in
-        let pc_to_label =
-          collect_pc_to_label
-            apply_code
-            ~arr
-            ~scan_range:(fn_info.body_start_idx, fn_info.body_end_idx)
-            ~target_range:
-              (arr.(fn_info.body_start_idx).pc, arr.(fn_info.body_end_idx).pc)
-            ~skip_pcs:(Hashtbl.create 0)
-        in
-        let cfg =
-          Cfg.build
-            arr
-            ~body_start:fn_info.body_start_idx
-            ~body_end:fn_info.body_end_idx
-        in
-        (* Pre-populate the fixed depth→local map with the incoming
-           args. Arg [k] (from top) is at depth_from_bottom
-           [nargs - 1 - k] and sits in JVM local [k + 1] by the apply
-           method's signature. Every later [slot_obj_local] lookup
-           returns the same local, stable across all paths. *)
-        let fn_slot_obj_locals = Hashtbl.create 8 in
-        for k = 0 to fn_info.nargs - 1 do
-          Hashtbl.add fn_slot_obj_locals (fn_info.nargs - 1 - k) (k + 1)
-        done;
-        let state =
-          { code = apply_code
-          ; globals = parsed.globals
-          ; prims = parsed.prims
-          ; supported_prims = prim_table
-          ; functions
-          ; fn_by_name
-          ; pc_to_label
-          ; branch_target_state = Hashtbl.create 4
-          ; cfg = Some cfg
-          ; block_params = Hashtbl.create 4
-          ; acc_live = false
-          ; acc_kind = K_int
-          ; slots = initial_slots
-          ; oc_stack_depth = fn_info.nargs
-          ; next_local = 1 + fn_info.nargs
-          ; pending_cmp = None
-          ; nargs = fn_info.nargs
-          ; ncaps
-          ; capture_kinds = cap_kinds
-          ; enclosing_function_name = Some fn_info.name
-          ; pending_handlers = Hashtbl.create 2
-          ; open_traps = []
-          ; fresh_oo_id_counter
-          ; pending_retaddrs = 0
-          ; last_was_terminator = true
-          ; slot_obj_locals = fn_slot_obj_locals
-          }
-        in
         (* IR-first strategy when JAVA_OF_OCAML_IR=1: attempt the IR
            path into a fresh [Jvm.Code.t]; fall back to the legacy
            per-opcode emitter only on Not_supported / Unsupported.
@@ -650,11 +504,28 @@ let compile ~bc ~out_dir =
           match try_ir () with
           | Some ir_code -> ir_code
           | None ->
-            emit_range
-              state
-              arr
-              (fn_info.body_start_idx, fn_info.body_end_idx)
-              ~skip_pcs:(Hashtbl.create 0);
+            (* IR couldn't handle this function. Emit a method body
+               that throws at runtime so the class still loads;
+               anything that actually invokes it will see a
+               descriptive UnsupportedOperationException. Avoids
+               needing the legacy forward-walk emitter as a
+               fallback. *)
+            Jvm.Code.set_min_locals apply_code (1 + fn_info.nargs);
+            Jvm.Code.new_
+              apply_code
+              "java/lang/UnsupportedOperationException";
+            Jvm.Code.dup apply_code;
+            Jvm.Code.ldc_string
+              apply_code
+              (Printf.sprintf
+                 "IR emitter gave up on %s; legacy retired"
+                 fn_info.name);
+            Jvm.Code.invokespecial
+              apply_code
+              ~class_:"java/lang/UnsupportedOperationException"
+              ~method_:"<init>"
+              ~descriptor:"(Ljava/lang/String;)V";
+            Jvm.Code.athrow apply_code;
             apply_code
         in
         let cap_fields =
