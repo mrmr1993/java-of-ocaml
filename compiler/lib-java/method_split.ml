@@ -114,14 +114,15 @@ let used_in_blocks prog addrs =
 
 
 (* Vars needing to be forwarded into the helper when cutting at
-   [cut.cut_addr]. Under SSA-lite's single-def-per-Var invariant,
-   [used_in_tail \ defined_in_tail] coincides with the classical
-   live-in set at [cut_addr], so we compute it as a single set-diff
-   per candidate rather than iterating a full dataflow fixed point.
-   Defining "defined in tail" to include the entry block's params
-   drops those (they're already supplied via the caller's branch
-   args); subtracting [env_var] drops [this] (loaded via
-   [aload 0]). *)
+   [cut.cut_addr]. Under strict SSA, [used_in_tail \
+   defined_in_tail] coincides with the classical live-in set at
+   [cut_addr], so we compute it directly as a set-diff.
+
+   The [cut]-indexed variant recomputes from scratch each time and
+   is O(|tail|) per call. [precompute_live_in] below builds the
+   same set for *every* reachable block in one backward-dataflow
+   pass, and [find_cut_toward] uses that cache so per-candidate
+   work is O(1). *)
 let cut_forwarded_vars ~env_var prog (cut : cut) =
   let used = used_in_blocks prog cut.tail in
   let defined = defined_in_blocks prog cut.tail in
@@ -240,15 +241,119 @@ let cut_is_self_contained prog ~cut_addr ~head ~tail =
   head_ok && tail_ok
 
 
+(* Backward-dataflow [live_in] for every reachable block. One
+   iteration in reverse post-order suffices for acyclic graphs;
+   loops converge in a few extra passes. Returns a hashtable
+   [addr -> Var.Set.t] where each entry is the set of vars needed
+   at the block's entry but not supplied via its params.
+
+   [cut_forwarded_vars] at a candidate cut equals [live_in] at
+   that block (minus [env_var]), so precomputing this once per
+   [find_cut_toward] replaces an O(|tail|) per-candidate scan with
+   an O(1) lookup — the main driver of the [find_cut_toward]'s
+   O(n²) cost on large [main] bodies like the stdlib+Base link.
+
+   Block params are treated as "defined at entry": the caller
+   hands values to them via branch args, so they aren't live-in.
+   Per-block [use] and [def] sets are computed once upfront. *)
+let precompute_live_in (prog : program) =
+  let use_def =
+    Addr.Map.mapi
+      (fun _ (b : block) ->
+        let defs = List.fold_left
+          (fun s v -> Var.Set.add v s)
+          Var.Set.empty
+          b.params
+        in
+        let body_defs =
+          List.fold_left
+            (fun s i -> Var.Set.union s (defs_of_instr i))
+            Var.Set.empty
+            b.body
+        in
+        let defs = Var.Set.union defs body_defs in
+        let uses =
+          let body_uses =
+            List.fold_left
+              (fun s i -> Var.Set.union s (fv_instr i))
+              Var.Set.empty
+              b.body
+          in
+          Var.Set.union body_uses (fv_last b.branch)
+        in
+        (* [use_b] is the block's "gen" set: used in the block
+           before any local def. Under strict SSA with defs
+           preceding uses inside a block, this is just uses minus
+           defs. *)
+        Var.Set.diff uses defs, defs)
+      prog.blocks
+  in
+  let live = Hashtbl.create (Addr.Map.cardinal prog.blocks) in
+  Addr.Map.iter (fun a _ -> Hashtbl.replace live a Var.Set.empty) prog.blocks;
+  let changed = ref true in
+  while !changed do
+    changed := false;
+    Addr.Map.iter
+      (fun a (b : block) ->
+        let _use, def = Addr.Map.find a use_def in
+        let live_out =
+          List.fold_left
+            (fun acc succ ->
+              let succ_params =
+                match Addr.Map.find_opt succ prog.blocks with
+                | Some sb -> fv_set_of_list sb.params
+                | None -> Var.Set.empty
+              in
+              let s =
+                try Hashtbl.find live succ with Not_found -> Var.Set.empty
+              in
+              Var.Set.union acc (Var.Set.diff s succ_params))
+            Var.Set.empty
+            (let acc = ref [] in
+             let step (s, _) =
+               if Addr.Map.mem s prog.blocks then acc := s :: !acc
+             in
+             (match b.branch with
+              | Return _ | Raise _ | Stop | Invoke_tail _ -> ()
+              | Branch c -> step c
+              | Cond (_, c1, c2) -> step c1; step c2
+              | Switch (_, ints, tags) ->
+                Array.iter step ints;
+                Array.iter step tags
+              | Pushtrap (body, _, handler) -> step body; step handler
+              | Poptrap c -> step c);
+             !acc)
+        in
+        let use, _ = Addr.Map.find a use_def in
+        let new_in = Var.Set.union use (Var.Set.diff live_out def) in
+        let prev = Hashtbl.find live a in
+        if not (Var.Set.equal prev new_in)
+        then (
+          Hashtbl.replace live a new_in;
+          changed := true))
+      prog.blocks
+  done;
+  live
+
+(* Cache per-block cost for the duration of one [find_cut_toward]
+   call. Used both for scoring (needs head cost, which is the
+   program total minus the tail's accumulated cost) and to avoid
+   re-walking each block's body list multiple times. *)
+let precompute_block_costs (prog : program) =
+  let tbl = Hashtbl.create (Addr.Map.cardinal prog.blocks) in
+  Addr.Map.iter
+    (fun a b -> Hashtbl.replace tbl a (Code_cost.block b))
+    prog.blocks;
+  tbl
+
 let debug_split = Debug.find "split"
 
-let try_cut prog regions ~cut_addr =
+let try_cut ~reachable prog regions ~cut_addr =
   if cut_addr = prog.start
   then None
   else if not (Addr.Map.mem cut_addr prog.blocks)
   then None
   else (
-    let reachable = reachable_from prog ~start:prog.start in
     if not (Addr.Set.mem cut_addr reachable)
     then None
     else (
@@ -277,35 +382,53 @@ let try_cut prog regions ~cut_addr =
         None)
       else Some { cut_addr; head; tail }))
 
-(* Score a cut by how well it balances the head against [target]
-   (the primary goal: halve the body toward the limit) penalised by
-   the number of vars that have to be forwarded into the helper
-   (secondary: fewer live-through params means smaller helper
-   descriptors and smaller call-site byte counts). The penalty is
-   per-var, scaled so it matters at the margin but doesn't veto a
-   cut that would otherwise halve the program cleanly. *)
 (* Score a cut: primary term balances head cost against [target]
    (halve toward the limit); secondary term penalises the number
    of vars that must be forwarded, since each adds to helper
    descriptor length, call-site byte count, and stack pressure. *)
-let score_cut ~env_var ~target prog (cut : cut) =
-  let head_cost = Code_cost.subset prog cut.head in
-  let balance_cost = abs (head_cost - target) in
-  let forward_penalty =
-    Var.Set.cardinal (cut_forwarded_vars ~env_var prog cut) * 50
+let score_cut ~block_cost ~forward_size ~target (cut : cut) =
+  let head_cost =
+    Addr.Set.fold
+      (fun a acc ->
+        acc + (try Hashtbl.find block_cost a with Not_found -> 0))
+      cut.head
+      0
   in
+  let balance_cost = abs (head_cost - target) in
+  let forward_penalty = forward_size * 50 in
   balance_cost + forward_penalty
 
 let find_cut_toward ?env_var prog ~target =
+  (* Once-per-call precomputation. Each piece is O(n); the
+     resulting [try_cut] + scoring per candidate is O(1) on the
+     cached sets plus O(|tail|) for the structural reachability
+     checks (which remain the irreducible cost). *)
   let regions = pushtrap_regions prog in
   let reachable = reachable_from prog ~start:prog.start in
+  let live_in = precompute_live_in prog in
+  let block_cost = precompute_block_costs prog in
   let best = ref None in
   Addr.Set.iter
     (fun a ->
-      match try_cut prog regions ~cut_addr:a with
+      match try_cut ~reachable prog regions ~cut_addr:a with
       | None -> ()
       | Some cut ->
-        let score = score_cut ~env_var ~target prog cut in
+        let live_at_cut =
+          try Hashtbl.find live_in cut.cut_addr
+          with Not_found -> Var.Set.empty
+        in
+        let forwarded =
+          match env_var with
+          | Some e -> Var.Set.remove e live_at_cut
+          | None -> live_at_cut
+        in
+        let score =
+          score_cut
+            ~block_cost
+            ~forward_size:(Var.Set.cardinal forwarded)
+            ~target
+            cut
+        in
         (match !best with
          | None -> best := Some (score, cut)
          | Some (s, _) when score < s -> best := Some (score, cut)
