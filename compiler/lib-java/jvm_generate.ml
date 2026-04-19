@@ -2613,7 +2613,7 @@ let emit_expr ctx (e : Code.expr) : Kind.kind =
   | Prim (p, args) -> emit_prim ctx p args
   | Apply { f; args; exact = _ } ->
     let nargs = List.length args in
-    if nargs < 1 || nargs > 7
+    if nargs < 1
     then raise (Unsupported (Printf.sprintf "Apply arity %d" nargs));
     (match Sys.getenv_opt "JAVA_OF_OCAML_DEBUG" with
      | Some s when List.mem "apply_trace" (String.split_on_char ',' s) ->
@@ -2629,16 +2629,40 @@ let emit_expr ctx (e : Code.expr) : Kind.kind =
          ~method_:"println"
          ~descriptor:"(I)V"
      | _ -> ());
-    emit_load ctx f;
-    (match kind_of ctx f with
-     | K_closure _ -> ()
-     | _ -> Jvm.Code.checkcast ctx.code "Closure");
-    List.iter (fun a -> emit_load_as_obj ctx a) args;
-    Jvm.Code.invokevirtual
-      ctx.code
-      ~class_:"Closure"
-      ~method_:(Printf.sprintf "apply%d" nargs)
-      ~descriptor:(apply_descriptor_for_nargs nargs);
+    (* [Closure] only exposes [apply1..apply7] directly. For higher-
+       arity calls we chunk the arg list: call [apply7] on the first
+       7 args (yields a [PartialClosure] when a caller's arity is
+       larger, or the result when it's exactly 7), then [apply7] on
+       the partial for the next 7, and so on. The final chunk uses
+       [applyK] with [K = remaining args]. This is correct whenever
+       a caller closure is a genuine curried function of arity >=
+       [nargs], which is what OCaml emits for over-arity calls. *)
+    let rec emit_chunks args first =
+      let n_here = min 7 (List.length args) in
+      let here, rest =
+        let rec take k acc = function
+          | xs when k = 0 -> List.rev acc, xs
+          | [] -> List.rev acc, []
+          | x :: xs -> take (k - 1) (x :: acc) xs
+        in
+        take n_here [] args
+      in
+      if first
+      then (
+        emit_load ctx f;
+        (match kind_of ctx f with
+         | K_closure _ -> ()
+         | _ -> Jvm.Code.checkcast ctx.code "Closure"))
+      else Jvm.Code.checkcast ctx.code "Closure";
+      List.iter (fun a -> emit_load_as_obj ctx a) here;
+      Jvm.Code.invokevirtual
+        ctx.code
+        ~class_:"Closure"
+        ~method_:(Printf.sprintf "apply%d" n_here)
+        ~descriptor:(apply_descriptor_for_nargs n_here);
+      if rest <> [] then emit_chunks rest false
+    in
+    emit_chunks args true;
     K_obj
   | Block (tag, fields) ->
     (* new Block(tag, new Object[]{fields...}). *)
