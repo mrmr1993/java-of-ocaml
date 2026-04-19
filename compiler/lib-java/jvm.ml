@@ -33,3 +33,5 @@ let channel_class_bytes = Jvm_runtime.channel_class_bytes
 let bytes_class_bytes = Jvm_runtime.bytes_class_bytes
 
 let format_class_bytes = Jvm_runtime.format_class_bytes
+
+let ephemeron_class_bytes = Jvm_runtime.ephemeron_class_bytes

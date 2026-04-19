@@ -1428,6 +1428,179 @@ let emit_ccall ctx name args =
          ~descriptor:"(I[Ljava/lang/Object;)V";
        Kind.K_obj
      | _ -> raise (Unsupported "caml_array_append arity"))
+  | "caml_ephe_create" | "caml_weak_create" ->
+    (match args with
+     | [ Pv n ] ->
+       as_int n;
+       Jvm.Code.invokestatic
+         ctx.code
+         ~class_:"Ephemeron"
+         ~method_:"create"
+         ~descriptor:"(I)Ljava/lang/Object;";
+       Kind.K_obj
+     | _ -> raise (Unsupported "caml_ephe_create arity"))
+  | "caml_ephe_set_key" | "caml_weak_set" ->
+    (* [caml_weak_set] has a different signature than [caml_ephe_set_key]:
+       it takes a [v option], while ephe_set_key takes [v] directly.
+       OCaml's [Weak.set x i None] calls [caml_weak_set], which jsoo
+       dispatches to unset_key. Here [caml_weak_set] is emitted only by
+       code paths where the value is known-Some, so treat them the
+       same. *)
+    (match args with
+     | [ Pv t; Pv i; Pv v ] ->
+       emit_load ctx t;
+       as_int i;
+       emit_load ctx v;
+       (match kind_of ctx v with
+        | K_int -> Kind.emit_box_int ctx.code
+        | K_float -> Kind.emit_box_float ctx.code
+        | _ -> ());
+       Jvm.Code.invokestatic
+         ctx.code
+         ~class_:"Ephemeron"
+         ~method_:"set_key"
+         ~descriptor:
+           "(Ljava/lang/Object;ILjava/lang/Object;)Ljava/lang/Object;";
+       Kind.K_obj
+     | _ -> raise (Unsupported "caml_ephe_set_key arity"))
+  | "caml_ephe_unset_key" ->
+    (match args with
+     | [ Pv t; Pv i ] ->
+       emit_load ctx t;
+       as_int i;
+       Jvm.Code.invokestatic
+         ctx.code
+         ~class_:"Ephemeron"
+         ~method_:"unset_key"
+         ~descriptor:"(Ljava/lang/Object;I)Ljava/lang/Object;";
+       Kind.K_obj
+     | _ -> raise (Unsupported "caml_ephe_unset_key arity"))
+  | "caml_ephe_get_key" | "caml_weak_get" ->
+    (match args with
+     | [ Pv t; Pv i ] ->
+       emit_load ctx t;
+       as_int i;
+       Jvm.Code.invokestatic
+         ctx.code
+         ~class_:"Ephemeron"
+         ~method_:"get_key"
+         ~descriptor:"(Ljava/lang/Object;I)Ljava/lang/Object;";
+       Kind.K_obj
+     | _ -> raise (Unsupported "caml_ephe_get_key arity"))
+  | "caml_ephe_get_key_copy" | "caml_weak_get_copy" ->
+    (match args with
+     | [ Pv t; Pv i ] ->
+       emit_load ctx t;
+       as_int i;
+       Jvm.Code.invokestatic
+         ctx.code
+         ~class_:"Ephemeron"
+         ~method_:"get_key_copy"
+         ~descriptor:"(Ljava/lang/Object;I)Ljava/lang/Object;";
+       Kind.K_obj
+     | _ -> raise (Unsupported "caml_ephe_get_key_copy arity"))
+  | "caml_ephe_check_key" | "caml_weak_check" ->
+    (match args with
+     | [ Pv t; Pv i ] ->
+       emit_load ctx t;
+       as_int i;
+       Jvm.Code.invokestatic
+         ctx.code
+         ~class_:"Ephemeron"
+         ~method_:"check_key"
+         ~descriptor:"(Ljava/lang/Object;I)I";
+       Kind.K_int
+     | _ -> raise (Unsupported "caml_ephe_check_key arity"))
+  | "caml_ephe_set_data" ->
+    (match args with
+     | [ Pv t; Pv v ] ->
+       emit_load ctx t;
+       emit_load ctx v;
+       (match kind_of ctx v with
+        | K_int -> Kind.emit_box_int ctx.code
+        | K_float -> Kind.emit_box_float ctx.code
+        | _ -> ());
+       Jvm.Code.invokestatic
+         ctx.code
+         ~class_:"Ephemeron"
+         ~method_:"set_data"
+         ~descriptor:
+           "(Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;";
+       Kind.K_obj
+     | _ -> raise (Unsupported "caml_ephe_set_data arity"))
+  | "caml_ephe_unset_data" ->
+    (match args with
+     | [ Pv t ] ->
+       emit_load ctx t;
+       Jvm.Code.invokestatic
+         ctx.code
+         ~class_:"Ephemeron"
+         ~method_:"unset_data"
+         ~descriptor:"(Ljava/lang/Object;)Ljava/lang/Object;";
+       Kind.K_obj
+     | _ -> raise (Unsupported "caml_ephe_unset_data arity"))
+  | "caml_ephe_get_data" ->
+    (match args with
+     | [ Pv t ] ->
+       emit_load ctx t;
+       Jvm.Code.invokestatic
+         ctx.code
+         ~class_:"Ephemeron"
+         ~method_:"get_data"
+         ~descriptor:"(Ljava/lang/Object;)Ljava/lang/Object;";
+       Kind.K_obj
+     | _ -> raise (Unsupported "caml_ephe_get_data arity"))
+  | "caml_ephe_get_data_copy" ->
+    (match args with
+     | [ Pv t ] ->
+       emit_load ctx t;
+       Jvm.Code.invokestatic
+         ctx.code
+         ~class_:"Ephemeron"
+         ~method_:"get_data_copy"
+         ~descriptor:"(Ljava/lang/Object;)Ljava/lang/Object;";
+       Kind.K_obj
+     | _ -> raise (Unsupported "caml_ephe_get_data_copy arity"))
+  | "caml_ephe_check_data" ->
+    (match args with
+     | [ Pv t ] ->
+       emit_load ctx t;
+       Jvm.Code.invokestatic
+         ctx.code
+         ~class_:"Ephemeron"
+         ~method_:"check_data"
+         ~descriptor:"(Ljava/lang/Object;)I";
+       Kind.K_int
+     | _ -> raise (Unsupported "caml_ephe_check_data arity"))
+  | "caml_ephe_blit_data" ->
+    (match args with
+     | [ Pv src; Pv dst ] ->
+       emit_load ctx src;
+       emit_load ctx dst;
+       Jvm.Code.invokestatic
+         ctx.code
+         ~class_:"Ephemeron"
+         ~method_:"blit_data"
+         ~descriptor:
+           "(Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;";
+       Kind.K_obj
+     | _ -> raise (Unsupported "caml_ephe_blit_data arity"))
+  | "caml_ephe_blit_key" | "caml_weak_blit" ->
+    (match args with
+     | [ Pv a1; Pv i1; Pv a2; Pv i2; Pv len ] ->
+       emit_load ctx a1;
+       as_int i1;
+       emit_load ctx a2;
+       as_int i2;
+       as_int len;
+       Jvm.Code.invokestatic
+         ctx.code
+         ~class_:"Ephemeron"
+         ~method_:"blit_key"
+         ~descriptor:
+           "(Ljava/lang/Object;ILjava/lang/Object;II)Ljava/lang/Object;";
+       Kind.K_obj
+     | _ -> raise (Unsupported "caml_ephe_blit_key arity"))
   | "caml_array_get_addr" | "caml_array_unsafe_get_addr" ->
     (match args with
      | [ Pv a; Pv i ] ->

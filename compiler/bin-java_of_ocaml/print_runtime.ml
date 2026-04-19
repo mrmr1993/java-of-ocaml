@@ -16,6 +16,7 @@ let runtime_classes =
   ; "Channel", Jvm.channel_class_bytes
   ; "Bytes", Jvm.bytes_class_bytes
   ; "Format", Jvm.format_class_bytes
+  ; "Ephemeron", Jvm.ephemeron_class_bytes
   ]
 
 let run output_dir list_only =

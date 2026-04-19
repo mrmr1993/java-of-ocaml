@@ -11,7 +11,8 @@
   Compare.class
   Channel.class
   Bytes.class
-  Format.class)
+  Format.class
+  Ephemeron.class)
  (deps
   Block.java
   Closure.java
@@ -20,7 +21,8 @@
   Compare.java
   Channel.java
   Bytes.java
-  Format.java)
+  Format.java
+  Ephemeron.java)
  (action
   (run javac -d . %{deps})))
 
@@ -35,7 +37,8 @@
    Compare.class
    Channel.class
    Bytes.class
-   Format.class))
+   Format.class
+   Ephemeron.class))
  (action
   (with-stdout-to
    %{targets}

@@ -342,6 +342,14 @@ val format_class_bytes : unit -> string
 (** Bytes of the [Format] runtime class — OCaml printf-style
     format-int/format-float via [String.format]. *)
 
+val ephemeron_class_bytes : unit -> string
+(** Bytes of the [Ephemeron] runtime class — backs
+    [Obj.Ephemeron.t] and [Weak.t]. Keys are held as
+    [java.lang.ref.WeakReference]s; the data slot is cleared the
+    first time a read notices that any key has been collected,
+    approximating OCaml's "data reachable iff all keys reachable"
+    semantics. *)
+
 val closure_class_bytes : unit -> string
 
 val partial_closure_class_bytes : unit -> string

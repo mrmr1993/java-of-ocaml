@@ -35,3 +35,8 @@ val bytes_class_bytes : unit -> string
     Static [stdout] / [stderr] fields plus a [forDescriptor]
     helper so [caml_ml_open_descriptor_out] can return the right
     one. *)
+
+val ephemeron_class_bytes : unit -> string
+(** OCaml ephemerons / weak refs. Keys are held as
+    [java.lang.ref.WeakReference]s; data slot is cleared when any
+    key's referent has been collected. *)

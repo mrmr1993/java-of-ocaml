@@ -111,6 +111,7 @@ let%expect_test "compile accepts a .cmo and emits class files" =
     Channel.class
     Closure.class
     Compare.class
+    Ephemeron.class
     Format.class
     Main.class
     PartialClosure.class
