@@ -3,14 +3,18 @@
 
 open Cmdliner
 
-let run inputs output_dir debug_flags =
+let run inputs output_dir debug_flags print_functions =
   List.iter Java_of_ocaml_compiler.Debug.enable debug_flags;
   match inputs, output_dir with
   | [], _ -> `Error (true, "missing input file(s)")
   | _, None -> `Error (true, "missing -o <output_directory>")
   | bcs, Some out_dir ->
     (try
-       Java_of_ocaml_compiler.Compile.compile ~bcs ~out_dir;
+       Java_of_ocaml_compiler.Compile.compile
+         ~print_functions
+         ~bcs
+         ~out_dir
+         ();
        `Ok ()
      with
      | Failure msg -> `Error (false, msg))
@@ -38,7 +42,27 @@ let debug_arg =
   in
   Arg.(value & opt_all string [] & info [ "debug" ] ~docv:"FLAG" ~doc)
 
-let term = Term.(ret (const run $ input_arg $ output_arg $ debug_arg))
+let print_function_arg =
+  let doc =
+    "Dump the decoded bytecode for the function body starting at \
+     $(b,PC) to stderr, showing each instruction's pc / opcode / args \
+     / branch targets / outstanding-forward-target set. Useful for \
+     diagnosing $(i,no terminator in function body) failures. May be \
+     repeated."
+  in
+  Arg.(
+    value
+    & opt_all int []
+    & info [ "print-function" ] ~docv:"PC" ~doc)
+
+let term =
+  Term.(
+    ret
+      (const run
+       $ input_arg
+       $ output_arg
+       $ debug_arg
+       $ print_function_arg))
 
 let info =
   let doc = "Compile OCaml bytecode to JVM class files." in

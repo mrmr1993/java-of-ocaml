@@ -175,7 +175,7 @@ let emit_globals_init code globals =
       Jvm.Code.aastore code
   done
 
-let compile_t ~parsed ~out_dir =
+let compile_t ?(print_functions = []) ~parsed ~out_dir () =
   let total = if debug_times () then Some (Timer.make ()) else None in
   let prim_table = Prim.find_supported_prims parsed in
   (* A zero-primitive input is legitimate for separate-compilation
@@ -269,6 +269,10 @@ let compile_t ~parsed ~out_dir =
     in
     find 0
   in
+  List.iter
+    (fun pc ->
+      Print_function.print Format.err_formatter arr ~sorted_body_pcs ~pc)
+    print_functions;
   for i = start_idx to end_idx do
     let ins = arr.(i) in
     if ins.opcode = closurerec_op || ins.opcode = closure_op
@@ -826,7 +830,7 @@ let compile_t ~parsed ~out_dir =
    a fully-linked globals table, so mixing it with separately-
    compiled inputs would double-assign slots. Callers either hand us
    one [.bc] or a list of [.cmo]/[.cma]. *)
-let compile ~bcs ~out_dir =
+let compile ?(print_functions = []) ~bcs ~out_dir () =
   let parsed =
     time_phase "read-bytecode" (fun () ->
       match List.map Bytecode.read_file bcs with
@@ -848,4 +852,4 @@ let compile ~bcs ~out_dir =
         in
         Linker.link units)
   in
-  compile_t ~parsed ~out_dir
+  compile_t ~print_functions ~parsed ~out_dir ()
