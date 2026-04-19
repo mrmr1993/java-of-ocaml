@@ -1338,7 +1338,13 @@ and emit_ccall_named ctx name args =
     Jvm.Code.ldc_int ctx.code 0;
     Kind.K_int
   | "caml_sys_const_ostype_cygwin" | "caml_sys_const_ostype_win32"
-  | "caml_sys_const_backend_type" ->
+  | "caml_sys_const_backend_type"
+  | "caml_sys_const_naked_pointers_checked" ->
+    (* 4.14 stdlib init reads [naked_pointers_checked] and asserts
+       it; return 0 (false — JVM runtime doesn't have the no-naked-
+       pointers optimisation those 4.x releases guarded behind it,
+       but the stdlib init code path treats 0 as "no assertion
+       failure"). *)
     Jvm.Code.ldc_int ctx.code 0;
     Kind.K_int
   | "caml_sys_const_max_wosize" ->
