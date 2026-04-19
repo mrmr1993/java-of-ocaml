@@ -8,13 +8,6 @@ let debug_primitives = Debug.find "primitives"
 let debug_functions = Debug.find "functions"
 let debug_ir_emit = Debug.find "ir_emit"
 
-(* IR emission is on by default. Set [JAVA_OF_OCAML_IR=0] to disable
-   and use the legacy forward-walk emitter exclusively. Kept as an
-   escape hatch while we stabilise the IR path. *)
-let ir_emit_enabled () =
-  match Sys.getenv_opt "JAVA_OF_OCAML_IR" with
-  | Some ("0" | "false" | "FALSE") -> false
-  | _ -> true
 
 (* Attempt to lower a function body (or the main init range) to the new
    Code IR via [Parse_bytecode]. This is a smoke pass for Phase 1 — the
@@ -294,9 +287,6 @@ let compile ~bc ~out_dir =
       else parsed.prims.(idx)
     in
     let try_main_ir () =
-      if not (ir_emit_enabled ())
-      then None
-      else (
         (* Don't filter out fn_body_pcs — the parser's block-boundary
            scan needs the full instruction stream to find successor
            PCs via addr_map. Function bodies aren't reachable via
@@ -338,7 +328,7 @@ let compile ~bc ~out_dir =
              if debug_ir_emit ()
              then
                Format.eprintf "[ir_emit] <main>: legacy (gen: %s)@." msg;
-             None))
+             None)
     in
     (match try_main_ir () with
      | Some _scratch_ir_code ->
@@ -422,20 +412,13 @@ let compile ~bc ~out_dir =
         Jvm.Code.return_void ctor_code;
         let apply_code = Jvm.Code.create fn_cp in
         Jvm.Code.set_min_locals apply_code (1 + fn_info.nargs);
-        (* IR-first strategy when JAVA_OF_OCAML_IR=1: attempt the IR
-           path into a fresh [Jvm.Code.t]; fall back to the legacy
-           per-opcode emitter only on Not_supported / Unsupported.
-           This lets us compile programs legacy can't (e.g. its
-           pre-existing "POPTRAP without matching PUSHTRAP"
-           misfires on deeper Stdlib code) as long as IR handles
-           them. *)
+        (* Emit the apply body from the IR. On IR failure, write a
+           runtime-throwing stub into [apply_code] so the class
+           still loads. *)
         let try_ir () =
-          if not (ir_emit_enabled ())
-          then None
-          else (
-            let body_pc = arr.(fn_info.body_start_idx).pc in
-            let end_pc = arr.(fn_info.body_end_idx).pc in
-            try
+          let body_pc = arr.(fn_info.body_start_idx).pc in
+          let end_pc = arr.(fn_info.body_end_idx).pc in
+          try
               let prog, params, env_var =
                 Parse_bytecode.parse_function
                   (Array.to_list arr)
@@ -499,7 +482,7 @@ let compile ~bc ~out_dir =
                   "[ir_emit] %s: legacy (gen: %s)@."
                   fn_info.name
                   msg;
-              None)
+              None
         in
         let apply_code =
           match try_ir () with
