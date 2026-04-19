@@ -17,6 +17,19 @@ type ctx =
   ; enclosing : (Function_info.function_info * Code.Var.t) option
   ; fresh_oo_id : int ref
   ; mutable next_local : int
+  ; block_start : (Code.Addr.t, Jvm.Code.label) Hashtbl.t
+        (* Start label per block (same as [labels]; kept for
+           clarity). *)
+  ; block_end : (Code.Addr.t, Jvm.Code.label) Hashtbl.t
+        (* End-of-block label allocated on first need (Pushtrap
+           processing) and marked by emit_block at that block's
+           final instruction position. *)
+  ; mutable pending_handlers : pending_handler list
+  }
+
+and pending_handler =
+  { protected : Code.Addr.Set.t
+  ; handler_lbl : Jvm.Code.label
   }
 
 let kind_of ctx v = Jvm_typing.kind ctx.typing v
@@ -1173,23 +1186,68 @@ let emit_prim ctx (p : Code.prim) (args : Code.prim_arg list) : Kind.kind =
     Jvm.Code.isub ctx.code;
     K_int
   | (Eq | Neq | Lt | Le | Gt | Ge | Ult | Uge), [ a; b ] ->
-    (* Materialise as 0/1. Use ifeq/ifne over a compare: load a, load
-       b, if_icmp<op> Ltrue; iconst_0; goto Lend; Ltrue: iconst_1;
-       Lend. *)
+    (* OCaml's EQ / NEQ opcodes are bitwise: int compare for
+       immediates, reference compare for blocks. LT/LE/GT/GE (and
+       unsigned variants) are only meaningful on ints. We dispatch
+       off the typed kinds of the operands:
+       - Both statically-int: unbox + if_icmp<op>.
+       - Eq/Neq with at least one reference-typed operand: box both
+         to Object if needed, then if_acmpeq / if_acmpne. This is
+         the right semantics for exception-constructor matching
+         (Block(248, [name, id]) references compared by identity
+         via the shared Main.GLOBALS array).
+       - Lt/Le/Gt/Ge/Ult/Uge on non-ints: unbox anyway (assume
+         they're boxed Integers; OCaml doesn't emit these on
+         blocks).*)
+    let is_ref_kind = function
+      | Kind.K_int -> false
+      | _ -> true
+    in
+    let arg_kind = function
+      | Code.Pv v -> kind_of ctx v
+      | Pc (Int _) -> K_int
+      | Pc (Float _) -> K_float
+      | Pc (String _) -> K_string
+      | Pc (Block _) -> K_obj
+      | Pc Null -> K_obj
+    in
+    let ka = arg_kind a in
+    let kb = arg_kind b in
+    let use_ref =
+      match p with
+      | Eq | Neq -> is_ref_kind ka || is_ref_kind kb
+      | _ -> false
+    in
     let l_true = Jvm.Code.fresh_label ctx.code in
     let l_end = Jvm.Code.fresh_label ctx.code in
-    let ka = emit_prim_arg ctx a in
-    ensure_int ctx ka;
-    let kb = emit_prim_arg ctx b in
-    ensure_int ctx kb;
-    (match p with
-     | Eq -> Jvm.Code.if_icmpeq ctx.code l_true
-     | Neq -> Jvm.Code.if_icmpne ctx.code l_true
-     | Lt | Ult -> Jvm.Code.if_icmplt ctx.code l_true
-     | Le -> Jvm.Code.if_icmple ctx.code l_true
-     | Gt -> Jvm.Code.if_icmpgt ctx.code l_true
-     | Ge | Uge -> Jvm.Code.if_icmpge ctx.code l_true
-     | _ -> assert false);
+    if use_ref
+    then (
+      let load_as_obj pa =
+        let k = emit_prim_arg ctx pa in
+        match k with
+        | K_int -> Kind.emit_box_int ctx.code
+        | K_float -> Kind.emit_box_float ctx.code
+        | _ -> ()
+      in
+      load_as_obj a;
+      load_as_obj b;
+      (match p with
+       | Eq -> Jvm.Code.if_acmpeq ctx.code l_true
+       | Neq -> Jvm.Code.if_acmpne ctx.code l_true
+       | _ -> assert false))
+    else (
+      let _ = emit_prim_arg ctx a in
+      ensure_int ctx ka;
+      let _ = emit_prim_arg ctx b in
+      ensure_int ctx kb;
+      match p with
+      | Eq -> Jvm.Code.if_icmpeq ctx.code l_true
+      | Neq -> Jvm.Code.if_icmpne ctx.code l_true
+      | Lt | Ult -> Jvm.Code.if_icmplt ctx.code l_true
+      | Le -> Jvm.Code.if_icmple ctx.code l_true
+      | Gt -> Jvm.Code.if_icmpgt ctx.code l_true
+      | Ge | Uge -> Jvm.Code.if_icmpge ctx.code l_true
+      | _ -> assert false);
     Jvm.Code.ldc_int ctx.code 0;
     Jvm.Code.goto_w ctx.code l_end;
     Jvm.Code.mark_label ctx.code l_true;
@@ -1855,19 +1913,51 @@ let emit_last ctx prog (l : Code.last) =
         Jvm.Code.mark_label ctx.code tag_labels.(i);
         emit_cont ctx prog c)
       tag_cases
-  | Pushtrap (body_c, exn_var, handler_c) ->
-    let start_lbl = Jvm.Code.fresh_label ctx.code in
-    let end_lbl = Jvm.Code.fresh_label ctx.code in
+  | Pushtrap ((body_addr, _) as body_c, exn_var, handler_c) ->
     let handler_lbl = Jvm.Code.fresh_label ctx.code in
-    Jvm.Code.add_exception_handler
-      ctx.code
-      ~start_lbl
-      ~end_lbl
-      ~handler_lbl
-      ~catch_class:(Some "CamlException");
-    Jvm.Code.mark_label ctx.code start_lbl;
+    (* Walk the IR forward from body_addr to collect every block in
+       the try region. The region ends at a Poptrap (which transfers
+       out of the region) or a Raise (which never falls through
+       here). Nested Pushtraps are part of the enclosing region too. *)
+    let protected = ref Code.Addr.Set.empty in
+    let rec collect addr =
+      if Code.Addr.Set.mem addr !protected
+      then ()
+      else (
+        protected := Code.Addr.Set.add addr !protected;
+        match Code.Addr.Map.find_opt addr prog.blocks with
+        | None -> ()
+        | Some b ->
+          let step (a, _args) = collect a in
+          (match b.branch with
+           | Return _ | Raise _ | Stop -> ()
+           | Poptrap _ ->
+             (* A Poptrap exits the region; don't follow. *)
+             ()
+           | Branch c -> step c
+           | Cond (_, c1, c2) -> step c1; step c2
+           | Switch (_, ints, tags) ->
+             Array.iter step ints;
+             Array.iter step tags
+           | Pushtrap (b_c, _, _) ->
+             (* Nested try: its body is also covered by our
+                exception handler. The nested handler_c is NOT
+                part of our region (it's only reached when the
+                nested exception fires). *)
+             step b_c))
+    in
+    collect body_addr;
+    (* Pre-allocate end labels for every protected block so emit_block
+       can mark them when it reaches the end of each body. *)
+    Code.Addr.Set.iter
+      (fun addr ->
+        if not (Hashtbl.mem ctx.block_end addr)
+        then
+          Hashtbl.add ctx.block_end addr (Jvm.Code.fresh_label ctx.code))
+      !protected;
+    ctx.pending_handlers <-
+      { protected = !protected; handler_lbl } :: ctx.pending_handlers;
     emit_cont ctx prog body_c;
-    Jvm.Code.mark_label ctx.code end_lbl;
     (* Handler prelude: unwrap CamlException → exn value, store into
        exn_var's local, then move to handler cont. *)
     Jvm.Code.mark_label ctx.code handler_lbl;
@@ -1889,9 +1979,16 @@ let emit_block ctx prog addr (b : Code.block) =
   then Format.eprintf "[ir_gen_trace] emit_block addr=%d@." addr;
   (* Ensure each param has a local allocated. *)
   List.iter (fun v -> ignore (local_of ctx v)) b.params;
-  Jvm.Code.mark_label ctx.code (label_of ctx addr);
+  let start_lbl = label_of ctx addr in
+  Jvm.Code.mark_label ctx.code start_lbl;
+  Hashtbl.replace ctx.block_start addr start_lbl;
   List.iter (fun i -> emit_instr ctx i) b.body;
-  emit_last ctx prog b.branch
+  emit_last ctx prog b.branch;
+  (* Mark the end-of-block label if anyone (a Pushtrap deferred
+     handler install) asked for one. *)
+  match Hashtbl.find_opt ctx.block_end addr with
+  | Some end_lbl -> Jvm.Code.mark_label ctx.code end_lbl
+  | None -> ()
 
 let emit_program
     ~code
@@ -1914,6 +2011,9 @@ let emit_program
     ; enclosing
     ; fresh_oo_id = ref 0
     ; next_local = 1
+    ; block_start = Hashtbl.create 32
+    ; block_end = Hashtbl.create 32
+    ; pending_handlers = []
     }
   in
   (* Apply-method locals 1..N are the formal args by JVM calling
@@ -1957,4 +2057,28 @@ let emit_program
   Code.Addr.Map.iter
     (fun addr b ->
       if addr <> prog.start then emit_block ctx prog addr b)
-    prog.blocks
+    prog.blocks;
+  (* Install deferred exception-handler entries. For each Pushtrap,
+     install one entry per block in its protected set, covering
+     that block's start..end labels (end is marked at the end of
+     [emit_block]; we allocate it on demand). Using one entry per
+     block sidesteps the problem that IR-ordered block emission
+     doesn't lay out a try region as a contiguous byte range. *)
+  List.iter
+    (fun { protected; handler_lbl } ->
+      Code.Addr.Set.iter
+        (fun addr ->
+          match
+            ( Hashtbl.find_opt ctx.block_start addr
+            , Hashtbl.find_opt ctx.block_end addr )
+          with
+          | Some start_lbl, Some end_lbl ->
+            Jvm.Code.add_exception_handler
+              ctx.code
+              ~start_lbl
+              ~end_lbl
+              ~handler_lbl
+              ~catch_class:(Some "CamlException")
+          | _ -> ())
+        protected)
+    ctx.pending_handlers
