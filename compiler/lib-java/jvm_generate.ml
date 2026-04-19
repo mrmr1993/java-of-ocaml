@@ -731,13 +731,6 @@ and emit_ccall_named ctx name args =
        Jvm.Code.ldc_int ctx.code 0;
        Kind.K_int
      | _ -> raise (Unsupported "caml_ml_output arity"))
-  | "caml_ml_close_channel" ->
-    (match args with
-     | [ Pv _ch ] ->
-       (* No-op; JVM GC handles cleanup. *)
-       Jvm.Code.ldc_int ctx.code 0;
-       Kind.K_int
-     | _ -> raise (Unsupported "caml_ml_close_channel arity"))
   | "caml_add_float" | "caml_sub_float" | "caml_mul_float" | "caml_div_float" ->
     (match args with
      | [ Pv a; Pv b ] ->
@@ -1265,13 +1258,124 @@ and emit_ccall_named ctx name args =
       ~method_:"<init>"
       ~descriptor:"(I[Ljava/lang/Object;)V";
     Kind.K_obj
-  | "caml_ml_open_descriptor_in"
   | "caml_channel_descriptor"
   | "caml_sys_executable_name"
   | "caml_sys_system_command"
   | "caml_sys_file_exists" ->
     Jvm.Code.aconst_null ctx.code;
     Kind.K_obj
+  | "caml_ml_open_descriptor_in" ->
+    (* Wrap an FD (from [caml_sys_open] or 0 for stdin) in an input
+       [Channel]. *)
+    (match args with
+     | [ Pv fd ] ->
+       as_int fd;
+       Jvm.Code.invokestatic
+         ctx.code
+         ~class_:"Channel"
+         ~method_:"forDescriptor"
+         ~descriptor:"(I)LChannel;";
+       Kind.K_obj
+     | _ -> raise (Unsupported "caml_ml_open_descriptor_in arity"))
+  | "caml_sys_open" ->
+    (* [path flags perm] → int FD. The flags arg is an OCaml list of
+       [Open_rdonly] / [Open_wronly] / … variants; [Channel.openFile]
+       walks the [Block]-cons chain at runtime. *)
+    (match args with
+     | [ Pv path; Pv flags; Pv perm ] ->
+       as_string path;
+       emit_load ctx flags;
+       as_int perm;
+       Jvm.Code.invokestatic
+         ctx.code
+         ~class_:"Channel"
+         ~method_:"openFile"
+         ~descriptor:"(Ljava/lang/String;Ljava/lang/Object;I)I";
+       Kind.K_int
+     | _ -> raise (Unsupported "caml_sys_open arity"))
+  | "caml_sys_close" ->
+    (match args with
+     | [ Pv fd ] ->
+       as_int fd;
+       Jvm.Code.invokestatic
+         ctx.code
+         ~class_:"Channel"
+         ~method_:"closeFd"
+         ~descriptor:"(I)I";
+       Kind.K_int
+     | _ -> raise (Unsupported "caml_sys_close arity"))
+  | "caml_sys_remove" ->
+    (match args with
+     | [ Pv path ] ->
+       Jvm.Code.new_ ctx.code "java/io/File";
+       Jvm.Code.dup ctx.code;
+       as_string path;
+       Jvm.Code.invokespecial
+         ctx.code
+         ~class_:"java/io/File"
+         ~method_:"<init>"
+         ~descriptor:"(Ljava/lang/String;)V";
+       Jvm.Code.invokevirtual
+         ctx.code
+         ~class_:"java/io/File"
+         ~method_:"delete"
+         ~descriptor:"()Z";
+       (* Discard bool, return 0 (unit). *)
+       Jvm.Code.pop_top ctx.code;
+       Jvm.Code.ldc_int ctx.code 0;
+       Kind.K_int
+     | _ -> raise (Unsupported "caml_sys_remove arity"))
+  | "caml_ml_close_channel" ->
+    (match args with
+     | [ Pv chan ] ->
+       emit_load ctx chan;
+       Jvm.Code.checkcast ctx.code "Channel";
+       Jvm.Code.invokevirtual
+         ctx.code
+         ~class_:"Channel"
+         ~method_:"close"
+         ~descriptor:"()I";
+       Kind.K_int
+     | _ -> raise (Unsupported "caml_ml_close_channel arity"))
+  | "caml_ml_input_char" ->
+    (match args with
+     | [ Pv chan ] ->
+       emit_load ctx chan;
+       Jvm.Code.checkcast ctx.code "Channel";
+       Jvm.Code.invokevirtual
+         ctx.code
+         ~class_:"Channel"
+         ~method_:"inputChar"
+         ~descriptor:"()I";
+       Kind.K_int
+     | _ -> raise (Unsupported "caml_ml_input_char arity"))
+  | "caml_ml_input_scan_line" ->
+    (match args with
+     | [ Pv chan ] ->
+       emit_load ctx chan;
+       Jvm.Code.checkcast ctx.code "Channel";
+       Jvm.Code.invokevirtual
+         ctx.code
+         ~class_:"Channel"
+         ~method_:"inputScanLine"
+         ~descriptor:"()I";
+       Kind.K_int
+     | _ -> raise (Unsupported "caml_ml_input_scan_line arity"))
+  | "caml_ml_input" ->
+    (match args with
+     | [ Pv chan; Pv buf; Pv ofs; Pv len ] ->
+       emit_load ctx chan;
+       Jvm.Code.checkcast ctx.code "Channel";
+       as_bytes buf;
+       as_int ofs;
+       as_int len;
+       Jvm.Code.invokevirtual
+         ctx.code
+         ~class_:"Channel"
+         ~method_:"input"
+         ~descriptor:"(LBytes;II)I";
+       Kind.K_int
+     | _ -> raise (Unsupported "caml_ml_input arity"))
   | "caml_int64_float_of_bits" ->
     (* Reinterpret a 64-bit bit pattern as a [double]. Stdlib's
        [infinity] / [nan] / [max_float] / [min_float] are constructed

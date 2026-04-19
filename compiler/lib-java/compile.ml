@@ -235,6 +235,25 @@ let emit_globals_entry code i =
     emit_materialise_block_constant code tag fields;
     Jvm.Code.aastore code
 
+(* Wire runtime-side references that need the predefined exception
+   descriptors from [GLOBALS]. Runs right after [emit_globals_init]
+   so [GLOBALS[i]] is populated by the time we read it.
+
+   Currently just [End_of_file] at slot 4, used by [Channel] on EOF. *)
+let emit_runtime_init_after_globals main_code =
+  Jvm.Code.getstatic
+    main_code
+    ~class_:"Main"
+    ~field:"GLOBALS"
+    ~descriptor:"[Ljava/lang/Object;";
+  Jvm.Code.ldc_int main_code 4;
+  Jvm.Code.aaload main_code;
+  Jvm.Code.putstatic
+    main_code
+    ~class_:"Channel"
+    ~field:"endOfFileExn"
+    ~descriptor:"Ljava/lang/Object;"
+
 (* [emit_globals_init cp globals ~main_code] allocates the [GLOBALS]
    array in [main_code] and then populates it. For small programs the
    population is inlined directly into [main_code]; for large programs
@@ -716,6 +735,7 @@ let compile_t
        let globals_helpers =
          emit_globals_init cp parsed.globals ~main_code
        in
+       emit_runtime_init_after_globals main_code;
        main_split_helpers := helpers @ globals_helpers;
        Jvm_generate.emit_program
          ~code:main_code
@@ -764,6 +784,7 @@ let compile_t
        let globals_helpers =
          emit_globals_init cp parsed.globals ~main_code
        in
+       emit_runtime_init_after_globals main_code;
        main_split_helpers := globals_helpers;
        Jvm.Code.new_ main_code "java/lang/UnsupportedOperationException";
        Jvm.Code.dup main_code;

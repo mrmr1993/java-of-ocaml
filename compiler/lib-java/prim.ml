@@ -163,7 +163,6 @@ let primitives : prim_entry list =
      downstream [checkcast] succeed, trading a readable
      NullPointerException at first-use for a
      ClassCastException at the call site. *)
-  ; { name = "caml_ml_open_descriptor_in"; handler = P_noop_null1; seed = false }
   ; { name = "caml_ml_open_descriptor_out"; handler = P_ml_open_descriptor_out; seed = false }
   ; { name = "caml_ml_output"; handler = P_ml_output; seed = false }
   ; { name = "caml_ml_output_bytes"; handler = P_ml_output; seed = false }
