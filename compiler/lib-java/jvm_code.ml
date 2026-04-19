@@ -667,25 +667,56 @@ let resolve t =
       let op = Bytes.get_uint8 bytes r.opcode_pc in
       if op = 0xA7 then 2 else 5
   in
-  (* Cumulative shift at an original byte position: the sum of deltas
-     for all widened branches whose original instruction ended at or
-     before [pos]. O(n_widenings) per query, but n_widenings is tiny
-     compared to the buffer. *)
+  (* [shift_at pos] is the sum of widening deltas for every branch
+     whose original instruction ended at or before [pos]. The
+     widening fixed-point below calls this twice per branch per
+     iteration, so making it cheap matters: snapshot the currently-
+     widened set into a pc-sorted array with prefix sums, then bi-
+     nary-search the rightmost position <= pos. The snapshot is
+     stale within a single iteration (new widenings made during the
+     pass aren't visible until the next iteration), which is benign
+     — widening is monotone, so at worst we take one extra pass to
+     converge. *)
+  let widened_positions = ref [||] in
+  let widened_prefix = ref [||] in
+  let rebuild_shift_snapshot () =
+    let widened_list =
+      List.filter_map
+        (fun (_, _, r) ->
+          if is_short r && Hashtbl.mem widened (r.opcode_pc, r.offset_pc)
+          then
+            Some
+              ( Hashtbl.find instr_end_by_opcode r.opcode_pc
+              , widening_delta r )
+          else None)
+        all_refs
+      |> List.sort (fun (a, _) (b, _) -> compare a b)
+      |> Array.of_list
+    in
+    let n = Array.length widened_list in
+    let prefix = Array.make (n + 1) 0 in
+    for i = 0 to n - 1 do
+      prefix.(i + 1) <- prefix.(i) + snd widened_list.(i)
+    done;
+    widened_positions := Array.map fst widened_list;
+    widened_prefix := prefix
+  in
   let shift_at pos =
-    List.fold_left
-      (fun acc (_, _, r) ->
-        if is_short r
-           && Hashtbl.mem widened (r.opcode_pc, r.offset_pc)
-           && Hashtbl.find instr_end_by_opcode r.opcode_pc <= pos
-        then acc + widening_delta r
-        else acc)
-      0
-      all_refs
+    let positions = !widened_positions in
+    let n = Array.length positions in
+    (* Largest i with positions.(i) <= pos; 0 if none. *)
+    let lo = ref 0 and hi = ref n in
+    while !lo < !hi do
+      let m = (!lo + !hi) / 2 in
+      if positions.(m) <= pos then lo := m + 1 else hi := m
+    done;
+    !widened_prefix.(!lo)
   in
   let short_fits_in_16 offset = offset >= -32768 && offset <= 32767 in
   let changed = ref true in
   while !changed do
     changed := false;
+    rebuild_shift_snapshot ();
     List.iter
       (fun (_, tgt, r) ->
         if is_short r && not (Hashtbl.mem widened (r.opcode_pc, r.offset_pc))
@@ -699,6 +730,7 @@ let resolve t =
             changed := true)))
       all_refs
   done;
+  rebuild_shift_snapshot ();
   (* If no widenings were needed, patch offsets in place and we're done. *)
   if Hashtbl.length widened = 0
   then (
