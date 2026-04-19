@@ -49,6 +49,9 @@ val dload : t -> int -> unit
 val ldc_double : t -> float -> unit
 (** Push a double constant (JVM [ldc2_w]; occupies 2 operand slots). *)
 
+val ldc_long : t -> int64 -> unit
+(** Push a long constant (JVM [ldc2_w]; occupies 2 operand slots). *)
+
 val pop2 : t -> unit
 (** Discard the top 2 operand-stack slots (JVM [pop2], 0x58). Used to
     drop a double or a pair of category-1 values. *)

@@ -1332,6 +1332,182 @@ let emit_ccall ctx name args =
          ~descriptor:"()LBlock;";
        Kind.K_obj
      | _ -> raise (Unsupported "caml_obj_dup arity"))
+  | "caml_atomic_exchange" ->
+    (* r := new; return old. *)
+    (match args with
+     | [ Pv r; Pv v ] ->
+       let arr_local = ctx.next_local in
+       ctx.next_local <- arr_local + 1;
+       let old_local = ctx.next_local in
+       ctx.next_local <- old_local + 1;
+       Jvm.Code.set_min_locals ctx.code ctx.next_local;
+       emit_load ctx r;
+       Jvm.Code.checkcast ctx.code "Block";
+       Jvm.Code.getfield ctx.code
+         ~class_:"Block"
+         ~field:"fields"
+         ~descriptor:"[Ljava/lang/Object;";
+       Jvm.Code.astore ctx.code arr_local;
+       Jvm.Code.aload ctx.code arr_local;
+       Jvm.Code.ldc_int ctx.code 0;
+       Jvm.Code.aaload ctx.code;
+       Jvm.Code.astore ctx.code old_local;
+       Jvm.Code.aload ctx.code arr_local;
+       Jvm.Code.ldc_int ctx.code 0;
+       emit_load ctx v;
+       (match kind_of ctx v with
+        | K_int -> Kind.emit_box_int ctx.code
+        | K_float -> Kind.emit_box_float ctx.code
+        | _ -> ());
+       Jvm.Code.aastore ctx.code;
+       Jvm.Code.aload ctx.code old_local;
+       Kind.K_obj
+     | _ -> raise (Unsupported "caml_atomic_exchange arity"))
+  | "caml_atomic_fetch_add" ->
+    (* r field 0 += delta; return old int. *)
+    (match args with
+     | [ Pv r; Pv d ] ->
+       let arr_local = ctx.next_local in
+       ctx.next_local <- arr_local + 1;
+       let old_local = ctx.next_local in
+       ctx.next_local <- old_local + 1;
+       Jvm.Code.set_min_locals ctx.code ctx.next_local;
+       emit_load ctx r;
+       Jvm.Code.checkcast ctx.code "Block";
+       Jvm.Code.getfield ctx.code
+         ~class_:"Block"
+         ~field:"fields"
+         ~descriptor:"[Ljava/lang/Object;";
+       Jvm.Code.astore ctx.code arr_local;
+       Jvm.Code.aload ctx.code arr_local;
+       Jvm.Code.ldc_int ctx.code 0;
+       Jvm.Code.aaload ctx.code;
+       Jvm.Code.checkcast ctx.code "java/lang/Integer";
+       Jvm.Code.invokevirtual ctx.code
+         ~class_:"java/lang/Integer"
+         ~method_:"intValue"
+         ~descriptor:"()I";
+       Jvm.Code.istore ctx.code old_local;
+       Jvm.Code.aload ctx.code arr_local;
+       Jvm.Code.ldc_int ctx.code 0;
+       Jvm.Code.iload ctx.code old_local;
+       as_int d;
+       Jvm.Code.iadd ctx.code;
+       Kind.emit_box_int ctx.code;
+       Jvm.Code.aastore ctx.code;
+       Jvm.Code.iload ctx.code old_local;
+       Kind.K_int
+     | _ -> raise (Unsupported "caml_atomic_fetch_add arity"))
+  | "caml_atomic_cas" ->
+    (* Returns 1 if swap succeeded, else 0. *)
+    (match args with
+     | [ Pv r; Pv expected; Pv new_ ] ->
+       let label_ne = Jvm.Code.fresh_label ctx.code in
+       let label_end = Jvm.Code.fresh_label ctx.code in
+       emit_load ctx r;
+       Jvm.Code.checkcast ctx.code "Block";
+       Jvm.Code.getfield ctx.code
+         ~class_:"Block"
+         ~field:"fields"
+         ~descriptor:"[Ljava/lang/Object;";
+       (* Stack: fields *)
+       Jvm.Code.dup ctx.code;
+       Jvm.Code.ldc_int ctx.code 0;
+       Jvm.Code.aaload ctx.code;
+       emit_load ctx expected;
+       (match kind_of ctx expected with
+        | K_int -> Kind.emit_box_int ctx.code
+        | K_float -> Kind.emit_box_float ctx.code
+        | _ -> ());
+       (* Stack: fields, cur, expected *)
+       Jvm.Code.if_acmpne ctx.code label_ne;
+       Jvm.Code.ldc_int ctx.code 0;
+       emit_load ctx new_;
+       (match kind_of ctx new_ with
+        | K_int -> Kind.emit_box_int ctx.code
+        | K_float -> Kind.emit_box_float ctx.code
+        | _ -> ());
+       Jvm.Code.aastore ctx.code;
+       Jvm.Code.ldc_int ctx.code 1;
+       Jvm.Code.goto ctx.code label_end;
+       Jvm.Code.mark_label ctx.code label_ne;
+       Jvm.Code.pop_top ctx.code;
+       Jvm.Code.ldc_int ctx.code 0;
+       Jvm.Code.mark_label ctx.code label_end;
+       Kind.K_int
+     | _ -> raise (Unsupported "caml_atomic_cas arity"))
+  | "caml_atomic_make_contended" ->
+    (* Just wrap in a Block of size 1, tag 0. *)
+    (match args with
+     | [ Pv v ] ->
+       Jvm.Code.new_ ctx.code "Block";
+       Jvm.Code.dup ctx.code;
+       Jvm.Code.ldc_int ctx.code 0;
+       Jvm.Code.ldc_int ctx.code 1;
+       Jvm.Code.anewarray ctx.code "java/lang/Object";
+       Jvm.Code.dup ctx.code;
+       Jvm.Code.ldc_int ctx.code 0;
+       emit_load ctx v;
+       (match kind_of ctx v with
+        | K_int -> Kind.emit_box_int ctx.code
+        | K_float -> Kind.emit_box_float ctx.code
+        | _ -> ());
+       Jvm.Code.aastore ctx.code;
+       Jvm.Code.invokespecial ctx.code
+         ~class_:"Block"
+         ~method_:"<init>"
+         ~descriptor:"(I[Ljava/lang/Object;)V";
+       Kind.K_obj
+     | _ -> raise (Unsupported "caml_atomic_make_contended arity"))
+  | "caml_domain_dls_set" ->
+    (match args with
+     | [ Pv v ] ->
+       emit_load ctx v;
+       Jvm.Code.putstatic ctx.code
+         ~class_:"Main"
+         ~field:"DLS_STATE"
+         ~descriptor:"Ljava/lang/Object;";
+       Jvm.Code.ldc_int ctx.code 0;
+       Kind.K_int
+     | _ -> raise (Unsupported "caml_domain_dls_set arity"))
+  | "caml_domain_dls_get" ->
+    Jvm.Code.getstatic ctx.code
+      ~class_:"Main"
+      ~field:"DLS_STATE"
+      ~descriptor:"Ljava/lang/Object;";
+    Kind.K_obj
+  | "caml_domain_dls_compare_and_set" ->
+    (match args with
+     | [ Pv old_; Pv new_ ] ->
+       let label_ne = Jvm.Code.fresh_label ctx.code in
+       let label_end = Jvm.Code.fresh_label ctx.code in
+       Jvm.Code.getstatic ctx.code
+         ~class_:"Main"
+         ~field:"DLS_STATE"
+         ~descriptor:"Ljava/lang/Object;";
+       emit_load ctx old_;
+       Jvm.Code.if_acmpne ctx.code label_ne;
+       emit_load ctx new_;
+       Jvm.Code.putstatic ctx.code
+         ~class_:"Main"
+         ~field:"DLS_STATE"
+         ~descriptor:"Ljava/lang/Object;";
+       Jvm.Code.ldc_int ctx.code 1;
+       Jvm.Code.goto ctx.code label_end;
+       Jvm.Code.mark_label ctx.code label_ne;
+       Jvm.Code.ldc_int ctx.code 0;
+       Jvm.Code.mark_label ctx.code label_end;
+       Kind.K_int
+     | _ -> raise (Unsupported "caml_domain_dls_compare_and_set arity"))
+  | "caml_ml_domain_id" | "caml_ml_domain_index" ->
+    Jvm.Code.ldc_int ctx.code 0;
+    Kind.K_int
+  | "caml_recommended_domain_count" ->
+    Jvm.Code.ldc_int ctx.code 1;
+    Kind.K_int
+  | "caml_ml_domain_cpu_relax" ->
+    Jvm.Code.ldc_int ctx.code 0;
+    Kind.K_int
   | "caml_fresh_oo_id" ->
     (* Compile-time counter — stable enough because module init is
        the only caller and runs once at Main.main entry. Matches

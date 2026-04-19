@@ -17,7 +17,9 @@ let rec kind_of_global_field = function
   | Gv_int _ -> K_int
   | Gv_string _ -> K_string
   | Gv_float _ -> K_float
+  | Gv_int64 _ -> K_obj
   | Gv_block (_, fields) -> K_block (List.map kind_of_global_field fields)
+  | Gv_null -> K_obj
 
 let jvm_type_of_kind = function
   | K_int -> "I"

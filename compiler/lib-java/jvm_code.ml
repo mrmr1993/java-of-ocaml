@@ -250,6 +250,12 @@ let ldc_double t d =
   add_u2 t.buf idx;
   push t 2
 
+let ldc_long t n =
+  let idx = Cp.long t.cp n in
+  add_u1 t.buf 0x14;
+  add_u2 t.buf idx;
+  push t 2
+
 let pop2 t =
   add_u1 t.buf 0x58;
   pop t 2

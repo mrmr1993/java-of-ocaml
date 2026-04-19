@@ -29,6 +29,10 @@ val fieldref : t -> class_:string -> field:string -> descriptor:string -> int
 
 val methodref : t -> class_:string -> method_:string -> descriptor:string -> int
 
+val long : t -> int64 -> int
+(** Intern a [CONSTANT_Long_info] entry. Occupies two constant-pool
+    slots (same convention as [double]). *)
+
 val double : t -> float -> int
 (** Intern a [CONSTANT_Double_info] entry. Per the JVM spec, a double
     occupies two constant-pool slots (the second is unusable); the

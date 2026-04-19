@@ -84,6 +84,21 @@ let double t d =
     Hashtbl.add t.table key idx;
     idx
 
+let long t n =
+  let key = "J:" ^ Int64.to_string n in
+  match Hashtbl.find_opt t.table key with
+  | Some idx -> idx
+  | None ->
+    let idx = t.count in
+    t.count <- t.count + 2;
+    let hi = Int64.to_int (Int64.shift_right_logical n 32) land 0xFFFFFFFF in
+    let lo = Int64.to_int n land 0xFFFFFFFF in
+    add_u1 t.buf 5;
+    add_u4 t.buf hi;
+    add_u4 t.buf lo;
+    Hashtbl.add t.table key idx;
+    idx
+
 let count t = t.count - 1
 
 let contents t = Buffer.contents t.buf

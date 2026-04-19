@@ -43,8 +43,18 @@ let rec emit_materialise_value code (v : Global_view.global_field_value) =
   | Gv_float d ->
     Jvm.Code.ldc_double code d;
     Kind.emit_box_float code
+  | Gv_int64 n ->
+    (* Truncate to JVM int — most DATA-section int32/int64/nativeint
+       constants (Int32.zero, Int64.one, Nativeint.minus_one, etc.)
+       fit in 32 bits. Box as Integer so downstream [as_int] unboxes
+       via the usual checkcast+intValue. Lossy for 64-bit payloads
+       (double-bit-pattern constants, large int64 literals); those
+       cases are tracked separately. *)
+    Jvm.Code.ldc_int code (Int64.to_int n);
+    Kind.emit_box_int code
   | Gv_block (tag, fields) ->
     emit_materialise_block_constant code tag fields
+  | Gv_null -> Jvm.Code.aconst_null code
 
 and emit_materialise_block_constant code tag fields =
   let n = List.length fields in
@@ -114,6 +124,16 @@ let emit_globals_init code globals =
       Jvm.Code.ldc_double code d;
       emit_box_float code;
       Jvm.Code.aastore code
+    | G_int64 n ->
+      Jvm.Code.getstatic
+        code
+        ~class_:"Main"
+        ~field:"GLOBALS"
+        ~descriptor:"[Ljava/lang/Object;";
+      Jvm.Code.ldc_int code i;
+      Jvm.Code.ldc_int code (Int64.to_int n);
+      Kind.emit_box_int code;
+      Jvm.Code.aastore code
     | G_block (tag, fields) ->
       Jvm.Code.getstatic
         code
@@ -175,6 +195,32 @@ let compile ~bc ~out_dir =
     else if ins.opcode = closure_op
     then all_body_pcs := (ins.pc + ins.args.(1) + 2) :: !all_body_pcs
   done;
+  (match Sys.getenv_opt "JAVA_OF_OCAML_DEBUG" with
+   | Some s when List.mem "setglobals" (String.split_on_char ',' s) ->
+     for i = start_idx to end_idx do
+       let ins = arr.(i) in
+       if ins.opcode = Bytecode.Op.setglobal
+       then
+         Format.eprintf
+           "[setglobal] pc=%d idx=%d@." ins.pc ins.args.(0)
+     done
+   | _ -> ());
+  (match Sys.getenv_opt "JAVA_OF_OCAML_DEBUG" with
+   | Some s when List.mem "globals" (String.split_on_char ',' s) ->
+     let g = parsed.globals in
+     for i = 0 to Array.length g - 1 do
+       let classified =
+         match Global_view.inspect_global g i with
+         | G_int n -> Printf.sprintf "G_int %d" n
+         | G_string _ -> "G_string"
+         | G_float _ -> "G_float"
+         | G_int64 n -> Printf.sprintf "G_int64 %Ld" n
+         | G_block _ -> "G_block"
+         | G_unsupported -> "G_unsupported"
+       in
+       Format.eprintf "[global] %d: %s@." i classified
+     done
+   | _ -> ());
   let sorted_body_pcs =
     List.sort_uniq compare !all_body_pcs |> Array.of_list
   in
@@ -386,12 +432,18 @@ let compile ~bc ~out_dir =
     ; access_flags = 0x0009 (* ACC_PUBLIC | ACC_STATIC *)
     }
   in
+  let dls_field =
+    { Jvm.name = "DLS_STATE"
+    ; descriptor = "Ljava/lang/Object;"
+    ; access_flags = 0x0009
+    }
+  in
   let main_class_bytes =
     Jvm.assemble_class
       ~class_name:"Main"
       ~super_name:"java/lang/Object"
       ~cp
-      ~fields:[ globals_field ]
+      ~fields:[ globals_field; dls_field ]
       ~methods:[ main_method ]
       ~access_flags:0x0021 (* ACC_PUBLIC | ACC_SUPER *)
   in
