@@ -2279,6 +2279,16 @@ and emit_ccall_named ctx name args =
          ~descriptor:"(I[Ljava/lang/Object;)V";
        Kind.K_obj
      | _ -> raise (Unsupported "caml_obj_with_tag arity"))
+  | "caml_array_of_uniform_array" | "caml_make_array" ->
+    (* Both are identity for our backend: we represent OCaml arrays
+       as [Block]s and the bytecode emits these to promote literal
+       arrays / concat results to the uniform-array shape, which our
+       representation already is. *)
+    (match args with
+     | [ a ] ->
+       let _ = emit_prim_arg ctx a in
+       Kind.K_obj
+     | _ -> raise (Unsupported "caml_array_of_uniform_array arity"))
   | "caml_obj_dup" ->
     (match args with
      | [ Pv v ] ->
