@@ -1451,6 +1451,114 @@ and emit_ccall_named ctx name args =
          ~descriptor:"()Z";
        Kind.K_int
      | _ -> raise (Unsupported "caml_sys_is_directory arity"))
+  | "caml_sys_chdir" ->
+    (* JVM has no chdir — [user.dir] is read-only once set. We store
+       the "logical" cwd as a static and have [caml_sys_getcwd]
+       return it. For now, just track the latest value; most
+       relative-path I/O goes through java.io.File which uses
+       [user.dir] anyway. This is a best-effort stub — chdir-heavy
+       code will see different behaviour than native OCaml. *)
+    (match args with
+     | [ Pv path ] ->
+       Jvm.Code.ldc_string ctx.code "user.dir";
+       as_string path;
+       Jvm.Code.invokestatic
+         ctx.code
+         ~class_:"java/lang/System"
+         ~method_:"setProperty"
+         ~descriptor:"(Ljava/lang/String;Ljava/lang/String;)Ljava/lang/String;";
+       Jvm.Code.pop_top ctx.code;
+       Jvm.Code.ldc_int ctx.code 0;
+       Kind.K_int
+     | _ -> raise (Unsupported "caml_sys_chdir arity"))
+  | "caml_sys_mkdir" ->
+    (match args with
+     | [ Pv path; _perm ] ->
+       Jvm.Code.new_ ctx.code "java/io/File";
+       Jvm.Code.dup ctx.code;
+       as_string path;
+       Jvm.Code.invokespecial
+         ctx.code
+         ~class_:"java/io/File"
+         ~method_:"<init>"
+         ~descriptor:"(Ljava/lang/String;)V";
+       Jvm.Code.invokevirtual
+         ctx.code
+         ~class_:"java/io/File"
+         ~method_:"mkdir"
+         ~descriptor:"()Z";
+       Jvm.Code.pop_top ctx.code;
+       Jvm.Code.ldc_int ctx.code 0;
+       Kind.K_int
+     | _ -> raise (Unsupported "caml_sys_mkdir arity"))
+  | "caml_sys_rmdir" ->
+    (match args with
+     | [ Pv path ] ->
+       Jvm.Code.new_ ctx.code "java/io/File";
+       Jvm.Code.dup ctx.code;
+       as_string path;
+       Jvm.Code.invokespecial
+         ctx.code
+         ~class_:"java/io/File"
+         ~method_:"<init>"
+         ~descriptor:"(Ljava/lang/String;)V";
+       Jvm.Code.invokevirtual
+         ctx.code
+         ~class_:"java/io/File"
+         ~method_:"delete"
+         ~descriptor:"()Z";
+       Jvm.Code.pop_top ctx.code;
+       Jvm.Code.ldc_int ctx.code 0;
+       Kind.K_int
+     | _ -> raise (Unsupported "caml_sys_rmdir arity"))
+  | "caml_sys_rename" ->
+    (match args with
+     | [ Pv src; Pv dst ] ->
+       Jvm.Code.new_ ctx.code "java/io/File";
+       Jvm.Code.dup ctx.code;
+       as_string src;
+       Jvm.Code.invokespecial
+         ctx.code
+         ~class_:"java/io/File"
+         ~method_:"<init>"
+         ~descriptor:"(Ljava/lang/String;)V";
+       Jvm.Code.new_ ctx.code "java/io/File";
+       Jvm.Code.dup ctx.code;
+       as_string dst;
+       Jvm.Code.invokespecial
+         ctx.code
+         ~class_:"java/io/File"
+         ~method_:"<init>"
+         ~descriptor:"(Ljava/lang/String;)V";
+       Jvm.Code.invokevirtual
+         ctx.code
+         ~class_:"java/io/File"
+         ~method_:"renameTo"
+         ~descriptor:"(Ljava/io/File;)Z";
+       Jvm.Code.pop_top ctx.code;
+       Jvm.Code.ldc_int ctx.code 0;
+       Kind.K_int
+     | _ -> raise (Unsupported "caml_sys_rename arity"))
+  | "caml_sys_isatty" ->
+    (* OCaml [Unix.isatty fd] — approximate as always false since
+       the JVM can't easily distinguish. *)
+    (match args with
+     | [ _ ] ->
+       Jvm.Code.ldc_int ctx.code 0;
+       Kind.K_int
+     | _ -> raise (Unsupported "caml_sys_isatty arity"))
+  | "caml_ml_is_buffered" | "caml_ml_is_binary_mode" ->
+    (match args with
+     | [ _ ] ->
+       Jvm.Code.ldc_int ctx.code 1;
+       Kind.K_int
+     | _ -> raise (Unsupported (name ^ " arity")))
+  | "caml_ml_set_buffered" ->
+    (match args with
+     | [ _; _ ] ->
+       Jvm.Code.ldc_int ctx.code 0;
+       Kind.K_int
+     | _ -> raise (Unsupported "caml_ml_set_buffered arity"))
   | "caml_sys_is_regular_file" ->
     (match args with
      | [ Pv path ] ->
