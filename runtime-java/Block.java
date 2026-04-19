@@ -40,6 +40,46 @@ public class Block {
         return ((Long) o).longValue();
     }
 
+    // caml_array_concat helper. OCaml-level [list_of_arrays] is a
+    // cons-chain whose head is a Block (the next array to concat)
+    // and tail is the rest — Nil = Val_int 0 = Integer(0) (or null).
+    public static Block concatList(Object list) {
+        int total = 0;
+        Object node = list;
+        while (node instanceof Block) {
+            Block cons = (Block) node;
+            Block head = (Block) cons.fields[0];
+            total += head.fields.length;
+            node = cons.fields[1];
+        }
+        Object[] out = new Object[total];
+        int off = 0;
+        node = list;
+        while (node instanceof Block) {
+            Block cons = (Block) node;
+            Block head = (Block) cons.fields[0];
+            System.arraycopy(head.fields, 0, out, off, head.fields.length);
+            off += head.fields.length;
+            node = cons.fields[1];
+        }
+        return new Block(0, out);
+    }
+
+    // Float-array allocation helpers — Block(0, Object[]) holding
+    // boxed Doubles.
+    public static Block createFloat(int n) {
+        Object[] arr = new Object[Math.max(0, n)];
+        Double z = Double.valueOf(0.0);
+        for (int i = 0; i < arr.length; i++) arr[i] = z;
+        return new Block(0, arr);
+    }
+
+    public static Block createFloatInit(int n, Object init) {
+        Object[] arr = new Object[Math.max(0, n)];
+        for (int i = 0; i < arr.length; i++) arr[i] = init;
+        return new Block(0, arr);
+    }
+
     // Shallow copy: fresh Block with the same tag and a copy of the
     // fields array. Used by caml_obj_dup / caml_array_dup /
     // caml_update_dummy patterns.

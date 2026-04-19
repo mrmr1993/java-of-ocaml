@@ -86,6 +86,17 @@ public class Bytes {
     return (String) o;
   }
 
+  public static int staticCompare(Object a, Object b) {
+    int la = staticLength(a), lb = staticLength(b);
+    int m = Math.min(la, lb);
+    for (int i = 0; i < m; i++) {
+      int ca = staticGet(a, i) & 0xFF;
+      int cb = staticGet(b, i) & 0xFF;
+      if (ca != cb) return ca - cb;
+    }
+    return la - lb;
+  }
+
   // Wide-load / wide-store helpers — OCaml's [Bytes.get16 / get32 /
   // get64] and set counterparts. Little-endian; matches OCaml's
   // runtime semantics.

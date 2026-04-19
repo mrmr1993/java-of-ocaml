@@ -1613,6 +1613,98 @@ and emit_ccall_named ctx name args =
          ~descriptor:"(LBigArray;LBigArray;)I";
        Kind.K_int
      | _ -> raise (Unsupported "caml_ba_blit arity"))
+  | "caml_bytes_compare" ->
+    (* Lexicographic compare of two byte sequences. Delegate to
+       [Bytes.staticCompare(Object, Object)]. *)
+    (match args with
+     | [ Pv a; Pv b ] ->
+       emit_load ctx a;
+       emit_load ctx b;
+       Jvm.Code.invokestatic
+         ctx.code
+         ~class_:"Bytes"
+         ~method_:"staticCompare"
+         ~descriptor:"(Ljava/lang/Object;Ljava/lang/Object;)I";
+       Kind.K_int
+     | _ -> raise (Unsupported "caml_bytes_compare arity"))
+  | "caml_array_concat" ->
+    (* Concatenate a list of arrays. Delegate to a static helper on
+       Block that walks the OCaml-cons list and allocates one
+       Object[] big enough. *)
+    (match args with
+     | [ Pv lst ] ->
+       emit_load ctx lst;
+       Jvm.Code.invokestatic
+         ctx.code
+         ~class_:"Block"
+         ~method_:"concatList"
+         ~descriptor:"(Ljava/lang/Object;)LBlock;";
+       Kind.K_obj
+     | _ -> raise (Unsupported "caml_array_concat arity"))
+  | "caml_array_create_float" | "caml_floatarray_make" ->
+    (* Allocate a Block whose fields are zero-initialised Doubles. *)
+    (match args with
+     | [ Pv n ] ->
+       as_int n;
+       Jvm.Code.invokestatic
+         ctx.code
+         ~class_:"Block"
+         ~method_:"createFloat"
+         ~descriptor:"(I)LBlock;";
+       Kind.K_obj
+     | [ Pv n; Pv init ] ->
+       as_int n;
+       emit_load ctx init;
+       (match kind_of ctx init with
+        | K_float -> Kind.emit_box_float ctx.code
+        | _ -> ());
+       Jvm.Code.invokestatic
+         ctx.code
+         ~class_:"Block"
+         ~method_:"createFloatInit"
+         ~descriptor:"(ILjava/lang/Object;)LBlock;";
+       Kind.K_obj
+     | _ -> raise (Unsupported (name ^ " arity")))
+  | "caml_floatarray_get" | "caml_floatarray_unsafe_get"
+  | "caml_array_get_float" | "caml_array_unsafe_get_float" ->
+    (* Float arrays are Blocks whose fields[i] holds a Double. *)
+    (match args with
+     | [ Pv a; Pv i ] ->
+       as_block a;
+       Jvm.Code.getfield
+         ctx.code ~class_:"Block" ~field:"fields" ~descriptor:"[Ljava/lang/Object;";
+       as_int i;
+       Jvm.Code.aaload ctx.code;
+       Jvm.Code.checkcast ctx.code "java/lang/Double";
+       Jvm.Code.invokevirtual
+         ctx.code ~class_:"java/lang/Double" ~method_:"doubleValue"
+         ~descriptor:"()D";
+       Kind.K_float
+     | _ -> raise (Unsupported (name ^ " arity")))
+  | "caml_floatarray_set" | "caml_floatarray_unsafe_set"
+  | "caml_array_set_float" | "caml_array_unsafe_set_float" ->
+    (match args with
+     | [ Pv a; Pv i; Pv v ] ->
+       as_block a;
+       Jvm.Code.getfield
+         ctx.code ~class_:"Block" ~field:"fields" ~descriptor:"[Ljava/lang/Object;";
+       as_int i;
+       emit_load ctx v;
+       (match kind_of ctx v with
+        | K_float -> Kind.emit_box_float ctx.code
+        | _ -> ());
+       Jvm.Code.aastore ctx.code;
+       Jvm.Code.ldc_int ctx.code 0;
+       Kind.K_int
+     | _ -> raise (Unsupported (name ^ " arity")))
+  | "caml_floatarray_sub" ->
+    emit_ccall ctx "caml_array_sub" args
+  | "caml_floatarray_blit" ->
+    emit_ccall ctx "caml_array_blit" args
+  | "caml_floatarray_fill" ->
+    emit_ccall ctx "caml_array_fill" args
+  | "caml_floatarray_append" ->
+    emit_ccall ctx "caml_array_append" args
   | "caml_thread_new" ->
     (match args with
      | [ Pv f ] ->
