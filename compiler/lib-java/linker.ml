@@ -131,10 +131,18 @@ let link (units : unit_info list) : t =
   List.iter (fun u -> List.iter (patch u) u.cu_reloc) units;
 
   (* 4. Concatenate patched unit code into one array, tracking each
-        unit's base word-offset so debug events can be re-keyed. *)
-  let total_len =
+        unit's base word-offset so debug events can be re-keyed.
+
+        Append a trailing STOP opcode: the OCaml bytecode linker
+        ([bytelink]) emits this after the last unit's code in an
+        executable, and the CODE walker and parse_bytecode both
+        rely on the whole main init sequence ending in a recognised
+        terminator. Unit [.cmo] code itself is relocatable and
+        doesn't carry its own trailing terminator. *)
+  let sum_unit_lens =
     List.fold_left (fun acc u -> acc + Array.length u.cu_code) 0 units
   in
+  let total_len = sum_unit_lens + 1 in
   let code = Array.make total_len 0 in
   let debug = Hashtbl.create 64 in
   let base = ref 0 in
@@ -146,6 +154,7 @@ let link (units : unit_info list) : t =
         u.cu_debug;
       base := !base + Array.length u.cu_code)
     units;
+  code.(sum_unit_lens) <- Bytecode.Op.stop;
 
   (* 5. Per-unit primitive declarations also feed the merged table.
         Matters mostly when a unit's [cu_primitives] lists primitives

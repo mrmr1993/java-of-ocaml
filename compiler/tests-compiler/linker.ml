@@ -65,7 +65,7 @@ let%expect_test "link assigns predef slots + compunit slot + literals" =
       print_range predef_count (predef_count + 3));
   [%expect
     {|
-    code_words=24 prims=1 globals=15 debug_pcs=2
+    code_words=25 prims=1 globals=15 debug_pcs=2
     predef_count=12
     -- first 3 predef globals --
     [0] exn Out_of_memory
