@@ -49,6 +49,13 @@ val emit_box_int : Jvm.Code.t -> unit
 val emit_box_float : Jvm.Code.t -> unit
 (** [Double.valueOf(double) : Double]. *)
 
+val emit_box_long : Jvm.Code.t -> unit
+(** [Long.valueOf(long) : Long]. Used for [Int64.t] values. *)
+
+val emit_unbox_long : Jvm.Code.t -> unit
+(** Unbox [java.lang.Long] on top-of-stack to JVM [long]; inserts a
+    [checkcast] first. *)
+
 val emit_unbox_to_kind : Jvm.Code.t -> kind -> unit
 (** If the top-of-stack is an [Object], unbox / checkcast it in place to
     the concrete [kind]. *)

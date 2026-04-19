@@ -123,6 +123,33 @@ val dcmpg : t -> unit
 
 val d2i : t -> unit
 val i2d : t -> unit
+val f2d : t -> unit
+
+(** {1 [long] / [Int64] opcodes} — a [long] occupies 2 stack slots. *)
+
+val ladd : t -> unit
+val lsub : t -> unit
+val lmul : t -> unit
+val ldiv : t -> unit
+val lrem : t -> unit
+val lneg : t -> unit
+val lshl : t -> unit
+val lshr : t -> unit
+val lushr : t -> unit
+val land_ : t -> unit
+val lor_ : t -> unit
+val lxor_ : t -> unit
+
+val lcmp : t -> unit
+(** JVM [lcmp]: pops two [long]s and pushes -1/0/1. *)
+
+val i2l : t -> unit
+val l2i : t -> unit
+val l2d : t -> unit
+val d2l : t -> unit
+
+val lstore : t -> int -> unit
+val lload : t -> int -> unit
 
 (** {1 Branches} *)
 

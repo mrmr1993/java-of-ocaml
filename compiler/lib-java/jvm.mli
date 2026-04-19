@@ -158,6 +158,8 @@ module Code : sig
 
   val ldc_double : t -> float -> unit
 
+  val ldc_long : t -> int64 -> unit
+
   val pop2 : t -> unit
 
   val dadd : t -> unit
@@ -177,6 +179,28 @@ module Code : sig
   val d2i : t -> unit
 
   val i2d : t -> unit
+
+  val f2d : t -> unit
+
+  val ladd : t -> unit
+  val lsub : t -> unit
+  val lmul : t -> unit
+  val ldiv : t -> unit
+  val lrem : t -> unit
+  val lneg : t -> unit
+  val lshl : t -> unit
+  val lshr : t -> unit
+  val lushr : t -> unit
+  val land_ : t -> unit
+  val lor_ : t -> unit
+  val lxor_ : t -> unit
+  val lcmp : t -> unit
+  val i2l : t -> unit
+  val l2i : t -> unit
+  val l2d : t -> unit
+  val d2l : t -> unit
+  val lstore : t -> int -> unit
+  val lload : t -> int -> unit
 
   (** {2 Branches}
 

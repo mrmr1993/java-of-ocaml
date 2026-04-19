@@ -422,6 +422,45 @@ let i2d t =
   add_u1 t.buf 0x87;
   push t 1
 
+(* [f2d] widens a single-precision [float] (1 slot) to [double]
+   (2 slots) — value-preserving. Used by [Int32.float_of_bits]. *)
+let f2d t =
+  add_u1 t.buf 0x8D;
+  push t 1
+
+(* [long]-manipulation opcodes. A [long] occupies 2 JVM stack slots.
+   Binary arithmetic pops 4 (two [long]s) and pushes 2 (one [long]),
+   net -2. Shifts take [long] + [int] (3 slots) → [long] (2 slots).
+   Unary ops are stack-neutral. Conversion ops adjust by ±1. *)
+let ladd t = add_u1 t.buf 0x61; pop t 2
+let lsub t = add_u1 t.buf 0x65; pop t 2
+let lmul t = add_u1 t.buf 0x69; pop t 2
+let ldiv t = add_u1 t.buf 0x6D; pop t 2
+let lrem t = add_u1 t.buf 0x71; pop t 2
+let lneg t = add_u1 t.buf 0x75
+let lshl t = add_u1 t.buf 0x79; pop t 1
+let lshr t = add_u1 t.buf 0x7B; pop t 1
+let lushr t = add_u1 t.buf 0x7D; pop t 1
+let land_ t = add_u1 t.buf 0x7F; pop t 2
+let lor_ t = add_u1 t.buf 0x81; pop t 2
+let lxor_ t = add_u1 t.buf 0x83; pop t 2
+let lcmp t = add_u1 t.buf 0x94; pop t 3
+
+let i2l t = add_u1 t.buf 0x85; push t 1
+let l2i t = add_u1 t.buf 0x88; pop t 1
+let l2d t = add_u1 t.buf 0x8A  (* 2→2, stack-neutral *)
+let d2l t = add_u1 t.buf 0x8F  (* 2→2, stack-neutral *)
+let lstore t n =
+  if n <= 3
+  then add_u1 t.buf (0x3F + n)
+  else (add_u1 t.buf 0x37; add_u1 t.buf n);
+  pop t 2
+let lload t n =
+  if n <= 3
+  then add_u1 t.buf (0x1E + n)
+  else (add_u1 t.buf 0x16; add_u1 t.buf n);
+  push t 2
+
 let emit_branch t lbl opcode ~stack_delta =
   let opcode_pc = Buffer.length t.buf in
   add_u1 t.buf opcode;

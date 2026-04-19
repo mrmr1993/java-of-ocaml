@@ -73,6 +73,25 @@ let emit_box_float code =
     ~method_:"valueOf"
     ~descriptor:"(D)Ljava/lang/Double;"
 
+(* JVM [long] → [java.lang.Long]. Used for [Int64.t] values, which
+   cross OCaml-boundary as boxed [Long]s. *)
+let emit_box_long code =
+  Jvm.Code.invokestatic
+    code
+    ~class_:"java/lang/Long"
+    ~method_:"valueOf"
+    ~descriptor:"(J)Ljava/lang/Long;"
+
+(* Unbox [java.lang.Long] → JVM [long]. Top-of-stack must be an
+   [Object] reference to a [Long]; checkcasts first. *)
+let emit_unbox_long code =
+  Jvm.Code.checkcast code "java/lang/Long";
+  Jvm.Code.invokevirtual
+    code
+    ~class_:"java/lang/Long"
+    ~method_:"longValue"
+    ~descriptor:"()J"
+
 let emit_unbox_to_kind code kind =
   match kind with
   | K_int ->
