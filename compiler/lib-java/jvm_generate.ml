@@ -1871,6 +1871,8 @@ let apply_descriptor_for_nargs n =
   Buffer.add_string b ")Ljava/lang/Object;";
   Buffer.contents b
 
+let apply_trace_counter = ref 0
+
 let emit_expr ctx (e : Code.expr) : Kind.kind =
   match e with
   | Constant c -> emit_constant ctx c
@@ -1879,6 +1881,20 @@ let emit_expr ctx (e : Code.expr) : Kind.kind =
     let nargs = List.length args in
     if nargs < 1 || nargs > 7
     then raise (Unsupported (Printf.sprintf "Apply arity %d" nargs));
+    (match Sys.getenv_opt "JAVA_OF_OCAML_DEBUG" with
+     | Some s when List.mem "apply_trace" (String.split_on_char ',' s) ->
+       let id = !apply_trace_counter in
+       incr apply_trace_counter;
+       Jvm.Code.getstatic ctx.code
+         ~class_:"java/lang/System"
+         ~field:"err"
+         ~descriptor:"Ljava/io/PrintStream;";
+       Jvm.Code.ldc_int ctx.code id;
+       Jvm.Code.invokevirtual ctx.code
+         ~class_:"java/io/PrintStream"
+         ~method_:"println"
+         ~descriptor:"(I)V"
+     | _ -> ());
     emit_load ctx f;
     (match kind_of ctx f with
      | K_closure _ -> ()

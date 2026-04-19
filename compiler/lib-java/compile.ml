@@ -212,7 +212,7 @@ let compile ~bc ~out_dir =
        let classified =
          match Global_view.inspect_global g i with
          | G_int n -> Printf.sprintf "G_int %d" n
-         | G_string _ -> "G_string"
+         | G_string s -> Printf.sprintf "G_string %S" s
          | G_float _ -> "G_float"
          | G_int64 n -> Printf.sprintf "G_int64 %Ld" n
          | G_block _ -> "G_block"
