@@ -1254,6 +1254,34 @@ let emit_prim ctx (p : Code.prim) (args : Code.prim_arg list) : Kind.kind =
     Jvm.Code.ldc_int ctx.code 1;
     Jvm.Code.mark_label ctx.code l_end;
     K_int
+  | Extern "set_sibling", [ Pv self; Pc (Int idx); Pv other ] ->
+    (* [self.sibling_<idx> = other] on the closure subclass [self]
+       belongs to. [kind_of self] is K_closure tagged with the
+       body_pc (as a string); look up the real class name via
+       [name_of_body]. *)
+    let class_name =
+      match kind_of ctx self with
+      | K_closure { name; _ } ->
+        (match int_of_string_opt name with
+         | Some body_pc ->
+           (try ctx.name_of_body body_pc
+            with Not_found ->
+              raise (Unsupported "set_sibling: no class for body_pc"))
+         | None -> name)
+      | _ ->
+        raise (Unsupported "set_sibling: self not K_closure")
+    in
+    emit_load ctx self;
+    Jvm.Code.checkcast ctx.code class_name;
+    emit_load ctx other;
+    Jvm.Code.checkcast ctx.code "Closure";
+    Jvm.Code.putfield
+      ctx.code
+      ~class_:class_name
+      ~field:(Printf.sprintf "sibling_%d" idx)
+      ~descriptor:"LClosure;";
+    Jvm.Code.ldc_int ctx.code 0;
+    K_int
   | Extern "offsetclosure", [ Pv env_arg; Pc (Int k) ] ->
     (match ctx.enclosing with
      | None -> raise (Unsupported "offsetclosure: no enclosing fn")

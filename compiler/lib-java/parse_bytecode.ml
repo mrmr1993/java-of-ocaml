@@ -508,6 +508,28 @@ let step (state : state) (ins : Instr.instr) : last option =
            ( sibling_vars.(i)
            , Closure { captures; body = (body_pc, []) } ))
     done;
+    (* Wire the sibling_j fields on every sibling class so that
+       OFFSETCLOSURE can navigate the group. Legacy emit_closure did
+       the same at allocation time: for each (i, j) the i-th
+       sibling's sibling_j slot holds a reference to the j-th
+       sibling. *)
+    if nfuncs > 1
+    then
+      for i = 0 to nfuncs - 1 do
+        for j = 0 to nfuncs - 1 do
+          let r = Var.fresh () in
+          emit
+            state
+            (Let
+               ( r
+               , Prim
+                   ( Extern "set_sibling"
+                   , [ Pv sibling_vars.(i)
+                     ; Pc (Int j)
+                     ; Pv sibling_vars.(j)
+                     ] ) ))
+        done
+      done;
     state.accu <- V sibling_vars.(0);
     push_elt state (V sibling_vars.(0));
     for i = 1 to nfuncs - 1 do

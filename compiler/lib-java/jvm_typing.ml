@@ -28,7 +28,14 @@ let kind_of_expr (e : Code.expr) : Kind.kind =
   | Block (_, fields) ->
     K_block (List.init (Array.length fields) (fun _ -> Kind.K_obj))
   | Field _ -> K_obj
-  | Closure _ -> K_obj
+  | Closure { body = body_pc, _; _ } ->
+    (* Tag with the class name so jvm_generate's set_sibling handler
+       can recover it via kind lookup. The class name is derivable
+       from the body pc via the compile driver's body_pc → name
+       table, but jvm_typing doesn't have access to that map — pass
+       the pc itself as the "name" placeholder and let
+       jvm_generate resolve when needed. *)
+    K_closure { name = string_of_int body_pc; captures = [] }
   | Constant c -> kind_of_constant c
   | Prim (p, _) -> kind_of_prim p
 
