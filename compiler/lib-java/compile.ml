@@ -649,15 +649,15 @@ let compile_t
            a CLOSURE/CLOSUREREC body-pc argument, which doesn't
            appear in [Instr.branch_targets]), so they won't get
            processed as blocks. *)
-        let instrs = Array.to_list arr in
-        match instrs with
-        | [] -> None
-        | first :: _ ->
-          let last = List.nth instrs (List.length instrs - 1) in
+        if Array.length arr = 0
+        then None
+        else (
+          let first = arr.(0) in
+          let last = arr.(Array.length arr - 1) in
           let start_pc = first.pc in
           let end_pc = last.pc + 1 in
-          (try
-             let prog = Parse_bytecode.parse_main instrs ~start_pc ~end_pc in
+          try
+             let prog = Parse_bytecode.parse_main arr ~start_pc ~end_pc in
              let prog = optimize ~what:"<main>" prog in
              let typing = Jvm_typing.infer prog in
              (* Run the splitter as an IR pass on main too. Main's
@@ -819,6 +819,28 @@ let compile_t
       ~access_flags:0x0021 (* ACC_PUBLIC | ACC_SUPER *)
       ()
   in
+  (* Hoist the per-closure function-table rebuild out of the inner
+     loop. It takes the full [fn_by_name] ~ O(|fns|) per call and
+     on stdlib+Base (~7500 fns) was compounding into a quadratic
+     factor. The compiled-in [instrs] array is passed to
+     [parse_*] directly — see [Parse_bytecode.parse_function] and
+     friends, which now take an array. *)
+  let body_pc_to_fi = Hashtbl.create (Hashtbl.length fn_by_name) in
+  Hashtbl.iter
+    (fun _name (fi : function_info) ->
+      Hashtbl.replace body_pc_to_fi fi.body_pc fi)
+    fn_by_name;
+  let name_of_body pc =
+    match Hashtbl.find_opt body_pc_to_fi pc with
+    | Some fi -> fi.Function_info.name
+    | None -> raise Not_found
+  in
+  let fn_info_of_body pc = Hashtbl.find_opt body_pc_to_fi pc in
+  let prim_name idx =
+    if idx < 0 || idx >= Array.length parsed.prims
+    then raise Not_found
+    else parsed.prims.(idx)
+  in
   let closure_class_files = time_phase "emit-closures" (fun () ->
     List.map
       (fun (fn_info : function_info) ->
@@ -855,7 +877,7 @@ let compile_t
           try
               let prog, params, env_var =
                 Parse_bytecode.parse_function
-                  (Array.to_list arr)
+                  arr
                   ~start_pc:body_pc
                   ~end_pc:(end_pc + 1)
                   ~nargs:fn_info.nargs
@@ -873,22 +895,6 @@ let compile_t
               let ir_code = Jvm.Code.create fn_cp in
               Jvm.Code.set_min_locals ir_code (1 + fn_info.nargs);
               let typing = Jvm_typing.infer prog in
-              let body_pc_to_fi = Hashtbl.create 64 in
-              Hashtbl.iter
-                (fun _name fi ->
-                  Hashtbl.replace body_pc_to_fi fi.Function_info.body_pc fi)
-                fn_by_name;
-              let name_of_body pc =
-                match Hashtbl.find_opt body_pc_to_fi pc with
-                | Some fi -> fi.Function_info.name
-                | None -> raise Not_found
-              in
-              let fn_info_of_body pc = Hashtbl.find_opt body_pc_to_fi pc in
-              let prim_name idx =
-                if idx < 0 || idx >= Array.length parsed.prims
-                then raise Not_found
-                else parsed.prims.(idx)
-              in
               (* Run the 64 KB splitter as an IR pass: it returns the
                  (possibly rewritten) head plus an ordered list of
                  helper programs. Each helper is emitted as its own

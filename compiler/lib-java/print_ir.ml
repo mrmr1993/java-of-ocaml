@@ -16,7 +16,6 @@ let find_end_pc ~arr ~body_pc ~fn_info_of_body =
   else arr.(n - 1).Instr.pc + 1
 
 let print fmt ~arr ~fn_info_of_body ~main_start_pc ~pc =
-  let instrs = Array.to_list arr in
   let end_pc = find_end_pc ~arr ~body_pc:pc ~fn_info_of_body in
   Format.fprintf fmt "[print-ir] pc=%d@." pc;
   if pc = main_start_pc
@@ -24,7 +23,7 @@ let print fmt ~arr ~fn_info_of_body ~main_start_pc ~pc =
     Format.fprintf fmt "  (treating as main init)@.";
     try
       let prog =
-        Parse_bytecode.parse_main instrs ~start_pc:pc ~end_pc
+        Parse_bytecode.parse_main arr ~start_pc:pc ~end_pc
       in
       Code.Print.program fmt prog
     with
@@ -43,7 +42,7 @@ let print fmt ~arr ~fn_info_of_body ~main_start_pc ~pc =
       (try
          let prog, _params, _env =
            Parse_bytecode.parse_function
-             instrs
+             arr
              ~start_pc:pc
              ~end_pc:body_end_pc
              ~nargs:fi.nargs

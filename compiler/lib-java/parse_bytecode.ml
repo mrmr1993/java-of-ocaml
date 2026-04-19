@@ -36,35 +36,24 @@ module IntMap = Map.Make (Int)
    - the PC immediately after a PUSHTRAP (the handler prelude target)
      is already covered as a branch target, and the fall-through PC
      starts a block too. *)
-let block_starts instrs ~start_pc ~end_pc =
+let block_starts (instrs : Instr.instr array) ~start_pc ~end_pc =
   let s = ref (IntSet.singleton start_pc) in
   let in_range pc = pc >= start_pc && pc < end_pc in
   let add pc = if in_range pc then s := IntSet.add pc !s in
-  List.iter
-    (fun (ins : Instr.instr) ->
-      if in_range ins.pc
-      then (
-        List.iter add (Instr.branch_targets ins);
-        if Instr.is_terminator ins.opcode
-           || ins.opcode = Bytecode.Op.pushtrap
-           || ins.opcode = Bytecode.Op.poptrap
-        then
-          (* PC after the instruction starts a new block. We need the
-             next instruction's pc; find the successor from the array
-             below. *)
-          ()))
-    instrs;
-  (* Add PCs after terminators / trap ops; do it in a second pass that
-     knows instruction successors. *)
-  let arr = Array.of_list instrs in
-  for i = 0 to Array.length arr - 1 do
-    let ins = arr.(i) in
+  (* Single forward pass over the array: for each in-range
+     instruction, add its branch targets, and if it's a terminator
+     / trap boundary also add the PC of the following instruction. *)
+  let n = Array.length instrs in
+  for i = 0 to n - 1 do
+    let ins = instrs.(i) in
     if in_range ins.pc
-       && (Instr.is_terminator ins.opcode
+    then (
+      List.iter add (Instr.branch_targets ins);
+      if (Instr.is_terminator ins.opcode
           || ins.opcode = Bytecode.Op.pushtrap
           || ins.opcode = Bytecode.Op.poptrap)
-       && i + 1 < Array.length arr
-    then add arr.(i + 1).pc
+         && i + 1 < n
+      then add instrs.(i + 1).pc)
   done;
   !s
 
@@ -1017,9 +1006,9 @@ let step (state : state) (ins : Instr.instr) : last option =
    Top-level drivers
    ------------------------------------------------------------------ *)
 
-let build_addr_map instrs =
+let build_addr_map (instrs : Instr.instr array) =
   let m = ref IntMap.empty in
-  List.iter (fun (ins : Instr.instr) -> m := IntMap.add ins.pc ins !m) instrs;
+  Array.iter (fun (ins : Instr.instr) -> m := IntMap.add ins.pc ins !m) instrs;
   !m
 
 (* Process one block: consume instructions until we hit the next block

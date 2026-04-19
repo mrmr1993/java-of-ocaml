@@ -23,7 +23,7 @@ exception Not_supported of string
       ENVACC references read them directly. *)
 val parse_function :
      ?extra_starts:int list
-  -> Instr.instr list
+  -> Instr.instr array
   -> start_pc:int
   -> end_pc:int
   -> nargs:int
@@ -40,7 +40,7 @@ val parse_function :
     block split. *)
 val parse_main :
      ?extra_starts:int list
-  -> Instr.instr list
+  -> Instr.instr array
   -> start_pc:int
   -> end_pc:int
   -> Code.program
