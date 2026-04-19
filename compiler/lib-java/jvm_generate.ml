@@ -1609,18 +1609,113 @@ let emit_ccall ctx name args =
        Kind.K_int
      | _ -> raise (Unsupported (name ^ " arity")))
   | "caml_obj_tag" ->
-    (* Arg 0: Block. Return: tag (int). *)
+    (* [caml_obj_tag v] returns [v.tag] when [v] is a [Block],
+       1000 ([int_tag]) when [v] is an immediate int, and 1001
+       ([string_tag]) for a [String]. We dispatch at runtime via
+       [instanceof] because [v]'s inferred kind may be [K_obj]
+       (the usual [Obj.t] path) or [K_int] (if the frontend
+       propagated the actual int kind through an [Obj.repr]). *)
     (match args with
      | [ Pv v ] ->
-       emit_load ctx v;
-       Jvm.Code.checkcast ctx.code "Block";
+       (match kind_of ctx v with
+        | K_int ->
+          (* Always an int → always [int_tag = 1000]. Emit the
+             load purely for its side effects (none, since it's
+             a pure iload on an already-typed slot) and just push
+             1000. *)
+          Jvm.Code.ldc_int ctx.code 1000;
+          Kind.K_int
+        | K_float ->
+          Jvm.Code.ldc_int ctx.code 253 (* double_tag *);
+          Kind.K_int
+        | K_string ->
+          Jvm.Code.ldc_int ctx.code 252 (* string_tag *);
+          Kind.K_int
+        | K_block _ ->
+          emit_load ctx v;
+          (* K_block is already boxed as Block reference. *)
+          Jvm.Code.getfield
+            ctx.code
+            ~class_:"Block"
+            ~field:"tag"
+            ~descriptor:"I";
+          Kind.K_int
+        | K_closure _ ->
+          Jvm.Code.ldc_int ctx.code 247 (* closure_tag *);
+          Kind.K_int
+        | K_obj ->
+          (* Runtime dispatch: if [instanceof Block], read .tag;
+             else if [instanceof java/lang/Integer] → 1000; else
+             if [instanceof java/lang/String] → 252; else 0 (the
+             generic object tag; shouldn't arise in practice). *)
+          let l_block = Jvm.Code.fresh_label ctx.code in
+          let l_end = Jvm.Code.fresh_label ctx.code in
+          let l_int = Jvm.Code.fresh_label ctx.code in
+          let l_not_int = Jvm.Code.fresh_label ctx.code in
+          let l_str = Jvm.Code.fresh_label ctx.code in
+          emit_load ctx v;
+          Jvm.Code.dup ctx.code;
+          Jvm.Code.instanceof_ ctx.code "Block";
+          Jvm.Code.ifne ctx.code l_block;
+          Jvm.Code.dup ctx.code;
+          Jvm.Code.instanceof_ ctx.code "java/lang/Integer";
+          Jvm.Code.ifne ctx.code l_int;
+          Jvm.Code.dup ctx.code;
+          Jvm.Code.instanceof_ ctx.code "java/lang/String";
+          Jvm.Code.ifne ctx.code l_str;
+          Jvm.Code.goto_w ctx.code l_not_int;
+          Jvm.Code.mark_label ctx.code l_block;
+          Jvm.Code.checkcast ctx.code "Block";
+          Jvm.Code.getfield
+            ctx.code
+            ~class_:"Block"
+            ~field:"tag"
+            ~descriptor:"I";
+          Jvm.Code.goto_w ctx.code l_end;
+          Jvm.Code.mark_label ctx.code l_int;
+          Jvm.Code.pop_top ctx.code;
+          Jvm.Code.ldc_int ctx.code 1000;
+          Jvm.Code.goto_w ctx.code l_end;
+          Jvm.Code.mark_label ctx.code l_str;
+          Jvm.Code.pop_top ctx.code;
+          Jvm.Code.ldc_int ctx.code 252;
+          Jvm.Code.goto_w ctx.code l_end;
+          Jvm.Code.mark_label ctx.code l_not_int;
+          Jvm.Code.pop_top ctx.code;
+          Jvm.Code.ldc_int ctx.code 0;
+          Jvm.Code.mark_label ctx.code l_end;
+          Kind.K_int)
+     | _ -> raise (Unsupported "caml_obj_tag arity"))
+  | "caml_obj_with_tag" ->
+    (* [caml_obj_with_tag tag v] allocates a fresh [Block] with the
+       given tag and a shallow copy of [v]'s fields. *)
+    (match args with
+     | [ Pv tag; Pv v ] ->
+       Jvm.Code.new_ ctx.code "Block";
+       Jvm.Code.dup ctx.code;
+       as_int tag;
+       as_block v;
        Jvm.Code.getfield
          ctx.code
          ~class_:"Block"
-         ~field:"tag"
-         ~descriptor:"I";
-       Kind.K_int
-     | _ -> raise (Unsupported "caml_obj_tag arity"))
+         ~field:"fields"
+         ~descriptor:"[Ljava/lang/Object;";
+       (* Arrays.copyOf(fields, fields.length). Use dup + arraylength
+          to avoid reloading v. *)
+       Jvm.Code.dup ctx.code;
+       Jvm.Code.arraylength ctx.code;
+       Jvm.Code.invokestatic
+         ctx.code
+         ~class_:"java/util/Arrays"
+         ~method_:"copyOf"
+         ~descriptor:"([Ljava/lang/Object;I)[Ljava/lang/Object;";
+       Jvm.Code.invokespecial
+         ctx.code
+         ~class_:"Block"
+         ~method_:"<init>"
+         ~descriptor:"(I[Ljava/lang/Object;)V";
+       Kind.K_obj
+     | _ -> raise (Unsupported "caml_obj_with_tag arity"))
   | "caml_obj_dup" ->
     (match args with
      | [ Pv v ] ->
@@ -1888,10 +1983,6 @@ let emit_prim ctx (p : Code.prim) (args : Code.prim_arg list) : Kind.kind =
        - Lt/Le/Gt/Ge/Ult/Uge on non-ints: unbox anyway (assume
          they're boxed Integers; OCaml doesn't emit these on
          blocks).*)
-    let is_ref_kind = function
-      | Kind.K_int -> false
-      | _ -> true
-    in
     let arg_kind = function
       | Code.Pv v -> kind_of ctx v
       | Pc (Int _) -> K_int
@@ -1902,9 +1993,27 @@ let emit_prim ctx (p : Code.prim) (args : Code.prim_arg list) : Kind.kind =
     in
     let ka = arg_kind a in
     let kb = arg_kind b in
+    (* For [Eq] / [Neq], dispatch on which kind of equality we need:
+       - value equality on ints (bytecode [BEQ n] or polymorphic-
+         variant dispatch): one or both operands are statically
+         known ints. Unbox the other side and use [if_icmp*].
+       - reference equality on refs (exception-constructor matching,
+         shared descriptors): neither operand is known-int — box
+         both to Object and use [if_acmp*].
+       The subtle case is "one K_int, one K_obj": at runtime both
+       hold the same integer (the frontend boxed the K_int one
+       into an [Integer] because of a cross-block edge), but the
+       [Integer] objects are distinct references for values beyond
+       the JVM's [Integer.valueOf] cache (|n| > 127). Reference
+       equality would silently fail on, e.g., polymorphic-variant
+       hashes like `Blue = 737308346`. *)
+    let known_int = function
+      | Kind.K_int -> true
+      | _ -> false
+    in
     let use_ref =
       match p with
-      | Eq | Neq -> is_ref_kind ka || is_ref_kind kb
+      | Eq | Neq -> not (known_int ka || known_int kb)
       | _ -> false
     in
     let l_true = Jvm.Code.fresh_label ctx.code in
