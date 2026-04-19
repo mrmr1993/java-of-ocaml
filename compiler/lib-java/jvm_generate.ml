@@ -1706,18 +1706,44 @@ let emit_last ctx prog (l : Code.last) =
     Jvm.Code.athrow ctx.code
   | Branch c -> emit_cont ctx prog c
   | Cond (v, c_then, c_else) ->
-    emit_load ctx v;
+    (* Cond tests whether [v] is truthy — for OCaml, that means
+       either a non-zero immediate int or any block (cons, variant
+       with args, ref, etc.). The else-arm fires only on the
+       immediate [0] / empty-list. When [v] could be either (K_obj
+       in particular, as for pattern matching on a list or variant),
+       test [instanceof Block] first; blocks always take the
+       then-arm. *)
+    let l_else = Jvm.Code.fresh_label ctx.code in
     (match kind_of ctx v with
-     | K_int -> ()
-     | _ ->
+     | K_int ->
+       emit_load ctx v;
+       Jvm.Code.ifeq ctx.code l_else
+     | K_block _ | K_closure _ | K_string ->
+       (* Reference-typed values never compare zero; always truthy. *)
+       ()
+     | K_float ->
+       emit_load ctx v;
+       Jvm.Code.ldc_double ctx.code 0.0;
+       Jvm.Code.dcmpl ctx.code;
+       Jvm.Code.ifeq ctx.code l_else
+     | K_obj ->
+       emit_load ctx v;
+       let l_then = Jvm.Code.fresh_label ctx.code in
+       Jvm.Code.dup ctx.code;
+       Jvm.Code.instanceof_ ctx.code "Block";
+       Jvm.Code.ifne ctx.code l_then;
        Jvm.Code.checkcast ctx.code "java/lang/Integer";
        Jvm.Code.invokevirtual
          ctx.code
          ~class_:"java/lang/Integer"
          ~method_:"intValue"
-         ~descriptor:"()I");
-    let l_else = Jvm.Code.fresh_label ctx.code in
-    Jvm.Code.ifeq ctx.code l_else;
+         ~descriptor:"()I";
+       Jvm.Code.ifeq ctx.code l_else;
+       let l_end = Jvm.Code.fresh_label ctx.code in
+       Jvm.Code.goto_w ctx.code l_end;
+       Jvm.Code.mark_label ctx.code l_then;
+       Jvm.Code.pop_top ctx.code;
+       Jvm.Code.mark_label ctx.code l_end);
     emit_cont ctx prog c_then;
     Jvm.Code.mark_label ctx.code l_else;
     emit_cont ctx prog c_else
