@@ -409,8 +409,9 @@ let compile ~bc ~out_dir =
   let cp = Jvm.Cp.create () in
   let main_code = Jvm.Code.create cp in
   let fresh_oo_id_counter = ref 0 in
-  (* Globals-init prelude. Runs before any other Main.main code. *)
-  emit_globals_init main_code parsed.globals;
+  (* Globals-init prelude is emitted later — after we've decided
+     between IR and legacy for the main body, so a failed IR attempt
+     doesn't leave half-written globals-init bytes in [main_code]. *)
   let post_end_pc =
     if end_idx + 1 < Array.length arr then arr.(end_idx + 1).pc else max_int
   in
@@ -458,17 +459,101 @@ let compile ~bc ~out_dir =
         Format.eprintf "[main] label_id=%d at pc=%d@." (Jvm.Code.label_id lbl) pc)
       pc_to_label;
   time_phase "emit-main" (fun () ->
-    emit_range state arr (start_idx, end_idx) ~skip_pcs:fn_body_pcs;
-    (match Hashtbl.find_opt pc_to_label post_end_pc with
-     | Some lbl -> Jvm.Code.mark_label main_code lbl
-     | None -> ());
-    (* Drop any live acc left behind by a trailing expression
-       (usually a Val_unit from the last top-level let). [return]
-       expects an empty operand stack, otherwise the verifier
-       rejects the class with "Mismatched stack types" /
-       "Unable to pop operand off an empty stack". *)
-    drop_live_acc state;
-    Jvm.Code.return_void main_code);
+    let body_pc_to_fi = Hashtbl.create 64 in
+    List.iter
+      (fun (fi : function_info) -> Hashtbl.replace body_pc_to_fi fi.body_pc fi)
+      !func_list;
+    let name_of_body pc =
+      match Hashtbl.find_opt body_pc_to_fi pc with
+      | Some fi -> fi.name
+      | None -> raise Not_found
+    in
+    let fn_info_of_body pc = Hashtbl.find_opt body_pc_to_fi pc in
+    let prim_name idx =
+      if idx < 0 || idx >= Array.length parsed.prims
+      then raise Not_found
+      else parsed.prims.(idx)
+    in
+    let try_main_ir () =
+      if not (ir_emit_enabled ())
+      then None
+      else (
+        let instrs =
+          Array.to_list arr
+          |> List.filter (fun (ins : Instr.instr) ->
+               not (Hashtbl.mem fn_body_pcs ins.pc))
+        in
+        match instrs with
+        | [] -> None
+        | first :: _ ->
+          let last = List.nth instrs (List.length instrs - 1) in
+          let start_pc = first.pc in
+          let end_pc = last.pc + 1 in
+          (* Emit into a scratch code so we can discard on IR
+             failure without contaminating main_code. *)
+          let scratch = Jvm.Code.create cp in
+          Jvm.Code.set_min_locals scratch 1;
+          (try
+             let prog = Parse_bytecode.parse_main instrs ~start_pc ~end_pc in
+             let typing = Jvm_typing.infer prog in
+             Jvm_generate.emit_program
+               ~code:scratch
+               ~typing
+               ~name_of_body
+               ~fn_info_of_body
+               ~prim_name
+               prog;
+             if debug_ir_emit ()
+             then Format.eprintf "[ir_emit] <main>: used IR@.";
+             Some scratch
+           with
+           | Parse_bytecode.Not_supported msg ->
+             if debug_ir_emit ()
+             then
+               Format.eprintf "[ir_emit] <main>: legacy (parse: %s)@." msg;
+             None
+           | Jvm_generate.Unsupported msg ->
+             if debug_ir_emit ()
+             then
+               Format.eprintf "[ir_emit] <main>: legacy (gen: %s)@." msg;
+             None))
+    in
+    (match try_main_ir () with
+     | Some _scratch_ir_code ->
+       emit_globals_init main_code parsed.globals;
+       (* Copy scratch's emitted bytecode into main_code by re-
+          running IR emission directly into main_code — now that we
+          know it succeeds, contamination on failure is not a
+          concern. *)
+       let instrs =
+         Array.to_list arr
+         |> List.filter (fun (ins : Instr.instr) ->
+              not (Hashtbl.mem fn_body_pcs ins.pc))
+       in
+       let first = List.hd instrs in
+       let last = List.nth instrs (List.length instrs - 1) in
+       let prog =
+         Parse_bytecode.parse_main
+           instrs
+           ~start_pc:first.pc
+           ~end_pc:(last.pc + 1)
+       in
+       let typing = Jvm_typing.infer prog in
+       Jvm_generate.emit_program
+         ~code:main_code
+         ~typing
+         ~name_of_body
+         ~fn_info_of_body
+         ~prim_name
+         prog
+     | None ->
+       emit_globals_init main_code parsed.globals;
+       emit_range state arr (start_idx, end_idx) ~skip_pcs:fn_body_pcs;
+       (match Hashtbl.find_opt pc_to_label post_end_pc with
+        | Some lbl -> Jvm.Code.mark_label main_code lbl
+        | None -> ());
+       drop_live_acc state;
+       Jvm.Code.return_void main_code));
   let main_method =
     { Jvm.name = "main"
     ; descriptor = "([Ljava/lang/String;)V"
@@ -579,21 +664,16 @@ let compile ~bc ~out_dir =
           ; slot_obj_locals = fn_slot_obj_locals
           }
         in
-        emit_range
-          state
-          arr
-          (fn_info.body_start_idx, fn_info.body_end_idx)
-          ~skip_pcs:(Hashtbl.create 0);
-        (* If JAVA_OF_OCAML_IR=1, attempt to regenerate the apply
-           body via the IR path and swap it in if successful. The
-           legacy emitter still runs first to populate
-           [fn_info.capture_kinds] (set by CLOSURE/CLOSUREREC at
-           *allocation sites* in other functions, but may also be
-           touched by recursion / ENVACC during this fn's own
-           emission). Legacy code is discarded on IR success. *)
-        let apply_code =
+        (* IR-first strategy when JAVA_OF_OCAML_IR=1: attempt the IR
+           path into a fresh [Jvm.Code.t]; fall back to the legacy
+           per-opcode emitter only on Not_supported / Unsupported.
+           This lets us compile programs legacy can't (e.g. its
+           pre-existing "POPTRAP without matching PUSHTRAP"
+           misfires on deeper Stdlib code) as long as IR handles
+           them. *)
+        let try_ir () =
           if not (ir_emit_enabled ())
-          then apply_code
+          then None
           else (
             let body_pc = arr.(fn_info.body_start_idx).pc in
             let end_pc = arr.(fn_info.body_end_idx).pc in
@@ -643,9 +723,8 @@ let compile ~bc ~out_dir =
                 ~enclosing:(fn_info, env_var)
                 prog;
               if debug_ir_emit ()
-              then
-                Format.eprintf "[ir_emit] %s: used IR@." fn_info.name;
-              ir_code
+              then Format.eprintf "[ir_emit] %s: used IR@." fn_info.name;
+              Some ir_code
             with
             | Parse_bytecode.Not_supported msg ->
               if debug_ir_emit ()
@@ -654,7 +733,7 @@ let compile ~bc ~out_dir =
                   "[ir_emit] %s: legacy (parse: %s)@."
                   fn_info.name
                   msg;
-              apply_code
+              None
             | Jvm_generate.Unsupported msg ->
               if debug_ir_emit ()
               then
@@ -662,7 +741,18 @@ let compile ~bc ~out_dir =
                   "[ir_emit] %s: legacy (gen: %s)@."
                   fn_info.name
                   msg;
-              apply_code)
+              None)
+        in
+        let apply_code =
+          match try_ir () with
+          | Some ir_code -> ir_code
+          | None ->
+            emit_range
+              state
+              arr
+              (fn_info.body_start_idx, fn_info.body_end_idx)
+              ~skip_pcs:(Hashtbl.create 0);
+            apply_code
         in
         let cap_fields =
           List.mapi

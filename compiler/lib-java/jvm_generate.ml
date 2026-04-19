@@ -1367,13 +1367,28 @@ let emit_expr ctx (e : Code.expr) : Kind.kind =
           (Unsupported
              (Printf.sprintf "no class for closure body pc %d" body_pc))
     in
-    (* Look up the callee's expected capture kinds so the ctor
-       descriptor matches. If unknown, default to all-Object (may
-       NoSuchMethodError at runtime, but the legacy fallback for
-       the callee would avoid that). *)
+    (* Look up or propagate the callee's capture kinds. If empty,
+       infer from the caller's typing and propagate so the callee's
+       class layout matches. This lets IR operate without legacy
+       priming fn_info.capture_kinds first. *)
     let callee_cap_kinds =
       match ctx.fn_info_of_body body_pc with
-      | Some fi -> !(fi.Function_info.capture_kinds)
+      | Some fi ->
+        let existing = !(fi.Function_info.capture_kinds) in
+        if existing = []
+        then (
+          let inferred =
+            List.map
+              (fun v ->
+                match kind_of ctx v with
+                | Kind.K_int -> Kind.K_int
+                | Kind.K_float -> Kind.K_float
+                | _ -> Kind.K_obj)
+              captures
+          in
+          fi.Function_info.capture_kinds := inferred;
+          inferred)
+        else existing
       | None -> List.map (fun _ -> Kind.K_obj) captures
     in
     let pad_len = List.length captures - List.length callee_cap_kinds in
