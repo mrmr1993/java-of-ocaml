@@ -16,9 +16,36 @@ let debug_ir_emit = Debug.find "ir_emit"
    is off. *)
 module Timer_bucket = struct
   type entry = { mutable total : float; mutable count : int }
-  type t = (string, entry) Hashtbl.t
-  let make () : t = Hashtbl.create 8
-  let track (t : t) name f =
+  type t =
+    { table : (string, entry) Hashtbl.t
+    ; label : string
+    ; mutable printed : bool
+    }
+  let make label : t =
+    let t = { table = Hashtbl.create 8; label; printed = false } in
+    (* Print on process exit too, so a [failwith] inside an emitted
+       bucket still leaves the partial breakdown visible. Flag guards
+       against double-printing when the normal path already called
+       [print]. *)
+    at_exit (fun () ->
+      if debug_times_detail () && not t.printed
+      then (
+        t.printed <- true;
+        let entries =
+          Hashtbl.fold (fun k v acc -> (k, v) :: acc) t.table []
+          |> List.sort (fun (_, a) (_, b) -> compare b.total a.total)
+        in
+        let total = List.fold_left (fun a (_, e) -> a +. e.total) 0.0 entries in
+        Format.eprintf "[times_detail] %s (at_exit) total=%.2fs:@." t.label total;
+        List.iter
+          (fun (k, e) ->
+            Format.eprintf
+              "[times_detail]   %-24s %6.2fs (%d calls, %.2fms avg)@."
+              k e.total e.count
+              (1000.0 *. e.total /. float_of_int (max 1 e.count)))
+          entries));
+    t
+  let track t name f =
     if not (debug_times_detail ())
     then f ()
     else
@@ -26,11 +53,11 @@ module Timer_bucket = struct
       let r = f () in
       let elapsed = Sys.time () -. start in
       let e =
-        match Hashtbl.find_opt t name with
+        match Hashtbl.find_opt t.table name with
         | Some e -> e
         | None ->
           let e = { total = 0.0; count = 0 } in
-          Hashtbl.add t name e;
+          Hashtbl.add t.table name e;
           e
       in
       e.total <- e.total +. elapsed;
@@ -39,8 +66,9 @@ module Timer_bucket = struct
   let print fmt ~label (t : t) =
     if debug_times_detail ()
     then (
+      t.printed <- true;
       let entries =
-        Hashtbl.fold (fun k v acc -> (k, v) :: acc) t []
+        Hashtbl.fold (fun k v acc -> (k, v) :: acc) t.table []
         |> List.sort (fun (_, a) (_, b) -> compare b.total a.total)
       in
       let total = List.fold_left (fun a (_, e) -> a +. e.total) 0.0 entries in
@@ -50,9 +78,7 @@ module Timer_bucket = struct
           Format.fprintf
             fmt
             "[times_detail]   %-24s %6.2fs (%d calls, %.2fms avg)@."
-            k
-            e.total
-            e.count
+            k e.total e.count
             (1000.0 *. e.total /. float_of_int (max 1 e.count)))
         entries)
 end
@@ -687,7 +713,7 @@ let compile_t
     | Some (_, f) -> Some (Filename.basename f)
     | None -> source_file_from 0
   in
-  let main_tb = Timer_bucket.make () in
+  let main_tb = Timer_bucket.make "emit-main" in
   time_phase "emit-main" (fun () ->
     let body_pc_to_fi = Hashtbl.create 64 in
     List.iter
@@ -919,7 +945,7 @@ let compile_t
     then raise Not_found
     else parsed.prims.(idx)
   in
-  let closure_tb = Timer_bucket.make () in
+  let closure_tb = Timer_bucket.make "emit-closures" in
   let closure_class_files = time_phase "emit-closures" (fun () ->
     let r =
     List.map
