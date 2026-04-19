@@ -4,6 +4,7 @@ synopsis: "Compiler from OCaml bytecode to JVM bytecode"
 depends: [
   "dune" {>= "3.17"}
   "ocaml" {>= "4.14"}
+  "cmdliner" {>= "1.1.0"}
   "ppx_expect" {>= "v0.16.1" & with-test}
   "odoc" {with-doc}
 ]

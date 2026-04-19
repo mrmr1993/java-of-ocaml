@@ -1,45 +1,50 @@
-let usage =
-  "java_of_ocaml: compile OCaml bytecode to JVM bytecode.\n\n\
-   Usage: java_of_ocaml <input.bc|input.cmo> -o <output_directory>\n\
-   \n\
-   The current Phase 0 compiler recognises a single bytecode pattern:\n\
-   calls to the primitive `caml_java_print_endline`. Programs that use\n\
-   other operations will be rejected with a clear error."
+(* Entry point for the [java_of_ocaml] CLI.
 
-let () =
-  let input = ref None in
-  let out_dir = ref None in
-  let speclist =
-    [ ( "-o"
-      , Arg.String (fun s -> out_dir := Some s)
-      , "<dir> Directory to write Main.class into" )
+   Modelled after [js_of_ocaml]: a Cmdliner [Cmd.group] with [compile]
+   as the default subcommand, plus auxiliary commands ([print-runtime],
+   ...). For backwards compatibility with the pre-Cmdliner invocation
+   [java_of_ocaml foo.bc -o out], we sniff [Sys.argv] and inject the
+   [compile] subcommand name when the first non-option argument doesn't
+   match any known subcommand. *)
+
+let subcommands =
+  [ Compile.command; Print_runtime.command ]
+
+let like_arg s = String.length s > 0 && s.[0] = '-'
+
+let adjust_argv argv =
+  let subcommand_names =
+    List.map (fun c -> Cmdliner.Cmd.name c) subcommands
+  in
+  match Array.to_list argv with
+  | exe :: first :: rest
+    when (not (like_arg first)) && not (List.mem first subcommand_names) ->
+    (* Legacy: [java_of_ocaml foo.bc -o out] - the first arg isn't
+       a known subcommand and isn't a flag, so it's presumably the
+       input file for the default [compile]. Inject the subcommand
+       name so Cmdliner routes through the [compile] info block. *)
+    Array.of_list (exe :: Cmdliner.Cmd.name Compile.command :: first :: rest)
+  | _ -> argv
+
+let tool_info =
+  let doc = "Compile OCaml bytecode to JVM bytecode." in
+  let man =
+    [ `S Cmdliner.Manpage.s_description
+    ; `P
+        "$(iname) is a compiler from OCaml bytecode (as produced by \
+         $(b,ocamlc)) to JVM class files. The default subcommand is \
+         $(b,compile); running $(iname) without a subcommand is \
+         equivalent to $(iname) $(b,compile)."
+    ; `S Cmdliner.Manpage.s_commands
+    ; `S Cmdliner.Manpage.s_bugs
+    ; `P "Report bugs at https://github.com/mrmr1993/java_of_ocaml/issues."
     ]
   in
-  let anon f =
-    match !input with
-    | None -> input := Some f
-    | Some _ ->
-      prerr_endline "java_of_ocaml: expected a single input file";
-      exit 2
+  Cmdliner.Cmd.info "java_of_ocaml" ~doc ~man
+
+let () =
+  let argv = adjust_argv Sys.argv in
+  let group =
+    Cmdliner.Cmd.group ~default:Compile.term tool_info subcommands
   in
-  Arg.parse speclist anon usage;
-  let input =
-    match !input with
-    | Some p -> p
-    | None ->
-      prerr_endline "java_of_ocaml: missing input file";
-      prerr_endline usage;
-      exit 2
-  in
-  let out_dir =
-    match !out_dir with
-    | Some p -> p
-    | None ->
-      prerr_endline "java_of_ocaml: missing -o <output_directory>";
-      prerr_endline usage;
-      exit 2
-  in
-  try Java_of_ocaml_compiler.Compile.compile ~bc:input ~out_dir with
-  | Failure msg ->
-    prerr_endline msg;
-    exit 1
+  exit (Cmdliner.Cmd.eval ~argv group)

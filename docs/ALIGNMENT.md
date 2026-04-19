@@ -68,16 +68,20 @@ The IR is in place; these would be natural layered additions now.
 
 ## Deferred: tooling & feature gaps
 
-- **Proper CLI via Cmdliner** —
-  `js_of_ocaml/compiler/bin-js_of_ocaml/` and
-  `bin-wasm_of_ocaml/` define sub-commands (`compile`, `link`,
-  `check-runtime`, …). The single `java_of_ocaml.exe` entry point
-  will need breaking up once linking / runtime checks / other
-  commands exist.
-- **Source maps** — `js_of_ocaml/compiler/lib/source_map.ml`,
-  `lib-wasm/wasm_source_map.ml`. Stepped debugging in JVM tooling
-  would need a different mapping target (e.g. SMAP for JSR-45),
-  but the design is a useful reference.
+- **Proper CLI via Cmdliner** — done. `compiler/bin-java_of_ocaml/`
+  is split into `compile.ml` / `print_runtime.ml` plumbed through a
+  `Cmd.group` with `compile` as the default subcommand. The entry
+  point preserves the legacy positional invocation
+  (`java_of_ocaml foo.bc -o out`) by injecting `compile` before a
+  leading non-flag argument. New sub-commands can slot in next to
+  `compile` / `print-runtime` when linking / runtime checks arrive.
+- **Source maps** — partial. We read the DBUG section and emit JVM
+  `SourceFile` + `LineNumberTable` attributes so JVM stack traces
+  show the original OCaml file and line. Block-entry granularity
+  only — finer per-expression mapping and a JSR-45 SMAP layer for
+  stepped debugging are still open. See
+  `js_of_ocaml/compiler/lib/source_map.ml` and
+  `lib-wasm/wasm_source_map.ml` for the jsoo design.
 - **Target-backend signature** —
   `js_of_ocaml/compiler/lib-wasm/target_sig.ml`. Only pays off
   once we have more than one backend (Dalvik, CIL, …), but even
