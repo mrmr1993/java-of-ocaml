@@ -698,11 +698,25 @@ let step (state : state) (ins : Instr.instr) : last option =
      handler sees the new value. *)
   else if op = Bytecode.Op.assign
   then (
+    (* OCaml's ASSIGN k: [stack[k] <- accu]. In the stack's value-
+       copy model this only affects stack[k]; previously-pushed
+       copies of the old slot value are unaffected.
+
+       We preserve that semantics at the IR level by reseating the
+       stack slot to reference accu's Var directly — no SSA
+       Assign, no shared JVM local. Any earlier push of the old
+       slot Var (which took a separate reference via [push_elt])
+       still points at the old Var, so its local is untouched. *)
     let k = args.(0) in
-    let slot = nth_stack state k in
-    let dst = var_of slot in
-    let src = var_of state.accu in
-    emit state (Assign (dst, src));
+    let src = state.accu in
+    (* Replace stack[k] with src. *)
+    let rec replace i lst =
+      match lst with
+      | [] -> []
+      | x :: xs ->
+        if i = 0 then src :: xs else x :: replace (i - 1) xs
+    in
+    state.stack <- replace k state.stack;
     (* accu becomes unit (OCaml interp sets it to Val_unit). *)
     const_int state 0;
     None)
