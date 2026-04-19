@@ -126,67 +126,120 @@ and emit_materialise_block_constant code tag fields =
    blocks, etc.). Globals whose shape we can't classify statically are
    left [null]; anything that reads them before a SETGLOBAL writes
    them will trip NullPointerException at runtime. *)
-let emit_globals_init code globals =
+(* Emit the bytecode that populates a single [Main.GLOBALS[i]] slot,
+   given [i] and the classified entry. Shared between the inline and
+   chunked-helper paths below. *)
+let emit_globals_entry code i =
+  let open Global_view in
+  function
+  | G_unsupported -> ()
+  | G_int n ->
+    Jvm.Code.getstatic
+      code
+      ~class_:"Main"
+      ~field:"GLOBALS"
+      ~descriptor:"[Ljava/lang/Object;";
+    Jvm.Code.ldc_int code i;
+    Jvm.Code.ldc_int code n;
+    Kind.emit_box_int code;
+    Jvm.Code.aastore code
+  | G_string s ->
+    Jvm.Code.getstatic
+      code
+      ~class_:"Main"
+      ~field:"GLOBALS"
+      ~descriptor:"[Ljava/lang/Object;";
+    Jvm.Code.ldc_int code i;
+    Jvm.Code.ldc_string code s;
+    Jvm.Code.aastore code
+  | G_float d ->
+    Jvm.Code.getstatic
+      code
+      ~class_:"Main"
+      ~field:"GLOBALS"
+      ~descriptor:"[Ljava/lang/Object;";
+    Jvm.Code.ldc_int code i;
+    Jvm.Code.ldc_double code d;
+    emit_box_float code;
+    Jvm.Code.aastore code
+  | G_int64 n ->
+    Jvm.Code.getstatic
+      code
+      ~class_:"Main"
+      ~field:"GLOBALS"
+      ~descriptor:"[Ljava/lang/Object;";
+    Jvm.Code.ldc_int code i;
+    Jvm.Code.ldc_int code (Int64.to_int n);
+    Kind.emit_box_int code;
+    Jvm.Code.aastore code
+  | G_block (tag, fields) ->
+    Jvm.Code.getstatic
+      code
+      ~class_:"Main"
+      ~field:"GLOBALS"
+      ~descriptor:"[Ljava/lang/Object;";
+    Jvm.Code.ldc_int code i;
+    emit_materialise_block_constant code tag fields;
+    Jvm.Code.aastore code
+
+(* [emit_globals_init cp globals ~main_code] allocates the [GLOBALS]
+   array in [main_code] and then populates it. For small programs the
+   population is inlined directly into [main_code]; for large programs
+   it's split into static helper methods (returned as [method_desc]s
+   so the caller can attach them to [Main]) so [main_code] doesn't
+   blow through the 65535-byte [Code]-attribute limit. Each global
+   entry costs roughly 15–30 bytes depending on its kind, so we
+   chunk at [globals_chunk_size] entries ≈ 20 KB worth of bytecode
+   per helper — well under the limit. *)
+let globals_chunk_size = 1000
+
+let emit_globals_init cp globals ~main_code =
   let n = Array.length globals in
-  Jvm.Code.ldc_int code n;
-  Jvm.Code.anewarray code "java/lang/Object";
+  Jvm.Code.ldc_int main_code n;
+  Jvm.Code.anewarray main_code "java/lang/Object";
   Jvm.Code.putstatic
-    code
+    main_code
     ~class_:"Main"
     ~field:"GLOBALS"
     ~descriptor:"[Ljava/lang/Object;";
-  for i = 0 to n - 1 do
-    match Global_view.inspect_global globals i with
-    | G_unsupported -> ()
-    | G_int n ->
-      Jvm.Code.getstatic
-        code
+  if n <= globals_chunk_size
+  then (
+    for i = 0 to n - 1 do
+      emit_globals_entry main_code i (Global_view.inspect_global globals i)
+    done;
+    [])
+  else (
+    let helpers = ref [] in
+    let chunk_start = ref 0 in
+    let chunk_idx = ref 0 in
+    while !chunk_start < n do
+      let chunk_end = min n (!chunk_start + globals_chunk_size) in
+      let helper_code = Jvm.Code.create cp in
+      Jvm.Code.set_min_locals helper_code 0;
+      for i = !chunk_start to chunk_end - 1 do
+        emit_globals_entry
+          helper_code
+          i
+          (Global_view.inspect_global globals i)
+      done;
+      Jvm.Code.return_void helper_code;
+      let name = Printf.sprintf "init_globals_%d" !chunk_idx in
+      helpers
+        := { Jvm.name
+           ; descriptor = "()V"
+           ; access_flags = 0x0009 (* ACC_PUBLIC | ACC_STATIC *)
+           ; code = helper_code
+           }
+           :: !helpers;
+      Jvm.Code.invokestatic
+        main_code
         ~class_:"Main"
-        ~field:"GLOBALS"
-        ~descriptor:"[Ljava/lang/Object;";
-      Jvm.Code.ldc_int code i;
-      Jvm.Code.ldc_int code n;
-      Kind.emit_box_int code;
-      Jvm.Code.aastore code
-    | G_string s ->
-      Jvm.Code.getstatic
-        code
-        ~class_:"Main"
-        ~field:"GLOBALS"
-        ~descriptor:"[Ljava/lang/Object;";
-      Jvm.Code.ldc_int code i;
-      Jvm.Code.ldc_string code s;
-      Jvm.Code.aastore code
-    | G_float d ->
-      Jvm.Code.getstatic
-        code
-        ~class_:"Main"
-        ~field:"GLOBALS"
-        ~descriptor:"[Ljava/lang/Object;";
-      Jvm.Code.ldc_int code i;
-      Jvm.Code.ldc_double code d;
-      emit_box_float code;
-      Jvm.Code.aastore code
-    | G_int64 n ->
-      Jvm.Code.getstatic
-        code
-        ~class_:"Main"
-        ~field:"GLOBALS"
-        ~descriptor:"[Ljava/lang/Object;";
-      Jvm.Code.ldc_int code i;
-      Jvm.Code.ldc_int code (Int64.to_int n);
-      Kind.emit_box_int code;
-      Jvm.Code.aastore code
-    | G_block (tag, fields) ->
-      Jvm.Code.getstatic
-        code
-        ~class_:"Main"
-        ~field:"GLOBALS"
-        ~descriptor:"[Ljava/lang/Object;";
-      Jvm.Code.ldc_int code i;
-      emit_materialise_block_constant code tag fields;
-      Jvm.Code.aastore code
-  done
+        ~method_:name
+        ~descriptor:"()V";
+      incr chunk_idx;
+      chunk_start := chunk_end
+    done;
+    List.rev !helpers)
 
 let compile_t
       ?(print_functions = [])
@@ -606,8 +659,10 @@ let compile_t
     in
     (match try_main_ir () with
      | Some (head, typing, helpers) ->
-       main_split_helpers := helpers;
-       emit_globals_init main_code parsed.globals;
+       let globals_helpers =
+         emit_globals_init cp parsed.globals ~main_code
+       in
+       main_split_helpers := helpers @ globals_helpers;
        Jvm_generate.emit_program
          ~code:main_code
          ~typing
@@ -651,7 +706,10 @@ let compile_t
            "[ir_emit] <main>: used IR (helpers=%d)@."
            (List.length helpers)
      | None ->
-       emit_globals_init main_code parsed.globals;
+       let globals_helpers =
+         emit_globals_init cp parsed.globals ~main_code
+       in
+       main_split_helpers := globals_helpers;
        Jvm.Code.new_ main_code "java/lang/UnsupportedOperationException";
        Jvm.Code.dup main_code;
        Jvm.Code.ldc_string
