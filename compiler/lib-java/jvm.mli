@@ -321,6 +321,10 @@ val bytes_class_bytes : unit -> string
     mutable [StringBuilder] wrapper with [create] / [get] / [set] /
     [blitString] / [blitBytes] / [asString]. *)
 
+val format_class_bytes : unit -> string
+(** Bytes of the [Format] runtime class — OCaml printf-style
+    format-int/format-float via [String.format]. *)
+
 val closure_class_bytes : unit -> string
 
 val partial_closure_class_bytes : unit -> string

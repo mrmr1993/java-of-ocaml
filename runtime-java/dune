@@ -10,7 +10,8 @@
   CamlException.class
   Compare.class
   Channel.class
-  Bytes.class)
+  Bytes.class
+  Format.class)
  (deps
   Block.java
   Closure.java
@@ -18,7 +19,8 @@
   CamlException.java
   Compare.java
   Channel.java
-  Bytes.java)
+  Bytes.java
+  Format.java)
  (action
   (run javac -d . %{deps})))
 
@@ -32,7 +34,8 @@
    CamlException.class
    Compare.class
    Channel.class
-   Bytes.class))
+   Bytes.class
+   Format.class))
  (action
   (with-stdout-to
    %{targets}

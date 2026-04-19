@@ -661,6 +661,7 @@ let compile ~bc ~out_dir =
     write_class "Compare" (Jvm.compare_class_bytes ());
     write_class "Channel" (Jvm.channel_class_bytes ());
     write_class "Bytes" (Jvm.bytes_class_bytes ());
+    write_class "Format" (Jvm.format_class_bytes ());
     List.iter (fun (name, bytes) -> write_class name bytes) closure_class_files);
   match total with
   | Some t -> Format.eprintf "[times] total: %a s@." Timer.print t

@@ -388,6 +388,21 @@ let emit_ccall ctx name args =
        Jvm.Code.ldc_int ctx.code 0;
        Kind.K_int
      | _ -> raise (Unsupported "caml_blit_string arity"))
+  | "caml_fill_bytes" | "caml_fill_string" ->
+    (match args with
+     | [ Pv b; Pv ofs; Pv len; Pv c ] ->
+       as_bytes b;
+       as_int ofs;
+       as_int len;
+       as_int c;
+       Jvm.Code.invokevirtual
+         ctx.code
+         ~class_:"Bytes"
+         ~method_:"fill"
+         ~descriptor:"(III)V";
+       Jvm.Code.ldc_int ctx.code 0;
+       Kind.K_int
+     | _ -> raise (Unsupported "caml_fill_bytes arity"))
   | "caml_blit_bytes" ->
     (match args with
      | [ Pv s; Pv si; Pv b; Pv bi; Pv n ] ->
@@ -406,14 +421,14 @@ let emit_ccall ctx name args =
      | _ -> raise (Unsupported "caml_blit_bytes arity"))
   | "caml_format_int" ->
     (match args with
-     | [ Pv _fmt; Pv n ] ->
-       (* Ignore format string; use Integer.toString for now. *)
+     | [ Pv fmt; Pv n ] ->
+       as_string fmt;
        as_int n;
        Jvm.Code.invokestatic
          ctx.code
-         ~class_:"java/lang/Integer"
-         ~method_:"toString"
-         ~descriptor:"(I)Ljava/lang/String;";
+         ~class_:"Format"
+         ~method_:"formatInt"
+         ~descriptor:"(Ljava/lang/String;I)Ljava/lang/String;";
        Kind.K_string
      | _ -> raise (Unsupported "caml_format_int arity"))
   | "caml_string_equal" ->
@@ -803,7 +818,8 @@ let emit_ccall ctx name args =
      | _ -> raise (Unsupported "caml_int_of_string arity"))
   | "caml_format_float" ->
     (match args with
-     | [ Pv _fmt; Pv f ] ->
+     | [ Pv fmt; Pv f ] ->
+       as_string fmt;
        emit_load ctx f;
        (match kind_of ctx f with
         | K_float -> ()
@@ -816,9 +832,9 @@ let emit_ccall ctx name args =
             ~descriptor:"()D");
        Jvm.Code.invokestatic
          ctx.code
-         ~class_:"java/lang/Double"
-         ~method_:"toString"
-         ~descriptor:"(D)Ljava/lang/String;";
+         ~class_:"Format"
+         ~method_:"formatFloat"
+         ~descriptor:"(Ljava/lang/String;D)Ljava/lang/String;";
        Kind.K_string
      | _ -> raise (Unsupported "caml_format_float arity"))
   | "caml_sys_exit" ->
