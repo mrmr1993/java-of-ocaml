@@ -13,9 +13,15 @@ let run inputs output_dir debug_flags print_functions print_ir list_missing =
          Java_of_ocaml_compiler.Compile.list_missing_prims ~bcs
        in
        (match missing with
-        | [] -> print_endline "(all primitives referenced by the input are handled)"
-        | _ -> List.iter print_endline missing);
-       `Ok ()
+        | [] ->
+          print_endline "(all primitives referenced by the input are handled)";
+          `Ok ()
+        | _ ->
+          List.iter print_endline missing;
+          (* Non-zero exit so CI / dune rules notice missing
+             primitives without having to grep stdout. The listing
+             still prints, so no output regression. *)
+          `Error (false, Printf.sprintf "%d primitive(s) missing" (List.length missing)))
      with
      | Failure msg -> `Error (false, msg))
   | _, None, _ -> `Error (true, "missing -o <output_directory>")
