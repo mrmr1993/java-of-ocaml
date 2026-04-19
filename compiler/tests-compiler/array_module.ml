@@ -55,7 +55,8 @@ let%expect_test "Array.sub is a fresh copy" =
     30
     40
     20
-    999 |}]
+    999
+    |}]
 
 let%expect_test "Array.blit copies between distinct arrays" =
   compile_and_run
@@ -72,7 +73,8 @@ let%expect_test "Array.blit copies between distinct arrays" =
   [%expect {|
     20
     30
-    40 |}]
+    40
+    |}]
 
 let%expect_test "Array.fill with a constant" =
   compile_and_run
@@ -92,7 +94,8 @@ let%expect_test "Array.fill with a constant" =
     99
     99
     99
-    1 |}]
+    1
+    |}]
 
 let%expect_test "Array.append concatenates two arrays" =
   compile_and_run
@@ -115,7 +118,8 @@ let%expect_test "Array.append concatenates two arrays" =
     2
     3
     40
-    50 |}]
+    50
+    |}]
 
 let%expect_test "array of closures" =
   compile_and_run

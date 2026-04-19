@@ -1244,6 +1244,190 @@ let emit_ccall ctx name args =
          ~descriptor:"(I[Ljava/lang/Object;)V";
        Kind.K_obj
      | _ -> raise (Unsupported "caml_array_make arity"))
+  | "caml_array_blit" ->
+    (* Array.blit src srcofs dst dstofs len → System.arraycopy on
+       the underlying [Block.fields] Object[]. *)
+    (match args with
+     | [ Pv src; Pv srcofs; Pv dst; Pv dstofs; Pv len ] ->
+       as_block src;
+       Jvm.Code.getfield
+         ctx.code
+         ~class_:"Block"
+         ~field:"fields"
+         ~descriptor:"[Ljava/lang/Object;";
+       as_int srcofs;
+       as_block dst;
+       Jvm.Code.getfield
+         ctx.code
+         ~class_:"Block"
+         ~field:"fields"
+         ~descriptor:"[Ljava/lang/Object;";
+       as_int dstofs;
+       as_int len;
+       Jvm.Code.invokestatic
+         ctx.code
+         ~class_:"java/lang/System"
+         ~method_:"arraycopy"
+         ~descriptor:
+           "(Ljava/lang/Object;ILjava/lang/Object;II)V";
+       Jvm.Code.ldc_int ctx.code 0;
+       Kind.K_int
+     | _ -> raise (Unsupported "caml_array_blit arity"))
+  | "caml_array_sub" ->
+    (* Array.sub src ofs len → new Block(0, Arrays.copyOfRange(
+       src.fields, ofs, ofs+len)). *)
+    (match args with
+     | [ Pv src; Pv ofs; Pv len ] ->
+       Jvm.Code.new_ ctx.code "Block";
+       Jvm.Code.dup ctx.code;
+       Jvm.Code.ldc_int ctx.code 0;
+       as_block src;
+       Jvm.Code.getfield
+         ctx.code
+         ~class_:"Block"
+         ~field:"fields"
+         ~descriptor:"[Ljava/lang/Object;";
+       as_int ofs;
+       (* end index = ofs + len; compute on the JVM stack. *)
+       as_int ofs;
+       as_int len;
+       Jvm.Code.iadd ctx.code;
+       Jvm.Code.invokestatic
+         ctx.code
+         ~class_:"java/util/Arrays"
+         ~method_:"copyOfRange"
+         ~descriptor:
+           "([Ljava/lang/Object;II)[Ljava/lang/Object;";
+       Jvm.Code.invokespecial
+         ctx.code
+         ~class_:"Block"
+         ~method_:"<init>"
+         ~descriptor:"(I[Ljava/lang/Object;)V";
+       Kind.K_obj
+     | _ -> raise (Unsupported "caml_array_sub arity"))
+  | "caml_array_fill" ->
+    (* Array.fill arr ofs len v → Arrays.fill(arr.fields, ofs,
+       ofs+len, boxed(v)). Need a temp for len's contribution to
+       the end index since Arrays.fill's range is [from, to). *)
+    (match args with
+     | [ Pv arr; Pv ofs; Pv len; Pv v ] ->
+       as_block arr;
+       Jvm.Code.getfield
+         ctx.code
+         ~class_:"Block"
+         ~field:"fields"
+         ~descriptor:"[Ljava/lang/Object;";
+       as_int ofs;
+       as_int ofs;
+       as_int len;
+       Jvm.Code.iadd ctx.code;
+       emit_load ctx v;
+       (match kind_of ctx v with
+        | K_int -> Kind.emit_box_int ctx.code
+        | K_float -> Kind.emit_box_float ctx.code
+        | _ -> ());
+       Jvm.Code.invokestatic
+         ctx.code
+         ~class_:"java/util/Arrays"
+         ~method_:"fill"
+         ~descriptor:
+           "([Ljava/lang/Object;IILjava/lang/Object;)V";
+       Jvm.Code.ldc_int ctx.code 0;
+       Kind.K_int
+     | _ -> raise (Unsupported "caml_array_fill arity"))
+  | "caml_array_append" ->
+    (* Array.append a1 a2 → new Block(0, dst) where dst is a
+       fresh Object[] of length len1+len2 filled by two
+       System.arraycopy calls. Use a temp local for the dst
+       reference since arraycopy returns void. *)
+    (match args with
+     | [ Pv a1; Pv a2 ] ->
+       let dst_local = ctx.next_local in
+       ctx.next_local <- dst_local + 1;
+       Jvm.Code.set_min_locals ctx.code ctx.next_local;
+       (* len1 + len2 *)
+       as_block a1;
+       Jvm.Code.getfield
+         ctx.code
+         ~class_:"Block"
+         ~field:"fields"
+         ~descriptor:"[Ljava/lang/Object;";
+       Jvm.Code.arraylength ctx.code;
+       as_block a2;
+       Jvm.Code.getfield
+         ctx.code
+         ~class_:"Block"
+         ~field:"fields"
+         ~descriptor:"[Ljava/lang/Object;";
+       Jvm.Code.arraylength ctx.code;
+       Jvm.Code.iadd ctx.code;
+       (* dst = new Object[len1+len2] *)
+       Jvm.Code.anewarray ctx.code "java/lang/Object";
+       Jvm.Code.astore ctx.code dst_local;
+       (* System.arraycopy(a1.fields, 0, dst, 0, len1) *)
+       as_block a1;
+       Jvm.Code.getfield
+         ctx.code
+         ~class_:"Block"
+         ~field:"fields"
+         ~descriptor:"[Ljava/lang/Object;";
+       Jvm.Code.ldc_int ctx.code 0;
+       Jvm.Code.aload ctx.code dst_local;
+       Jvm.Code.ldc_int ctx.code 0;
+       as_block a1;
+       Jvm.Code.getfield
+         ctx.code
+         ~class_:"Block"
+         ~field:"fields"
+         ~descriptor:"[Ljava/lang/Object;";
+       Jvm.Code.arraylength ctx.code;
+       Jvm.Code.invokestatic
+         ctx.code
+         ~class_:"java/lang/System"
+         ~method_:"arraycopy"
+         ~descriptor:
+           "(Ljava/lang/Object;ILjava/lang/Object;II)V";
+       (* System.arraycopy(a2.fields, 0, dst, len1, len2) *)
+       as_block a2;
+       Jvm.Code.getfield
+         ctx.code
+         ~class_:"Block"
+         ~field:"fields"
+         ~descriptor:"[Ljava/lang/Object;";
+       Jvm.Code.ldc_int ctx.code 0;
+       Jvm.Code.aload ctx.code dst_local;
+       as_block a1;
+       Jvm.Code.getfield
+         ctx.code
+         ~class_:"Block"
+         ~field:"fields"
+         ~descriptor:"[Ljava/lang/Object;";
+       Jvm.Code.arraylength ctx.code;
+       as_block a2;
+       Jvm.Code.getfield
+         ctx.code
+         ~class_:"Block"
+         ~field:"fields"
+         ~descriptor:"[Ljava/lang/Object;";
+       Jvm.Code.arraylength ctx.code;
+       Jvm.Code.invokestatic
+         ctx.code
+         ~class_:"java/lang/System"
+         ~method_:"arraycopy"
+         ~descriptor:
+           "(Ljava/lang/Object;ILjava/lang/Object;II)V";
+       (* return new Block(0, dst) *)
+       Jvm.Code.new_ ctx.code "Block";
+       Jvm.Code.dup ctx.code;
+       Jvm.Code.ldc_int ctx.code 0;
+       Jvm.Code.aload ctx.code dst_local;
+       Jvm.Code.invokespecial
+         ctx.code
+         ~class_:"Block"
+         ~method_:"<init>"
+         ~descriptor:"(I[Ljava/lang/Object;)V";
+       Kind.K_obj
+     | _ -> raise (Unsupported "caml_array_append arity"))
   | "caml_array_get_addr" | "caml_array_unsafe_get_addr" ->
     (match args with
      | [ Pv a; Pv i ] ->
