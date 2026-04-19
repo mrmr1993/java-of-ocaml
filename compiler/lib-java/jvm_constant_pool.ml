@@ -22,11 +22,46 @@ let intern t key emit =
     Hashtbl.add t.table key idx;
     idx
 
+(* Encode an OCaml byte string into the JVM's "Modified UTF-8"
+   form for CONSTANT_Utf8 pool entries:
+   - 0x00 → 0xC0 0x80 (embedded NUL isn't a single byte in MUTF-8);
+   - 0x01..0x7F → the byte itself;
+   - 0x80..0xFF → 0xC0 | (b >> 6), 0x80 | (b & 0x3F) — treats each
+     byte as a Latin-1-codepoint char, matching [s.charAt(i)]
+     returning 0..255 at runtime.
+   OCaml strings are arbitrary byte sequences; without this step
+   bytes >= 0x80 or any NUL make the JVM reject the class file with
+   "Illegal UTF8 string in constant pool". *)
+let encode_mutf8 s =
+  let b = Buffer.create (String.length s) in
+  String.iter
+    (fun c ->
+      let x = Char.code c in
+      if x = 0
+      then (
+        Buffer.add_char b '\xc0';
+        Buffer.add_char b '\x80')
+      else if x < 0x80
+      then Buffer.add_char b c
+      else (
+        Buffer.add_char b (Char.chr (0xc0 lor (x lsr 6)));
+        Buffer.add_char b (Char.chr (0x80 lor (x land 0x3f)))))
+    s;
+  Buffer.contents b
+
 let utf8 t s =
   intern t ("U:" ^ s) (fun buf ->
+    let encoded = encode_mutf8 s in
+    let n = String.length encoded in
+    if n > 0xffff
+    then
+      failwith
+        (Printf.sprintf
+           "jvm: CONSTANT_Utf8 encoded length %d exceeds u2 limit"
+           n);
     add_u1 buf 1;
-    add_u2 buf (String.length s);
-    Buffer.add_string buf s)
+    add_u2 buf n;
+    Buffer.add_string buf encoded)
 
 let class_ t name =
   let utf_idx = utf8 t name in
