@@ -585,7 +585,12 @@ let emit_ccall ctx name args =
        Jvm.Code.i2d ctx.code;
        Kind.K_float
      | _ -> raise (Unsupported "caml_float_of_int arity"))
-  | "caml_abs_float" ->
+  | "caml_abs_float" | "caml_sqrt_float" | "caml_sin_float"
+  | "caml_cos_float" | "caml_tan_float" | "caml_asin_float"
+  | "caml_acos_float" | "caml_atan_float" | "caml_log_float"
+  | "caml_log10_float" | "caml_exp_float" | "caml_ceil_float"
+  | "caml_floor_float" | "caml_sinh_float" | "caml_cosh_float"
+  | "caml_tanh_float" ->
     (match args with
      | [ Pv f ] ->
        emit_load ctx f;
@@ -598,13 +603,66 @@ let emit_ccall ctx name args =
             ~class_:"java/lang/Double"
             ~method_:"doubleValue"
             ~descriptor:"()D");
+       let mname =
+         match name with
+         | "caml_abs_float" -> "abs"
+         | "caml_sqrt_float" -> "sqrt"
+         | "caml_sin_float" -> "sin"
+         | "caml_cos_float" -> "cos"
+         | "caml_tan_float" -> "tan"
+         | "caml_asin_float" -> "asin"
+         | "caml_acos_float" -> "acos"
+         | "caml_atan_float" -> "atan"
+         | "caml_log_float" -> "log"
+         | "caml_log10_float" -> "log10"
+         | "caml_exp_float" -> "exp"
+         | "caml_ceil_float" -> "ceil"
+         | "caml_floor_float" -> "floor"
+         | "caml_sinh_float" -> "sinh"
+         | "caml_cosh_float" -> "cosh"
+         | "caml_tanh_float" -> "tanh"
+         | _ -> assert false
+       in
        Jvm.Code.invokestatic
          ctx.code
          ~class_:"java/lang/Math"
-         ~method_:"abs"
+         ~method_:mname
          ~descriptor:"(D)D";
        Kind.K_float
-     | _ -> raise (Unsupported "caml_abs_float arity"))
+     | _ -> raise (Unsupported (name ^ " arity")))
+  | "caml_atan2_float" | "caml_hypot_float" | "caml_power_float"
+  | "caml_fmod_float" ->
+    (match args with
+     | [ Pv a; Pv b ] ->
+       let as_dbl v =
+         emit_load ctx v;
+         match kind_of ctx v with
+         | K_float -> ()
+         | _ ->
+           Jvm.Code.checkcast ctx.code "java/lang/Double";
+           Jvm.Code.invokevirtual
+             ctx.code
+             ~class_:"java/lang/Double"
+             ~method_:"doubleValue"
+             ~descriptor:"()D"
+       in
+       as_dbl a;
+       as_dbl b;
+       let mname =
+         match name with
+         | "caml_atan2_float" -> "atan2"
+         | "caml_hypot_float" -> "hypot"
+         | "caml_power_float" -> "pow"
+         | "caml_fmod_float" -> "IEEEremainder"
+         | _ -> assert false
+       in
+       Jvm.Code.invokestatic
+         ctx.code
+         ~class_:"java/lang/Math"
+         ~method_:mname
+         ~descriptor:"(DD)D";
+       Kind.K_float
+     | _ -> raise (Unsupported (name ^ " arity")))
   | "caml_float_of_string" ->
     (match args with
      | [ Pv s ] ->
