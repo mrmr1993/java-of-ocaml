@@ -384,6 +384,18 @@
   (pps ppx_expect)))
 
 (library
+ ;; compiler/tests-compiler/primitive_as_value.ml
+ (name primitive_as_value_15)
+ (enabled_if true)
+ (modules primitive_as_value)
+ (libraries unix str java_of_ocaml_expect_tests_helper)
+ (inline_tests
+  (enabled_if true))
+ (flags (:standard -open Java_of_ocaml_expect_tests_helper))
+ (preprocess
+  (pps ppx_expect)))
+
+(library
  ;; compiler/tests-compiler/pure_fun.ml
  (name pure_fun_15)
  (enabled_if true)
