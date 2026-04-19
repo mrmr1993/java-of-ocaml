@@ -99,15 +99,16 @@ Add new items as they are spotted.
 
 ## Known representation gaps
 
-- **Integer width** — our ints run as JVM 32-bit `int`, not OCaml's
-  63-bit tagged int. Arithmetic, shifts, and bitwise ops silently
-  wrap at the JVM boundary. A 63-bit-clean representation would
-  either promote every int to `long` or keep `int` everywhere and
-  add explicit wrap-to-63-bit masks on operations; jsoo takes the
-  first approach for `nativeint` / `int64` but leaves plain `int`
-  as a JS number. We should pick a strategy before `int64`
-  arithmetic or `Sys.int_size`-dependent code (popcount,
-  leading_zeros) starts mattering.
+- **Integer width** — plain OCaml `int` still runs as JVM 32-bit
+  `int`, not OCaml's 63-bit tagged int. Arithmetic, shifts, and
+  bitwise ops silently wrap at the JVM boundary. `Int64` and
+  `Nativeint` are bit-accurate (JVM `long` via `ladd` / `lsub` /
+  etc.). The remaining gap is plain `int` in code that depends on
+  the full 63-bit width — popcount, leading_zeros, or anything
+  that reads `Sys.int_size`. Lifting plain `int` to `long` is
+  invasive (the Kind lattice, every load/store, every apply-method
+  slot), so the current plan is to keep 32-bit int and document
+  the gap.
 - **JVM method bodies past 64 KB** — splitting is in place as an
   IR-level pass. Branch relaxation widens overflowing short branches
   (`Jvm_code.resolve`); the `Code` attribute itself is still capped
