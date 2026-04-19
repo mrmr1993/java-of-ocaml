@@ -130,6 +130,17 @@ val if_acmpne : t -> label -> unit
 
 val goto : t -> label -> unit
 
+val goto_w : t -> label -> unit
+(** 4-byte branch-offset [goto]. Use when a caller may be further
+    than the signed 16-bit range (~32 KB) from the branch PC. *)
+
+val tableswitch :
+  t -> default:label -> low:int -> high:int -> label array -> unit
+(** Emit a [tableswitch]: pops an int selector and branches to
+    [targets.(selector - low)] if [low <= selector <= high], else to
+    [default]. [Array.length targets] must equal [high - low + 1].
+    Uses 4-byte offsets, so targets may be arbitrarily far. *)
+
 val instanceof_ : t -> string -> unit
 
 val athrow : t -> unit

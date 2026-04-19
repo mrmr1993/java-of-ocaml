@@ -58,14 +58,47 @@ public class Closure {
         return under(7, args);
     }
 
-    // Fallback for when applyN is invoked on a closure whose arity is
-    // larger than N: wrap the supplied args in a PartialClosure that
-    // will dispatch once the missing args are provided.
+    // Fallback when applyN is invoked on a closure whose arity is
+    // different from N:
+    //   a > n (undersupply) — package the supplied args into a
+    //   PartialClosure that dispatches once the missing args arrive.
+    //   a < n (oversupply)  — the closure's result is itself a closure
+    //   that should consume the remaining args. Apply the declared
+    //   arity with the first [a] args, then invoke the returned
+    //   closure with the rest. (OCaml supports this directly; it
+    //   shows up constantly in curried Printf / List.iter patterns.)
     public Object under(int n, Object[] args) {
         int a = arity();
         if (a > n) {
             return new PartialClosure(this, args, a);
         }
-        throw new RuntimeException("closure arity mismatch");
+        // Oversupply: split args into two runs.
+        Object first = this;
+        int i = 0;
+        while (i < n) {
+            int k = Math.min(((Closure) first).arity(), n - i);
+            Object[] slice = new Object[k];
+            for (int j = 0; j < k; j++) slice[j] = args[i + j];
+            first = applyK((Closure) first, k, slice);
+            i += k;
+            if (i >= n) return first;
+        }
+        return first;
+    }
+
+    // Dispatch [c.applyK(slice)] by arity.
+    private static Object applyK(Closure c, int k, Object[] s) {
+        switch (k) {
+            case 1: return c.apply1(s[0]);
+            case 2: return c.apply2(s[0], s[1]);
+            case 3: return c.apply3(s[0], s[1], s[2]);
+            case 4: return c.apply4(s[0], s[1], s[2], s[3]);
+            case 5: return c.apply5(s[0], s[1], s[2], s[3], s[4]);
+            case 6: return c.apply6(s[0], s[1], s[2], s[3], s[4], s[5]);
+            case 7: return c.apply7(s[0], s[1], s[2], s[3], s[4], s[5], s[6]);
+            default:
+                throw new RuntimeException(
+                    "closure oversupply split: k=" + k + " out of supported range");
+        }
     }
 }

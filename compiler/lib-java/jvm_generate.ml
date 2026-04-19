@@ -532,7 +532,7 @@ let emit_ccall ctx name args =
         | "caml_ge_float" -> Jvm.Code.ifge ctx.code l_true
         | _ -> assert false);
        Jvm.Code.ldc_int ctx.code 0;
-       Jvm.Code.goto ctx.code l_end;
+       Jvm.Code.goto_w ctx.code l_end;
        Jvm.Code.mark_label ctx.code l_true;
        Jvm.Code.ldc_int ctx.code 1;
        Jvm.Code.mark_label ctx.code l_end;
@@ -1188,7 +1188,7 @@ let emit_prim ctx (p : Code.prim) (args : Code.prim_arg list) : Kind.kind =
      | Ge | Uge -> Jvm.Code.if_icmpge ctx.code l_true
      | _ -> assert false);
     Jvm.Code.ldc_int ctx.code 0;
-    Jvm.Code.goto ctx.code l_end;
+    Jvm.Code.goto_w ctx.code l_end;
     Jvm.Code.mark_label ctx.code l_true;
     Jvm.Code.ldc_int ctx.code 1;
     Jvm.Code.mark_label ctx.code l_end;
@@ -1660,7 +1660,7 @@ let emit_edge ctx (params : Code.Var.t list) (args : Code.Var.t list)
       (fun p _a -> emit_store ctx p ~from:(kind_of ctx _a))
       (List.rev params)
       (List.rev args));
-  Jvm.Code.goto ctx.code target_label
+  Jvm.Code.goto_w ctx.code target_label
 
 (* Find the param list of a target block. *)
 let params_of_block (prog : Code.program) addr =
@@ -1740,25 +1740,35 @@ let emit_last ctx prog (l : Code.last) =
       Jvm.Code.set_min_locals ctx.code ctx.next_local;
       l
     in
+    let _ = alloc_int_local in
+    (* tableswitch is O(1) dispatch, uses 4-byte offsets so targets
+       can be arbitrarily far from the switch, and produces far
+       more compact bytecode than an if_icmpeq chain for large
+       case counts. Selector is already on the operand stack as
+       an int. OCaml's SWITCH has no default so we route out-of-
+       range (shouldn't happen in well-typed code) to the last
+       case. *)
     let emit_int_dispatch () =
-      let tmp = alloc_int_local () in
-      Jvm.Code.istore ctx.code tmp;
-      for i = 0 to n_i - 2 do
-        Jvm.Code.iload ctx.code tmp;
-        Jvm.Code.ldc_int ctx.code i;
-        Jvm.Code.if_icmpeq ctx.code int_labels.(i)
-      done;
-      if n_i > 0 then Jvm.Code.goto ctx.code int_labels.(n_i - 1)
+      if n_i = 0
+      then Jvm.Code.pop_top ctx.code
+      else
+        Jvm.Code.tableswitch
+          ctx.code
+          ~default:int_labels.(n_i - 1)
+          ~low:0
+          ~high:(n_i - 1)
+          int_labels
     in
     let emit_tag_dispatch () =
-      let tmp = alloc_int_local () in
-      Jvm.Code.istore ctx.code tmp;
-      for i = 0 to n_t - 2 do
-        Jvm.Code.iload ctx.code tmp;
-        Jvm.Code.ldc_int ctx.code i;
-        Jvm.Code.if_icmpeq ctx.code tag_labels.(i)
-      done;
-      if n_t > 0 then Jvm.Code.goto ctx.code tag_labels.(n_t - 1)
+      if n_t = 0
+      then Jvm.Code.pop_top ctx.code
+      else
+        Jvm.Code.tableswitch
+          ctx.code
+          ~default:tag_labels.(n_t - 1)
+          ~low:0
+          ~high:(n_t - 1)
+          tag_labels
     in
     if n_t = 0
     then (

@@ -210,6 +210,13 @@ module Code : sig
 
   val goto : t -> label -> unit
 
+  val goto_w : t -> label -> unit
+  (** Wide (4-byte offset) [goto]. *)
+
+  val tableswitch :
+    t -> default:label -> low:int -> high:int -> label array -> unit
+  (** Dense int-selector jump table with 4-byte offsets. *)
+
   val instanceof_ : t -> string -> unit
   (** Pop a reference, push 1 if it's an instance of the named class, else
       0 (JVM [instanceof]). *)

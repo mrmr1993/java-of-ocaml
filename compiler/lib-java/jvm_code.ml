@@ -35,9 +35,20 @@ let stack_effect_of_call_descriptor descriptor ~is_virtual =
   let pops = arg_slots + if is_virtual then 1 else 0 in
   pops - push_ret
 
+(* [width] is the byte-width of the offset slot following the opcode.
+   [opcode_pc] is where the branch opcode itself was written. [offset_base]
+   is the pc the offset is relative to (for tableswitch the base is the
+   opcode pc; for the ordinary branches it's also the opcode pc). *)
+type ref_info =
+  { opcode_pc : int
+  ; offset_pc : int
+  ; width : int (* 2 or 4 *)
+  ; offset_base : int
+  }
+
 type label =
   { mutable target : int option
-  ; mutable refs : (int * int) list
+  ; mutable refs : ref_info list
   ; id : int
   }
 
@@ -383,10 +394,12 @@ let i2d t =
   push t 1
 
 let emit_branch t lbl opcode ~stack_delta =
-  let branch_pc = Buffer.length t.buf in
+  let opcode_pc = Buffer.length t.buf in
   add_u1 t.buf opcode;
+  let offset_pc = Buffer.length t.buf in
   add_u2 t.buf 0;
-  lbl.refs <- (branch_pc, branch_pc) :: lbl.refs;
+  lbl.refs <-
+    { opcode_pc; offset_pc; width = 2; offset_base = opcode_pc } :: lbl.refs;
   if stack_delta >= 0 then push t stack_delta else pop t (-stack_delta)
 
 let if_icmpeq t lbl = emit_branch t lbl 0x9F ~stack_delta:(-2)
@@ -407,6 +420,53 @@ let if_acmpeq t lbl = emit_branch t lbl 0xA5 ~stack_delta:(-2)
 let if_acmpne t lbl = emit_branch t lbl 0xA6 ~stack_delta:(-2)
 
 let goto t lbl = emit_branch t lbl 0xA7 ~stack_delta:0
+
+(* [goto_w] — 4-byte branch-offset variant of [goto]. Required for
+   branch distances beyond the signed 16-bit range. *)
+let goto_w t lbl =
+  let opcode_pc = Buffer.length t.buf in
+  add_u1 t.buf 0xC8;
+  let offset_pc = Buffer.length t.buf in
+  add_u4 t.buf 0;
+  lbl.refs <-
+    { opcode_pc; offset_pc; width = 4; offset_base = opcode_pc } :: lbl.refs
+
+(* [tableswitch v default low high targets] — dense jump table for an
+   int selector. Opcode 0xAA followed by 0..3 bytes of alignment padding
+   so the default offset starts at a 4-byte boundary, then 4-byte
+   default, 4-byte low, 4-byte high, and (high-low+1) 4-byte target
+   offsets. Pops the selector (1 slot). *)
+let tableswitch t ~default ~low ~high targets =
+  let opcode_pc = Buffer.length t.buf in
+  add_u1 t.buf 0xAA;
+  let pad = (4 - ((opcode_pc + 1) mod 4)) mod 4 in
+  for _ = 1 to pad do
+    add_u1 t.buf 0
+  done;
+  let default_pc = Buffer.length t.buf in
+  add_u4 t.buf 0;
+  default.refs <-
+    { opcode_pc
+    ; offset_pc = default_pc
+    ; width = 4
+    ; offset_base = opcode_pc
+    }
+    :: default.refs;
+  add_u4 t.buf low;
+  add_u4 t.buf high;
+  Array.iter
+    (fun (lbl : label) ->
+      let offset_pc = Buffer.length t.buf in
+      add_u4 t.buf 0;
+      lbl.refs <-
+        { opcode_pc
+        ; offset_pc
+        ; width = 4
+        ; offset_base = opcode_pc
+        }
+        :: lbl.refs)
+    targets;
+  pop t 1
 
 let instanceof_ t class_name =
   let idx = Cp.class_ t.cp class_name in
@@ -470,17 +530,26 @@ let resolve t =
           (Printf.sprintf "jvm: label %d referenced but never marked" lbl.id)
       | Some target ->
         List.iter
-          (fun (branch_pc, _) ->
-            let offset = target - branch_pc in
-            if offset < -32768 || offset > 32767
-            then
-              failwith
-                (Printf.sprintf
-                   "jvm: branch offset %d out of signed 16-bit range"
-                   offset);
-            let off = offset land 0xffff in
-            Bytes.set_uint8 bytes (branch_pc + 1) ((off lsr 8) land 0xff);
-            Bytes.set_uint8 bytes (branch_pc + 2) (off land 0xff))
+          (fun { opcode_pc = _; offset_pc; width; offset_base } ->
+            let offset = target - offset_base in
+            match width with
+            | 2 ->
+              if offset < -32768 || offset > 32767
+              then
+                failwith
+                  (Printf.sprintf
+                     "jvm: branch offset %d out of signed 16-bit range"
+                     offset);
+              let off = offset land 0xffff in
+              Bytes.set_uint8 bytes offset_pc ((off lsr 8) land 0xff);
+              Bytes.set_uint8 bytes (offset_pc + 1) (off land 0xff)
+            | 4 ->
+              let off = offset land 0xffffffff in
+              Bytes.set_uint8 bytes offset_pc ((off lsr 24) land 0xff);
+              Bytes.set_uint8 bytes (offset_pc + 1) ((off lsr 16) land 0xff);
+              Bytes.set_uint8 bytes (offset_pc + 2) ((off lsr 8) land 0xff);
+              Bytes.set_uint8 bytes (offset_pc + 3) (off land 0xff)
+            | _ -> assert false)
           lbl.refs)
     t.labels;
   Buffer.clear t.buf;
