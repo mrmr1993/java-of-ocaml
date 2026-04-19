@@ -923,6 +923,42 @@ let emit_ccall ctx name args =
      the boxed Integer representation. Not bit-accurate for values
      outside the JVM int range but enough for most Stdlib paths
      that route through Hashtbl.hash, Random, etc. *)
+  | "caml_hash" ->
+    (* Stdlib's Hashtbl calls this to compute a hash. Return
+       a simple polymorphic hash using Object.hashCode() on the
+       boxed value. OCaml's hash is structural; this is coarser
+       but enough to make Hashtbl work at a basic level. *)
+    (match args with
+     | [ _; _; _; Pv v ] | [ Pv v ] | [ Pv v; _ ] ->
+       emit_load ctx v;
+       (match kind_of ctx v with
+        | K_int -> Kind.emit_box_int ctx.code
+        | K_float -> Kind.emit_box_float ctx.code
+        | _ -> ());
+       Jvm.Code.invokevirtual
+         ctx.code
+         ~class_:"java/lang/Object"
+         ~method_:"hashCode"
+         ~descriptor:"()I";
+       (* OCaml hashes to a non-negative 30-bit int; mask. *)
+       Jvm.Code.ldc_int ctx.code 0x3fffffff;
+       Jvm.Code.iand ctx.code;
+       Kind.K_int
+     | _ -> raise (Unsupported "caml_hash arity"))
+  | "caml_string_hash" ->
+    (match args with
+     | [ _; Pv s ] | [ Pv s ] ->
+       emit_load ctx s;
+       Jvm.Code.checkcast ctx.code "java/lang/String";
+       Jvm.Code.invokevirtual
+         ctx.code
+         ~class_:"java/lang/String"
+         ~method_:"hashCode"
+         ~descriptor:"()I";
+       Jvm.Code.ldc_int ctx.code 0x3fffffff;
+       Jvm.Code.iand ctx.code;
+       Kind.K_int
+     | _ -> raise (Unsupported "caml_string_hash arity"))
   | "caml_int64_of_int" | "caml_int32_of_int" | "caml_nativeint_of_int"
   | "caml_int_of_int64" | "caml_int_of_int32" | "caml_int_of_nativeint" ->
     (match args with

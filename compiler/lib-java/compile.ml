@@ -85,6 +85,16 @@ let emit_globals_init code globals =
   for i = 0 to n - 1 do
     match Global_view.inspect_global globals i with
     | G_unsupported -> ()
+    | G_int n ->
+      Jvm.Code.getstatic
+        code
+        ~class_:"Main"
+        ~field:"GLOBALS"
+        ~descriptor:"[Ljava/lang/Object;";
+      Jvm.Code.ldc_int code i;
+      Jvm.Code.ldc_int code n;
+      Kind.emit_box_int code;
+      Jvm.Code.aastore code
     | G_string s ->
       Jvm.Code.getstatic
         code

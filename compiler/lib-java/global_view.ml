@@ -5,6 +5,7 @@ type global_field_value =
   | Gv_block of int * global_field_value list
 
 type global_view =
+  | G_int of int
   | G_string of string
   | G_float of float
   | G_block of int * global_field_value list
@@ -40,7 +41,7 @@ let inspect_global (globals : Obj.t array) n =
     failwith (Printf.sprintf "java_of_ocaml: global index %d out of bounds" n);
   let v = globals.(n) in
   if not (Obj.is_block v)
-  then G_unsupported
+  then G_int (Obj.magic v : int)
   else if Obj.tag v = Obj.string_tag
   then G_string (Obj.magic v : string)
   else if Obj.tag v = Obj.double_tag

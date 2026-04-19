@@ -10,6 +10,7 @@ type global_field_value =
   | Gv_block of int * global_field_value list
 
 type global_view =
+  | G_int of int
   | G_string of string
   | G_float of float
   | G_block of int * global_field_value list
