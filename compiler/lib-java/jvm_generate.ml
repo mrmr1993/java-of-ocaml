@@ -225,14 +225,16 @@ let emit_ccall ctx name args =
        Kind.K_int
      | _ -> raise (Unsupported "caml_string_length arity"))
   | "caml_ml_bytes_length" | "caml_bytes_length" ->
+    (* Accept both Bytes and String at runtime — Stdlib frequently
+       passes Strings via unsafe_of_string. *)
     (match args with
      | [ Pv b ] ->
-       as_bytes b;
-       Jvm.Code.invokevirtual
+       emit_load ctx b;
+       Jvm.Code.invokestatic
          ctx.code
          ~class_:"Bytes"
-         ~method_:"length"
-         ~descriptor:"()I";
+         ~method_:"staticLength"
+         ~descriptor:"(Ljava/lang/Object;)I";
        Kind.K_int
      | _ -> raise (Unsupported "caml_bytes_length arity"))
   | "caml_string_get" ->
@@ -250,13 +252,13 @@ let emit_ccall ctx name args =
   | "caml_bytes_get" ->
     (match args with
      | [ Pv b; Pv i ] ->
-       as_bytes b;
+       emit_load ctx b;
        as_int i;
-       Jvm.Code.invokevirtual
+       Jvm.Code.invokestatic
          ctx.code
          ~class_:"Bytes"
-         ~method_:"get"
-         ~descriptor:"(I)I";
+         ~method_:"staticGet"
+         ~descriptor:"(Ljava/lang/Object;I)I";
        Kind.K_int
      | _ -> raise (Unsupported "caml_bytes_get arity"))
   | "caml_bytes_set" ->
@@ -348,12 +350,12 @@ let emit_ccall ctx name args =
   | "caml_string_of_bytes" ->
     (match args with
      | [ Pv b ] ->
-       as_bytes b;
-       Jvm.Code.invokevirtual
+       emit_load ctx b;
+       Jvm.Code.invokestatic
          ctx.code
          ~class_:"Bytes"
-         ~method_:"asString"
-         ~descriptor:"()Ljava/lang/String;";
+         ~method_:"staticAsString"
+         ~descriptor:"(Ljava/lang/Object;)Ljava/lang/String;";
        Kind.K_string
      | _ -> raise (Unsupported "caml_string_of_bytes arity"))
   | "caml_bytes_of_string" ->
@@ -1347,13 +1349,34 @@ let emit_prim ctx (p : Code.prim) (args : Code.prim_arg list) : Kind.kind =
       ensure_int ctx ka;
       let _ = emit_prim_arg ctx b in
       ensure_int ctx kb;
+      (* Ult / Uge need unsigned semantics; JVM's if_icmp family is
+         signed. Flip the sign bit (JVM 32-bit INT_MIN, which is
+         -2^31, NOT OCaml's 63-bit min_int) on each operand first so
+         [signed compare of (x ^ INT_MIN)] gives the unsigned
+         ordering. Operands are already on the stack at this point,
+         so we XOR each with INT_MIN in place. *)
+      let jvm_int_min = -2147483648 in
+      (match p with
+       | Ult | Uge ->
+         let tmp = ctx.next_local in
+         ctx.next_local <- tmp + 1;
+         Jvm.Code.set_min_locals ctx.code ctx.next_local;
+         Jvm.Code.ldc_int ctx.code jvm_int_min;
+         Jvm.Code.ixor ctx.code;
+         Jvm.Code.istore ctx.code tmp;
+         Jvm.Code.ldc_int ctx.code jvm_int_min;
+         Jvm.Code.ixor ctx.code;
+         Jvm.Code.iload ctx.code tmp
+       | _ -> ());
       match p with
       | Eq -> Jvm.Code.if_icmpeq ctx.code l_true
       | Neq -> Jvm.Code.if_icmpne ctx.code l_true
-      | Lt | Ult -> Jvm.Code.if_icmplt ctx.code l_true
+      | Lt -> Jvm.Code.if_icmplt ctx.code l_true
+      | Ult -> Jvm.Code.if_icmplt ctx.code l_true
       | Le -> Jvm.Code.if_icmple ctx.code l_true
       | Gt -> Jvm.Code.if_icmpgt ctx.code l_true
-      | Ge | Uge -> Jvm.Code.if_icmpge ctx.code l_true
+      | Ge -> Jvm.Code.if_icmpge ctx.code l_true
+      | Uge -> Jvm.Code.if_icmpge ctx.code l_true
       | _ -> assert false);
     Jvm.Code.ldc_int ctx.code 0;
     Jvm.Code.goto_w ctx.code l_end;
@@ -1460,28 +1483,17 @@ let emit_prim ctx (p : Code.prim) (args : Code.prim_arg list) : Kind.kind =
     Jvm.Code.ldc_int ctx.code 0;
     K_int
   | Extern "get_byte", [ a; b ] ->
-    (* Read a byte from a Bytes/String at an int index. *)
-    let ka = emit_prim_arg ctx a in
-    (match ka with
-     | K_string -> ()
-     | _ ->
-       (* fall-back: checkcast Bytes and invoke get(int) *)
-       Jvm.Code.checkcast ctx.code "Bytes");
+    (* Read a byte from a Bytes/String at an int index. OCaml
+       interchanges the two freely via unsafe_of_string; dispatch
+       at runtime through [Bytes.staticGet]. *)
+    let _ = emit_prim_arg ctx a in
     let kb = emit_prim_arg ctx b in
     ensure_int ctx kb;
-    (match ka with
-     | K_string ->
-       Jvm.Code.invokevirtual
-         ctx.code
-         ~class_:"java/lang/String"
-         ~method_:"charAt"
-         ~descriptor:"(I)C"
-     | _ ->
-       Jvm.Code.invokevirtual
-         ctx.code
-         ~class_:"Bytes"
-         ~method_:"get"
-         ~descriptor:"(I)I");
+    Jvm.Code.invokestatic
+      ctx.code
+      ~class_:"Bytes"
+      ~method_:"staticGet"
+      ~descriptor:"(Ljava/lang/Object;I)I";
     K_int
   | Extern ("getmethod" | "getpubmet" | "getdynmet"), _ ->
     (* Matches legacy: throw at runtime rather than compile-time.

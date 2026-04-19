@@ -50,4 +50,33 @@ public class Bytes {
     }
     return true;
   }
+
+  // Bytes/String polymorphism helpers.
+  //
+  // OCaml's Bytes and String share a single runtime representation, so
+  // Stdlib freely interchanges them via [Bytes.unsafe_of_string] /
+  // [Bytes.unsafe_to_string]. Our [Bytes] and [java.lang.String] are
+  // distinct classes, so when Stdlib invokes [caml_bytes_get] (or
+  // similar) on a value that actually flowed in as a String, a direct
+  // [checkcast Bytes] would ClassCastException. These static helpers
+  // accept [Object] and dispatch on the runtime class, treating
+  // Strings as read-only byte sequences.
+  public static int staticLength(Object o) {
+    if (o instanceof Bytes) return ((Bytes) o).sb.length();
+    return ((String) o).length();
+  }
+
+  public static int staticGet(Object o, int i) {
+    if (o instanceof Bytes) return ((Bytes) o).sb.charAt(i);
+    return ((String) o).charAt(i);
+  }
+
+  public static void staticSet(Object o, int i, int c) {
+    ((Bytes) o).sb.setCharAt(i, (char) c);
+  }
+
+  public static String staticAsString(Object o) {
+    if (o instanceof Bytes) return ((Bytes) o).sb.toString();
+    return (String) o;
+  }
 }
