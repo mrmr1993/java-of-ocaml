@@ -9,34 +9,51 @@ only justified once the feature set demands it.
 Add new items as they are spotted. Delete resolved items — git history
 retains them.
 
+## Resolved: structural IR
+
+- **`Code.program` IR** — landed as
+  `compiler/lib-java/code.ml{,i}`, adapted from
+  `js_of_ocaml/compiler/lib/code.ml`. Drops CPS, Event, Special;
+  keeps Var / Addr / constant / expr / instr / last / block /
+  program plus Print and fold_children. `Switch` carries separate
+  int_cases + tag_cases arrays to match OCaml's mixed-dispatch
+  SWITCH semantics.
+- **`Parse_bytecode`** — landed as
+  `compiler/lib-java/parse_bytecode.ml{,i}`. Block-boundary scan
+  via `Instr.branch_targets` + terminator successors; DFS with
+  dynamic target-params promotion; full coverage of the opcode
+  subset `java_of_ocaml` uses.
+- **`Jvm_typing`** (per-Var kind inference) + **`Jvm_generate`**
+  (IR → JVM bytecode) — `compiler/lib-java/jvm_typing.ml{,i}` +
+  `jvm_generate.ml{,i}`. Generate walks blocks in topological
+  order, maintains a Var.t → JVM local map, coerces at block-edge
+  parallel renames (convert-on-assign idiom from jsoo's
+  lib-wasm/generate.ml:1920), and emits JVM bytecode.
+- **Legacy forward-walk emitter retired.** The old `Emit_instr` /
+  `Emit_*` / `Inference` / `Cfg` / `State` modules that walked the
+  bytecode directly and threaded a mutable State are deleted.
+
 ## Deferred: IR-dependent alignments
 
-These all depend on introducing an intermediate representation (either
-a home-grown one or, preferably, adopting `Code.program` from
-`js_of_ocaml-compiler`).
+The IR is in place; these would be natural layered additions.
 
-- **`Code.program` IR** —
-  `js_of_ocaml/compiler/lib/code.ml(i)`. Blocks, variables,
-  instructions, last-terminators, continuations. The single biggest
-  structural divergence from jsoo: our compile pipeline walks the
-  OCaml bytecode stream directly instead of lowering it to an IR
-  first.
-- **`Parse_bytecode.from_exe`** —
-  `js_of_ocaml/compiler/lib/parse_bytecode.mli`. Reads
-  CODE/PRIM/DATA/SYMB and produces `Code.program` directly. A drop-in
-  for `compiler/lib-java/bytecode.ml` once the IR lands, together
-  with `from_cmo` / `from_cma` for separate-compilation inputs.
+- **`Parse_bytecode.from_cmo` / `from_cma`** —
+  `js_of_ocaml/compiler/lib/parse_bytecode.mli`. We currently only
+  read CODE/PRIM/DATA from a full executable. Separate-compilation
+  inputs (cmo / cma) would let us compile libraries without linking
+  them into a bytecode executable first.
 - **`Flow.Info.t` / `Flow.f`** —
   `js_of_ocaml/compiler/lib/flow.ml`. Flow-sensitive
-  constant-propagation and shape facts. A principled successor to our
-  ad-hoc `Inference.infer_return_kind` / `infer_arg_kinds`.
+  constant-propagation and shape facts. Would extend
+  `Jvm_typing`'s forward pass with def-use propagation.
 - **Optimization passes** — `Deadcode`, `Inline`, `Eval`, `Tailcall`,
   `Global_deadcode` in `js_of_ocaml/compiler/lib/`. All
   backend-agnostic; operate on `Code.program → Code.program`.
 - **`Closure_conversion`** —
-  `js_of_ocaml/compiler/lib-wasm/closure_conversion.ml`. Flattens
-  closures to explicit free-variable records; would feed our
-  per-function `Closure` subclass generator.
+  `js_of_ocaml/compiler/lib-wasm/closure_conversion.ml`. Our IR
+  already carries explicit `captures` in `Closure` but a separate
+  conversion pass would give us free-variable analysis and match
+  jsoo's layering.
 - **`Curry`** — `js_of_ocaml/compiler/lib-wasm/curry.ml`. Generates
   arity-specific apply/curry helpers; semantically close to the
   hand-rolled `PartialClosure` + `apply1..apply7` dispatch in
