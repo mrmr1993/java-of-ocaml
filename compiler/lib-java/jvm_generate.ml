@@ -170,11 +170,234 @@ let ensure_int ctx k =
       ~descriptor:"()I"
   | _ -> raise (Unsupported "ensure_int: unexpected kind")
 
+(* ==== Java FFI: dispatch for [java:*] primitive names ====
+
+   The PPX / [Java.Unsafe] module declares [external]s whose C-primitive
+   name is a structured string encoding a JVM operation, e.g.
+   [java:virtual:java/util/ArrayList:add:(Ljava/lang/Object;)Z]. The
+   descriptor is baked into the name, so we can parse it at emit time
+   and produce the right [invoke*] / [getfield] / [new] / ... opcode
+   directly — no extension to the IR, no reflection. *)
+
+(* Parse one JVM field descriptor starting at [i] in [d]. Returns the
+   descriptor substring and the index just after it. *)
+let rec parse_one_type d i =
+  let n = String.length d in
+  if i >= n then failwith "parse_one_type: out of bounds"
+  else
+    match d.[i] with
+    | ('B' | 'C' | 'D' | 'F' | 'I' | 'J' | 'S' | 'Z' | 'V') as c ->
+      String.make 1 c, i + 1
+    | '[' ->
+      let s, j = parse_one_type d (i + 1) in
+      "[" ^ s, j
+    | 'L' ->
+      (match String.index_from_opt d i ';' with
+       | None -> failwith ("parse_one_type: unterminated object type in " ^ d)
+       | Some j -> String.sub d i (j - i + 1), j + 1)
+    | c -> failwith (Printf.sprintf "parse_one_type: bad char %C in %s" c d)
+
+(* Parse a JVM method descriptor "(...)R" → (arg_descs, ret_desc). *)
+let parse_method_desc d =
+  if String.length d < 2 || d.[0] <> '('
+  then failwith ("parse_method_desc: not a method desc: " ^ d);
+  let rec loop i acc =
+    if i >= String.length d then failwith ("parse_method_desc: no ) in " ^ d)
+    else if d.[i] = ')' then List.rev acc, i + 1
+    else
+      let t, j = parse_one_type d i in
+      loop j (t :: acc)
+  in
+  let args, ri = loop 1 [] in
+  let ret, _ = parse_one_type d ri in
+  args, ret
+
+(* Map a JVM return/field descriptor to a [Kind] for the OCaml side. *)
+let kind_of_jvm_desc = function
+  | "I" | "Z" | "B" | "S" | "C" -> Kind.K_int
+  | "D" -> Kind.K_float
+  | "Ljava/lang/String;" -> Kind.K_string
+  | _ -> Kind.K_obj
+
+(* Normalise a class name to internal form (slashes, not dots). The
+   PPX already emits slashed names, but we're defensive. *)
+let intern_class s = String.map (function '.' -> '/' | c -> c) s
+
+(* Take the first [n] elements of a list; return the full list if
+   shorter. Used to drop trailing unit-placeholder args for zero-arg
+   externals. *)
+let rec take_at_most n = function
+  | _ when n <= 0 -> []
+  | [] -> []
+  | x :: xs -> x :: take_at_most (n - 1) xs
+
+(* Emit [pa], then coerce top-of-stack from the producing [Kind] to
+   the JVM slot described by [target]. *)
+let emit_arg_coerced ctx (pa : Code.prim_arg) target =
+  let kind = emit_prim_arg ctx pa in
+  match target with
+  | "I" | "Z" | "B" | "S" | "C" ->
+    (match kind with
+     | Kind.K_int -> ()
+     | _ ->
+       Jvm.Code.checkcast ctx.code "java/lang/Integer";
+       Jvm.Code.invokevirtual
+         ctx.code
+         ~class_:"java/lang/Integer"
+         ~method_:"intValue"
+         ~descriptor:"()I")
+  | "D" ->
+    (match kind with
+     | Kind.K_float -> ()
+     | _ ->
+       Jvm.Code.checkcast ctx.code "java/lang/Double";
+       Jvm.Code.invokevirtual
+         ctx.code
+         ~class_:"java/lang/Double"
+         ~method_:"doubleValue"
+         ~descriptor:"()D")
+  | "Ljava/lang/String;" ->
+    (match kind with
+     | Kind.K_string -> ()
+     | Kind.K_int ->
+       Kind.emit_box_int ctx.code;
+       (* Boxed Integer isn't a String — but user-written bindings
+          may want to let OCaml string flow through via K_obj.
+          Don't checkcast here; leave the verifier to surface a
+          real mismatch. *)
+       Jvm.Code.checkcast ctx.code "java/lang/String"
+     | _ -> Jvm.Code.checkcast ctx.code "java/lang/String")
+  | _ ->
+    (* Reference or array target: box primitives to Object. *)
+    (match kind with
+     | Kind.K_int -> Kind.emit_box_int ctx.code
+     | Kind.K_float -> Kind.emit_box_float ctx.code
+     | _ -> ())
+
+(* After an invoke*, the return descriptor says what's on the stack.
+   For [V], nothing was pushed; emit a 0 so OCaml's unit-shaped caller
+   has something to consume. *)
+let finish_java_return ctx ret =
+  match ret with
+  | "V" ->
+    Jvm.Code.ldc_int ctx.code 0;
+    Kind.K_int
+  | _ -> kind_of_jvm_desc ret
+
+(* Load [this] for an instance op. *)
+let emit_java_this ctx pa class_ =
+  let _ = emit_prim_arg ctx pa in
+  Jvm.Code.checkcast ctx.code class_
+
+(* Dispatch [java:*] primitive. *)
+let emit_java_ffi ctx name (args : Code.prim_arg list) : Kind.kind =
+  let parts = String.split_on_char ':' name in
+  match parts with
+  | [ "java"; "virtual"; class_; method_; descriptor ] ->
+    let class_ = intern_class class_ in
+    let arg_descs, ret = parse_method_desc descriptor in
+    let expected = 1 + List.length arg_descs in
+    let used = take_at_most expected args in
+    (match used with
+     | this_arg :: rest_args when List.length rest_args = List.length arg_descs ->
+       emit_java_this ctx this_arg class_;
+       List.iter2 (emit_arg_coerced ctx) rest_args arg_descs;
+       Jvm.Code.invokevirtual ctx.code ~class_ ~method_ ~descriptor;
+       finish_java_return ctx ret
+     | _ ->
+       raise
+         (Unsupported
+            (Printf.sprintf "java:virtual %s.%s: arity mismatch" class_ method_)))
+  | [ "java"; "static"; class_; method_; descriptor ] ->
+    let class_ = intern_class class_ in
+    let arg_descs, ret = parse_method_desc descriptor in
+    let expected = List.length arg_descs in
+    let used = take_at_most expected args in
+    if List.length used <> expected
+    then
+      raise
+        (Unsupported
+           (Printf.sprintf "java:static %s.%s: arity mismatch" class_ method_));
+    List.iter2 (emit_arg_coerced ctx) used arg_descs;
+    Jvm.Code.invokestatic ctx.code ~class_ ~method_ ~descriptor;
+    finish_java_return ctx ret
+  | [ "java"; "new"; class_; descriptor ] ->
+    let class_ = intern_class class_ in
+    let arg_descs, _ret = parse_method_desc descriptor in
+    let expected = List.length arg_descs in
+    let used = take_at_most expected args in
+    if List.length used <> expected
+    then raise (Unsupported (Printf.sprintf "java:new %s: arity mismatch" class_));
+    Jvm.Code.new_ ctx.code class_;
+    Jvm.Code.dup ctx.code;
+    List.iter2 (emit_arg_coerced ctx) used arg_descs;
+    Jvm.Code.invokespecial ctx.code ~class_ ~method_:"<init>" ~descriptor;
+    Kind.K_obj
+  | [ "java"; "getfield"; class_; field; descriptor ] ->
+    let class_ = intern_class class_ in
+    (match args with
+     | this_arg :: _ ->
+       emit_java_this ctx this_arg class_;
+       Jvm.Code.getfield ctx.code ~class_ ~field ~descriptor;
+       kind_of_jvm_desc descriptor
+     | [] ->
+       raise (Unsupported (Printf.sprintf "java:getfield %s.%s: no this" class_ field)))
+  | [ "java"; "putfield"; class_; field; descriptor ] ->
+    let class_ = intern_class class_ in
+    (match args with
+     | this_arg :: value_arg :: _ ->
+       emit_java_this ctx this_arg class_;
+       emit_arg_coerced ctx value_arg descriptor;
+       Jvm.Code.putfield ctx.code ~class_ ~field ~descriptor;
+       Jvm.Code.ldc_int ctx.code 0;
+       Kind.K_int
+     | _ ->
+       raise
+         (Unsupported
+            (Printf.sprintf "java:putfield %s.%s: need this + value" class_ field)))
+  | [ "java"; "getstatic"; class_; field; descriptor ] ->
+    let class_ = intern_class class_ in
+    Jvm.Code.getstatic ctx.code ~class_ ~field ~descriptor;
+    kind_of_jvm_desc descriptor
+  | [ "java"; "putstatic"; class_; field; descriptor ] ->
+    let class_ = intern_class class_ in
+    (match args with
+     | value_arg :: _ ->
+       emit_arg_coerced ctx value_arg descriptor;
+       Jvm.Code.putstatic ctx.code ~class_ ~field ~descriptor;
+       Jvm.Code.ldc_int ctx.code 0;
+       Kind.K_int
+     | [] ->
+       raise
+         (Unsupported (Printf.sprintf "java:putstatic %s.%s: no value" class_ field)))
+  | [ "java"; "instanceof"; class_ ] ->
+    let class_ = intern_class class_ in
+    (match args with
+     | obj_arg :: _ ->
+       let _ = emit_prim_arg ctx obj_arg in
+       Jvm.Code.instanceof_ ctx.code class_;
+       Kind.K_int
+     | [] -> raise (Unsupported (Printf.sprintf "java:instanceof %s: no arg" class_)))
+  | [ "java"; "checkcast"; class_ ] ->
+    let class_ = intern_class class_ in
+    (match args with
+     | obj_arg :: _ ->
+       let _ = emit_prim_arg ctx obj_arg in
+       Jvm.Code.checkcast ctx.code class_;
+       Kind.K_obj
+     | [] -> raise (Unsupported (Printf.sprintf "java:checkcast %s: no arg" class_)))
+  | _ -> raise (Unsupported ("malformed java:* primitive: " ^ name))
+
 (* Emit a C primitive call by name. Args have already been parsed
    into [prim_arg list]; they're all Pv or Pc. The handler dispatches
    on known primitive names and emits specialised bytecode.
    Unknown names raise [Unsupported]. *)
 let rec emit_ccall ctx name args =
+  if String.length name >= 5 && String.sub name 0 5 = "java:"
+  then emit_java_ffi ctx name args
+  else emit_ccall_named ctx name args
+
+and emit_ccall_named ctx name args =
   let load_args_obj () =
     List.iter
       (fun pa ->
