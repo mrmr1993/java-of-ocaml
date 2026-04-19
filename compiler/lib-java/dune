@@ -2,12 +2,28 @@
  (name java_of_ocaml_compiler)
  (public_name java_of_ocaml.compiler)
  (libraries java_of_ocaml_runtime_bytes compiler-libs.bytecomp)
- (modules :standard \ gen_known_prims)
+ (modules :standard \ gen_known_prims bytecode_compat_4 bytecode_compat_5)
  (wrapped true))
 
 (executable
  (name gen_known_prims)
  (modules gen_known_prims))
+
+; Pick the right compiler-libs shim for the ambient OCaml compiler
+; version. 4.14 uses [Reloc_getglobal of Ident.t] + [cu_required_globals];
+; 5.x uses [Reloc_getcompunit of compunit] + [cu_required_compunits].
+; Both implementations produce the same normalised [Bytecode_compat]
+; interface (mli alongside), so the rest of the compiler never sees
+; [Cmo_format.*] directly.
+(rule
+ (enabled_if (< %{ocaml_version} "5"))
+ (target bytecode_compat.ml)
+ (action (copy# bytecode_compat_4.ml %{target})))
+
+(rule
+ (enabled_if (>= %{ocaml_version} "5"))
+ (target bytecode_compat.ml)
+ (action (copy# bytecode_compat_5.ml %{target})))
 
 ; Scan [jvm_generate.ml] for the primitive names [emit_ccall]
 ; handles and emit [known_prims.ml], a trivial list consumed by the

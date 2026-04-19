@@ -500,7 +500,11 @@ let prim_index t name =
    Relocation offsets in the on-disk format are in *bytes*; we
    divide by 4 here so callers can index directly into [cu_code]. *)
 
-type reloc =
+(* The [reloc] / [cu_header] types + the version-coupled
+   [Cmo_format.*] reading live in [Bytecode_compat] (one impl per
+   OCaml major version, selected at build time). Everything in this
+   file consumes only the normalised shim interface. *)
+type reloc = Bytecode_compat.reloc =
   | Reloc_literal of Obj.t
   | Reloc_getcompunit of string
   | Reloc_getpredef of string
@@ -522,19 +526,6 @@ type channel_contents =
   | Exe of t
   | Cmo of unit_info
   | Cma of unit_info list
-
-let compunit_name : Cmo_format.compunit -> string = function
-  | Compunit s -> s
-
-let predef_name : Cmo_format.predef -> string = function
-  | Predef_exn s -> s
-
-let reloc_of_cmo : Cmo_format.reloc_info -> reloc = function
-  | Reloc_literal obj -> Reloc_literal obj
-  | Reloc_getcompunit c -> Reloc_getcompunit (compunit_name c)
-  | Reloc_getpredef p -> Reloc_getpredef (predef_name p)
-  | Reloc_setcompunit c -> Reloc_setcompunit (compunit_name c)
-  | Reloc_primitive s -> Reloc_primitive s
 
 (* Decode [len] bytes of code (at the channel's current position) as
    little-endian signed int32 words. Mirrors [read_exe]'s CODE-section
@@ -566,7 +557,7 @@ let read_unit_debug ic ~orig table =
       then Hashtbl.replace table pc { file; line; modname = ev.ev_module })
     evl
 
-let convert_compunit ic (cu : Cmo_format.compilation_unit) : unit_info =
+let convert_compunit ic (cu : Bytecode_compat.cu_header) : unit_info =
   seek_in ic cu.cu_pos;
   let cu_code = read_code ic cu.cu_codesize in
   let cu_debug = Hashtbl.create 16 in
@@ -574,23 +565,12 @@ let convert_compunit ic (cu : Cmo_format.compilation_unit) : unit_info =
   then (
     seek_in ic cu.cu_debug;
     read_unit_debug ic ~orig:0 cu_debug);
-  let cu_reloc =
-    List.map
-      (fun (info, byte_off) -> reloc_of_cmo info, byte_off / 4)
-      cu.cu_reloc
-  in
-  let cu_imports =
-    List.map
-      (fun (n, crc) -> n, crc)
-      cu.cu_imports
-  in
-  let cu_required = List.map compunit_name cu.cu_required_compunits in
-  { cu_name = compunit_name cu.cu_name
+  { cu_name = cu.cu_name
   ; cu_code
   ; cu_prims = Array.of_list cu.cu_primitives
-  ; cu_reloc
-  ; cu_imports
-  ; cu_required
+  ; cu_reloc = List.map (fun (info, byte_off) -> info, byte_off / 4) cu.cu_reloc
+  ; cu_imports = cu.cu_imports
+  ; cu_required = cu.cu_required
   ; cu_force_link = cu.cu_force_link
   ; cu_debug
   }
@@ -611,7 +591,7 @@ let read_cmo path =
       seek_in ic (String.length Config.cmo_magic_number);
       let compunit_pos = input_binary_int ic in
       seek_in ic compunit_pos;
-      let cu : Cmo_format.compilation_unit = input_value ic in
+      let cu = Bytecode_compat.read_compunit ic in
       convert_compunit ic cu)
 
 let read_cma path =
@@ -623,8 +603,8 @@ let read_cma path =
       seek_in ic (String.length Config.cma_magic_number);
       let toc_pos = input_binary_int ic in
       seek_in ic toc_pos;
-      let lib : Cmo_format.library = input_value ic in
-      List.map (convert_compunit ic) lib.lib_units)
+      let units = Bytecode_compat.read_library ic in
+      List.map (convert_compunit ic) units)
 
 let read_file path =
   let ic = open_in_bin path in
