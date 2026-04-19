@@ -59,6 +59,31 @@ let%expect_test "compose + curry a primitive across modules" =
     f(5)=11
     sum=15 |}]
 
+let%expect_test "5-ary C primitive through PartialClosure chain" =
+  (* Forces [caml_blit_string]'s arity-5 check in [jvm_generate]'s
+     [emit_ccall] to fire on a saturated call that only reaches it
+     via the PartialClosure runtime — not a direct CCALL5 at the
+     source. If the closure / partial-closure chain miscounts args,
+     the primitive raises [Unsupported "caml_blit_string arity"]
+     at emit time (fails the build) or the JVM fires verifier /
+     runtime errors at the CCALL site. *)
+  compile_and_run
+    {| external blit_string :
+         string -> int -> bytes -> int -> int -> unit
+         = "caml_blit_string"
+       let () =
+         let buf = Bytes.make 10 '.' in
+         let partial4 = blit_string "hello" 0 buf 0 in
+         partial4 5;
+         Printf.printf "blit: %s\n" (Bytes.unsafe_to_string buf);
+         let buf2 = Bytes.make 20 '.' in
+         let blit3 = blit_string "abc" 0 buf2 in
+         List.iter (fun off -> blit3 off 3) [0; 5; 10];
+         Printf.printf "multi: %s\n" (Bytes.unsafe_to_string buf2) |};
+  [%expect {|
+    blit: hello.....
+    multi: abc..abc..abc....... |}]
+
 let%expect_test "polymorphic compare as first-class" =
   compile_and_run
     {| let () =
