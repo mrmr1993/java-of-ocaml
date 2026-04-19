@@ -8,8 +8,6 @@ let debug_times = Debug.find "times"
 let debug_primitives = Debug.find "primitives"
 let debug_functions = Debug.find "functions"
 let debug_labels = Debug.find "labels"
-let debug_ir = Debug.find "ir"
-let debug_ir_gen = Debug.find "ir_gen"
 let debug_ir_emit = Debug.find "ir_emit"
 
 (* IR emission is on by default. Set [JAVA_OF_OCAML_IR=0] to disable
@@ -26,84 +24,6 @@ let ir_emit_enabled () =
    logged under the [ir] debug flag and otherwise silent; opcodes we
    haven't ported yet (CLOSURE, PUSHTRAP, SWITCH, ENVACC, ...) raise
    [Not_supported], which is expected. *)
-let ir_smoke_function
-    arr
-    ~(name_of_body : int -> string)
-    ~(fn_info_of_body : int -> Function_info.function_info option)
-    ~(prim_name : int -> string)
-    (fi : Function_info.function_info)
-  =
-  if not (debug_ir ())
-  then ()
-  else (
-    let body_pc = arr.(fi.body_start_idx).pc in
-    let end_pc = arr.(fi.body_end_idx).pc in
-    let instrs = Array.to_list arr in
-    try
-      let prog, _params, env_var =
-        Parse_bytecode.parse_function
-          instrs
-          ~start_pc:body_pc
-          ~end_pc:(end_pc + 1)
-          ~nargs:fi.nargs
-          ~ncaps:fi.ncaps
-      in
-      Format.eprintf "[ir] %s: parsed ok@." fi.name;
-      if debug_ir_gen ()
-      then (
-        let cp = Jvm.Cp.create () in
-        let code = Jvm.Code.create cp in
-        let typing = Jvm_typing.infer prog in
-        (try
-           Jvm_generate.emit_program
-             ~code
-             ~typing
-             ~name_of_body
-             ~fn_info_of_body
-             ~prim_name
-             ~enclosing:(fi, env_var)
-             prog;
-           Format.eprintf "[ir_gen] %s: emitted ok@." fi.name
-         with Jvm_generate.Unsupported msg ->
-           Format.eprintf "[ir_gen] %s: Unsupported — %s@." fi.name msg))
-    with
-    | Parse_bytecode.Not_supported msg ->
-      Format.eprintf "[ir] %s: Not_supported — %s@." fi.name msg
-    | exn ->
-      Format.eprintf
-        "[ir] %s: unexpected exception — %s@."
-        fi.name
-        (Printexc.to_string exn))
-
-let ir_smoke_main arr ~name_of_body ~fn_info_of_body ~prim_name ~fn_body_pcs =
-  let _ = name_of_body in
-  let _ = fn_info_of_body in
-  let _ = prim_name in
-  if not (debug_ir ())
-  then ()
-  else (
-    let instrs =
-      Array.to_list arr
-      |> List.filter (fun (ins : Instr.instr) ->
-           not (Hashtbl.mem fn_body_pcs ins.pc))
-    in
-    match instrs with
-    | [] -> ()
-    | first :: _ ->
-      let start_pc = first.pc in
-      let last = List.nth instrs (List.length instrs - 1) in
-      let end_pc = last.pc + 1 in
-      (try
-         let _prog = Parse_bytecode.parse_main instrs ~start_pc ~end_pc in
-         Format.eprintf "[ir] main: parsed ok@."
-       with
-       | Parse_bytecode.Not_supported msg ->
-         Format.eprintf "[ir] main: Not_supported — %s@." msg
-       | exn ->
-         Format.eprintf
-           "[ir] main: unexpected exception — %s@."
-           (Printexc.to_string exn)))
-
 let time_phase name f =
   if not (debug_times ())
   then f ()
@@ -365,28 +285,6 @@ let compile ~bc ~out_dir =
   List.iter
     (fun (fi : function_info) -> Hashtbl.add fn_by_name fi.name fi)
     !func_list;
-  if debug_ir ()
-  then (
-    let body_pc_to_fi = Hashtbl.create 64 in
-    List.iter
-      (fun (fi : function_info) -> Hashtbl.replace body_pc_to_fi fi.body_pc fi)
-      !func_list;
-    let name_of_body pc =
-      match Hashtbl.find_opt body_pc_to_fi pc with
-      | Some fi -> fi.name
-      | None -> raise Not_found
-    in
-    let fn_info_of_body pc = Hashtbl.find_opt body_pc_to_fi pc in
-    let prim_name idx =
-      if idx < 0 || idx >= Array.length parsed.prims
-      then raise Not_found
-      else parsed.prims.(idx)
-    in
-    ir_smoke_main arr ~name_of_body ~fn_info_of_body ~prim_name ~fn_body_pcs;
-    List.iter
-      (fun fi ->
-        ir_smoke_function arr ~name_of_body ~fn_info_of_body ~prim_name fi)
-      !func_list);
   time_phase "kind-inference" (fun () ->
     List.iter
       (fun (fi : function_info) ->
