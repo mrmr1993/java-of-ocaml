@@ -1092,6 +1092,36 @@ let emit_ccall ctx name args =
        Jvm.Code.ldc_int ctx.code 0;
        Kind.K_int
      | _ -> raise (Unsupported "caml_ml_output_bytes arity"))
+  | "caml_floatarray_create" | "caml_make_float_vect" ->
+    (* [arr = new Object[n]; Arrays.fill(arr, Double.valueOf(0.0)); return
+       new Block(Double_array_tag, arr)]. *)
+    (match args with
+     | [ Pv n ] ->
+       let arr_local = ctx.next_local in
+       ctx.next_local <- arr_local + 1;
+       Jvm.Code.set_min_locals ctx.code ctx.next_local;
+       as_int n;
+       Jvm.Code.anewarray ctx.code "java/lang/Object";
+       Jvm.Code.astore ctx.code arr_local;
+       Jvm.Code.aload ctx.code arr_local;
+       Jvm.Code.ldc_double ctx.code 0.0;
+       Kind.emit_box_float ctx.code;
+       Jvm.Code.invokestatic
+         ctx.code
+         ~class_:"java/util/Arrays"
+         ~method_:"fill"
+         ~descriptor:"([Ljava/lang/Object;Ljava/lang/Object;)V";
+       Jvm.Code.new_ ctx.code "Block";
+       Jvm.Code.dup ctx.code;
+       Jvm.Code.ldc_int ctx.code 254;
+       Jvm.Code.aload ctx.code arr_local;
+       Jvm.Code.invokespecial
+         ctx.code
+         ~class_:"Block"
+         ~method_:"<init>"
+         ~descriptor:"(I[Ljava/lang/Object;)V";
+       Kind.K_obj
+     | _ -> raise (Unsupported "caml_floatarray_create arity"))
   | "caml_array_make" | "caml_make_vect" ->
     (* [arr = new Object[n]; Arrays.fill(arr, boxed(init)); return new
        Block(0, arr)]. Use a temp local to save the array across the
