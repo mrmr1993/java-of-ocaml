@@ -15,6 +15,7 @@ type ctx =
   ; fn_info_of_body : int -> Function_info.function_info option
   ; prim_name : int -> string
   ; enclosing : (Function_info.function_info * Code.Var.t) option
+  ; fresh_oo_id : int ref
   ; mutable next_local : int
   }
 
@@ -647,6 +648,66 @@ let emit_ccall ctx name args =
        Jvm.Code.ldc_int ctx.code 0;
        Kind.K_int
      | _ -> raise (Unsupported "caml_classify_float arity"))
+  | "caml_java_print_int" ->
+    (match args with
+     | [ Pv n ] ->
+       Jvm.Code.getstatic
+         ctx.code
+         ~class_:"java/lang/System"
+         ~field:"out"
+         ~descriptor:"Ljava/io/PrintStream;";
+       as_int n;
+       Jvm.Code.invokevirtual
+         ctx.code
+         ~class_:"java/io/PrintStream"
+         ~method_:"println"
+         ~descriptor:"(I)V";
+       Jvm.Code.ldc_int ctx.code 0;
+       Kind.K_int
+     | _ -> raise (Unsupported "caml_java_print_int arity"))
+  | "caml_java_print_endline" ->
+    (match args with
+     | [ Pv s ] ->
+       Jvm.Code.getstatic
+         ctx.code
+         ~class_:"java/lang/System"
+         ~field:"out"
+         ~descriptor:"Ljava/io/PrintStream;";
+       as_string s;
+       Jvm.Code.invokevirtual
+         ctx.code
+         ~class_:"java/io/PrintStream"
+         ~method_:"println"
+         ~descriptor:"(Ljava/lang/String;)V";
+       Jvm.Code.ldc_int ctx.code 0;
+       Kind.K_int
+     | _ -> raise (Unsupported "caml_java_print_endline arity"))
+  | "caml_java_print_float" ->
+    (match args with
+     | [ Pv f ] ->
+       Jvm.Code.getstatic
+         ctx.code
+         ~class_:"java/lang/System"
+         ~field:"out"
+         ~descriptor:"Ljava/io/PrintStream;";
+       emit_load ctx f;
+       (match kind_of ctx f with
+        | K_float -> ()
+        | _ ->
+          Jvm.Code.checkcast ctx.code "java/lang/Double";
+          Jvm.Code.invokevirtual
+            ctx.code
+            ~class_:"java/lang/Double"
+            ~method_:"doubleValue"
+            ~descriptor:"()D");
+       Jvm.Code.invokevirtual
+         ctx.code
+         ~class_:"java/io/PrintStream"
+         ~method_:"println"
+         ~descriptor:"(D)V";
+       Jvm.Code.ldc_int ctx.code 0;
+       Kind.K_int
+     | _ -> raise (Unsupported "caml_java_print_float arity"))
   | "caml_int_of_string" ->
     (match args with
      | [ Pv s ] ->
@@ -1003,9 +1064,13 @@ let emit_ccall ctx name args =
        Kind.K_obj
      | _ -> raise (Unsupported "caml_obj_dup arity"))
   | "caml_fresh_oo_id" ->
-    (* OCaml runtime counter; increment and return. We use a static
-       counter on Main for simplicity. *)
-    raise (Unsupported "caml_fresh_oo_id (needs Main counter)")
+    (* Compile-time counter — stable enough because module init is
+       the only caller and runs once at Main.main entry. Matches
+       legacy. *)
+    let n = !(ctx.fresh_oo_id) in
+    ctx.fresh_oo_id := n + 1;
+    Jvm.Code.ldc_int ctx.code n;
+    Kind.K_int
   | _ ->
     (* Unknown C primitive: emit a runtime-throwing stub rather than
        falling back to the legacy emitter. Matches what legacy does
@@ -1732,6 +1797,8 @@ let emit_last ctx prog (l : Code.last) =
     emit_cont ctx prog c
 
 let emit_block ctx prog addr (b : Code.block) =
+  if debug_ir_gen_trace
+  then Format.eprintf "[ir_gen_trace] emit_block addr=%d@." addr;
   (* Ensure each param has a local allocated. *)
   List.iter (fun v -> ignore (local_of ctx v)) b.params;
   Jvm.Code.mark_label ctx.code (label_of ctx addr);
@@ -1757,6 +1824,7 @@ let emit_program
     ; fn_info_of_body
     ; prim_name
     ; enclosing
+    ; fresh_oo_id = ref 0
     ; next_local = 1
     }
   in

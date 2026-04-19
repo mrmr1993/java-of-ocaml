@@ -877,12 +877,11 @@ let step (state : state) (ins : Instr.instr) : last option =
     let n = args.(0) in
     let call_args = take_args state n in
     set_accu_let state (Apply { f; args = call_args; exact = false });
-    (* Pop the 3 PUSH_RETADDR dummies. *)
+    (* Pop the 3 PUSH_RETADDR dummies — may be [Dummy] (straight-line
+       case) or [V _] (dummies materialised by a cross-block edge's
+       [s_to_list] into Null-bound Vars). Accept either. *)
     for _ = 1 to 3 do
-      match pop state with
-      | Dummy -> ()
-      | V _ ->
-        raise (Not_supported "APPLY: expected Dummy retaddr slots")
+      ignore (pop state)
     done;
     None)
   (* Terminators *)
@@ -1050,6 +1049,15 @@ let process_block state start_pc next_starts addr_map =
 
 let parse_generic_with_stack instrs ~start_pc ~end_pc ~initial_stack ~env =
   let starts = block_starts instrs ~start_pc ~end_pc in
+  if Lazy.force trace_enabled
+  then (
+    let near_1354 =
+      IntSet.filter (fun p -> abs (p - 1354) < 15) starts
+      |> IntSet.elements
+      |> List.map string_of_int
+      |> String.concat ","
+    in
+    Format.eprintf "[ir_trace] block_starts near 1354: %s@." near_1354);
   let addr_map = build_addr_map instrs in
   let start_accu = Var.fresh () in
   let state =
@@ -1113,24 +1121,37 @@ let parse_generic_with_stack instrs ~start_pc ~end_pc ~initial_stack ~env =
     Hashtbl.iter
       (fun pc _ ->
         if not (Hashtbl.mem visited pc)
-        && IntMap.mem pc addr_map
-        then visit pc)
+        then (
+          if IntMap.mem pc addr_map
+          then visit pc
+          else if Lazy.force trace_enabled
+          then
+            Format.eprintf
+              "[ir_trace] target_params has pc=%d but no instr in \
+               addr_map@."
+              pc))
       state.target_params
   in
   visit start_pc;
-  let starts = !starts_ref in
-  (* Any blocks not reached by DFS — unlikely in well-formed bytecode
-     but guard against orphans. *)
-  IntSet.iter
-    (fun pc ->
-      if not (Hashtbl.mem visited pc)
-      then (
-        Hashtbl.add visited pc ();
-        try
-          let blk = process_block state pc starts addr_map in
-          blocks := Addr.Map.add pc blk !blocks
-        with Not_supported _ -> ()))
-    starts;
+  (* Any [target_params] entry that's still unvisited after the DFS
+     represents a cont that someone produced but whose target
+     didn't get reached. That can happen if the initial
+     [block_starts] had [pc X] registered as a block boundary (e.g.
+     a PC-after-terminator), and a cont to [pc X] was emitted, but
+     [visit] treated [pc X] as a dead orphan because it wasn't
+     reachable from [start_pc]. Process such PCs here so their
+     labels get properly marked — otherwise emit_program sees a
+     referenced-but-unmarked label. *)
+  let pending =
+    Hashtbl.fold
+      (fun pc _ acc ->
+        if Hashtbl.mem visited pc || not (IntMap.mem pc addr_map)
+        then acc
+        else pc :: acc)
+      state.target_params
+      []
+  in
+  List.iter visit pending;
   { start = start_pc; blocks = !blocks; free_pc = end_pc }
 
 let parse_function instrs ~start_pc ~end_pc ~nargs ~ncaps =

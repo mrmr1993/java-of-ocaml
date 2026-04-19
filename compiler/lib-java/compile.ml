@@ -7,7 +7,6 @@ open State
 let debug_times = Debug.find "times"
 let debug_primitives = Debug.find "primitives"
 let debug_functions = Debug.find "functions"
-let debug_labels = Debug.find "labels"
 let debug_ir_emit = Debug.find "ir_emit"
 
 (* IR emission is on by default. Set [JAVA_OF_OCAML_IR=0] to disable
@@ -316,22 +315,35 @@ let compile ~bc ~out_dir =
   let post_end_pc =
     if end_idx + 1 < Array.length arr then arr.(end_idx + 1).pc else max_int
   in
-  let pc_to_label =
-    collect_pc_to_label
-      main_code
-      ~arr
-      ~scan_range:(start_idx, end_idx)
-      ~target_range:(arr.(start_idx).pc, post_end_pc)
-      ~skip_pcs:fn_body_pcs
+  (* Lazy [pc_to_label] allocation: only materialise labels in
+     [main_code] if we actually take the legacy emission path.
+     Allocating eagerly produces unmarked labels when IR wins (its
+     generator doesn't consume [pc_to_label]), which triggers
+     [label N referenced but never marked] at class-file assembly. *)
+  let pc_to_label_cell = ref None in
+  let pc_to_label () =
+    match !pc_to_label_cell with
+    | Some t -> t
+    | None ->
+      let t =
+        collect_pc_to_label
+          main_code
+          ~arr
+          ~scan_range:(start_idx, end_idx)
+          ~target_range:(arr.(start_idx).pc, post_end_pc)
+          ~skip_pcs:fn_body_pcs
+      in
+      pc_to_label_cell := Some t;
+      t
   in
-  let state =
+  let make_legacy_state () =
     { code = main_code
     ; globals = parsed.globals
     ; prims = parsed.prims
     ; supported_prims = prim_table
     ; functions
     ; fn_by_name
-    ; pc_to_label
+    ; pc_to_label = pc_to_label ()
     ; branch_target_state = Hashtbl.create 4
     ; cfg = None
     ; block_params = Hashtbl.create 0
@@ -339,7 +351,7 @@ let compile ~bc ~out_dir =
     ; acc_kind = K_int
     ; slots = []
     ; oc_stack_depth = 0
-    ; next_local = 1 (* local 0 reserved for [String[] args] *)
+    ; next_local = 1
     ; pending_cmp = None
     ; nargs = 0
     ; ncaps = 0
@@ -349,16 +361,10 @@ let compile ~bc ~out_dir =
     ; open_traps = []
     ; fresh_oo_id_counter
     ; pending_retaddrs = 0
-        ; last_was_terminator = true
-        ; slot_obj_locals = Hashtbl.create 8
+    ; last_was_terminator = true
+    ; slot_obj_locals = Hashtbl.create 8
     }
   in
-  if debug_labels ()
-  then
-    Hashtbl.iter
-      (fun pc lbl ->
-        Format.eprintf "[main] label_id=%d at pc=%d@." (Jvm.Code.label_id lbl) pc)
-      pc_to_label;
   time_phase "emit-main" (fun () ->
     let body_pc_to_fi = Hashtbl.create 64 in
     List.iter
@@ -444,8 +450,9 @@ let compile ~bc ~out_dir =
          prog
      | None ->
        emit_globals_init main_code parsed.globals;
+       let state = make_legacy_state () in
        emit_range state arr (start_idx, end_idx) ~skip_pcs:fn_body_pcs;
-       (match Hashtbl.find_opt pc_to_label post_end_pc with
+       (match Hashtbl.find_opt state.pc_to_label post_end_pc with
         | Some lbl -> Jvm.Code.mark_label main_code lbl
         | None -> ());
        drop_live_acc state;
