@@ -77,6 +77,45 @@ let%expect_test "link assigns predef slots + compunit slot + literals" =
     [14] int 0
     |}]
 
+(* End-to-end smoke: the compile CLI accepts a [.cmo], routes it
+   through the linker, and writes the expected class files. The
+   program cannot execute — unknown-compunit placeholder slots
+   (e.g. Stdlib) are not filled in — but emission itself must
+   succeed. Integration blocker lands once a precompiled Stdlib is
+   available. *)
+let%expect_test "compile accepts a .cmo and emits class files" =
+  Util.with_temp_dir ~f:(fun () ->
+      let oc = open_out "unit.ml" in
+      (* A trivial unit with no external references. Still gets a
+         Stdlib getcompunit reloc for module init, which the linker
+         resolves to a placeholder slot. *)
+      output_string oc "let answer = 42\n";
+      close_out oc;
+      let cmo =
+        Util.compile_ocaml_to_cmo
+          (Util.Filetype.ocaml_file_of_path "unit.ml")
+      in
+      let _cls = Util.compile_cmo_to_class cmo in
+      let files =
+        Sys.readdir (Filename.dirname (Util.Filetype.path_of_cmo_file cmo))
+        |> Array.to_list
+        |> List.filter (fun n -> Filename.check_suffix n ".class")
+        |> List.sort compare
+      in
+      List.iter print_endline files);
+  [%expect
+    {|
+    Block.class
+    Bytes.class
+    CamlException.class
+    Channel.class
+    Closure.class
+    Compare.class
+    Format.class
+    Main.class
+    PartialClosure.class
+    |}]
+
 let%expect_test "link de-duplicates primitives across two units" =
   Util.with_temp_dir ~f:(fun () ->
       let oc = open_out "a.ml" in

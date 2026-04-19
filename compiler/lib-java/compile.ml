@@ -178,11 +178,12 @@ let emit_globals_init code globals =
 let compile_t ~parsed ~out_dir =
   let total = if debug_times () then Some (Timer.make ()) else None in
   let prim_table = Prim.find_supported_prims parsed in
-  if Hashtbl.length prim_table = 0
-  then
-    failwith
-      "java_of_ocaml: bytecode references none of the supported primitives \
-       (caml_java_print_endline, caml_java_print_int, ...).";
+  (* A zero-primitive input is legitimate for separate-compilation
+     inputs: a [.cmo]'s [cu_primitives] only lists C primitives
+     directly declared by [external] in that unit, and most user
+     modules declare none. The full primitive table only appears
+     once Stdlib (and anything else providing C stubs) is in the
+     link. Downstream passes cope with an empty table. *)
   if debug_primitives ()
   then (
     Format.eprintf "[primitives] resolved %d:@." (Hashtbl.length prim_table);
