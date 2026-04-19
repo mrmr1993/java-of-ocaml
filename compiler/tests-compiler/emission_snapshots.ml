@@ -1137,688 +1137,675 @@ let%expect_test "emission: println of a string literal" =
         2196: aload         112
         2198: invokespecial #232                // Method ocaml_fn_64."<init>":(Ljava/lang/Object;Ljava/lang/Object;)V
         2201: astore        116
-        2203: new           #14                 // class Block
+        2203: new           #234                // class ocaml_fn_65
         2206: dup
-        2207: iconst_0
-        2208: iconst_0
-        2209: anewarray     #16                 // class java/lang/Object
-        2212: invokespecial #19                 // Method Block."<init>":(I[Ljava/lang/Object;)V
-        2215: astore        117
-        2217: new           #234                // class ocaml_fn_65
-        2220: dup
-        2221: invokespecial #235                // Method ocaml_fn_65."<init>":()V
-        2224: astore        118
-        2226: new           #237                // class ocaml_fn_66
-        2229: dup
-        2230: aload         56
-        2232: invokespecial #238                // Method ocaml_fn_66."<init>":(Ljava/lang/Object;)V
-        2235: astore        119
-        2237: new           #14                 // class Block
-        2240: dup
-        2241: iconst_0
-        2242: iconst_1
-        2243: anewarray     #16                 // class java/lang/Object
-        2246: dup
-        2247: iconst_0
-        2248: aload         81
-        2250: aastore
-        2251: invokespecial #19                 // Method Block."<init>":(I[Ljava/lang/Object;)V
-        2254: astore        120
-        2256: new           #240                // class ocaml_fn_67
-        2259: dup
-        2260: aload         120
-        2262: invokespecial #241                // Method ocaml_fn_67."<init>":(Ljava/lang/Object;)V
-        2265: astore        121
-        2267: new           #243                // class ocaml_fn_68
-        2270: dup
-        2271: invokespecial #244                // Method ocaml_fn_68."<init>":()V
-        2274: astore        122
-        2276: new           #14                 // class Block
-        2279: dup
-        2280: iconst_0
-        2281: iconst_1
-        2282: anewarray     #16                 // class java/lang/Object
-        2285: dup
-        2286: iconst_0
+        2207: invokespecial #235                // Method ocaml_fn_65."<init>":()V
+        2210: astore        117
+        2212: new           #237                // class ocaml_fn_66
+        2215: dup
+        2216: aload         56
+        2218: invokespecial #238                // Method ocaml_fn_66."<init>":(Ljava/lang/Object;)V
+        2221: astore        118
+        2223: new           #14                 // class Block
+        2226: dup
+        2227: iconst_0
+        2228: iconst_1
+        2229: anewarray     #16                 // class java/lang/Object
+        2232: dup
+        2233: iconst_0
+        2234: aload         81
+        2236: aastore
+        2237: invokespecial #19                 // Method Block."<init>":(I[Ljava/lang/Object;)V
+        2240: astore        119
+        2242: new           #240                // class ocaml_fn_67
+        2245: dup
+        2246: aload         119
+        2248: invokespecial #241                // Method ocaml_fn_67."<init>":(Ljava/lang/Object;)V
+        2251: astore        120
+        2253: new           #243                // class ocaml_fn_68
+        2256: dup
+        2257: invokespecial #244                // Method ocaml_fn_68."<init>":()V
+        2260: astore        121
+        2262: new           #14                 // class Block
+        2265: dup
+        2266: iconst_0
+        2267: iconst_1
+        2268: anewarray     #16                 // class java/lang/Object
+        2271: dup
+        2272: iconst_0
+        2273: aload         121
+        2275: aastore
+        2276: invokespecial #19                 // Method Block."<init>":(I[Ljava/lang/Object;)V
+        2279: astore        122
+        2281: new           #246                // class ocaml_fn_69
+        2284: dup
+        2285: aload         119
         2287: aload         122
-        2289: aastore
-        2290: invokespecial #19                 // Method Block."<init>":(I[Ljava/lang/Object;)V
-        2293: astore        123
-        2295: new           #246                // class ocaml_fn_69
-        2298: dup
-        2299: aload         120
-        2301: aload         123
-        2303: invokespecial #247                // Method ocaml_fn_69."<init>":(Ljava/lang/Object;Ljava/lang/Object;)V
-        2306: astore        124
-        2308: new           #249                // class ocaml_fn_70
-        2311: dup
-        2312: aload         124
-        2314: invokespecial #250                // Method ocaml_fn_70."<init>":(Ljava/lang/Object;)V
-        2317: astore        125
-        2319: getstatic     #25                 // Field GLOBALS:[Ljava/lang/Object;
-        2322: bipush        44
-        2324: aaload
-        2325: astore        126
-        2327: iconst_0
-        2328: invokestatic  #31                 // Method java/lang/Integer.valueOf:(I)Ljava/lang/Integer;
-        2331: astore        127
-        2333: new           #252                // class ocaml_fn_71
-        2336: dup
-        2337: invokespecial #253                // Method ocaml_fn_71."<init>":()V
-        2340: astore        128
-        2342: new           #255                // class ocaml_fn_72
-        2345: dup
-        2346: invokespecial #256                // Method ocaml_fn_72."<init>":()V
-        2349: astore        129
-        2351: new           #258                // class ocaml_fn_73
-        2354: dup
-        2355: invokespecial #259                // Method ocaml_fn_73."<init>":()V
-        2358: astore        130
-        2360: new           #261                // class ocaml_fn_74
-        2363: dup
-        2364: invokespecial #262                // Method ocaml_fn_74."<init>":()V
-        2367: astore        131
-        2369: new           #264                // class ocaml_fn_75
-        2372: dup
-        2373: invokespecial #265                // Method ocaml_fn_75."<init>":()V
-        2376: astore        132
-        2378: new           #267                // class ocaml_fn_76
-        2381: dup
-        2382: invokespecial #268                // Method ocaml_fn_76."<init>":()V
-        2385: astore        133
-        2387: new           #14                 // class Block
-        2390: dup
-        2391: iconst_0
-        2392: bipush        6
-        2394: anewarray     #16                 // class java/lang/Object
-        2397: dup
-        2398: iconst_0
-        2399: aload         133
-        2401: aastore
-        2402: dup
-        2403: iconst_1
-        2404: aload         132
-        2406: aastore
-        2407: dup
-        2408: iconst_2
-        2409: aload         131
-        2411: aastore
-        2412: dup
-        2413: iconst_3
-        2414: aload         130
-        2416: aastore
-        2417: dup
-        2418: iconst_4
-        2419: aload         129
-        2421: aastore
-        2422: dup
-        2423: iconst_5
-        2424: aload         128
-        2426: aastore
-        2427: invokespecial #19                 // Method Block."<init>":(I[Ljava/lang/Object;)V
-        2430: astore        134
-        2432: new           #270                // class ocaml_fn_77
-        2435: dup
-        2436: invokespecial #271                // Method ocaml_fn_77."<init>":()V
-        2439: astore        135
-        2441: new           #273                // class ocaml_fn_78
-        2444: dup
-        2445: invokespecial #274                // Method ocaml_fn_78."<init>":()V
-        2448: astore        136
-        2450: new           #276                // class ocaml_fn_79
-        2453: dup
-        2454: invokespecial #277                // Method ocaml_fn_79."<init>":()V
-        2457: astore        137
-        2459: new           #279                // class ocaml_fn_80
-        2462: dup
-        2463: invokespecial #280                // Method ocaml_fn_80."<init>":()V
-        2466: astore        138
-        2468: new           #282                // class ocaml_fn_81
-        2471: dup
-        2472: invokespecial #283                // Method ocaml_fn_81."<init>":()V
-        2475: astore        139
-        2477: new           #285                // class ocaml_fn_82
-        2480: dup
-        2481: invokespecial #286                // Method ocaml_fn_82."<init>":()V
-        2484: astore        140
-        2486: new           #288                // class ocaml_fn_83
-        2489: dup
-        2490: invokespecial #289                // Method ocaml_fn_83."<init>":()V
-        2493: astore        141
-        2495: new           #291                // class ocaml_fn_84
-        2498: dup
-        2499: invokespecial #292                // Method ocaml_fn_84."<init>":()V
-        2502: astore        142
-        2504: new           #294                // class ocaml_fn_85
-        2507: dup
-        2508: invokespecial #295                // Method ocaml_fn_85."<init>":()V
-        2511: astore        143
-        2513: new           #297                // class ocaml_fn_86
-        2516: dup
-        2517: invokespecial #298                // Method ocaml_fn_86."<init>":()V
-        2520: astore        144
-        2522: new           #300                // class ocaml_fn_87
-        2525: dup
-        2526: invokespecial #301                // Method ocaml_fn_87."<init>":()V
-        2529: astore        145
-        2531: new           #303                // class ocaml_fn_88
-        2534: dup
-        2535: invokespecial #304                // Method ocaml_fn_88."<init>":()V
-        2538: astore        146
-        2540: new           #306                // class ocaml_fn_89
-        2543: dup
-        2544: invokespecial #307                // Method ocaml_fn_89."<init>":()V
-        2547: astore        147
-        2549: new           #309                // class ocaml_fn_90
-        2552: dup
-        2553: invokespecial #310                // Method ocaml_fn_90."<init>":()V
-        2556: astore        148
-        2558: new           #312                // class ocaml_fn_91
-        2561: dup
-        2562: invokespecial #313                // Method ocaml_fn_91."<init>":()V
-        2565: astore        149
-        2567: new           #315                // class ocaml_fn_92
-        2570: dup
-        2571: invokespecial #316                // Method ocaml_fn_92."<init>":()V
-        2574: astore        150
-        2576: new           #318                // class ocaml_fn_93
-        2579: dup
-        2580: invokespecial #319                // Method ocaml_fn_93."<init>":()V
-        2583: astore        151
-        2585: new           #14                 // class Block
-        2588: dup
-        2589: iconst_0
-        2590: bipush        104
-        2592: anewarray     #16                 // class java/lang/Object
-        2595: dup
-        2596: iconst_0
-        2597: aload         18
-        2599: aastore
-        2600: dup
-        2601: iconst_1
-        2602: aload         17
-        2604: aastore
-        2605: dup
-        2606: iconst_2
-        2607: aload         22
-        2609: aastore
-        2610: dup
-        2611: iconst_3
-        2612: aload         23
-        2614: aastore
-        2615: dup
-        2616: iconst_4
-        2617: aload         24
-        2619: aastore
-        2620: dup
-        2621: iconst_5
-        2622: aload         25
-        2624: aastore
-        2625: dup
-        2626: bipush        6
-        2628: aload         26
-        2630: aastore
-        2631: dup
-        2632: bipush        7
-        2634: aload         27
-        2636: aastore
-        2637: dup
-        2638: bipush        8
-        2640: aload         28
-        2642: aastore
-        2643: dup
-        2644: bipush        9
-        2646: aload         29
-        2648: aastore
-        2649: dup
-        2650: bipush        10
-        2652: aload         30
-        2654: aastore
-        2655: dup
-        2656: bipush        11
-        2658: aload         31
-        2660: aastore
-        2661: dup
-        2662: bipush        12
-        2664: aload         32
-        2666: aastore
-        2667: dup
-        2668: bipush        13
-        2670: aload         33
-        2672: aastore
-        2673: dup
-        2674: bipush        14
-        2676: aload         34
-        2678: aastore
-        2679: dup
-        2680: bipush        15
-        2682: aload         35
-        2684: aastore
-        2685: dup
-        2686: bipush        16
-        2688: aload         36
-        2690: aastore
-        2691: dup
-        2692: bipush        17
-        2694: aload         37
-        2696: aastore
-        2697: dup
-        2698: bipush        18
-        2700: iload         41
-        2702: invokestatic  #31                 // Method java/lang/Integer.valueOf:(I)Ljava/lang/Integer;
-        2705: aastore
-        2706: dup
-        2707: bipush        19
-        2709: iload         43
-        2711: invokestatic  #31                 // Method java/lang/Integer.valueOf:(I)Ljava/lang/Integer;
-        2714: aastore
-        2715: dup
-        2716: bipush        20
-        2718: aload         38
-        2720: aastore
-        2721: dup
-        2722: bipush        21
-        2724: aload         45
-        2726: aastore
-        2727: dup
-        2728: bipush        22
-        2730: aload         47
-        2732: aastore
-        2733: dup
-        2734: bipush        23
-        2736: aload         49
-        2738: aastore
-        2739: dup
-        2740: bipush        24
-        2742: aload         51
-        2744: aastore
-        2745: dup
-        2746: bipush        25
-        2748: aload         53
-        2750: aastore
-        2751: dup
-        2752: bipush        26
-        2754: aload         55
-        2756: aastore
-        2757: dup
-        2758: bipush        27
-        2760: aload         56
-        2762: aastore
-        2763: dup
-        2764: bipush        28
-        2766: aload         57
-        2768: aastore
-        2769: dup
-        2770: bipush        29
-        2772: aload         58
-        2774: aastore
-        2775: dup
-        2776: bipush        30
-        2778: aload         60
-        2780: aastore
-        2781: dup
-        2782: bipush        31
-        2784: aload         59
-        2786: aastore
-        2787: dup
-        2788: bipush        32
-        2790: aload         61
-        2792: aastore
-        2793: dup
-        2794: bipush        33
-        2796: aload         62
-        2798: aastore
-        2799: dup
-        2800: bipush        34
-        2802: aload         64
-        2804: aastore
-        2805: dup
-        2806: bipush        35
-        2808: aload         65
-        2810: aastore
-        2811: dup
-        2812: bipush        36
-        2814: aload         66
-        2816: aastore
-        2817: dup
-        2818: bipush        37
-        2820: aload         73
-        2822: aastore
-        2823: dup
-        2824: bipush        38
-        2826: aload         75
-        2828: aastore
-        2829: dup
-        2830: bipush        39
-        2832: aload         77
-        2834: aastore
-        2835: dup
-        2836: bipush        40
-        2838: aload         98
-        2840: aastore
-        2841: dup
-        2842: bipush        41
-        2844: aload         99
-        2846: aastore
-        2847: dup
-        2848: bipush        42
-        2850: aload         100
-        2852: aastore
-        2853: dup
-        2854: bipush        43
-        2856: aload         101
-        2858: aastore
-        2859: dup
-        2860: bipush        44
-        2862: aload         102
-        2864: aastore
-        2865: dup
-        2866: bipush        45
-        2868: aload         103
-        2870: aastore
-        2871: dup
-        2872: bipush        46
-        2874: aload         104
-        2876: aastore
-        2877: dup
-        2878: bipush        47
-        2880: aload         105
-        2882: aastore
-        2883: dup
-        2884: bipush        48
-        2886: aload         106
-        2888: aastore
-        2889: dup
-        2890: bipush        49
-        2892: aload         107
-        2894: aastore
-        2895: dup
-        2896: bipush        50
-        2898: aload         108
-        2900: aastore
-        2901: dup
-        2902: bipush        51
-        2904: aload         109
-        2906: aastore
-        2907: dup
-        2908: bipush        52
-        2910: aload         110
-        2912: aastore
-        2913: dup
-        2914: bipush        53
-        2916: aload         111
-        2918: aastore
-        2919: dup
-        2920: bipush        54
-        2922: aload         112
-        2924: aastore
-        2925: dup
-        2926: bipush        55
-        2928: aload         114
-        2930: aastore
-        2931: dup
-        2932: bipush        56
-        2934: aload         113
-        2936: aastore
-        2937: dup
-        2938: bipush        57
-        2940: aload         116
-        2942: aastore
-        2943: dup
-        2944: bipush        58
-        2946: aload         115
-        2948: aastore
-        2949: dup
-        2950: bipush        59
-        2952: aload         79
-        2954: aastore
-        2955: dup
-        2956: bipush        60
-        2958: aload         80
-        2960: aastore
-        2961: dup
-        2962: bipush        61
-        2964: aload         78
-        2966: aastore
-        2967: dup
-        2968: bipush        62
-        2970: aload         151
-        2972: aastore
-        2973: dup
-        2974: bipush        63
-        2976: aload         81
-        2978: aastore
-        2979: dup
-        2980: bipush        64
-        2982: aload         150
-        2984: aastore
-        2985: dup
-        2986: bipush        65
-        2988: aload         83
-        2990: aastore
-        2991: dup
-        2992: bipush        66
-        2994: aload         82
-        2996: aastore
-        2997: dup
-        2998: bipush        67
-        3000: aload         84
-        3002: aastore
-        3003: dup
-        3004: bipush        68
-        3006: aload         85
-        3008: aastore
-        3009: dup
-        3010: bipush        69
-        3012: aload         149
-        3014: aastore
-        3015: dup
-        3016: bipush        70
-        3018: aload         148
-        3020: aastore
-        3021: dup
-        3022: bipush        71
-        3024: aload         86
-        3026: aastore
-        3027: dup
-        3028: bipush        72
-        3030: aload         147
-        3032: aastore
-        3033: dup
-        3034: bipush        73
-        3036: aload         146
-        3038: aastore
-        3039: dup
-        3040: bipush        74
-        3042: aload         145
-        3044: aastore
-        3045: dup
-        3046: bipush        75
-        3048: aload         87
-        3050: aastore
-        3051: dup
-        3052: bipush        76
-        3054: aload         88
-        3056: aastore
-        3057: dup
-        3058: bipush        77
-        3060: aload         144
-        3062: aastore
-        3063: dup
-        3064: bipush        78
-        3066: aload         90
-        3068: aastore
-        3069: dup
-        3070: bipush        79
-        3072: aload         91
-        3074: aastore
-        3075: dup
-        3076: bipush        80
-        3078: aload         89
-        3080: aastore
-        3081: dup
-        3082: bipush        81
-        3084: aload         143
-        3086: aastore
-        3087: dup
-        3088: bipush        82
-        3090: aload         96
-        3092: aastore
-        3093: dup
-        3094: bipush        83
-        3096: aload         92
-        3098: aastore
-        3099: dup
-        3100: bipush        84
-        3102: aload         94
-        3104: aastore
-        3105: dup
-        3106: bipush        85
-        3108: aload         95
-        3110: aastore
-        3111: dup
-        3112: bipush        86
-        3114: aload         142
-        3116: aastore
-        3117: dup
-        3118: bipush        87
-        3120: aload         141
-        3122: aastore
-        3123: dup
-        3124: bipush        88
-        3126: aload         140
-        3128: aastore
-        3129: dup
-        3130: bipush        89
-        3132: aload         139
-        3134: aastore
-        3135: dup
-        3136: bipush        90
-        3138: aload         138
-        3140: aastore
-        3141: dup
-        3142: bipush        91
-        3144: aload         137
-        3146: aastore
-        3147: dup
-        3148: bipush        92
-        3150: aload         136
-        3152: aastore
-        3153: dup
-        3154: bipush        93
-        3156: aload         97
-        3158: aastore
-        3159: dup
-        3160: bipush        94
-        3162: aload         135
-        3164: aastore
-        3165: dup
-        3166: bipush        95
-        3168: aload         134
-        3170: aastore
-        3171: dup
-        3172: bipush        96
-        3174: aload         118
-        3176: aastore
-        3177: dup
-        3178: bipush        97
-        3180: aload         119
-        3182: aastore
-        3183: dup
-        3184: bipush        98
-        3186: aload         125
-        3188: aastore
-        3189: dup
-        3190: bipush        99
-        3192: aload         121
-        3194: aastore
-        3195: dup
-        3196: bipush        100
-        3198: aload         63
-        3200: aastore
-        3201: dup
-        3202: bipush        101
-        3204: aload         93
-        3206: aastore
-        3207: dup
-        3208: bipush        102
-        3210: aload         124
-        3212: aastore
-        3213: dup
-        3214: bipush        103
-        3216: aload         123
-        3218: aastore
-        3219: invokespecial #19                 // Method Block."<init>":(I[Ljava/lang/Object;)V
+        2289: invokespecial #247                // Method ocaml_fn_69."<init>":(Ljava/lang/Object;Ljava/lang/Object;)V
+        2292: astore        123
+        2294: new           #249                // class ocaml_fn_70
+        2297: dup
+        2298: aload         123
+        2300: invokespecial #250                // Method ocaml_fn_70."<init>":(Ljava/lang/Object;)V
+        2303: astore        124
+        2305: getstatic     #25                 // Field GLOBALS:[Ljava/lang/Object;
+        2308: bipush        44
+        2310: aaload
+        2311: astore        125
+        2313: iconst_0
+        2314: invokestatic  #31                 // Method java/lang/Integer.valueOf:(I)Ljava/lang/Integer;
+        2317: astore        126
+        2319: new           #252                // class ocaml_fn_71
+        2322: dup
+        2323: invokespecial #253                // Method ocaml_fn_71."<init>":()V
+        2326: astore        127
+        2328: new           #255                // class ocaml_fn_72
+        2331: dup
+        2332: invokespecial #256                // Method ocaml_fn_72."<init>":()V
+        2335: astore        128
+        2337: new           #258                // class ocaml_fn_73
+        2340: dup
+        2341: invokespecial #259                // Method ocaml_fn_73."<init>":()V
+        2344: astore        129
+        2346: new           #261                // class ocaml_fn_74
+        2349: dup
+        2350: invokespecial #262                // Method ocaml_fn_74."<init>":()V
+        2353: astore        130
+        2355: new           #264                // class ocaml_fn_75
+        2358: dup
+        2359: invokespecial #265                // Method ocaml_fn_75."<init>":()V
+        2362: astore        131
+        2364: new           #267                // class ocaml_fn_76
+        2367: dup
+        2368: invokespecial #268                // Method ocaml_fn_76."<init>":()V
+        2371: astore        132
+        2373: new           #14                 // class Block
+        2376: dup
+        2377: iconst_0
+        2378: bipush        6
+        2380: anewarray     #16                 // class java/lang/Object
+        2383: dup
+        2384: iconst_0
+        2385: aload         132
+        2387: aastore
+        2388: dup
+        2389: iconst_1
+        2390: aload         131
+        2392: aastore
+        2393: dup
+        2394: iconst_2
+        2395: aload         130
+        2397: aastore
+        2398: dup
+        2399: iconst_3
+        2400: aload         129
+        2402: aastore
+        2403: dup
+        2404: iconst_4
+        2405: aload         128
+        2407: aastore
+        2408: dup
+        2409: iconst_5
+        2410: aload         127
+        2412: aastore
+        2413: invokespecial #19                 // Method Block."<init>":(I[Ljava/lang/Object;)V
+        2416: astore        133
+        2418: new           #270                // class ocaml_fn_77
+        2421: dup
+        2422: invokespecial #271                // Method ocaml_fn_77."<init>":()V
+        2425: astore        134
+        2427: new           #273                // class ocaml_fn_78
+        2430: dup
+        2431: invokespecial #274                // Method ocaml_fn_78."<init>":()V
+        2434: astore        135
+        2436: new           #276                // class ocaml_fn_79
+        2439: dup
+        2440: invokespecial #277                // Method ocaml_fn_79."<init>":()V
+        2443: astore        136
+        2445: new           #279                // class ocaml_fn_80
+        2448: dup
+        2449: invokespecial #280                // Method ocaml_fn_80."<init>":()V
+        2452: astore        137
+        2454: new           #282                // class ocaml_fn_81
+        2457: dup
+        2458: invokespecial #283                // Method ocaml_fn_81."<init>":()V
+        2461: astore        138
+        2463: new           #285                // class ocaml_fn_82
+        2466: dup
+        2467: invokespecial #286                // Method ocaml_fn_82."<init>":()V
+        2470: astore        139
+        2472: new           #288                // class ocaml_fn_83
+        2475: dup
+        2476: invokespecial #289                // Method ocaml_fn_83."<init>":()V
+        2479: astore        140
+        2481: new           #291                // class ocaml_fn_84
+        2484: dup
+        2485: invokespecial #292                // Method ocaml_fn_84."<init>":()V
+        2488: astore        141
+        2490: new           #294                // class ocaml_fn_85
+        2493: dup
+        2494: invokespecial #295                // Method ocaml_fn_85."<init>":()V
+        2497: astore        142
+        2499: new           #297                // class ocaml_fn_86
+        2502: dup
+        2503: invokespecial #298                // Method ocaml_fn_86."<init>":()V
+        2506: astore        143
+        2508: new           #300                // class ocaml_fn_87
+        2511: dup
+        2512: invokespecial #301                // Method ocaml_fn_87."<init>":()V
+        2515: astore        144
+        2517: new           #303                // class ocaml_fn_88
+        2520: dup
+        2521: invokespecial #304                // Method ocaml_fn_88."<init>":()V
+        2524: astore        145
+        2526: new           #306                // class ocaml_fn_89
+        2529: dup
+        2530: invokespecial #307                // Method ocaml_fn_89."<init>":()V
+        2533: astore        146
+        2535: new           #309                // class ocaml_fn_90
+        2538: dup
+        2539: invokespecial #310                // Method ocaml_fn_90."<init>":()V
+        2542: astore        147
+        2544: new           #312                // class ocaml_fn_91
+        2547: dup
+        2548: invokespecial #313                // Method ocaml_fn_91."<init>":()V
+        2551: astore        148
+        2553: new           #315                // class ocaml_fn_92
+        2556: dup
+        2557: invokespecial #316                // Method ocaml_fn_92."<init>":()V
+        2560: astore        149
+        2562: new           #318                // class ocaml_fn_93
+        2565: dup
+        2566: invokespecial #319                // Method ocaml_fn_93."<init>":()V
+        2569: astore        150
+        2571: new           #14                 // class Block
+        2574: dup
+        2575: iconst_0
+        2576: bipush        104
+        2578: anewarray     #16                 // class java/lang/Object
+        2581: dup
+        2582: iconst_0
+        2583: aload         18
+        2585: aastore
+        2586: dup
+        2587: iconst_1
+        2588: aload         17
+        2590: aastore
+        2591: dup
+        2592: iconst_2
+        2593: aload         22
+        2595: aastore
+        2596: dup
+        2597: iconst_3
+        2598: aload         23
+        2600: aastore
+        2601: dup
+        2602: iconst_4
+        2603: aload         24
+        2605: aastore
+        2606: dup
+        2607: iconst_5
+        2608: aload         25
+        2610: aastore
+        2611: dup
+        2612: bipush        6
+        2614: aload         26
+        2616: aastore
+        2617: dup
+        2618: bipush        7
+        2620: aload         27
+        2622: aastore
+        2623: dup
+        2624: bipush        8
+        2626: aload         28
+        2628: aastore
+        2629: dup
+        2630: bipush        9
+        2632: aload         29
+        2634: aastore
+        2635: dup
+        2636: bipush        10
+        2638: aload         30
+        2640: aastore
+        2641: dup
+        2642: bipush        11
+        2644: aload         31
+        2646: aastore
+        2647: dup
+        2648: bipush        12
+        2650: aload         32
+        2652: aastore
+        2653: dup
+        2654: bipush        13
+        2656: aload         33
+        2658: aastore
+        2659: dup
+        2660: bipush        14
+        2662: aload         34
+        2664: aastore
+        2665: dup
+        2666: bipush        15
+        2668: aload         35
+        2670: aastore
+        2671: dup
+        2672: bipush        16
+        2674: aload         36
+        2676: aastore
+        2677: dup
+        2678: bipush        17
+        2680: aload         37
+        2682: aastore
+        2683: dup
+        2684: bipush        18
+        2686: iload         41
+        2688: invokestatic  #31                 // Method java/lang/Integer.valueOf:(I)Ljava/lang/Integer;
+        2691: aastore
+        2692: dup
+        2693: bipush        19
+        2695: iload         43
+        2697: invokestatic  #31                 // Method java/lang/Integer.valueOf:(I)Ljava/lang/Integer;
+        2700: aastore
+        2701: dup
+        2702: bipush        20
+        2704: aload         38
+        2706: aastore
+        2707: dup
+        2708: bipush        21
+        2710: aload         45
+        2712: aastore
+        2713: dup
+        2714: bipush        22
+        2716: aload         47
+        2718: aastore
+        2719: dup
+        2720: bipush        23
+        2722: aload         49
+        2724: aastore
+        2725: dup
+        2726: bipush        24
+        2728: aload         51
+        2730: aastore
+        2731: dup
+        2732: bipush        25
+        2734: aload         53
+        2736: aastore
+        2737: dup
+        2738: bipush        26
+        2740: aload         55
+        2742: aastore
+        2743: dup
+        2744: bipush        27
+        2746: aload         56
+        2748: aastore
+        2749: dup
+        2750: bipush        28
+        2752: aload         57
+        2754: aastore
+        2755: dup
+        2756: bipush        29
+        2758: aload         58
+        2760: aastore
+        2761: dup
+        2762: bipush        30
+        2764: aload         60
+        2766: aastore
+        2767: dup
+        2768: bipush        31
+        2770: aload         59
+        2772: aastore
+        2773: dup
+        2774: bipush        32
+        2776: aload         61
+        2778: aastore
+        2779: dup
+        2780: bipush        33
+        2782: aload         62
+        2784: aastore
+        2785: dup
+        2786: bipush        34
+        2788: aload         64
+        2790: aastore
+        2791: dup
+        2792: bipush        35
+        2794: aload         65
+        2796: aastore
+        2797: dup
+        2798: bipush        36
+        2800: aload         66
+        2802: aastore
+        2803: dup
+        2804: bipush        37
+        2806: aload         73
+        2808: aastore
+        2809: dup
+        2810: bipush        38
+        2812: aload         75
+        2814: aastore
+        2815: dup
+        2816: bipush        39
+        2818: aload         77
+        2820: aastore
+        2821: dup
+        2822: bipush        40
+        2824: aload         98
+        2826: aastore
+        2827: dup
+        2828: bipush        41
+        2830: aload         99
+        2832: aastore
+        2833: dup
+        2834: bipush        42
+        2836: aload         100
+        2838: aastore
+        2839: dup
+        2840: bipush        43
+        2842: aload         101
+        2844: aastore
+        2845: dup
+        2846: bipush        44
+        2848: aload         102
+        2850: aastore
+        2851: dup
+        2852: bipush        45
+        2854: aload         103
+        2856: aastore
+        2857: dup
+        2858: bipush        46
+        2860: aload         104
+        2862: aastore
+        2863: dup
+        2864: bipush        47
+        2866: aload         105
+        2868: aastore
+        2869: dup
+        2870: bipush        48
+        2872: aload         106
+        2874: aastore
+        2875: dup
+        2876: bipush        49
+        2878: aload         107
+        2880: aastore
+        2881: dup
+        2882: bipush        50
+        2884: aload         108
+        2886: aastore
+        2887: dup
+        2888: bipush        51
+        2890: aload         109
+        2892: aastore
+        2893: dup
+        2894: bipush        52
+        2896: aload         110
+        2898: aastore
+        2899: dup
+        2900: bipush        53
+        2902: aload         111
+        2904: aastore
+        2905: dup
+        2906: bipush        54
+        2908: aload         112
+        2910: aastore
+        2911: dup
+        2912: bipush        55
+        2914: aload         114
+        2916: aastore
+        2917: dup
+        2918: bipush        56
+        2920: aload         113
+        2922: aastore
+        2923: dup
+        2924: bipush        57
+        2926: aload         116
+        2928: aastore
+        2929: dup
+        2930: bipush        58
+        2932: aload         115
+        2934: aastore
+        2935: dup
+        2936: bipush        59
+        2938: aload         79
+        2940: aastore
+        2941: dup
+        2942: bipush        60
+        2944: aload         80
+        2946: aastore
+        2947: dup
+        2948: bipush        61
+        2950: aload         78
+        2952: aastore
+        2953: dup
+        2954: bipush        62
+        2956: aload         150
+        2958: aastore
+        2959: dup
+        2960: bipush        63
+        2962: aload         81
+        2964: aastore
+        2965: dup
+        2966: bipush        64
+        2968: aload         149
+        2970: aastore
+        2971: dup
+        2972: bipush        65
+        2974: aload         83
+        2976: aastore
+        2977: dup
+        2978: bipush        66
+        2980: aload         82
+        2982: aastore
+        2983: dup
+        2984: bipush        67
+        2986: aload         84
+        2988: aastore
+        2989: dup
+        2990: bipush        68
+        2992: aload         85
+        2994: aastore
+        2995: dup
+        2996: bipush        69
+        2998: aload         148
+        3000: aastore
+        3001: dup
+        3002: bipush        70
+        3004: aload         147
+        3006: aastore
+        3007: dup
+        3008: bipush        71
+        3010: aload         86
+        3012: aastore
+        3013: dup
+        3014: bipush        72
+        3016: aload         146
+        3018: aastore
+        3019: dup
+        3020: bipush        73
+        3022: aload         145
+        3024: aastore
+        3025: dup
+        3026: bipush        74
+        3028: aload         144
+        3030: aastore
+        3031: dup
+        3032: bipush        75
+        3034: aload         87
+        3036: aastore
+        3037: dup
+        3038: bipush        76
+        3040: aload         88
+        3042: aastore
+        3043: dup
+        3044: bipush        77
+        3046: aload         143
+        3048: aastore
+        3049: dup
+        3050: bipush        78
+        3052: aload         90
+        3054: aastore
+        3055: dup
+        3056: bipush        79
+        3058: aload         91
+        3060: aastore
+        3061: dup
+        3062: bipush        80
+        3064: aload         89
+        3066: aastore
+        3067: dup
+        3068: bipush        81
+        3070: aload         142
+        3072: aastore
+        3073: dup
+        3074: bipush        82
+        3076: aload         96
+        3078: aastore
+        3079: dup
+        3080: bipush        83
+        3082: aload         92
+        3084: aastore
+        3085: dup
+        3086: bipush        84
+        3088: aload         94
+        3090: aastore
+        3091: dup
+        3092: bipush        85
+        3094: aload         95
+        3096: aastore
+        3097: dup
+        3098: bipush        86
+        3100: aload         141
+        3102: aastore
+        3103: dup
+        3104: bipush        87
+        3106: aload         140
+        3108: aastore
+        3109: dup
+        3110: bipush        88
+        3112: aload         139
+        3114: aastore
+        3115: dup
+        3116: bipush        89
+        3118: aload         138
+        3120: aastore
+        3121: dup
+        3122: bipush        90
+        3124: aload         137
+        3126: aastore
+        3127: dup
+        3128: bipush        91
+        3130: aload         136
+        3132: aastore
+        3133: dup
+        3134: bipush        92
+        3136: aload         135
+        3138: aastore
+        3139: dup
+        3140: bipush        93
+        3142: aload         97
+        3144: aastore
+        3145: dup
+        3146: bipush        94
+        3148: aload         134
+        3150: aastore
+        3151: dup
+        3152: bipush        95
+        3154: aload         133
+        3156: aastore
+        3157: dup
+        3158: bipush        96
+        3160: aload         117
+        3162: aastore
+        3163: dup
+        3164: bipush        97
+        3166: aload         118
+        3168: aastore
+        3169: dup
+        3170: bipush        98
+        3172: aload         124
+        3174: aastore
+        3175: dup
+        3176: bipush        99
+        3178: aload         120
+        3180: aastore
+        3181: dup
+        3182: bipush        100
+        3184: aload         63
+        3186: aastore
+        3187: dup
+        3188: bipush        101
+        3190: aload         93
+        3192: aastore
+        3193: dup
+        3194: bipush        102
+        3196: aload         123
+        3198: aastore
+        3199: dup
+        3200: bipush        103
+        3202: aload         122
+        3204: aastore
+        3205: invokespecial #19                 // Method Block."<init>":(I[Ljava/lang/Object;)V
+        3208: astore        151
+        3210: getstatic     #25                 // Field GLOBALS:[Ljava/lang/Object;
+        3213: bipush        45
+        3215: aload         151
+        3217: aastore
+        3218: iconst_0
+        3219: invokestatic  #31                 // Method java/lang/Integer.valueOf:(I)Ljava/lang/Integer;
         3222: astore        152
         3224: getstatic     #25                 // Field GLOBALS:[Ljava/lang/Object;
-        3227: bipush        45
-        3229: aload         152
-        3231: aastore
-        3232: iconst_0
-        3233: invokestatic  #31                 // Method java/lang/Integer.valueOf:(I)Ljava/lang/Integer;
-        3236: astore        153
-        3238: iconst_0
-        3239: istore        154
-        3241: getstatic     #25                 // Field GLOBALS:[Ljava/lang/Object;
-        3244: bipush        46
-        3246: aaload
-        3247: astore        155
-        3249: getstatic     #325                // Field java/lang/System.out:Ljava/io/PrintStream;
-        3252: aload         155
-        3254: checkcast     #327                // class java/lang/String
-        3257: invokevirtual #333                // Method java/io/PrintStream.println:(Ljava/lang/String;)V
-        3260: iconst_0
-        3261: invokestatic  #31                 // Method java/lang/Integer.valueOf:(I)Ljava/lang/Integer;
-        3264: astore        156
-        3266: new           #14                 // class Block
-        3269: dup
-        3270: iconst_0
+        3227: bipush        46
+        3229: aaload
+        3230: astore        153
+        3232: getstatic     #325                // Field java/lang/System.out:Ljava/io/PrintStream;
+        3235: aload         153
+        3237: checkcast     #327                // class java/lang/String
+        3240: invokevirtual #333                // Method java/io/PrintStream.println:(Ljava/lang/String;)V
+        3243: iconst_0
+        3244: invokestatic  #31                 // Method java/lang/Integer.valueOf:(I)Ljava/lang/Integer;
+        3247: astore        154
+        3249: new           #14                 // class Block
+        3252: dup
+        3253: iconst_0
+        3254: iconst_0
+        3255: anewarray     #16                 // class java/lang/Object
+        3258: invokespecial #19                 // Method Block."<init>":(I[Ljava/lang/Object;)V
+        3261: astore        155
+        3263: getstatic     #25                 // Field GLOBALS:[Ljava/lang/Object;
+        3266: bipush        47
+        3268: aload         155
+        3270: aastore
         3271: iconst_0
-        3272: anewarray     #16                 // class java/lang/Object
-        3275: invokespecial #19                 // Method Block."<init>":(I[Ljava/lang/Object;)V
-        3278: astore        157
+        3272: invokestatic  #31                 // Method java/lang/Integer.valueOf:(I)Ljava/lang/Integer;
+        3275: astore        156
+        3277: iconst_0
+        3278: istore        157
         3280: getstatic     #25                 // Field GLOBALS:[Ljava/lang/Object;
-        3283: bipush        47
-        3285: aload         157
-        3287: aastore
-        3288: iconst_0
-        3289: invokestatic  #31                 // Method java/lang/Integer.valueOf:(I)Ljava/lang/Integer;
-        3292: astore        158
-        3294: iconst_0
-        3295: istore        159
-        3297: iconst_0
-        3298: istore        160
-        3300: getstatic     #25                 // Field GLOBALS:[Ljava/lang/Object;
-        3303: bipush        45
-        3305: aaload
-        3306: checkcast     #14                 // class Block
-        3309: getfield      #336                // Field Block.fields:[Ljava/lang/Object;
-        3312: bipush        102
-        3314: aaload
-        3315: astore        161
-        3317: aload         161
-        3319: checkcast     #96                 // class Closure
-        3322: iload         160
-        3324: invokestatic  #31                 // Method java/lang/Integer.valueOf:(I)Ljava/lang/Integer;
-        3327: invokevirtual #340                // Method Closure.apply1:(Ljava/lang/Object;)Ljava/lang/Object;
-        3330: astore        162
-        3332: new           #14                 // class Block
-        3335: dup
-        3336: iconst_0
-        3337: iconst_0
-        3338: anewarray     #16                 // class java/lang/Object
-        3341: invokespecial #19                 // Method Block."<init>":(I[Ljava/lang/Object;)V
-        3344: astore        163
-        3346: getstatic     #25                 // Field GLOBALS:[Ljava/lang/Object;
-        3349: bipush        48
-        3351: aload         163
-        3353: aastore
-        3354: iconst_0
-        3355: invokestatic  #31                 // Method java/lang/Integer.valueOf:(I)Ljava/lang/Integer;
-        3358: astore        164
-        3360: iconst_0
-        3361: istore        165
-        3363: return
+        3283: bipush        45
+        3285: aaload
+        3286: checkcast     #14                 // class Block
+        3289: getfield      #336                // Field Block.fields:[Ljava/lang/Object;
+        3292: bipush        102
+        3294: aaload
+        3295: astore        158
+        3297: aload         158
+        3299: checkcast     #96                 // class Closure
+        3302: iload         157
+        3304: invokestatic  #31                 // Method java/lang/Integer.valueOf:(I)Ljava/lang/Integer;
+        3307: invokevirtual #340                // Method Closure.apply1:(Ljava/lang/Object;)Ljava/lang/Object;
+        3310: astore        159
+        3312: new           #14                 // class Block
+        3315: dup
+        3316: iconst_0
+        3317: iconst_0
+        3318: anewarray     #16                 // class java/lang/Object
+        3321: invokespecial #19                 // Method Block."<init>":(I[Ljava/lang/Object;)V
+        3324: astore        160
+        3326: getstatic     #25                 // Field GLOBALS:[Ljava/lang/Object;
+        3329: bipush        48
+        3331: aload         160
+        3333: aastore
+        3334: iconst_0
+        3335: invokestatic  #31                 // Method java/lang/Integer.valueOf:(I)Ljava/lang/Integer;
+        3338: astore        161
+        3340: return
     }
     |}]
 
@@ -2941,715 +2928,702 @@ let%expect_test "emission: arithmetic ops" =
         2187: aload         112
         2189: invokespecial #232                // Method ocaml_fn_64."<init>":(Ljava/lang/Object;Ljava/lang/Object;)V
         2192: astore        116
-        2194: new           #14                 // class Block
+        2194: new           #234                // class ocaml_fn_65
         2197: dup
-        2198: iconst_0
-        2199: iconst_0
-        2200: anewarray     #16                 // class java/lang/Object
-        2203: invokespecial #19                 // Method Block."<init>":(I[Ljava/lang/Object;)V
-        2206: astore        117
-        2208: new           #234                // class ocaml_fn_65
-        2211: dup
-        2212: invokespecial #235                // Method ocaml_fn_65."<init>":()V
-        2215: astore        118
-        2217: new           #237                // class ocaml_fn_66
-        2220: dup
-        2221: aload         56
-        2223: invokespecial #238                // Method ocaml_fn_66."<init>":(Ljava/lang/Object;)V
-        2226: astore        119
-        2228: new           #14                 // class Block
-        2231: dup
-        2232: iconst_0
-        2233: iconst_1
-        2234: anewarray     #16                 // class java/lang/Object
-        2237: dup
-        2238: iconst_0
-        2239: aload         81
-        2241: aastore
-        2242: invokespecial #19                 // Method Block."<init>":(I[Ljava/lang/Object;)V
-        2245: astore        120
-        2247: new           #240                // class ocaml_fn_67
-        2250: dup
-        2251: aload         120
-        2253: invokespecial #241                // Method ocaml_fn_67."<init>":(Ljava/lang/Object;)V
-        2256: astore        121
-        2258: new           #243                // class ocaml_fn_68
-        2261: dup
-        2262: invokespecial #244                // Method ocaml_fn_68."<init>":()V
-        2265: astore        122
-        2267: new           #14                 // class Block
-        2270: dup
-        2271: iconst_0
-        2272: iconst_1
-        2273: anewarray     #16                 // class java/lang/Object
-        2276: dup
-        2277: iconst_0
+        2198: invokespecial #235                // Method ocaml_fn_65."<init>":()V
+        2201: astore        117
+        2203: new           #237                // class ocaml_fn_66
+        2206: dup
+        2207: aload         56
+        2209: invokespecial #238                // Method ocaml_fn_66."<init>":(Ljava/lang/Object;)V
+        2212: astore        118
+        2214: new           #14                 // class Block
+        2217: dup
+        2218: iconst_0
+        2219: iconst_1
+        2220: anewarray     #16                 // class java/lang/Object
+        2223: dup
+        2224: iconst_0
+        2225: aload         81
+        2227: aastore
+        2228: invokespecial #19                 // Method Block."<init>":(I[Ljava/lang/Object;)V
+        2231: astore        119
+        2233: new           #240                // class ocaml_fn_67
+        2236: dup
+        2237: aload         119
+        2239: invokespecial #241                // Method ocaml_fn_67."<init>":(Ljava/lang/Object;)V
+        2242: astore        120
+        2244: new           #243                // class ocaml_fn_68
+        2247: dup
+        2248: invokespecial #244                // Method ocaml_fn_68."<init>":()V
+        2251: astore        121
+        2253: new           #14                 // class Block
+        2256: dup
+        2257: iconst_0
+        2258: iconst_1
+        2259: anewarray     #16                 // class java/lang/Object
+        2262: dup
+        2263: iconst_0
+        2264: aload         121
+        2266: aastore
+        2267: invokespecial #19                 // Method Block."<init>":(I[Ljava/lang/Object;)V
+        2270: astore        122
+        2272: new           #246                // class ocaml_fn_69
+        2275: dup
+        2276: aload         119
         2278: aload         122
-        2280: aastore
-        2281: invokespecial #19                 // Method Block."<init>":(I[Ljava/lang/Object;)V
-        2284: astore        123
-        2286: new           #246                // class ocaml_fn_69
-        2289: dup
-        2290: aload         120
-        2292: aload         123
-        2294: invokespecial #247                // Method ocaml_fn_69."<init>":(Ljava/lang/Object;Ljava/lang/Object;)V
-        2297: astore        124
-        2299: new           #249                // class ocaml_fn_70
-        2302: dup
-        2303: aload         124
-        2305: invokespecial #250                // Method ocaml_fn_70."<init>":(Ljava/lang/Object;)V
-        2308: astore        125
-        2310: getstatic     #25                 // Field GLOBALS:[Ljava/lang/Object;
-        2313: bipush        44
-        2315: aaload
-        2316: astore        126
-        2318: iconst_0
-        2319: invokestatic  #31                 // Method java/lang/Integer.valueOf:(I)Ljava/lang/Integer;
-        2322: astore        127
-        2324: new           #252                // class ocaml_fn_71
-        2327: dup
-        2328: invokespecial #253                // Method ocaml_fn_71."<init>":()V
-        2331: astore        128
-        2333: new           #255                // class ocaml_fn_72
-        2336: dup
-        2337: invokespecial #256                // Method ocaml_fn_72."<init>":()V
-        2340: astore        129
-        2342: new           #258                // class ocaml_fn_73
-        2345: dup
-        2346: invokespecial #259                // Method ocaml_fn_73."<init>":()V
-        2349: astore        130
-        2351: new           #261                // class ocaml_fn_74
-        2354: dup
-        2355: invokespecial #262                // Method ocaml_fn_74."<init>":()V
-        2358: astore        131
-        2360: new           #264                // class ocaml_fn_75
-        2363: dup
-        2364: invokespecial #265                // Method ocaml_fn_75."<init>":()V
-        2367: astore        132
-        2369: new           #267                // class ocaml_fn_76
-        2372: dup
-        2373: invokespecial #268                // Method ocaml_fn_76."<init>":()V
-        2376: astore        133
-        2378: new           #14                 // class Block
-        2381: dup
-        2382: iconst_0
-        2383: bipush        6
-        2385: anewarray     #16                 // class java/lang/Object
-        2388: dup
-        2389: iconst_0
-        2390: aload         133
-        2392: aastore
-        2393: dup
-        2394: iconst_1
-        2395: aload         132
-        2397: aastore
-        2398: dup
-        2399: iconst_2
-        2400: aload         131
-        2402: aastore
-        2403: dup
-        2404: iconst_3
-        2405: aload         130
-        2407: aastore
-        2408: dup
-        2409: iconst_4
-        2410: aload         129
-        2412: aastore
-        2413: dup
-        2414: iconst_5
-        2415: aload         128
-        2417: aastore
-        2418: invokespecial #19                 // Method Block."<init>":(I[Ljava/lang/Object;)V
-        2421: astore        134
-        2423: new           #270                // class ocaml_fn_77
-        2426: dup
-        2427: invokespecial #271                // Method ocaml_fn_77."<init>":()V
-        2430: astore        135
-        2432: new           #273                // class ocaml_fn_78
-        2435: dup
-        2436: invokespecial #274                // Method ocaml_fn_78."<init>":()V
-        2439: astore        136
-        2441: new           #276                // class ocaml_fn_79
-        2444: dup
-        2445: invokespecial #277                // Method ocaml_fn_79."<init>":()V
-        2448: astore        137
-        2450: new           #279                // class ocaml_fn_80
-        2453: dup
-        2454: invokespecial #280                // Method ocaml_fn_80."<init>":()V
-        2457: astore        138
-        2459: new           #282                // class ocaml_fn_81
-        2462: dup
-        2463: invokespecial #283                // Method ocaml_fn_81."<init>":()V
-        2466: astore        139
-        2468: new           #285                // class ocaml_fn_82
-        2471: dup
-        2472: invokespecial #286                // Method ocaml_fn_82."<init>":()V
-        2475: astore        140
-        2477: new           #288                // class ocaml_fn_83
-        2480: dup
-        2481: invokespecial #289                // Method ocaml_fn_83."<init>":()V
-        2484: astore        141
-        2486: new           #291                // class ocaml_fn_84
-        2489: dup
-        2490: invokespecial #292                // Method ocaml_fn_84."<init>":()V
-        2493: astore        142
-        2495: new           #294                // class ocaml_fn_85
-        2498: dup
-        2499: invokespecial #295                // Method ocaml_fn_85."<init>":()V
-        2502: astore        143
-        2504: new           #297                // class ocaml_fn_86
-        2507: dup
-        2508: invokespecial #298                // Method ocaml_fn_86."<init>":()V
-        2511: astore        144
-        2513: new           #300                // class ocaml_fn_87
-        2516: dup
-        2517: invokespecial #301                // Method ocaml_fn_87."<init>":()V
-        2520: astore        145
-        2522: new           #303                // class ocaml_fn_88
-        2525: dup
-        2526: invokespecial #304                // Method ocaml_fn_88."<init>":()V
-        2529: astore        146
-        2531: new           #306                // class ocaml_fn_89
-        2534: dup
-        2535: invokespecial #307                // Method ocaml_fn_89."<init>":()V
-        2538: astore        147
-        2540: new           #309                // class ocaml_fn_90
-        2543: dup
-        2544: invokespecial #310                // Method ocaml_fn_90."<init>":()V
-        2547: astore        148
-        2549: new           #312                // class ocaml_fn_91
-        2552: dup
-        2553: invokespecial #313                // Method ocaml_fn_91."<init>":()V
-        2556: astore        149
-        2558: new           #315                // class ocaml_fn_92
-        2561: dup
-        2562: invokespecial #316                // Method ocaml_fn_92."<init>":()V
-        2565: astore        150
-        2567: new           #318                // class ocaml_fn_93
-        2570: dup
-        2571: invokespecial #319                // Method ocaml_fn_93."<init>":()V
-        2574: astore        151
-        2576: new           #14                 // class Block
-        2579: dup
-        2580: iconst_0
-        2581: bipush        104
-        2583: anewarray     #16                 // class java/lang/Object
-        2586: dup
-        2587: iconst_0
-        2588: aload         18
-        2590: aastore
-        2591: dup
-        2592: iconst_1
-        2593: aload         17
-        2595: aastore
-        2596: dup
-        2597: iconst_2
-        2598: aload         22
-        2600: aastore
-        2601: dup
-        2602: iconst_3
-        2603: aload         23
-        2605: aastore
-        2606: dup
-        2607: iconst_4
-        2608: aload         24
-        2610: aastore
-        2611: dup
-        2612: iconst_5
-        2613: aload         25
-        2615: aastore
-        2616: dup
-        2617: bipush        6
-        2619: aload         26
-        2621: aastore
-        2622: dup
-        2623: bipush        7
-        2625: aload         27
-        2627: aastore
-        2628: dup
-        2629: bipush        8
-        2631: aload         28
-        2633: aastore
-        2634: dup
-        2635: bipush        9
-        2637: aload         29
-        2639: aastore
-        2640: dup
-        2641: bipush        10
-        2643: aload         30
-        2645: aastore
-        2646: dup
-        2647: bipush        11
-        2649: aload         31
-        2651: aastore
-        2652: dup
-        2653: bipush        12
-        2655: aload         32
-        2657: aastore
-        2658: dup
-        2659: bipush        13
-        2661: aload         33
-        2663: aastore
-        2664: dup
-        2665: bipush        14
-        2667: aload         34
-        2669: aastore
-        2670: dup
-        2671: bipush        15
-        2673: aload         35
-        2675: aastore
-        2676: dup
-        2677: bipush        16
-        2679: aload         36
-        2681: aastore
-        2682: dup
-        2683: bipush        17
-        2685: aload         37
-        2687: aastore
-        2688: dup
-        2689: bipush        18
-        2691: iload         41
-        2693: invokestatic  #31                 // Method java/lang/Integer.valueOf:(I)Ljava/lang/Integer;
-        2696: aastore
-        2697: dup
-        2698: bipush        19
-        2700: iload         43
-        2702: invokestatic  #31                 // Method java/lang/Integer.valueOf:(I)Ljava/lang/Integer;
-        2705: aastore
-        2706: dup
-        2707: bipush        20
-        2709: aload         38
-        2711: aastore
-        2712: dup
-        2713: bipush        21
-        2715: aload         45
-        2717: aastore
-        2718: dup
-        2719: bipush        22
-        2721: aload         47
-        2723: aastore
-        2724: dup
-        2725: bipush        23
-        2727: aload         49
-        2729: aastore
-        2730: dup
-        2731: bipush        24
-        2733: aload         51
-        2735: aastore
-        2736: dup
-        2737: bipush        25
-        2739: aload         53
-        2741: aastore
-        2742: dup
-        2743: bipush        26
-        2745: aload         55
-        2747: aastore
-        2748: dup
-        2749: bipush        27
-        2751: aload         56
-        2753: aastore
-        2754: dup
-        2755: bipush        28
-        2757: aload         57
-        2759: aastore
-        2760: dup
-        2761: bipush        29
-        2763: aload         58
-        2765: aastore
-        2766: dup
-        2767: bipush        30
-        2769: aload         60
-        2771: aastore
-        2772: dup
-        2773: bipush        31
-        2775: aload         59
-        2777: aastore
-        2778: dup
-        2779: bipush        32
-        2781: aload         61
-        2783: aastore
-        2784: dup
-        2785: bipush        33
-        2787: aload         62
-        2789: aastore
-        2790: dup
-        2791: bipush        34
-        2793: aload         64
-        2795: aastore
-        2796: dup
-        2797: bipush        35
-        2799: aload         65
-        2801: aastore
-        2802: dup
-        2803: bipush        36
-        2805: aload         66
-        2807: aastore
-        2808: dup
-        2809: bipush        37
-        2811: aload         73
-        2813: aastore
-        2814: dup
-        2815: bipush        38
-        2817: aload         75
-        2819: aastore
-        2820: dup
-        2821: bipush        39
-        2823: aload         77
-        2825: aastore
-        2826: dup
-        2827: bipush        40
-        2829: aload         98
-        2831: aastore
-        2832: dup
-        2833: bipush        41
-        2835: aload         99
-        2837: aastore
-        2838: dup
-        2839: bipush        42
-        2841: aload         100
-        2843: aastore
-        2844: dup
-        2845: bipush        43
-        2847: aload         101
-        2849: aastore
-        2850: dup
-        2851: bipush        44
-        2853: aload         102
-        2855: aastore
-        2856: dup
-        2857: bipush        45
-        2859: aload         103
-        2861: aastore
-        2862: dup
-        2863: bipush        46
-        2865: aload         104
-        2867: aastore
-        2868: dup
-        2869: bipush        47
-        2871: aload         105
-        2873: aastore
-        2874: dup
-        2875: bipush        48
-        2877: aload         106
-        2879: aastore
-        2880: dup
-        2881: bipush        49
-        2883: aload         107
-        2885: aastore
-        2886: dup
-        2887: bipush        50
-        2889: aload         108
-        2891: aastore
-        2892: dup
-        2893: bipush        51
-        2895: aload         109
-        2897: aastore
-        2898: dup
-        2899: bipush        52
-        2901: aload         110
-        2903: aastore
-        2904: dup
-        2905: bipush        53
-        2907: aload         111
-        2909: aastore
-        2910: dup
-        2911: bipush        54
-        2913: aload         112
-        2915: aastore
-        2916: dup
-        2917: bipush        55
-        2919: aload         114
-        2921: aastore
-        2922: dup
-        2923: bipush        56
-        2925: aload         113
-        2927: aastore
-        2928: dup
-        2929: bipush        57
-        2931: aload         116
-        2933: aastore
-        2934: dup
-        2935: bipush        58
-        2937: aload         115
-        2939: aastore
-        2940: dup
-        2941: bipush        59
-        2943: aload         79
-        2945: aastore
-        2946: dup
-        2947: bipush        60
-        2949: aload         80
-        2951: aastore
-        2952: dup
-        2953: bipush        61
-        2955: aload         78
-        2957: aastore
-        2958: dup
-        2959: bipush        62
-        2961: aload         151
-        2963: aastore
-        2964: dup
-        2965: bipush        63
-        2967: aload         81
-        2969: aastore
-        2970: dup
-        2971: bipush        64
-        2973: aload         150
-        2975: aastore
-        2976: dup
-        2977: bipush        65
-        2979: aload         83
-        2981: aastore
-        2982: dup
-        2983: bipush        66
-        2985: aload         82
-        2987: aastore
-        2988: dup
-        2989: bipush        67
-        2991: aload         84
-        2993: aastore
-        2994: dup
-        2995: bipush        68
-        2997: aload         85
-        2999: aastore
-        3000: dup
-        3001: bipush        69
-        3003: aload         149
-        3005: aastore
-        3006: dup
-        3007: bipush        70
-        3009: aload         148
-        3011: aastore
-        3012: dup
-        3013: bipush        71
-        3015: aload         86
-        3017: aastore
-        3018: dup
-        3019: bipush        72
-        3021: aload         147
-        3023: aastore
-        3024: dup
-        3025: bipush        73
-        3027: aload         146
-        3029: aastore
-        3030: dup
-        3031: bipush        74
-        3033: aload         145
-        3035: aastore
-        3036: dup
-        3037: bipush        75
-        3039: aload         87
-        3041: aastore
-        3042: dup
-        3043: bipush        76
-        3045: aload         88
-        3047: aastore
-        3048: dup
-        3049: bipush        77
-        3051: aload         144
-        3053: aastore
-        3054: dup
-        3055: bipush        78
-        3057: aload         90
-        3059: aastore
-        3060: dup
-        3061: bipush        79
-        3063: aload         91
-        3065: aastore
-        3066: dup
-        3067: bipush        80
-        3069: aload         89
-        3071: aastore
-        3072: dup
-        3073: bipush        81
-        3075: aload         143
-        3077: aastore
-        3078: dup
-        3079: bipush        82
-        3081: aload         96
-        3083: aastore
-        3084: dup
-        3085: bipush        83
-        3087: aload         92
-        3089: aastore
-        3090: dup
-        3091: bipush        84
-        3093: aload         94
-        3095: aastore
-        3096: dup
-        3097: bipush        85
-        3099: aload         95
-        3101: aastore
-        3102: dup
-        3103: bipush        86
-        3105: aload         142
-        3107: aastore
-        3108: dup
-        3109: bipush        87
-        3111: aload         141
-        3113: aastore
-        3114: dup
-        3115: bipush        88
-        3117: aload         140
-        3119: aastore
-        3120: dup
-        3121: bipush        89
-        3123: aload         139
-        3125: aastore
-        3126: dup
-        3127: bipush        90
-        3129: aload         138
-        3131: aastore
-        3132: dup
-        3133: bipush        91
-        3135: aload         137
-        3137: aastore
-        3138: dup
-        3139: bipush        92
-        3141: aload         136
-        3143: aastore
-        3144: dup
-        3145: bipush        93
-        3147: aload         97
-        3149: aastore
-        3150: dup
-        3151: bipush        94
-        3153: aload         135
-        3155: aastore
-        3156: dup
-        3157: bipush        95
-        3159: aload         134
-        3161: aastore
-        3162: dup
-        3163: bipush        96
-        3165: aload         118
-        3167: aastore
-        3168: dup
-        3169: bipush        97
-        3171: aload         119
-        3173: aastore
-        3174: dup
-        3175: bipush        98
-        3177: aload         125
-        3179: aastore
-        3180: dup
-        3181: bipush        99
-        3183: aload         121
-        3185: aastore
-        3186: dup
-        3187: bipush        100
-        3189: aload         63
-        3191: aastore
-        3192: dup
-        3193: bipush        101
-        3195: aload         93
-        3197: aastore
-        3198: dup
-        3199: bipush        102
-        3201: aload         124
-        3203: aastore
-        3204: dup
-        3205: bipush        103
-        3207: aload         123
-        3209: aastore
-        3210: invokespecial #19                 // Method Block."<init>":(I[Ljava/lang/Object;)V
+        2280: invokespecial #247                // Method ocaml_fn_69."<init>":(Ljava/lang/Object;Ljava/lang/Object;)V
+        2283: astore        123
+        2285: new           #249                // class ocaml_fn_70
+        2288: dup
+        2289: aload         123
+        2291: invokespecial #250                // Method ocaml_fn_70."<init>":(Ljava/lang/Object;)V
+        2294: astore        124
+        2296: getstatic     #25                 // Field GLOBALS:[Ljava/lang/Object;
+        2299: bipush        44
+        2301: aaload
+        2302: astore        125
+        2304: iconst_0
+        2305: invokestatic  #31                 // Method java/lang/Integer.valueOf:(I)Ljava/lang/Integer;
+        2308: astore        126
+        2310: new           #252                // class ocaml_fn_71
+        2313: dup
+        2314: invokespecial #253                // Method ocaml_fn_71."<init>":()V
+        2317: astore        127
+        2319: new           #255                // class ocaml_fn_72
+        2322: dup
+        2323: invokespecial #256                // Method ocaml_fn_72."<init>":()V
+        2326: astore        128
+        2328: new           #258                // class ocaml_fn_73
+        2331: dup
+        2332: invokespecial #259                // Method ocaml_fn_73."<init>":()V
+        2335: astore        129
+        2337: new           #261                // class ocaml_fn_74
+        2340: dup
+        2341: invokespecial #262                // Method ocaml_fn_74."<init>":()V
+        2344: astore        130
+        2346: new           #264                // class ocaml_fn_75
+        2349: dup
+        2350: invokespecial #265                // Method ocaml_fn_75."<init>":()V
+        2353: astore        131
+        2355: new           #267                // class ocaml_fn_76
+        2358: dup
+        2359: invokespecial #268                // Method ocaml_fn_76."<init>":()V
+        2362: astore        132
+        2364: new           #14                 // class Block
+        2367: dup
+        2368: iconst_0
+        2369: bipush        6
+        2371: anewarray     #16                 // class java/lang/Object
+        2374: dup
+        2375: iconst_0
+        2376: aload         132
+        2378: aastore
+        2379: dup
+        2380: iconst_1
+        2381: aload         131
+        2383: aastore
+        2384: dup
+        2385: iconst_2
+        2386: aload         130
+        2388: aastore
+        2389: dup
+        2390: iconst_3
+        2391: aload         129
+        2393: aastore
+        2394: dup
+        2395: iconst_4
+        2396: aload         128
+        2398: aastore
+        2399: dup
+        2400: iconst_5
+        2401: aload         127
+        2403: aastore
+        2404: invokespecial #19                 // Method Block."<init>":(I[Ljava/lang/Object;)V
+        2407: astore        133
+        2409: new           #270                // class ocaml_fn_77
+        2412: dup
+        2413: invokespecial #271                // Method ocaml_fn_77."<init>":()V
+        2416: astore        134
+        2418: new           #273                // class ocaml_fn_78
+        2421: dup
+        2422: invokespecial #274                // Method ocaml_fn_78."<init>":()V
+        2425: astore        135
+        2427: new           #276                // class ocaml_fn_79
+        2430: dup
+        2431: invokespecial #277                // Method ocaml_fn_79."<init>":()V
+        2434: astore        136
+        2436: new           #279                // class ocaml_fn_80
+        2439: dup
+        2440: invokespecial #280                // Method ocaml_fn_80."<init>":()V
+        2443: astore        137
+        2445: new           #282                // class ocaml_fn_81
+        2448: dup
+        2449: invokespecial #283                // Method ocaml_fn_81."<init>":()V
+        2452: astore        138
+        2454: new           #285                // class ocaml_fn_82
+        2457: dup
+        2458: invokespecial #286                // Method ocaml_fn_82."<init>":()V
+        2461: astore        139
+        2463: new           #288                // class ocaml_fn_83
+        2466: dup
+        2467: invokespecial #289                // Method ocaml_fn_83."<init>":()V
+        2470: astore        140
+        2472: new           #291                // class ocaml_fn_84
+        2475: dup
+        2476: invokespecial #292                // Method ocaml_fn_84."<init>":()V
+        2479: astore        141
+        2481: new           #294                // class ocaml_fn_85
+        2484: dup
+        2485: invokespecial #295                // Method ocaml_fn_85."<init>":()V
+        2488: astore        142
+        2490: new           #297                // class ocaml_fn_86
+        2493: dup
+        2494: invokespecial #298                // Method ocaml_fn_86."<init>":()V
+        2497: astore        143
+        2499: new           #300                // class ocaml_fn_87
+        2502: dup
+        2503: invokespecial #301                // Method ocaml_fn_87."<init>":()V
+        2506: astore        144
+        2508: new           #303                // class ocaml_fn_88
+        2511: dup
+        2512: invokespecial #304                // Method ocaml_fn_88."<init>":()V
+        2515: astore        145
+        2517: new           #306                // class ocaml_fn_89
+        2520: dup
+        2521: invokespecial #307                // Method ocaml_fn_89."<init>":()V
+        2524: astore        146
+        2526: new           #309                // class ocaml_fn_90
+        2529: dup
+        2530: invokespecial #310                // Method ocaml_fn_90."<init>":()V
+        2533: astore        147
+        2535: new           #312                // class ocaml_fn_91
+        2538: dup
+        2539: invokespecial #313                // Method ocaml_fn_91."<init>":()V
+        2542: astore        148
+        2544: new           #315                // class ocaml_fn_92
+        2547: dup
+        2548: invokespecial #316                // Method ocaml_fn_92."<init>":()V
+        2551: astore        149
+        2553: new           #318                // class ocaml_fn_93
+        2556: dup
+        2557: invokespecial #319                // Method ocaml_fn_93."<init>":()V
+        2560: astore        150
+        2562: new           #14                 // class Block
+        2565: dup
+        2566: iconst_0
+        2567: bipush        104
+        2569: anewarray     #16                 // class java/lang/Object
+        2572: dup
+        2573: iconst_0
+        2574: aload         18
+        2576: aastore
+        2577: dup
+        2578: iconst_1
+        2579: aload         17
+        2581: aastore
+        2582: dup
+        2583: iconst_2
+        2584: aload         22
+        2586: aastore
+        2587: dup
+        2588: iconst_3
+        2589: aload         23
+        2591: aastore
+        2592: dup
+        2593: iconst_4
+        2594: aload         24
+        2596: aastore
+        2597: dup
+        2598: iconst_5
+        2599: aload         25
+        2601: aastore
+        2602: dup
+        2603: bipush        6
+        2605: aload         26
+        2607: aastore
+        2608: dup
+        2609: bipush        7
+        2611: aload         27
+        2613: aastore
+        2614: dup
+        2615: bipush        8
+        2617: aload         28
+        2619: aastore
+        2620: dup
+        2621: bipush        9
+        2623: aload         29
+        2625: aastore
+        2626: dup
+        2627: bipush        10
+        2629: aload         30
+        2631: aastore
+        2632: dup
+        2633: bipush        11
+        2635: aload         31
+        2637: aastore
+        2638: dup
+        2639: bipush        12
+        2641: aload         32
+        2643: aastore
+        2644: dup
+        2645: bipush        13
+        2647: aload         33
+        2649: aastore
+        2650: dup
+        2651: bipush        14
+        2653: aload         34
+        2655: aastore
+        2656: dup
+        2657: bipush        15
+        2659: aload         35
+        2661: aastore
+        2662: dup
+        2663: bipush        16
+        2665: aload         36
+        2667: aastore
+        2668: dup
+        2669: bipush        17
+        2671: aload         37
+        2673: aastore
+        2674: dup
+        2675: bipush        18
+        2677: iload         41
+        2679: invokestatic  #31                 // Method java/lang/Integer.valueOf:(I)Ljava/lang/Integer;
+        2682: aastore
+        2683: dup
+        2684: bipush        19
+        2686: iload         43
+        2688: invokestatic  #31                 // Method java/lang/Integer.valueOf:(I)Ljava/lang/Integer;
+        2691: aastore
+        2692: dup
+        2693: bipush        20
+        2695: aload         38
+        2697: aastore
+        2698: dup
+        2699: bipush        21
+        2701: aload         45
+        2703: aastore
+        2704: dup
+        2705: bipush        22
+        2707: aload         47
+        2709: aastore
+        2710: dup
+        2711: bipush        23
+        2713: aload         49
+        2715: aastore
+        2716: dup
+        2717: bipush        24
+        2719: aload         51
+        2721: aastore
+        2722: dup
+        2723: bipush        25
+        2725: aload         53
+        2727: aastore
+        2728: dup
+        2729: bipush        26
+        2731: aload         55
+        2733: aastore
+        2734: dup
+        2735: bipush        27
+        2737: aload         56
+        2739: aastore
+        2740: dup
+        2741: bipush        28
+        2743: aload         57
+        2745: aastore
+        2746: dup
+        2747: bipush        29
+        2749: aload         58
+        2751: aastore
+        2752: dup
+        2753: bipush        30
+        2755: aload         60
+        2757: aastore
+        2758: dup
+        2759: bipush        31
+        2761: aload         59
+        2763: aastore
+        2764: dup
+        2765: bipush        32
+        2767: aload         61
+        2769: aastore
+        2770: dup
+        2771: bipush        33
+        2773: aload         62
+        2775: aastore
+        2776: dup
+        2777: bipush        34
+        2779: aload         64
+        2781: aastore
+        2782: dup
+        2783: bipush        35
+        2785: aload         65
+        2787: aastore
+        2788: dup
+        2789: bipush        36
+        2791: aload         66
+        2793: aastore
+        2794: dup
+        2795: bipush        37
+        2797: aload         73
+        2799: aastore
+        2800: dup
+        2801: bipush        38
+        2803: aload         75
+        2805: aastore
+        2806: dup
+        2807: bipush        39
+        2809: aload         77
+        2811: aastore
+        2812: dup
+        2813: bipush        40
+        2815: aload         98
+        2817: aastore
+        2818: dup
+        2819: bipush        41
+        2821: aload         99
+        2823: aastore
+        2824: dup
+        2825: bipush        42
+        2827: aload         100
+        2829: aastore
+        2830: dup
+        2831: bipush        43
+        2833: aload         101
+        2835: aastore
+        2836: dup
+        2837: bipush        44
+        2839: aload         102
+        2841: aastore
+        2842: dup
+        2843: bipush        45
+        2845: aload         103
+        2847: aastore
+        2848: dup
+        2849: bipush        46
+        2851: aload         104
+        2853: aastore
+        2854: dup
+        2855: bipush        47
+        2857: aload         105
+        2859: aastore
+        2860: dup
+        2861: bipush        48
+        2863: aload         106
+        2865: aastore
+        2866: dup
+        2867: bipush        49
+        2869: aload         107
+        2871: aastore
+        2872: dup
+        2873: bipush        50
+        2875: aload         108
+        2877: aastore
+        2878: dup
+        2879: bipush        51
+        2881: aload         109
+        2883: aastore
+        2884: dup
+        2885: bipush        52
+        2887: aload         110
+        2889: aastore
+        2890: dup
+        2891: bipush        53
+        2893: aload         111
+        2895: aastore
+        2896: dup
+        2897: bipush        54
+        2899: aload         112
+        2901: aastore
+        2902: dup
+        2903: bipush        55
+        2905: aload         114
+        2907: aastore
+        2908: dup
+        2909: bipush        56
+        2911: aload         113
+        2913: aastore
+        2914: dup
+        2915: bipush        57
+        2917: aload         116
+        2919: aastore
+        2920: dup
+        2921: bipush        58
+        2923: aload         115
+        2925: aastore
+        2926: dup
+        2927: bipush        59
+        2929: aload         79
+        2931: aastore
+        2932: dup
+        2933: bipush        60
+        2935: aload         80
+        2937: aastore
+        2938: dup
+        2939: bipush        61
+        2941: aload         78
+        2943: aastore
+        2944: dup
+        2945: bipush        62
+        2947: aload         150
+        2949: aastore
+        2950: dup
+        2951: bipush        63
+        2953: aload         81
+        2955: aastore
+        2956: dup
+        2957: bipush        64
+        2959: aload         149
+        2961: aastore
+        2962: dup
+        2963: bipush        65
+        2965: aload         83
+        2967: aastore
+        2968: dup
+        2969: bipush        66
+        2971: aload         82
+        2973: aastore
+        2974: dup
+        2975: bipush        67
+        2977: aload         84
+        2979: aastore
+        2980: dup
+        2981: bipush        68
+        2983: aload         85
+        2985: aastore
+        2986: dup
+        2987: bipush        69
+        2989: aload         148
+        2991: aastore
+        2992: dup
+        2993: bipush        70
+        2995: aload         147
+        2997: aastore
+        2998: dup
+        2999: bipush        71
+        3001: aload         86
+        3003: aastore
+        3004: dup
+        3005: bipush        72
+        3007: aload         146
+        3009: aastore
+        3010: dup
+        3011: bipush        73
+        3013: aload         145
+        3015: aastore
+        3016: dup
+        3017: bipush        74
+        3019: aload         144
+        3021: aastore
+        3022: dup
+        3023: bipush        75
+        3025: aload         87
+        3027: aastore
+        3028: dup
+        3029: bipush        76
+        3031: aload         88
+        3033: aastore
+        3034: dup
+        3035: bipush        77
+        3037: aload         143
+        3039: aastore
+        3040: dup
+        3041: bipush        78
+        3043: aload         90
+        3045: aastore
+        3046: dup
+        3047: bipush        79
+        3049: aload         91
+        3051: aastore
+        3052: dup
+        3053: bipush        80
+        3055: aload         89
+        3057: aastore
+        3058: dup
+        3059: bipush        81
+        3061: aload         142
+        3063: aastore
+        3064: dup
+        3065: bipush        82
+        3067: aload         96
+        3069: aastore
+        3070: dup
+        3071: bipush        83
+        3073: aload         92
+        3075: aastore
+        3076: dup
+        3077: bipush        84
+        3079: aload         94
+        3081: aastore
+        3082: dup
+        3083: bipush        85
+        3085: aload         95
+        3087: aastore
+        3088: dup
+        3089: bipush        86
+        3091: aload         141
+        3093: aastore
+        3094: dup
+        3095: bipush        87
+        3097: aload         140
+        3099: aastore
+        3100: dup
+        3101: bipush        88
+        3103: aload         139
+        3105: aastore
+        3106: dup
+        3107: bipush        89
+        3109: aload         138
+        3111: aastore
+        3112: dup
+        3113: bipush        90
+        3115: aload         137
+        3117: aastore
+        3118: dup
+        3119: bipush        91
+        3121: aload         136
+        3123: aastore
+        3124: dup
+        3125: bipush        92
+        3127: aload         135
+        3129: aastore
+        3130: dup
+        3131: bipush        93
+        3133: aload         97
+        3135: aastore
+        3136: dup
+        3137: bipush        94
+        3139: aload         134
+        3141: aastore
+        3142: dup
+        3143: bipush        95
+        3145: aload         133
+        3147: aastore
+        3148: dup
+        3149: bipush        96
+        3151: aload         117
+        3153: aastore
+        3154: dup
+        3155: bipush        97
+        3157: aload         118
+        3159: aastore
+        3160: dup
+        3161: bipush        98
+        3163: aload         124
+        3165: aastore
+        3166: dup
+        3167: bipush        99
+        3169: aload         120
+        3171: aastore
+        3172: dup
+        3173: bipush        100
+        3175: aload         63
+        3177: aastore
+        3178: dup
+        3179: bipush        101
+        3181: aload         93
+        3183: aastore
+        3184: dup
+        3185: bipush        102
+        3187: aload         123
+        3189: aastore
+        3190: dup
+        3191: bipush        103
+        3193: aload         122
+        3195: aastore
+        3196: invokespecial #19                 // Method Block."<init>":(I[Ljava/lang/Object;)V
+        3199: astore        151
+        3201: getstatic     #25                 // Field GLOBALS:[Ljava/lang/Object;
+        3204: bipush        45
+        3206: aload         151
+        3208: aastore
+        3209: iconst_0
+        3210: invokestatic  #31                 // Method java/lang/Integer.valueOf:(I)Ljava/lang/Integer;
         3213: astore        152
-        3215: getstatic     #25                 // Field GLOBALS:[Ljava/lang/Object;
-        3218: bipush        45
-        3220: aload         152
-        3222: aastore
-        3223: iconst_0
-        3224: invokestatic  #31                 // Method java/lang/Integer.valueOf:(I)Ljava/lang/Integer;
-        3227: astore        153
-        3229: iconst_0
-        3230: istore        154
-        3232: iconst_4
-        3233: istore        155
-        3235: bipush        9
-        3237: istore        156
-        3239: iload         156
-        3241: iload         155
-        3243: irem
-        3244: istore        157
-        3246: iconst_2
-        3247: istore        158
-        3249: bipush        10
-        3251: istore        159
-        3253: iload         159
-        3255: iload         158
-        3257: idiv
-        3258: istore        160
-        3260: iconst_4
-        3261: istore        161
-        3263: iconst_3
-        3264: istore        162
-        3266: iload         162
-        3268: iload         161
-        3270: imul
-        3271: istore        163
+        3215: iconst_4
+        3216: istore        153
+        3218: bipush        9
+        3220: istore        154
+        3222: iload         154
+        3224: iload         153
+        3226: irem
+        3227: istore        155
+        3229: iconst_2
+        3230: istore        156
+        3232: bipush        10
+        3234: istore        157
+        3236: iload         157
+        3238: iload         156
+        3240: idiv
+        3241: istore        158
+        3243: iconst_4
+        3244: istore        159
+        3246: iconst_3
+        3247: istore        160
+        3249: iload         160
+        3251: iload         159
+        3253: imul
+        3254: istore        161
+        3256: iload         161
+        3258: iload         158
+        3260: isub
+        3261: istore        162
+        3263: iload         162
+        3265: iload         155
+        3267: iadd
+        3268: istore        163
+        3270: getstatic     #325                // Field java/lang/System.out:Ljava/io/PrintStream;
         3273: iload         163
-        3275: iload         160
-        3277: isub
-        3278: istore        164
-        3280: iload         164
-        3282: iload         157
-        3284: iadd
-        3285: istore        165
-        3287: getstatic     #325                // Field java/lang/System.out:Ljava/io/PrintStream;
-        3290: iload         165
-        3292: invokevirtual #331                // Method java/io/PrintStream.println:(I)V
-        3295: iconst_0
-        3296: invokestatic  #31                 // Method java/lang/Integer.valueOf:(I)Ljava/lang/Integer;
-        3299: astore        166
-        3301: new           #14                 // class Block
-        3304: dup
-        3305: iconst_0
+        3275: invokevirtual #331                // Method java/io/PrintStream.println:(I)V
+        3278: iconst_0
+        3279: invokestatic  #31                 // Method java/lang/Integer.valueOf:(I)Ljava/lang/Integer;
+        3282: astore        164
+        3284: new           #14                 // class Block
+        3287: dup
+        3288: iconst_0
+        3289: iconst_0
+        3290: anewarray     #16                 // class java/lang/Object
+        3293: invokespecial #19                 // Method Block."<init>":(I[Ljava/lang/Object;)V
+        3296: astore        165
+        3298: getstatic     #25                 // Field GLOBALS:[Ljava/lang/Object;
+        3301: bipush        46
+        3303: aload         165
+        3305: aastore
         3306: iconst_0
-        3307: anewarray     #16                 // class java/lang/Object
-        3310: invokespecial #19                 // Method Block."<init>":(I[Ljava/lang/Object;)V
-        3313: astore        167
+        3307: invokestatic  #31                 // Method java/lang/Integer.valueOf:(I)Ljava/lang/Integer;
+        3310: astore        166
+        3312: iconst_0
+        3313: istore        167
         3315: getstatic     #25                 // Field GLOBALS:[Ljava/lang/Object;
-        3318: bipush        46
-        3320: aload         167
-        3322: aastore
-        3323: iconst_0
-        3324: invokestatic  #31                 // Method java/lang/Integer.valueOf:(I)Ljava/lang/Integer;
-        3327: astore        168
-        3329: iconst_0
-        3330: istore        169
-        3332: iconst_0
-        3333: istore        170
-        3335: getstatic     #25                 // Field GLOBALS:[Ljava/lang/Object;
-        3338: bipush        45
-        3340: aaload
-        3341: checkcast     #14                 // class Block
-        3344: getfield      #334                // Field Block.fields:[Ljava/lang/Object;
-        3347: bipush        102
-        3349: aaload
-        3350: astore        171
-        3352: aload         171
-        3354: checkcast     #96                 // class Closure
-        3357: iload         170
-        3359: invokestatic  #31                 // Method java/lang/Integer.valueOf:(I)Ljava/lang/Integer;
-        3362: invokevirtual #338                // Method Closure.apply1:(Ljava/lang/Object;)Ljava/lang/Object;
-        3365: astore        172
-        3367: new           #14                 // class Block
-        3370: dup
-        3371: iconst_0
-        3372: iconst_0
-        3373: anewarray     #16                 // class java/lang/Object
-        3376: invokespecial #19                 // Method Block."<init>":(I[Ljava/lang/Object;)V
-        3379: astore        173
-        3381: getstatic     #25                 // Field GLOBALS:[Ljava/lang/Object;
-        3384: bipush        47
-        3386: aload         173
-        3388: aastore
-        3389: iconst_0
-        3390: invokestatic  #31                 // Method java/lang/Integer.valueOf:(I)Ljava/lang/Integer;
-        3393: astore        174
-        3395: iconst_0
-        3396: istore        175
-        3398: return
+        3318: bipush        45
+        3320: aaload
+        3321: checkcast     #14                 // class Block
+        3324: getfield      #334                // Field Block.fields:[Ljava/lang/Object;
+        3327: bipush        102
+        3329: aaload
+        3330: astore        168
+        3332: aload         168
+        3334: checkcast     #96                 // class Closure
+        3337: iload         167
+        3339: invokestatic  #31                 // Method java/lang/Integer.valueOf:(I)Ljava/lang/Integer;
+        3342: invokevirtual #338                // Method Closure.apply1:(Ljava/lang/Object;)Ljava/lang/Object;
+        3345: astore        169
+        3347: new           #14                 // class Block
+        3350: dup
+        3351: iconst_0
+        3352: iconst_0
+        3353: anewarray     #16                 // class java/lang/Object
+        3356: invokespecial #19                 // Method Block."<init>":(I[Ljava/lang/Object;)V
+        3359: astore        170
+        3361: getstatic     #25                 // Field GLOBALS:[Ljava/lang/Object;
+        3364: bipush        47
+        3366: aload         170
+        3368: aastore
+        3369: iconst_0
+        3370: invokestatic  #31                 // Method java/lang/Integer.valueOf:(I)Ljava/lang/Integer;
+        3373: astore        171
+        3375: return
     }
     |}]
 
@@ -4775,712 +4749,701 @@ let%expect_test "emission: closure with a captured int" =
         2187: aload         112
         2189: invokespecial #232                // Method ocaml_fn_64."<init>":(Ljava/lang/Object;Ljava/lang/Object;)V
         2192: astore        116
-        2194: new           #14                 // class Block
+        2194: new           #234                // class ocaml_fn_65
         2197: dup
-        2198: iconst_0
-        2199: iconst_0
-        2200: anewarray     #16                 // class java/lang/Object
-        2203: invokespecial #19                 // Method Block."<init>":(I[Ljava/lang/Object;)V
-        2206: astore        117
-        2208: new           #234                // class ocaml_fn_65
-        2211: dup
-        2212: invokespecial #235                // Method ocaml_fn_65."<init>":()V
-        2215: astore        118
-        2217: new           #237                // class ocaml_fn_66
-        2220: dup
-        2221: aload         56
-        2223: invokespecial #238                // Method ocaml_fn_66."<init>":(Ljava/lang/Object;)V
-        2226: astore        119
-        2228: new           #14                 // class Block
-        2231: dup
-        2232: iconst_0
-        2233: iconst_1
-        2234: anewarray     #16                 // class java/lang/Object
-        2237: dup
-        2238: iconst_0
-        2239: aload         81
-        2241: aastore
-        2242: invokespecial #19                 // Method Block."<init>":(I[Ljava/lang/Object;)V
-        2245: astore        120
-        2247: new           #240                // class ocaml_fn_67
-        2250: dup
-        2251: aload         120
-        2253: invokespecial #241                // Method ocaml_fn_67."<init>":(Ljava/lang/Object;)V
-        2256: astore        121
-        2258: new           #243                // class ocaml_fn_68
-        2261: dup
-        2262: invokespecial #244                // Method ocaml_fn_68."<init>":()V
-        2265: astore        122
-        2267: new           #14                 // class Block
-        2270: dup
-        2271: iconst_0
-        2272: iconst_1
-        2273: anewarray     #16                 // class java/lang/Object
-        2276: dup
-        2277: iconst_0
+        2198: invokespecial #235                // Method ocaml_fn_65."<init>":()V
+        2201: astore        117
+        2203: new           #237                // class ocaml_fn_66
+        2206: dup
+        2207: aload         56
+        2209: invokespecial #238                // Method ocaml_fn_66."<init>":(Ljava/lang/Object;)V
+        2212: astore        118
+        2214: new           #14                 // class Block
+        2217: dup
+        2218: iconst_0
+        2219: iconst_1
+        2220: anewarray     #16                 // class java/lang/Object
+        2223: dup
+        2224: iconst_0
+        2225: aload         81
+        2227: aastore
+        2228: invokespecial #19                 // Method Block."<init>":(I[Ljava/lang/Object;)V
+        2231: astore        119
+        2233: new           #240                // class ocaml_fn_67
+        2236: dup
+        2237: aload         119
+        2239: invokespecial #241                // Method ocaml_fn_67."<init>":(Ljava/lang/Object;)V
+        2242: astore        120
+        2244: new           #243                // class ocaml_fn_68
+        2247: dup
+        2248: invokespecial #244                // Method ocaml_fn_68."<init>":()V
+        2251: astore        121
+        2253: new           #14                 // class Block
+        2256: dup
+        2257: iconst_0
+        2258: iconst_1
+        2259: anewarray     #16                 // class java/lang/Object
+        2262: dup
+        2263: iconst_0
+        2264: aload         121
+        2266: aastore
+        2267: invokespecial #19                 // Method Block."<init>":(I[Ljava/lang/Object;)V
+        2270: astore        122
+        2272: new           #246                // class ocaml_fn_69
+        2275: dup
+        2276: aload         119
         2278: aload         122
-        2280: aastore
-        2281: invokespecial #19                 // Method Block."<init>":(I[Ljava/lang/Object;)V
-        2284: astore        123
-        2286: new           #246                // class ocaml_fn_69
-        2289: dup
-        2290: aload         120
-        2292: aload         123
-        2294: invokespecial #247                // Method ocaml_fn_69."<init>":(Ljava/lang/Object;Ljava/lang/Object;)V
-        2297: astore        124
-        2299: new           #249                // class ocaml_fn_70
-        2302: dup
-        2303: aload         124
-        2305: invokespecial #250                // Method ocaml_fn_70."<init>":(Ljava/lang/Object;)V
-        2308: astore        125
-        2310: getstatic     #25                 // Field GLOBALS:[Ljava/lang/Object;
-        2313: bipush        44
-        2315: aaload
-        2316: astore        126
-        2318: iconst_0
-        2319: invokestatic  #31                 // Method java/lang/Integer.valueOf:(I)Ljava/lang/Integer;
-        2322: astore        127
-        2324: new           #252                // class ocaml_fn_71
-        2327: dup
-        2328: invokespecial #253                // Method ocaml_fn_71."<init>":()V
-        2331: astore        128
-        2333: new           #255                // class ocaml_fn_72
-        2336: dup
-        2337: invokespecial #256                // Method ocaml_fn_72."<init>":()V
-        2340: astore        129
-        2342: new           #258                // class ocaml_fn_73
-        2345: dup
-        2346: invokespecial #259                // Method ocaml_fn_73."<init>":()V
-        2349: astore        130
-        2351: new           #261                // class ocaml_fn_74
-        2354: dup
-        2355: invokespecial #262                // Method ocaml_fn_74."<init>":()V
-        2358: astore        131
-        2360: new           #264                // class ocaml_fn_75
-        2363: dup
-        2364: invokespecial #265                // Method ocaml_fn_75."<init>":()V
-        2367: astore        132
-        2369: new           #267                // class ocaml_fn_76
-        2372: dup
-        2373: invokespecial #268                // Method ocaml_fn_76."<init>":()V
-        2376: astore        133
-        2378: new           #14                 // class Block
-        2381: dup
-        2382: iconst_0
-        2383: bipush        6
-        2385: anewarray     #16                 // class java/lang/Object
-        2388: dup
-        2389: iconst_0
-        2390: aload         133
-        2392: aastore
-        2393: dup
-        2394: iconst_1
-        2395: aload         132
-        2397: aastore
-        2398: dup
-        2399: iconst_2
-        2400: aload         131
-        2402: aastore
-        2403: dup
-        2404: iconst_3
-        2405: aload         130
-        2407: aastore
-        2408: dup
-        2409: iconst_4
-        2410: aload         129
-        2412: aastore
-        2413: dup
-        2414: iconst_5
-        2415: aload         128
-        2417: aastore
-        2418: invokespecial #19                 // Method Block."<init>":(I[Ljava/lang/Object;)V
-        2421: astore        134
-        2423: new           #270                // class ocaml_fn_77
-        2426: dup
-        2427: invokespecial #271                // Method ocaml_fn_77."<init>":()V
-        2430: astore        135
-        2432: new           #273                // class ocaml_fn_78
-        2435: dup
-        2436: invokespecial #274                // Method ocaml_fn_78."<init>":()V
-        2439: astore        136
-        2441: new           #276                // class ocaml_fn_79
-        2444: dup
-        2445: invokespecial #277                // Method ocaml_fn_79."<init>":()V
-        2448: astore        137
-        2450: new           #279                // class ocaml_fn_80
-        2453: dup
-        2454: invokespecial #280                // Method ocaml_fn_80."<init>":()V
-        2457: astore        138
-        2459: new           #282                // class ocaml_fn_81
-        2462: dup
-        2463: invokespecial #283                // Method ocaml_fn_81."<init>":()V
-        2466: astore        139
-        2468: new           #285                // class ocaml_fn_82
-        2471: dup
-        2472: invokespecial #286                // Method ocaml_fn_82."<init>":()V
-        2475: astore        140
-        2477: new           #288                // class ocaml_fn_83
-        2480: dup
-        2481: invokespecial #289                // Method ocaml_fn_83."<init>":()V
-        2484: astore        141
-        2486: new           #291                // class ocaml_fn_84
-        2489: dup
-        2490: invokespecial #292                // Method ocaml_fn_84."<init>":()V
-        2493: astore        142
-        2495: new           #294                // class ocaml_fn_85
-        2498: dup
-        2499: invokespecial #295                // Method ocaml_fn_85."<init>":()V
-        2502: astore        143
-        2504: new           #297                // class ocaml_fn_86
-        2507: dup
-        2508: invokespecial #298                // Method ocaml_fn_86."<init>":()V
-        2511: astore        144
-        2513: new           #300                // class ocaml_fn_87
-        2516: dup
-        2517: invokespecial #301                // Method ocaml_fn_87."<init>":()V
-        2520: astore        145
-        2522: new           #303                // class ocaml_fn_88
-        2525: dup
-        2526: invokespecial #304                // Method ocaml_fn_88."<init>":()V
-        2529: astore        146
-        2531: new           #306                // class ocaml_fn_89
-        2534: dup
-        2535: invokespecial #307                // Method ocaml_fn_89."<init>":()V
-        2538: astore        147
-        2540: new           #309                // class ocaml_fn_90
-        2543: dup
-        2544: invokespecial #310                // Method ocaml_fn_90."<init>":()V
-        2547: astore        148
-        2549: new           #312                // class ocaml_fn_91
-        2552: dup
-        2553: invokespecial #313                // Method ocaml_fn_91."<init>":()V
-        2556: astore        149
-        2558: new           #315                // class ocaml_fn_92
-        2561: dup
-        2562: invokespecial #316                // Method ocaml_fn_92."<init>":()V
-        2565: astore        150
-        2567: new           #318                // class ocaml_fn_93
-        2570: dup
-        2571: invokespecial #319                // Method ocaml_fn_93."<init>":()V
-        2574: astore        151
-        2576: new           #14                 // class Block
-        2579: dup
-        2580: iconst_0
-        2581: bipush        104
-        2583: anewarray     #16                 // class java/lang/Object
-        2586: dup
-        2587: iconst_0
-        2588: aload         18
-        2590: aastore
-        2591: dup
-        2592: iconst_1
-        2593: aload         17
-        2595: aastore
-        2596: dup
-        2597: iconst_2
-        2598: aload         22
-        2600: aastore
-        2601: dup
-        2602: iconst_3
-        2603: aload         23
-        2605: aastore
-        2606: dup
-        2607: iconst_4
-        2608: aload         24
-        2610: aastore
-        2611: dup
-        2612: iconst_5
-        2613: aload         25
-        2615: aastore
-        2616: dup
-        2617: bipush        6
-        2619: aload         26
-        2621: aastore
-        2622: dup
-        2623: bipush        7
-        2625: aload         27
-        2627: aastore
-        2628: dup
-        2629: bipush        8
-        2631: aload         28
-        2633: aastore
-        2634: dup
-        2635: bipush        9
-        2637: aload         29
-        2639: aastore
-        2640: dup
-        2641: bipush        10
-        2643: aload         30
-        2645: aastore
-        2646: dup
-        2647: bipush        11
-        2649: aload         31
-        2651: aastore
-        2652: dup
-        2653: bipush        12
-        2655: aload         32
-        2657: aastore
-        2658: dup
-        2659: bipush        13
-        2661: aload         33
-        2663: aastore
-        2664: dup
-        2665: bipush        14
-        2667: aload         34
-        2669: aastore
-        2670: dup
-        2671: bipush        15
-        2673: aload         35
-        2675: aastore
-        2676: dup
-        2677: bipush        16
-        2679: aload         36
-        2681: aastore
-        2682: dup
-        2683: bipush        17
-        2685: aload         37
-        2687: aastore
-        2688: dup
-        2689: bipush        18
-        2691: iload         41
-        2693: invokestatic  #31                 // Method java/lang/Integer.valueOf:(I)Ljava/lang/Integer;
-        2696: aastore
-        2697: dup
-        2698: bipush        19
-        2700: iload         43
-        2702: invokestatic  #31                 // Method java/lang/Integer.valueOf:(I)Ljava/lang/Integer;
-        2705: aastore
-        2706: dup
-        2707: bipush        20
-        2709: aload         38
-        2711: aastore
-        2712: dup
-        2713: bipush        21
-        2715: aload         45
-        2717: aastore
-        2718: dup
-        2719: bipush        22
-        2721: aload         47
-        2723: aastore
-        2724: dup
-        2725: bipush        23
-        2727: aload         49
-        2729: aastore
-        2730: dup
-        2731: bipush        24
-        2733: aload         51
-        2735: aastore
-        2736: dup
-        2737: bipush        25
-        2739: aload         53
-        2741: aastore
-        2742: dup
-        2743: bipush        26
-        2745: aload         55
-        2747: aastore
-        2748: dup
-        2749: bipush        27
-        2751: aload         56
-        2753: aastore
-        2754: dup
-        2755: bipush        28
-        2757: aload         57
-        2759: aastore
-        2760: dup
-        2761: bipush        29
-        2763: aload         58
-        2765: aastore
-        2766: dup
-        2767: bipush        30
-        2769: aload         60
-        2771: aastore
-        2772: dup
-        2773: bipush        31
-        2775: aload         59
-        2777: aastore
-        2778: dup
-        2779: bipush        32
-        2781: aload         61
-        2783: aastore
-        2784: dup
-        2785: bipush        33
-        2787: aload         62
-        2789: aastore
-        2790: dup
-        2791: bipush        34
-        2793: aload         64
-        2795: aastore
-        2796: dup
-        2797: bipush        35
-        2799: aload         65
-        2801: aastore
-        2802: dup
-        2803: bipush        36
-        2805: aload         66
-        2807: aastore
-        2808: dup
-        2809: bipush        37
-        2811: aload         73
-        2813: aastore
-        2814: dup
-        2815: bipush        38
-        2817: aload         75
-        2819: aastore
-        2820: dup
-        2821: bipush        39
-        2823: aload         77
-        2825: aastore
-        2826: dup
-        2827: bipush        40
-        2829: aload         98
-        2831: aastore
-        2832: dup
-        2833: bipush        41
-        2835: aload         99
-        2837: aastore
-        2838: dup
-        2839: bipush        42
-        2841: aload         100
-        2843: aastore
-        2844: dup
-        2845: bipush        43
-        2847: aload         101
-        2849: aastore
-        2850: dup
-        2851: bipush        44
-        2853: aload         102
-        2855: aastore
-        2856: dup
-        2857: bipush        45
-        2859: aload         103
-        2861: aastore
-        2862: dup
-        2863: bipush        46
-        2865: aload         104
-        2867: aastore
-        2868: dup
-        2869: bipush        47
-        2871: aload         105
-        2873: aastore
-        2874: dup
-        2875: bipush        48
-        2877: aload         106
-        2879: aastore
-        2880: dup
-        2881: bipush        49
-        2883: aload         107
-        2885: aastore
-        2886: dup
-        2887: bipush        50
-        2889: aload         108
-        2891: aastore
-        2892: dup
-        2893: bipush        51
-        2895: aload         109
-        2897: aastore
-        2898: dup
-        2899: bipush        52
-        2901: aload         110
-        2903: aastore
-        2904: dup
-        2905: bipush        53
-        2907: aload         111
-        2909: aastore
-        2910: dup
-        2911: bipush        54
-        2913: aload         112
-        2915: aastore
-        2916: dup
-        2917: bipush        55
-        2919: aload         114
-        2921: aastore
-        2922: dup
-        2923: bipush        56
-        2925: aload         113
-        2927: aastore
-        2928: dup
-        2929: bipush        57
-        2931: aload         116
-        2933: aastore
-        2934: dup
-        2935: bipush        58
-        2937: aload         115
-        2939: aastore
-        2940: dup
-        2941: bipush        59
-        2943: aload         79
-        2945: aastore
-        2946: dup
-        2947: bipush        60
-        2949: aload         80
-        2951: aastore
-        2952: dup
-        2953: bipush        61
-        2955: aload         78
-        2957: aastore
-        2958: dup
-        2959: bipush        62
-        2961: aload         151
-        2963: aastore
-        2964: dup
-        2965: bipush        63
-        2967: aload         81
-        2969: aastore
-        2970: dup
-        2971: bipush        64
-        2973: aload         150
-        2975: aastore
-        2976: dup
-        2977: bipush        65
-        2979: aload         83
-        2981: aastore
-        2982: dup
-        2983: bipush        66
-        2985: aload         82
-        2987: aastore
-        2988: dup
-        2989: bipush        67
-        2991: aload         84
-        2993: aastore
-        2994: dup
-        2995: bipush        68
-        2997: aload         85
-        2999: aastore
-        3000: dup
-        3001: bipush        69
-        3003: aload         149
-        3005: aastore
-        3006: dup
-        3007: bipush        70
-        3009: aload         148
-        3011: aastore
-        3012: dup
-        3013: bipush        71
-        3015: aload         86
-        3017: aastore
-        3018: dup
-        3019: bipush        72
-        3021: aload         147
-        3023: aastore
-        3024: dup
-        3025: bipush        73
-        3027: aload         146
-        3029: aastore
-        3030: dup
-        3031: bipush        74
-        3033: aload         145
-        3035: aastore
-        3036: dup
-        3037: bipush        75
-        3039: aload         87
-        3041: aastore
-        3042: dup
-        3043: bipush        76
-        3045: aload         88
-        3047: aastore
-        3048: dup
-        3049: bipush        77
-        3051: aload         144
-        3053: aastore
-        3054: dup
-        3055: bipush        78
-        3057: aload         90
-        3059: aastore
-        3060: dup
-        3061: bipush        79
-        3063: aload         91
-        3065: aastore
-        3066: dup
-        3067: bipush        80
-        3069: aload         89
-        3071: aastore
-        3072: dup
-        3073: bipush        81
-        3075: aload         143
-        3077: aastore
-        3078: dup
-        3079: bipush        82
-        3081: aload         96
-        3083: aastore
-        3084: dup
-        3085: bipush        83
-        3087: aload         92
-        3089: aastore
-        3090: dup
-        3091: bipush        84
-        3093: aload         94
-        3095: aastore
-        3096: dup
-        3097: bipush        85
-        3099: aload         95
-        3101: aastore
-        3102: dup
-        3103: bipush        86
-        3105: aload         142
-        3107: aastore
-        3108: dup
-        3109: bipush        87
-        3111: aload         141
-        3113: aastore
-        3114: dup
-        3115: bipush        88
-        3117: aload         140
-        3119: aastore
-        3120: dup
-        3121: bipush        89
-        3123: aload         139
-        3125: aastore
-        3126: dup
-        3127: bipush        90
-        3129: aload         138
-        3131: aastore
-        3132: dup
-        3133: bipush        91
-        3135: aload         137
-        3137: aastore
-        3138: dup
-        3139: bipush        92
-        3141: aload         136
-        3143: aastore
-        3144: dup
-        3145: bipush        93
-        3147: aload         97
-        3149: aastore
-        3150: dup
-        3151: bipush        94
-        3153: aload         135
-        3155: aastore
-        3156: dup
-        3157: bipush        95
-        3159: aload         134
-        3161: aastore
-        3162: dup
-        3163: bipush        96
-        3165: aload         118
-        3167: aastore
-        3168: dup
-        3169: bipush        97
-        3171: aload         119
-        3173: aastore
-        3174: dup
-        3175: bipush        98
-        3177: aload         125
-        3179: aastore
-        3180: dup
-        3181: bipush        99
-        3183: aload         121
-        3185: aastore
-        3186: dup
-        3187: bipush        100
-        3189: aload         63
-        3191: aastore
-        3192: dup
-        3193: bipush        101
-        3195: aload         93
-        3197: aastore
-        3198: dup
-        3199: bipush        102
-        3201: aload         124
-        3203: aastore
-        3204: dup
-        3205: bipush        103
-        3207: aload         123
-        3209: aastore
-        3210: invokespecial #19                 // Method Block."<init>":(I[Ljava/lang/Object;)V
+        2280: invokespecial #247                // Method ocaml_fn_69."<init>":(Ljava/lang/Object;Ljava/lang/Object;)V
+        2283: astore        123
+        2285: new           #249                // class ocaml_fn_70
+        2288: dup
+        2289: aload         123
+        2291: invokespecial #250                // Method ocaml_fn_70."<init>":(Ljava/lang/Object;)V
+        2294: astore        124
+        2296: getstatic     #25                 // Field GLOBALS:[Ljava/lang/Object;
+        2299: bipush        44
+        2301: aaload
+        2302: astore        125
+        2304: iconst_0
+        2305: invokestatic  #31                 // Method java/lang/Integer.valueOf:(I)Ljava/lang/Integer;
+        2308: astore        126
+        2310: new           #252                // class ocaml_fn_71
+        2313: dup
+        2314: invokespecial #253                // Method ocaml_fn_71."<init>":()V
+        2317: astore        127
+        2319: new           #255                // class ocaml_fn_72
+        2322: dup
+        2323: invokespecial #256                // Method ocaml_fn_72."<init>":()V
+        2326: astore        128
+        2328: new           #258                // class ocaml_fn_73
+        2331: dup
+        2332: invokespecial #259                // Method ocaml_fn_73."<init>":()V
+        2335: astore        129
+        2337: new           #261                // class ocaml_fn_74
+        2340: dup
+        2341: invokespecial #262                // Method ocaml_fn_74."<init>":()V
+        2344: astore        130
+        2346: new           #264                // class ocaml_fn_75
+        2349: dup
+        2350: invokespecial #265                // Method ocaml_fn_75."<init>":()V
+        2353: astore        131
+        2355: new           #267                // class ocaml_fn_76
+        2358: dup
+        2359: invokespecial #268                // Method ocaml_fn_76."<init>":()V
+        2362: astore        132
+        2364: new           #14                 // class Block
+        2367: dup
+        2368: iconst_0
+        2369: bipush        6
+        2371: anewarray     #16                 // class java/lang/Object
+        2374: dup
+        2375: iconst_0
+        2376: aload         132
+        2378: aastore
+        2379: dup
+        2380: iconst_1
+        2381: aload         131
+        2383: aastore
+        2384: dup
+        2385: iconst_2
+        2386: aload         130
+        2388: aastore
+        2389: dup
+        2390: iconst_3
+        2391: aload         129
+        2393: aastore
+        2394: dup
+        2395: iconst_4
+        2396: aload         128
+        2398: aastore
+        2399: dup
+        2400: iconst_5
+        2401: aload         127
+        2403: aastore
+        2404: invokespecial #19                 // Method Block."<init>":(I[Ljava/lang/Object;)V
+        2407: astore        133
+        2409: new           #270                // class ocaml_fn_77
+        2412: dup
+        2413: invokespecial #271                // Method ocaml_fn_77."<init>":()V
+        2416: astore        134
+        2418: new           #273                // class ocaml_fn_78
+        2421: dup
+        2422: invokespecial #274                // Method ocaml_fn_78."<init>":()V
+        2425: astore        135
+        2427: new           #276                // class ocaml_fn_79
+        2430: dup
+        2431: invokespecial #277                // Method ocaml_fn_79."<init>":()V
+        2434: astore        136
+        2436: new           #279                // class ocaml_fn_80
+        2439: dup
+        2440: invokespecial #280                // Method ocaml_fn_80."<init>":()V
+        2443: astore        137
+        2445: new           #282                // class ocaml_fn_81
+        2448: dup
+        2449: invokespecial #283                // Method ocaml_fn_81."<init>":()V
+        2452: astore        138
+        2454: new           #285                // class ocaml_fn_82
+        2457: dup
+        2458: invokespecial #286                // Method ocaml_fn_82."<init>":()V
+        2461: astore        139
+        2463: new           #288                // class ocaml_fn_83
+        2466: dup
+        2467: invokespecial #289                // Method ocaml_fn_83."<init>":()V
+        2470: astore        140
+        2472: new           #291                // class ocaml_fn_84
+        2475: dup
+        2476: invokespecial #292                // Method ocaml_fn_84."<init>":()V
+        2479: astore        141
+        2481: new           #294                // class ocaml_fn_85
+        2484: dup
+        2485: invokespecial #295                // Method ocaml_fn_85."<init>":()V
+        2488: astore        142
+        2490: new           #297                // class ocaml_fn_86
+        2493: dup
+        2494: invokespecial #298                // Method ocaml_fn_86."<init>":()V
+        2497: astore        143
+        2499: new           #300                // class ocaml_fn_87
+        2502: dup
+        2503: invokespecial #301                // Method ocaml_fn_87."<init>":()V
+        2506: astore        144
+        2508: new           #303                // class ocaml_fn_88
+        2511: dup
+        2512: invokespecial #304                // Method ocaml_fn_88."<init>":()V
+        2515: astore        145
+        2517: new           #306                // class ocaml_fn_89
+        2520: dup
+        2521: invokespecial #307                // Method ocaml_fn_89."<init>":()V
+        2524: astore        146
+        2526: new           #309                // class ocaml_fn_90
+        2529: dup
+        2530: invokespecial #310                // Method ocaml_fn_90."<init>":()V
+        2533: astore        147
+        2535: new           #312                // class ocaml_fn_91
+        2538: dup
+        2539: invokespecial #313                // Method ocaml_fn_91."<init>":()V
+        2542: astore        148
+        2544: new           #315                // class ocaml_fn_92
+        2547: dup
+        2548: invokespecial #316                // Method ocaml_fn_92."<init>":()V
+        2551: astore        149
+        2553: new           #318                // class ocaml_fn_93
+        2556: dup
+        2557: invokespecial #319                // Method ocaml_fn_93."<init>":()V
+        2560: astore        150
+        2562: new           #14                 // class Block
+        2565: dup
+        2566: iconst_0
+        2567: bipush        104
+        2569: anewarray     #16                 // class java/lang/Object
+        2572: dup
+        2573: iconst_0
+        2574: aload         18
+        2576: aastore
+        2577: dup
+        2578: iconst_1
+        2579: aload         17
+        2581: aastore
+        2582: dup
+        2583: iconst_2
+        2584: aload         22
+        2586: aastore
+        2587: dup
+        2588: iconst_3
+        2589: aload         23
+        2591: aastore
+        2592: dup
+        2593: iconst_4
+        2594: aload         24
+        2596: aastore
+        2597: dup
+        2598: iconst_5
+        2599: aload         25
+        2601: aastore
+        2602: dup
+        2603: bipush        6
+        2605: aload         26
+        2607: aastore
+        2608: dup
+        2609: bipush        7
+        2611: aload         27
+        2613: aastore
+        2614: dup
+        2615: bipush        8
+        2617: aload         28
+        2619: aastore
+        2620: dup
+        2621: bipush        9
+        2623: aload         29
+        2625: aastore
+        2626: dup
+        2627: bipush        10
+        2629: aload         30
+        2631: aastore
+        2632: dup
+        2633: bipush        11
+        2635: aload         31
+        2637: aastore
+        2638: dup
+        2639: bipush        12
+        2641: aload         32
+        2643: aastore
+        2644: dup
+        2645: bipush        13
+        2647: aload         33
+        2649: aastore
+        2650: dup
+        2651: bipush        14
+        2653: aload         34
+        2655: aastore
+        2656: dup
+        2657: bipush        15
+        2659: aload         35
+        2661: aastore
+        2662: dup
+        2663: bipush        16
+        2665: aload         36
+        2667: aastore
+        2668: dup
+        2669: bipush        17
+        2671: aload         37
+        2673: aastore
+        2674: dup
+        2675: bipush        18
+        2677: iload         41
+        2679: invokestatic  #31                 // Method java/lang/Integer.valueOf:(I)Ljava/lang/Integer;
+        2682: aastore
+        2683: dup
+        2684: bipush        19
+        2686: iload         43
+        2688: invokestatic  #31                 // Method java/lang/Integer.valueOf:(I)Ljava/lang/Integer;
+        2691: aastore
+        2692: dup
+        2693: bipush        20
+        2695: aload         38
+        2697: aastore
+        2698: dup
+        2699: bipush        21
+        2701: aload         45
+        2703: aastore
+        2704: dup
+        2705: bipush        22
+        2707: aload         47
+        2709: aastore
+        2710: dup
+        2711: bipush        23
+        2713: aload         49
+        2715: aastore
+        2716: dup
+        2717: bipush        24
+        2719: aload         51
+        2721: aastore
+        2722: dup
+        2723: bipush        25
+        2725: aload         53
+        2727: aastore
+        2728: dup
+        2729: bipush        26
+        2731: aload         55
+        2733: aastore
+        2734: dup
+        2735: bipush        27
+        2737: aload         56
+        2739: aastore
+        2740: dup
+        2741: bipush        28
+        2743: aload         57
+        2745: aastore
+        2746: dup
+        2747: bipush        29
+        2749: aload         58
+        2751: aastore
+        2752: dup
+        2753: bipush        30
+        2755: aload         60
+        2757: aastore
+        2758: dup
+        2759: bipush        31
+        2761: aload         59
+        2763: aastore
+        2764: dup
+        2765: bipush        32
+        2767: aload         61
+        2769: aastore
+        2770: dup
+        2771: bipush        33
+        2773: aload         62
+        2775: aastore
+        2776: dup
+        2777: bipush        34
+        2779: aload         64
+        2781: aastore
+        2782: dup
+        2783: bipush        35
+        2785: aload         65
+        2787: aastore
+        2788: dup
+        2789: bipush        36
+        2791: aload         66
+        2793: aastore
+        2794: dup
+        2795: bipush        37
+        2797: aload         73
+        2799: aastore
+        2800: dup
+        2801: bipush        38
+        2803: aload         75
+        2805: aastore
+        2806: dup
+        2807: bipush        39
+        2809: aload         77
+        2811: aastore
+        2812: dup
+        2813: bipush        40
+        2815: aload         98
+        2817: aastore
+        2818: dup
+        2819: bipush        41
+        2821: aload         99
+        2823: aastore
+        2824: dup
+        2825: bipush        42
+        2827: aload         100
+        2829: aastore
+        2830: dup
+        2831: bipush        43
+        2833: aload         101
+        2835: aastore
+        2836: dup
+        2837: bipush        44
+        2839: aload         102
+        2841: aastore
+        2842: dup
+        2843: bipush        45
+        2845: aload         103
+        2847: aastore
+        2848: dup
+        2849: bipush        46
+        2851: aload         104
+        2853: aastore
+        2854: dup
+        2855: bipush        47
+        2857: aload         105
+        2859: aastore
+        2860: dup
+        2861: bipush        48
+        2863: aload         106
+        2865: aastore
+        2866: dup
+        2867: bipush        49
+        2869: aload         107
+        2871: aastore
+        2872: dup
+        2873: bipush        50
+        2875: aload         108
+        2877: aastore
+        2878: dup
+        2879: bipush        51
+        2881: aload         109
+        2883: aastore
+        2884: dup
+        2885: bipush        52
+        2887: aload         110
+        2889: aastore
+        2890: dup
+        2891: bipush        53
+        2893: aload         111
+        2895: aastore
+        2896: dup
+        2897: bipush        54
+        2899: aload         112
+        2901: aastore
+        2902: dup
+        2903: bipush        55
+        2905: aload         114
+        2907: aastore
+        2908: dup
+        2909: bipush        56
+        2911: aload         113
+        2913: aastore
+        2914: dup
+        2915: bipush        57
+        2917: aload         116
+        2919: aastore
+        2920: dup
+        2921: bipush        58
+        2923: aload         115
+        2925: aastore
+        2926: dup
+        2927: bipush        59
+        2929: aload         79
+        2931: aastore
+        2932: dup
+        2933: bipush        60
+        2935: aload         80
+        2937: aastore
+        2938: dup
+        2939: bipush        61
+        2941: aload         78
+        2943: aastore
+        2944: dup
+        2945: bipush        62
+        2947: aload         150
+        2949: aastore
+        2950: dup
+        2951: bipush        63
+        2953: aload         81
+        2955: aastore
+        2956: dup
+        2957: bipush        64
+        2959: aload         149
+        2961: aastore
+        2962: dup
+        2963: bipush        65
+        2965: aload         83
+        2967: aastore
+        2968: dup
+        2969: bipush        66
+        2971: aload         82
+        2973: aastore
+        2974: dup
+        2975: bipush        67
+        2977: aload         84
+        2979: aastore
+        2980: dup
+        2981: bipush        68
+        2983: aload         85
+        2985: aastore
+        2986: dup
+        2987: bipush        69
+        2989: aload         148
+        2991: aastore
+        2992: dup
+        2993: bipush        70
+        2995: aload         147
+        2997: aastore
+        2998: dup
+        2999: bipush        71
+        3001: aload         86
+        3003: aastore
+        3004: dup
+        3005: bipush        72
+        3007: aload         146
+        3009: aastore
+        3010: dup
+        3011: bipush        73
+        3013: aload         145
+        3015: aastore
+        3016: dup
+        3017: bipush        74
+        3019: aload         144
+        3021: aastore
+        3022: dup
+        3023: bipush        75
+        3025: aload         87
+        3027: aastore
+        3028: dup
+        3029: bipush        76
+        3031: aload         88
+        3033: aastore
+        3034: dup
+        3035: bipush        77
+        3037: aload         143
+        3039: aastore
+        3040: dup
+        3041: bipush        78
+        3043: aload         90
+        3045: aastore
+        3046: dup
+        3047: bipush        79
+        3049: aload         91
+        3051: aastore
+        3052: dup
+        3053: bipush        80
+        3055: aload         89
+        3057: aastore
+        3058: dup
+        3059: bipush        81
+        3061: aload         142
+        3063: aastore
+        3064: dup
+        3065: bipush        82
+        3067: aload         96
+        3069: aastore
+        3070: dup
+        3071: bipush        83
+        3073: aload         92
+        3075: aastore
+        3076: dup
+        3077: bipush        84
+        3079: aload         94
+        3081: aastore
+        3082: dup
+        3083: bipush        85
+        3085: aload         95
+        3087: aastore
+        3088: dup
+        3089: bipush        86
+        3091: aload         141
+        3093: aastore
+        3094: dup
+        3095: bipush        87
+        3097: aload         140
+        3099: aastore
+        3100: dup
+        3101: bipush        88
+        3103: aload         139
+        3105: aastore
+        3106: dup
+        3107: bipush        89
+        3109: aload         138
+        3111: aastore
+        3112: dup
+        3113: bipush        90
+        3115: aload         137
+        3117: aastore
+        3118: dup
+        3119: bipush        91
+        3121: aload         136
+        3123: aastore
+        3124: dup
+        3125: bipush        92
+        3127: aload         135
+        3129: aastore
+        3130: dup
+        3131: bipush        93
+        3133: aload         97
+        3135: aastore
+        3136: dup
+        3137: bipush        94
+        3139: aload         134
+        3141: aastore
+        3142: dup
+        3143: bipush        95
+        3145: aload         133
+        3147: aastore
+        3148: dup
+        3149: bipush        96
+        3151: aload         117
+        3153: aastore
+        3154: dup
+        3155: bipush        97
+        3157: aload         118
+        3159: aastore
+        3160: dup
+        3161: bipush        98
+        3163: aload         124
+        3165: aastore
+        3166: dup
+        3167: bipush        99
+        3169: aload         120
+        3171: aastore
+        3172: dup
+        3173: bipush        100
+        3175: aload         63
+        3177: aastore
+        3178: dup
+        3179: bipush        101
+        3181: aload         93
+        3183: aastore
+        3184: dup
+        3185: bipush        102
+        3187: aload         123
+        3189: aastore
+        3190: dup
+        3191: bipush        103
+        3193: aload         122
+        3195: aastore
+        3196: invokespecial #19                 // Method Block."<init>":(I[Ljava/lang/Object;)V
+        3199: astore        151
+        3201: getstatic     #25                 // Field GLOBALS:[Ljava/lang/Object;
+        3204: bipush        45
+        3206: aload         151
+        3208: aastore
+        3209: iconst_0
+        3210: invokestatic  #31                 // Method java/lang/Integer.valueOf:(I)Ljava/lang/Integer;
         3213: astore        152
-        3215: getstatic     #25                 // Field GLOBALS:[Ljava/lang/Object;
-        3218: bipush        45
-        3220: aload         152
-        3222: aastore
-        3223: iconst_0
-        3224: invokestatic  #31                 // Method java/lang/Integer.valueOf:(I)Ljava/lang/Integer;
-        3227: astore        153
-        3229: iconst_0
-        3230: istore        154
-        3232: iload         154
-        3234: invokestatic  #31                 // Method java/lang/Integer.valueOf:(I)Ljava/lang/Integer;
+        3215: iconst_0
+        3216: istore        153
+        3218: iload         153
+        3220: invokestatic  #31                 // Method java/lang/Integer.valueOf:(I)Ljava/lang/Integer;
+        3223: astore        154
+        3225: goto_w        3230
+        3230: new           #321                // class ocaml_fn_95
+        3233: dup
+        3234: invokespecial #322                // Method ocaml_fn_95."<init>":()V
         3237: astore        155
-        3239: goto_w        3244
-        3244: new           #321                // class ocaml_fn_95
-        3247: dup
-        3248: invokespecial #322                // Method ocaml_fn_95."<init>":()V
-        3251: astore        156
-        3253: bipush        10
-        3255: istore        157
-        3257: aload         156
-        3259: iload         157
-        3261: invokestatic  #31                 // Method java/lang/Integer.valueOf:(I)Ljava/lang/Integer;
-        3264: invokevirtual #326                // Method Closure.apply1:(Ljava/lang/Object;)Ljava/lang/Object;
-        3267: astore        158
-        3269: bipush        32
-        3271: istore        159
-        3273: aload         158
-        3275: checkcast     #96                 // class Closure
-        3278: iload         159
-        3280: invokestatic  #31                 // Method java/lang/Integer.valueOf:(I)Ljava/lang/Integer;
-        3283: invokevirtual #326                // Method Closure.apply1:(Ljava/lang/Object;)Ljava/lang/Object;
-        3286: astore        160
-        3288: getstatic     #332                // Field java/lang/System.out:Ljava/io/PrintStream;
-        3291: aload         160
-        3293: checkcast     #27                 // class java/lang/Integer
-        3296: invokevirtual #336                // Method java/lang/Integer.intValue:()I
-        3299: invokevirtual #342                // Method java/io/PrintStream.println:(I)V
-        3302: iconst_0
-        3303: invokestatic  #31                 // Method java/lang/Integer.valueOf:(I)Ljava/lang/Integer;
-        3306: astore        161
-        3308: new           #14                 // class Block
-        3311: dup
-        3312: iconst_0
-        3313: iconst_1
-        3314: anewarray     #16                 // class java/lang/Object
-        3317: dup
-        3318: iconst_0
-        3319: aload         156
-        3321: aastore
-        3322: invokespecial #19                 // Method Block."<init>":(I[Ljava/lang/Object;)V
+        3239: bipush        10
+        3241: istore        156
+        3243: aload         155
+        3245: iload         156
+        3247: invokestatic  #31                 // Method java/lang/Integer.valueOf:(I)Ljava/lang/Integer;
+        3250: invokevirtual #326                // Method Closure.apply1:(Ljava/lang/Object;)Ljava/lang/Object;
+        3253: astore        157
+        3255: bipush        32
+        3257: istore        158
+        3259: aload         157
+        3261: checkcast     #96                 // class Closure
+        3264: iload         158
+        3266: invokestatic  #31                 // Method java/lang/Integer.valueOf:(I)Ljava/lang/Integer;
+        3269: invokevirtual #326                // Method Closure.apply1:(Ljava/lang/Object;)Ljava/lang/Object;
+        3272: astore        159
+        3274: getstatic     #332                // Field java/lang/System.out:Ljava/io/PrintStream;
+        3277: aload         159
+        3279: checkcast     #27                 // class java/lang/Integer
+        3282: invokevirtual #336                // Method java/lang/Integer.intValue:()I
+        3285: invokevirtual #342                // Method java/io/PrintStream.println:(I)V
+        3288: iconst_0
+        3289: invokestatic  #31                 // Method java/lang/Integer.valueOf:(I)Ljava/lang/Integer;
+        3292: astore        160
+        3294: new           #14                 // class Block
+        3297: dup
+        3298: iconst_0
+        3299: iconst_1
+        3300: anewarray     #16                 // class java/lang/Object
+        3303: dup
+        3304: iconst_0
+        3305: aload         155
+        3307: aastore
+        3308: invokespecial #19                 // Method Block."<init>":(I[Ljava/lang/Object;)V
+        3311: astore        161
+        3313: getstatic     #25                 // Field GLOBALS:[Ljava/lang/Object;
+        3316: bipush        46
+        3318: aload         161
+        3320: aastore
+        3321: iconst_0
+        3322: invokestatic  #31                 // Method java/lang/Integer.valueOf:(I)Ljava/lang/Integer;
         3325: astore        162
-        3327: getstatic     #25                 // Field GLOBALS:[Ljava/lang/Object;
-        3330: bipush        46
-        3332: aload         162
-        3334: aastore
-        3335: iconst_0
-        3336: invokestatic  #31                 // Method java/lang/Integer.valueOf:(I)Ljava/lang/Integer;
-        3339: astore        163
-        3341: iconst_0
-        3342: istore        164
-        3344: iconst_0
-        3345: istore        165
-        3347: getstatic     #25                 // Field GLOBALS:[Ljava/lang/Object;
-        3350: bipush        45
-        3352: aaload
-        3353: checkcast     #14                 // class Block
-        3356: getfield      #345                // Field Block.fields:[Ljava/lang/Object;
-        3359: bipush        102
-        3361: aaload
-        3362: astore        166
-        3364: aload         166
-        3366: checkcast     #96                 // class Closure
-        3369: iload         165
-        3371: invokestatic  #31                 // Method java/lang/Integer.valueOf:(I)Ljava/lang/Integer;
-        3374: invokevirtual #326                // Method Closure.apply1:(Ljava/lang/Object;)Ljava/lang/Object;
-        3377: astore        167
-        3379: new           #14                 // class Block
-        3382: dup
-        3383: iconst_0
+        3327: iconst_0
+        3328: istore        163
+        3330: getstatic     #25                 // Field GLOBALS:[Ljava/lang/Object;
+        3333: bipush        45
+        3335: aaload
+        3336: checkcast     #14                 // class Block
+        3339: getfield      #345                // Field Block.fields:[Ljava/lang/Object;
+        3342: bipush        102
+        3344: aaload
+        3345: astore        164
+        3347: aload         164
+        3349: checkcast     #96                 // class Closure
+        3352: iload         163
+        3354: invokestatic  #31                 // Method java/lang/Integer.valueOf:(I)Ljava/lang/Integer;
+        3357: invokevirtual #326                // Method Closure.apply1:(Ljava/lang/Object;)Ljava/lang/Object;
+        3360: astore        165
+        3362: new           #14                 // class Block
+        3365: dup
+        3366: iconst_0
+        3367: iconst_0
+        3368: anewarray     #16                 // class java/lang/Object
+        3371: invokespecial #19                 // Method Block."<init>":(I[Ljava/lang/Object;)V
+        3374: astore        166
+        3376: getstatic     #25                 // Field GLOBALS:[Ljava/lang/Object;
+        3379: bipush        47
+        3381: aload         166
+        3383: aastore
         3384: iconst_0
-        3385: anewarray     #16                 // class java/lang/Object
-        3388: invokespecial #19                 // Method Block."<init>":(I[Ljava/lang/Object;)V
-        3391: astore        168
-        3393: getstatic     #25                 // Field GLOBALS:[Ljava/lang/Object;
-        3396: bipush        47
-        3398: aload         168
-        3400: aastore
-        3401: iconst_0
-        3402: invokestatic  #31                 // Method java/lang/Integer.valueOf:(I)Ljava/lang/Integer;
-        3405: astore        169
-        3407: iconst_0
-        3408: istore        170
-        3410: return
+        3385: invokestatic  #31                 // Method java/lang/Integer.valueOf:(I)Ljava/lang/Integer;
+        3388: astore        167
+        3390: return
     }
     |}]
 
@@ -6619,705 +6582,694 @@ let%expect_test "emission: variant match via switch" =
         2213: aload         112
         2215: invokespecial #232                // Method ocaml_fn_64."<init>":(Ljava/lang/Object;Ljava/lang/Object;)V
         2218: astore        116
-        2220: new           #14                 // class Block
+        2220: new           #234                // class ocaml_fn_65
         2223: dup
-        2224: iconst_0
-        2225: iconst_0
-        2226: anewarray     #16                 // class java/lang/Object
-        2229: invokespecial #19                 // Method Block."<init>":(I[Ljava/lang/Object;)V
-        2232: astore        117
-        2234: new           #234                // class ocaml_fn_65
-        2237: dup
-        2238: invokespecial #235                // Method ocaml_fn_65."<init>":()V
-        2241: astore        118
-        2243: new           #237                // class ocaml_fn_66
-        2246: dup
-        2247: aload         56
-        2249: invokespecial #238                // Method ocaml_fn_66."<init>":(Ljava/lang/Object;)V
-        2252: astore        119
-        2254: new           #14                 // class Block
-        2257: dup
-        2258: iconst_0
-        2259: iconst_1
-        2260: anewarray     #16                 // class java/lang/Object
-        2263: dup
-        2264: iconst_0
-        2265: aload         81
-        2267: aastore
-        2268: invokespecial #19                 // Method Block."<init>":(I[Ljava/lang/Object;)V
-        2271: astore        120
-        2273: new           #240                // class ocaml_fn_67
-        2276: dup
-        2277: aload         120
-        2279: invokespecial #241                // Method ocaml_fn_67."<init>":(Ljava/lang/Object;)V
-        2282: astore        121
-        2284: new           #243                // class ocaml_fn_68
-        2287: dup
-        2288: invokespecial #244                // Method ocaml_fn_68."<init>":()V
-        2291: astore        122
-        2293: new           #14                 // class Block
-        2296: dup
-        2297: iconst_0
-        2298: iconst_1
-        2299: anewarray     #16                 // class java/lang/Object
-        2302: dup
-        2303: iconst_0
+        2224: invokespecial #235                // Method ocaml_fn_65."<init>":()V
+        2227: astore        117
+        2229: new           #237                // class ocaml_fn_66
+        2232: dup
+        2233: aload         56
+        2235: invokespecial #238                // Method ocaml_fn_66."<init>":(Ljava/lang/Object;)V
+        2238: astore        118
+        2240: new           #14                 // class Block
+        2243: dup
+        2244: iconst_0
+        2245: iconst_1
+        2246: anewarray     #16                 // class java/lang/Object
+        2249: dup
+        2250: iconst_0
+        2251: aload         81
+        2253: aastore
+        2254: invokespecial #19                 // Method Block."<init>":(I[Ljava/lang/Object;)V
+        2257: astore        119
+        2259: new           #240                // class ocaml_fn_67
+        2262: dup
+        2263: aload         119
+        2265: invokespecial #241                // Method ocaml_fn_67."<init>":(Ljava/lang/Object;)V
+        2268: astore        120
+        2270: new           #243                // class ocaml_fn_68
+        2273: dup
+        2274: invokespecial #244                // Method ocaml_fn_68."<init>":()V
+        2277: astore        121
+        2279: new           #14                 // class Block
+        2282: dup
+        2283: iconst_0
+        2284: iconst_1
+        2285: anewarray     #16                 // class java/lang/Object
+        2288: dup
+        2289: iconst_0
+        2290: aload         121
+        2292: aastore
+        2293: invokespecial #19                 // Method Block."<init>":(I[Ljava/lang/Object;)V
+        2296: astore        122
+        2298: new           #246                // class ocaml_fn_69
+        2301: dup
+        2302: aload         119
         2304: aload         122
-        2306: aastore
-        2307: invokespecial #19                 // Method Block."<init>":(I[Ljava/lang/Object;)V
-        2310: astore        123
-        2312: new           #246                // class ocaml_fn_69
-        2315: dup
-        2316: aload         120
-        2318: aload         123
-        2320: invokespecial #247                // Method ocaml_fn_69."<init>":(Ljava/lang/Object;Ljava/lang/Object;)V
-        2323: astore        124
-        2325: new           #249                // class ocaml_fn_70
-        2328: dup
-        2329: aload         124
-        2331: invokespecial #250                // Method ocaml_fn_70."<init>":(Ljava/lang/Object;)V
-        2334: astore        125
-        2336: getstatic     #25                 // Field GLOBALS:[Ljava/lang/Object;
-        2339: bipush        44
-        2341: aaload
-        2342: astore        126
-        2344: iconst_0
-        2345: invokestatic  #31                 // Method java/lang/Integer.valueOf:(I)Ljava/lang/Integer;
-        2348: astore        127
-        2350: new           #252                // class ocaml_fn_71
-        2353: dup
-        2354: invokespecial #253                // Method ocaml_fn_71."<init>":()V
-        2357: astore        128
-        2359: new           #255                // class ocaml_fn_72
-        2362: dup
-        2363: invokespecial #256                // Method ocaml_fn_72."<init>":()V
-        2366: astore        129
-        2368: new           #258                // class ocaml_fn_73
-        2371: dup
-        2372: invokespecial #259                // Method ocaml_fn_73."<init>":()V
-        2375: astore        130
-        2377: new           #261                // class ocaml_fn_74
-        2380: dup
-        2381: invokespecial #262                // Method ocaml_fn_74."<init>":()V
-        2384: astore        131
-        2386: new           #264                // class ocaml_fn_75
-        2389: dup
-        2390: invokespecial #265                // Method ocaml_fn_75."<init>":()V
-        2393: astore        132
-        2395: new           #267                // class ocaml_fn_76
-        2398: dup
-        2399: invokespecial #268                // Method ocaml_fn_76."<init>":()V
-        2402: astore        133
-        2404: new           #14                 // class Block
-        2407: dup
-        2408: iconst_0
-        2409: bipush        6
-        2411: anewarray     #16                 // class java/lang/Object
-        2414: dup
-        2415: iconst_0
-        2416: aload         133
-        2418: aastore
-        2419: dup
-        2420: iconst_1
-        2421: aload         132
-        2423: aastore
-        2424: dup
-        2425: iconst_2
-        2426: aload         131
-        2428: aastore
-        2429: dup
-        2430: iconst_3
-        2431: aload         130
-        2433: aastore
-        2434: dup
-        2435: iconst_4
-        2436: aload         129
-        2438: aastore
-        2439: dup
-        2440: iconst_5
-        2441: aload         128
-        2443: aastore
-        2444: invokespecial #19                 // Method Block."<init>":(I[Ljava/lang/Object;)V
-        2447: astore        134
-        2449: new           #270                // class ocaml_fn_77
-        2452: dup
-        2453: invokespecial #271                // Method ocaml_fn_77."<init>":()V
-        2456: astore        135
-        2458: new           #273                // class ocaml_fn_78
-        2461: dup
-        2462: invokespecial #274                // Method ocaml_fn_78."<init>":()V
-        2465: astore        136
-        2467: new           #276                // class ocaml_fn_79
-        2470: dup
-        2471: invokespecial #277                // Method ocaml_fn_79."<init>":()V
-        2474: astore        137
-        2476: new           #279                // class ocaml_fn_80
-        2479: dup
-        2480: invokespecial #280                // Method ocaml_fn_80."<init>":()V
-        2483: astore        138
-        2485: new           #282                // class ocaml_fn_81
-        2488: dup
-        2489: invokespecial #283                // Method ocaml_fn_81."<init>":()V
-        2492: astore        139
-        2494: new           #285                // class ocaml_fn_82
-        2497: dup
-        2498: invokespecial #286                // Method ocaml_fn_82."<init>":()V
-        2501: astore        140
-        2503: new           #288                // class ocaml_fn_83
-        2506: dup
-        2507: invokespecial #289                // Method ocaml_fn_83."<init>":()V
-        2510: astore        141
-        2512: new           #291                // class ocaml_fn_84
-        2515: dup
-        2516: invokespecial #292                // Method ocaml_fn_84."<init>":()V
-        2519: astore        142
-        2521: new           #294                // class ocaml_fn_85
-        2524: dup
-        2525: invokespecial #295                // Method ocaml_fn_85."<init>":()V
-        2528: astore        143
-        2530: new           #297                // class ocaml_fn_86
-        2533: dup
-        2534: invokespecial #298                // Method ocaml_fn_86."<init>":()V
-        2537: astore        144
-        2539: new           #300                // class ocaml_fn_87
-        2542: dup
-        2543: invokespecial #301                // Method ocaml_fn_87."<init>":()V
-        2546: astore        145
-        2548: new           #303                // class ocaml_fn_88
-        2551: dup
-        2552: invokespecial #304                // Method ocaml_fn_88."<init>":()V
-        2555: astore        146
-        2557: new           #306                // class ocaml_fn_89
-        2560: dup
-        2561: invokespecial #307                // Method ocaml_fn_89."<init>":()V
-        2564: astore        147
-        2566: new           #309                // class ocaml_fn_90
-        2569: dup
-        2570: invokespecial #310                // Method ocaml_fn_90."<init>":()V
-        2573: astore        148
-        2575: new           #312                // class ocaml_fn_91
-        2578: dup
-        2579: invokespecial #313                // Method ocaml_fn_91."<init>":()V
-        2582: astore        149
-        2584: new           #315                // class ocaml_fn_92
-        2587: dup
-        2588: invokespecial #316                // Method ocaml_fn_92."<init>":()V
-        2591: astore        150
-        2593: new           #318                // class ocaml_fn_93
-        2596: dup
-        2597: invokespecial #319                // Method ocaml_fn_93."<init>":()V
-        2600: astore        151
-        2602: new           #14                 // class Block
-        2605: dup
-        2606: iconst_0
-        2607: bipush        104
-        2609: anewarray     #16                 // class java/lang/Object
-        2612: dup
-        2613: iconst_0
-        2614: aload         18
-        2616: aastore
-        2617: dup
-        2618: iconst_1
-        2619: aload         17
-        2621: aastore
-        2622: dup
-        2623: iconst_2
-        2624: aload         22
-        2626: aastore
-        2627: dup
-        2628: iconst_3
-        2629: aload         23
-        2631: aastore
-        2632: dup
-        2633: iconst_4
-        2634: aload         24
-        2636: aastore
-        2637: dup
-        2638: iconst_5
-        2639: aload         25
-        2641: aastore
-        2642: dup
-        2643: bipush        6
-        2645: aload         26
-        2647: aastore
-        2648: dup
-        2649: bipush        7
-        2651: aload         27
-        2653: aastore
-        2654: dup
-        2655: bipush        8
-        2657: aload         28
-        2659: aastore
-        2660: dup
-        2661: bipush        9
-        2663: aload         29
-        2665: aastore
-        2666: dup
-        2667: bipush        10
-        2669: aload         30
-        2671: aastore
-        2672: dup
-        2673: bipush        11
-        2675: aload         31
-        2677: aastore
-        2678: dup
-        2679: bipush        12
-        2681: aload         32
-        2683: aastore
-        2684: dup
-        2685: bipush        13
-        2687: aload         33
-        2689: aastore
-        2690: dup
-        2691: bipush        14
-        2693: aload         34
-        2695: aastore
-        2696: dup
-        2697: bipush        15
-        2699: aload         35
-        2701: aastore
-        2702: dup
-        2703: bipush        16
-        2705: aload         36
-        2707: aastore
-        2708: dup
-        2709: bipush        17
-        2711: aload         37
-        2713: aastore
-        2714: dup
-        2715: bipush        18
-        2717: iload         41
-        2719: invokestatic  #31                 // Method java/lang/Integer.valueOf:(I)Ljava/lang/Integer;
-        2722: aastore
-        2723: dup
-        2724: bipush        19
-        2726: iload         43
-        2728: invokestatic  #31                 // Method java/lang/Integer.valueOf:(I)Ljava/lang/Integer;
-        2731: aastore
-        2732: dup
-        2733: bipush        20
-        2735: aload         38
-        2737: aastore
-        2738: dup
-        2739: bipush        21
-        2741: aload         45
-        2743: aastore
-        2744: dup
-        2745: bipush        22
-        2747: aload         47
-        2749: aastore
-        2750: dup
-        2751: bipush        23
-        2753: aload         49
-        2755: aastore
-        2756: dup
-        2757: bipush        24
-        2759: aload         51
-        2761: aastore
-        2762: dup
-        2763: bipush        25
-        2765: aload         53
-        2767: aastore
-        2768: dup
-        2769: bipush        26
-        2771: aload         55
-        2773: aastore
-        2774: dup
-        2775: bipush        27
-        2777: aload         56
-        2779: aastore
-        2780: dup
-        2781: bipush        28
-        2783: aload         57
-        2785: aastore
-        2786: dup
-        2787: bipush        29
-        2789: aload         58
-        2791: aastore
-        2792: dup
-        2793: bipush        30
-        2795: aload         60
-        2797: aastore
-        2798: dup
-        2799: bipush        31
-        2801: aload         59
-        2803: aastore
-        2804: dup
-        2805: bipush        32
-        2807: aload         61
-        2809: aastore
-        2810: dup
-        2811: bipush        33
-        2813: aload         62
-        2815: aastore
-        2816: dup
-        2817: bipush        34
-        2819: aload         64
-        2821: aastore
-        2822: dup
-        2823: bipush        35
-        2825: aload         65
-        2827: aastore
-        2828: dup
-        2829: bipush        36
-        2831: aload         66
-        2833: aastore
-        2834: dup
-        2835: bipush        37
-        2837: aload         73
-        2839: aastore
-        2840: dup
-        2841: bipush        38
-        2843: aload         75
-        2845: aastore
-        2846: dup
-        2847: bipush        39
-        2849: aload         77
-        2851: aastore
-        2852: dup
-        2853: bipush        40
-        2855: aload         98
-        2857: aastore
-        2858: dup
-        2859: bipush        41
-        2861: aload         99
-        2863: aastore
-        2864: dup
-        2865: bipush        42
-        2867: aload         100
-        2869: aastore
-        2870: dup
-        2871: bipush        43
-        2873: aload         101
-        2875: aastore
-        2876: dup
-        2877: bipush        44
-        2879: aload         102
-        2881: aastore
-        2882: dup
-        2883: bipush        45
-        2885: aload         103
-        2887: aastore
-        2888: dup
-        2889: bipush        46
-        2891: aload         104
-        2893: aastore
-        2894: dup
-        2895: bipush        47
-        2897: aload         105
-        2899: aastore
-        2900: dup
-        2901: bipush        48
-        2903: aload         106
-        2905: aastore
-        2906: dup
-        2907: bipush        49
-        2909: aload         107
-        2911: aastore
-        2912: dup
-        2913: bipush        50
-        2915: aload         108
-        2917: aastore
-        2918: dup
-        2919: bipush        51
-        2921: aload         109
-        2923: aastore
-        2924: dup
-        2925: bipush        52
-        2927: aload         110
-        2929: aastore
-        2930: dup
-        2931: bipush        53
-        2933: aload         111
-        2935: aastore
-        2936: dup
-        2937: bipush        54
-        2939: aload         112
-        2941: aastore
-        2942: dup
-        2943: bipush        55
-        2945: aload         114
-        2947: aastore
-        2948: dup
-        2949: bipush        56
-        2951: aload         113
-        2953: aastore
-        2954: dup
-        2955: bipush        57
-        2957: aload         116
-        2959: aastore
-        2960: dup
-        2961: bipush        58
-        2963: aload         115
-        2965: aastore
-        2966: dup
-        2967: bipush        59
-        2969: aload         79
-        2971: aastore
-        2972: dup
-        2973: bipush        60
-        2975: aload         80
-        2977: aastore
-        2978: dup
-        2979: bipush        61
-        2981: aload         78
-        2983: aastore
-        2984: dup
-        2985: bipush        62
-        2987: aload         151
-        2989: aastore
-        2990: dup
-        2991: bipush        63
-        2993: aload         81
-        2995: aastore
-        2996: dup
-        2997: bipush        64
-        2999: aload         150
-        3001: aastore
-        3002: dup
-        3003: bipush        65
-        3005: aload         83
-        3007: aastore
-        3008: dup
-        3009: bipush        66
-        3011: aload         82
-        3013: aastore
-        3014: dup
-        3015: bipush        67
-        3017: aload         84
-        3019: aastore
-        3020: dup
-        3021: bipush        68
-        3023: aload         85
-        3025: aastore
-        3026: dup
-        3027: bipush        69
-        3029: aload         149
-        3031: aastore
-        3032: dup
-        3033: bipush        70
-        3035: aload         148
-        3037: aastore
-        3038: dup
-        3039: bipush        71
-        3041: aload         86
-        3043: aastore
-        3044: dup
-        3045: bipush        72
-        3047: aload         147
-        3049: aastore
-        3050: dup
-        3051: bipush        73
-        3053: aload         146
-        3055: aastore
-        3056: dup
-        3057: bipush        74
-        3059: aload         145
-        3061: aastore
-        3062: dup
-        3063: bipush        75
-        3065: aload         87
-        3067: aastore
-        3068: dup
-        3069: bipush        76
-        3071: aload         88
-        3073: aastore
-        3074: dup
-        3075: bipush        77
-        3077: aload         144
-        3079: aastore
-        3080: dup
-        3081: bipush        78
-        3083: aload         90
-        3085: aastore
-        3086: dup
-        3087: bipush        79
-        3089: aload         91
-        3091: aastore
-        3092: dup
-        3093: bipush        80
-        3095: aload         89
-        3097: aastore
-        3098: dup
-        3099: bipush        81
-        3101: aload         143
-        3103: aastore
-        3104: dup
-        3105: bipush        82
-        3107: aload         96
-        3109: aastore
-        3110: dup
-        3111: bipush        83
-        3113: aload         92
-        3115: aastore
-        3116: dup
-        3117: bipush        84
-        3119: aload         94
-        3121: aastore
-        3122: dup
-        3123: bipush        85
-        3125: aload         95
-        3127: aastore
-        3128: dup
-        3129: bipush        86
-        3131: aload         142
-        3133: aastore
-        3134: dup
-        3135: bipush        87
-        3137: aload         141
-        3139: aastore
-        3140: dup
-        3141: bipush        88
-        3143: aload         140
-        3145: aastore
-        3146: dup
-        3147: bipush        89
-        3149: aload         139
-        3151: aastore
-        3152: dup
-        3153: bipush        90
-        3155: aload         138
-        3157: aastore
-        3158: dup
-        3159: bipush        91
-        3161: aload         137
-        3163: aastore
-        3164: dup
-        3165: bipush        92
-        3167: aload         136
-        3169: aastore
-        3170: dup
-        3171: bipush        93
-        3173: aload         97
-        3175: aastore
-        3176: dup
-        3177: bipush        94
-        3179: aload         135
-        3181: aastore
-        3182: dup
-        3183: bipush        95
-        3185: aload         134
-        3187: aastore
-        3188: dup
-        3189: bipush        96
-        3191: aload         118
-        3193: aastore
-        3194: dup
-        3195: bipush        97
-        3197: aload         119
-        3199: aastore
-        3200: dup
-        3201: bipush        98
-        3203: aload         125
-        3205: aastore
-        3206: dup
-        3207: bipush        99
-        3209: aload         121
-        3211: aastore
-        3212: dup
-        3213: bipush        100
-        3215: aload         63
-        3217: aastore
-        3218: dup
-        3219: bipush        101
-        3221: aload         93
-        3223: aastore
-        3224: dup
-        3225: bipush        102
-        3227: aload         124
-        3229: aastore
-        3230: dup
-        3231: bipush        103
-        3233: aload         123
-        3235: aastore
-        3236: invokespecial #19                 // Method Block."<init>":(I[Ljava/lang/Object;)V
+        2306: invokespecial #247                // Method ocaml_fn_69."<init>":(Ljava/lang/Object;Ljava/lang/Object;)V
+        2309: astore        123
+        2311: new           #249                // class ocaml_fn_70
+        2314: dup
+        2315: aload         123
+        2317: invokespecial #250                // Method ocaml_fn_70."<init>":(Ljava/lang/Object;)V
+        2320: astore        124
+        2322: getstatic     #25                 // Field GLOBALS:[Ljava/lang/Object;
+        2325: bipush        44
+        2327: aaload
+        2328: astore        125
+        2330: iconst_0
+        2331: invokestatic  #31                 // Method java/lang/Integer.valueOf:(I)Ljava/lang/Integer;
+        2334: astore        126
+        2336: new           #252                // class ocaml_fn_71
+        2339: dup
+        2340: invokespecial #253                // Method ocaml_fn_71."<init>":()V
+        2343: astore        127
+        2345: new           #255                // class ocaml_fn_72
+        2348: dup
+        2349: invokespecial #256                // Method ocaml_fn_72."<init>":()V
+        2352: astore        128
+        2354: new           #258                // class ocaml_fn_73
+        2357: dup
+        2358: invokespecial #259                // Method ocaml_fn_73."<init>":()V
+        2361: astore        129
+        2363: new           #261                // class ocaml_fn_74
+        2366: dup
+        2367: invokespecial #262                // Method ocaml_fn_74."<init>":()V
+        2370: astore        130
+        2372: new           #264                // class ocaml_fn_75
+        2375: dup
+        2376: invokespecial #265                // Method ocaml_fn_75."<init>":()V
+        2379: astore        131
+        2381: new           #267                // class ocaml_fn_76
+        2384: dup
+        2385: invokespecial #268                // Method ocaml_fn_76."<init>":()V
+        2388: astore        132
+        2390: new           #14                 // class Block
+        2393: dup
+        2394: iconst_0
+        2395: bipush        6
+        2397: anewarray     #16                 // class java/lang/Object
+        2400: dup
+        2401: iconst_0
+        2402: aload         132
+        2404: aastore
+        2405: dup
+        2406: iconst_1
+        2407: aload         131
+        2409: aastore
+        2410: dup
+        2411: iconst_2
+        2412: aload         130
+        2414: aastore
+        2415: dup
+        2416: iconst_3
+        2417: aload         129
+        2419: aastore
+        2420: dup
+        2421: iconst_4
+        2422: aload         128
+        2424: aastore
+        2425: dup
+        2426: iconst_5
+        2427: aload         127
+        2429: aastore
+        2430: invokespecial #19                 // Method Block."<init>":(I[Ljava/lang/Object;)V
+        2433: astore        133
+        2435: new           #270                // class ocaml_fn_77
+        2438: dup
+        2439: invokespecial #271                // Method ocaml_fn_77."<init>":()V
+        2442: astore        134
+        2444: new           #273                // class ocaml_fn_78
+        2447: dup
+        2448: invokespecial #274                // Method ocaml_fn_78."<init>":()V
+        2451: astore        135
+        2453: new           #276                // class ocaml_fn_79
+        2456: dup
+        2457: invokespecial #277                // Method ocaml_fn_79."<init>":()V
+        2460: astore        136
+        2462: new           #279                // class ocaml_fn_80
+        2465: dup
+        2466: invokespecial #280                // Method ocaml_fn_80."<init>":()V
+        2469: astore        137
+        2471: new           #282                // class ocaml_fn_81
+        2474: dup
+        2475: invokespecial #283                // Method ocaml_fn_81."<init>":()V
+        2478: astore        138
+        2480: new           #285                // class ocaml_fn_82
+        2483: dup
+        2484: invokespecial #286                // Method ocaml_fn_82."<init>":()V
+        2487: astore        139
+        2489: new           #288                // class ocaml_fn_83
+        2492: dup
+        2493: invokespecial #289                // Method ocaml_fn_83."<init>":()V
+        2496: astore        140
+        2498: new           #291                // class ocaml_fn_84
+        2501: dup
+        2502: invokespecial #292                // Method ocaml_fn_84."<init>":()V
+        2505: astore        141
+        2507: new           #294                // class ocaml_fn_85
+        2510: dup
+        2511: invokespecial #295                // Method ocaml_fn_85."<init>":()V
+        2514: astore        142
+        2516: new           #297                // class ocaml_fn_86
+        2519: dup
+        2520: invokespecial #298                // Method ocaml_fn_86."<init>":()V
+        2523: astore        143
+        2525: new           #300                // class ocaml_fn_87
+        2528: dup
+        2529: invokespecial #301                // Method ocaml_fn_87."<init>":()V
+        2532: astore        144
+        2534: new           #303                // class ocaml_fn_88
+        2537: dup
+        2538: invokespecial #304                // Method ocaml_fn_88."<init>":()V
+        2541: astore        145
+        2543: new           #306                // class ocaml_fn_89
+        2546: dup
+        2547: invokespecial #307                // Method ocaml_fn_89."<init>":()V
+        2550: astore        146
+        2552: new           #309                // class ocaml_fn_90
+        2555: dup
+        2556: invokespecial #310                // Method ocaml_fn_90."<init>":()V
+        2559: astore        147
+        2561: new           #312                // class ocaml_fn_91
+        2564: dup
+        2565: invokespecial #313                // Method ocaml_fn_91."<init>":()V
+        2568: astore        148
+        2570: new           #315                // class ocaml_fn_92
+        2573: dup
+        2574: invokespecial #316                // Method ocaml_fn_92."<init>":()V
+        2577: astore        149
+        2579: new           #318                // class ocaml_fn_93
+        2582: dup
+        2583: invokespecial #319                // Method ocaml_fn_93."<init>":()V
+        2586: astore        150
+        2588: new           #14                 // class Block
+        2591: dup
+        2592: iconst_0
+        2593: bipush        104
+        2595: anewarray     #16                 // class java/lang/Object
+        2598: dup
+        2599: iconst_0
+        2600: aload         18
+        2602: aastore
+        2603: dup
+        2604: iconst_1
+        2605: aload         17
+        2607: aastore
+        2608: dup
+        2609: iconst_2
+        2610: aload         22
+        2612: aastore
+        2613: dup
+        2614: iconst_3
+        2615: aload         23
+        2617: aastore
+        2618: dup
+        2619: iconst_4
+        2620: aload         24
+        2622: aastore
+        2623: dup
+        2624: iconst_5
+        2625: aload         25
+        2627: aastore
+        2628: dup
+        2629: bipush        6
+        2631: aload         26
+        2633: aastore
+        2634: dup
+        2635: bipush        7
+        2637: aload         27
+        2639: aastore
+        2640: dup
+        2641: bipush        8
+        2643: aload         28
+        2645: aastore
+        2646: dup
+        2647: bipush        9
+        2649: aload         29
+        2651: aastore
+        2652: dup
+        2653: bipush        10
+        2655: aload         30
+        2657: aastore
+        2658: dup
+        2659: bipush        11
+        2661: aload         31
+        2663: aastore
+        2664: dup
+        2665: bipush        12
+        2667: aload         32
+        2669: aastore
+        2670: dup
+        2671: bipush        13
+        2673: aload         33
+        2675: aastore
+        2676: dup
+        2677: bipush        14
+        2679: aload         34
+        2681: aastore
+        2682: dup
+        2683: bipush        15
+        2685: aload         35
+        2687: aastore
+        2688: dup
+        2689: bipush        16
+        2691: aload         36
+        2693: aastore
+        2694: dup
+        2695: bipush        17
+        2697: aload         37
+        2699: aastore
+        2700: dup
+        2701: bipush        18
+        2703: iload         41
+        2705: invokestatic  #31                 // Method java/lang/Integer.valueOf:(I)Ljava/lang/Integer;
+        2708: aastore
+        2709: dup
+        2710: bipush        19
+        2712: iload         43
+        2714: invokestatic  #31                 // Method java/lang/Integer.valueOf:(I)Ljava/lang/Integer;
+        2717: aastore
+        2718: dup
+        2719: bipush        20
+        2721: aload         38
+        2723: aastore
+        2724: dup
+        2725: bipush        21
+        2727: aload         45
+        2729: aastore
+        2730: dup
+        2731: bipush        22
+        2733: aload         47
+        2735: aastore
+        2736: dup
+        2737: bipush        23
+        2739: aload         49
+        2741: aastore
+        2742: dup
+        2743: bipush        24
+        2745: aload         51
+        2747: aastore
+        2748: dup
+        2749: bipush        25
+        2751: aload         53
+        2753: aastore
+        2754: dup
+        2755: bipush        26
+        2757: aload         55
+        2759: aastore
+        2760: dup
+        2761: bipush        27
+        2763: aload         56
+        2765: aastore
+        2766: dup
+        2767: bipush        28
+        2769: aload         57
+        2771: aastore
+        2772: dup
+        2773: bipush        29
+        2775: aload         58
+        2777: aastore
+        2778: dup
+        2779: bipush        30
+        2781: aload         60
+        2783: aastore
+        2784: dup
+        2785: bipush        31
+        2787: aload         59
+        2789: aastore
+        2790: dup
+        2791: bipush        32
+        2793: aload         61
+        2795: aastore
+        2796: dup
+        2797: bipush        33
+        2799: aload         62
+        2801: aastore
+        2802: dup
+        2803: bipush        34
+        2805: aload         64
+        2807: aastore
+        2808: dup
+        2809: bipush        35
+        2811: aload         65
+        2813: aastore
+        2814: dup
+        2815: bipush        36
+        2817: aload         66
+        2819: aastore
+        2820: dup
+        2821: bipush        37
+        2823: aload         73
+        2825: aastore
+        2826: dup
+        2827: bipush        38
+        2829: aload         75
+        2831: aastore
+        2832: dup
+        2833: bipush        39
+        2835: aload         77
+        2837: aastore
+        2838: dup
+        2839: bipush        40
+        2841: aload         98
+        2843: aastore
+        2844: dup
+        2845: bipush        41
+        2847: aload         99
+        2849: aastore
+        2850: dup
+        2851: bipush        42
+        2853: aload         100
+        2855: aastore
+        2856: dup
+        2857: bipush        43
+        2859: aload         101
+        2861: aastore
+        2862: dup
+        2863: bipush        44
+        2865: aload         102
+        2867: aastore
+        2868: dup
+        2869: bipush        45
+        2871: aload         103
+        2873: aastore
+        2874: dup
+        2875: bipush        46
+        2877: aload         104
+        2879: aastore
+        2880: dup
+        2881: bipush        47
+        2883: aload         105
+        2885: aastore
+        2886: dup
+        2887: bipush        48
+        2889: aload         106
+        2891: aastore
+        2892: dup
+        2893: bipush        49
+        2895: aload         107
+        2897: aastore
+        2898: dup
+        2899: bipush        50
+        2901: aload         108
+        2903: aastore
+        2904: dup
+        2905: bipush        51
+        2907: aload         109
+        2909: aastore
+        2910: dup
+        2911: bipush        52
+        2913: aload         110
+        2915: aastore
+        2916: dup
+        2917: bipush        53
+        2919: aload         111
+        2921: aastore
+        2922: dup
+        2923: bipush        54
+        2925: aload         112
+        2927: aastore
+        2928: dup
+        2929: bipush        55
+        2931: aload         114
+        2933: aastore
+        2934: dup
+        2935: bipush        56
+        2937: aload         113
+        2939: aastore
+        2940: dup
+        2941: bipush        57
+        2943: aload         116
+        2945: aastore
+        2946: dup
+        2947: bipush        58
+        2949: aload         115
+        2951: aastore
+        2952: dup
+        2953: bipush        59
+        2955: aload         79
+        2957: aastore
+        2958: dup
+        2959: bipush        60
+        2961: aload         80
+        2963: aastore
+        2964: dup
+        2965: bipush        61
+        2967: aload         78
+        2969: aastore
+        2970: dup
+        2971: bipush        62
+        2973: aload         150
+        2975: aastore
+        2976: dup
+        2977: bipush        63
+        2979: aload         81
+        2981: aastore
+        2982: dup
+        2983: bipush        64
+        2985: aload         149
+        2987: aastore
+        2988: dup
+        2989: bipush        65
+        2991: aload         83
+        2993: aastore
+        2994: dup
+        2995: bipush        66
+        2997: aload         82
+        2999: aastore
+        3000: dup
+        3001: bipush        67
+        3003: aload         84
+        3005: aastore
+        3006: dup
+        3007: bipush        68
+        3009: aload         85
+        3011: aastore
+        3012: dup
+        3013: bipush        69
+        3015: aload         148
+        3017: aastore
+        3018: dup
+        3019: bipush        70
+        3021: aload         147
+        3023: aastore
+        3024: dup
+        3025: bipush        71
+        3027: aload         86
+        3029: aastore
+        3030: dup
+        3031: bipush        72
+        3033: aload         146
+        3035: aastore
+        3036: dup
+        3037: bipush        73
+        3039: aload         145
+        3041: aastore
+        3042: dup
+        3043: bipush        74
+        3045: aload         144
+        3047: aastore
+        3048: dup
+        3049: bipush        75
+        3051: aload         87
+        3053: aastore
+        3054: dup
+        3055: bipush        76
+        3057: aload         88
+        3059: aastore
+        3060: dup
+        3061: bipush        77
+        3063: aload         143
+        3065: aastore
+        3066: dup
+        3067: bipush        78
+        3069: aload         90
+        3071: aastore
+        3072: dup
+        3073: bipush        79
+        3075: aload         91
+        3077: aastore
+        3078: dup
+        3079: bipush        80
+        3081: aload         89
+        3083: aastore
+        3084: dup
+        3085: bipush        81
+        3087: aload         142
+        3089: aastore
+        3090: dup
+        3091: bipush        82
+        3093: aload         96
+        3095: aastore
+        3096: dup
+        3097: bipush        83
+        3099: aload         92
+        3101: aastore
+        3102: dup
+        3103: bipush        84
+        3105: aload         94
+        3107: aastore
+        3108: dup
+        3109: bipush        85
+        3111: aload         95
+        3113: aastore
+        3114: dup
+        3115: bipush        86
+        3117: aload         141
+        3119: aastore
+        3120: dup
+        3121: bipush        87
+        3123: aload         140
+        3125: aastore
+        3126: dup
+        3127: bipush        88
+        3129: aload         139
+        3131: aastore
+        3132: dup
+        3133: bipush        89
+        3135: aload         138
+        3137: aastore
+        3138: dup
+        3139: bipush        90
+        3141: aload         137
+        3143: aastore
+        3144: dup
+        3145: bipush        91
+        3147: aload         136
+        3149: aastore
+        3150: dup
+        3151: bipush        92
+        3153: aload         135
+        3155: aastore
+        3156: dup
+        3157: bipush        93
+        3159: aload         97
+        3161: aastore
+        3162: dup
+        3163: bipush        94
+        3165: aload         134
+        3167: aastore
+        3168: dup
+        3169: bipush        95
+        3171: aload         133
+        3173: aastore
+        3174: dup
+        3175: bipush        96
+        3177: aload         117
+        3179: aastore
+        3180: dup
+        3181: bipush        97
+        3183: aload         118
+        3185: aastore
+        3186: dup
+        3187: bipush        98
+        3189: aload         124
+        3191: aastore
+        3192: dup
+        3193: bipush        99
+        3195: aload         120
+        3197: aastore
+        3198: dup
+        3199: bipush        100
+        3201: aload         63
+        3203: aastore
+        3204: dup
+        3205: bipush        101
+        3207: aload         93
+        3209: aastore
+        3210: dup
+        3211: bipush        102
+        3213: aload         123
+        3215: aastore
+        3216: dup
+        3217: bipush        103
+        3219: aload         122
+        3221: aastore
+        3222: invokespecial #19                 // Method Block."<init>":(I[Ljava/lang/Object;)V
+        3225: astore        151
+        3227: getstatic     #25                 // Field GLOBALS:[Ljava/lang/Object;
+        3230: bipush        45
+        3232: aload         151
+        3234: aastore
+        3235: iconst_0
+        3236: invokestatic  #31                 // Method java/lang/Integer.valueOf:(I)Ljava/lang/Integer;
         3239: astore        152
-        3241: getstatic     #25                 // Field GLOBALS:[Ljava/lang/Object;
-        3244: bipush        45
-        3246: aload         152
-        3248: aastore
-        3249: iconst_0
-        3250: invokestatic  #31                 // Method java/lang/Integer.valueOf:(I)Ljava/lang/Integer;
-        3253: astore        153
-        3255: iconst_0
-        3256: istore        154
-        3258: iload         154
-        3260: invokestatic  #31                 // Method java/lang/Integer.valueOf:(I)Ljava/lang/Integer;
+        3241: iconst_0
+        3242: istore        153
+        3244: iload         153
+        3246: invokestatic  #31                 // Method java/lang/Integer.valueOf:(I)Ljava/lang/Integer;
+        3249: astore        154
+        3251: goto_w        3256
+        3256: new           #321                // class ocaml_fn_94
+        3259: dup
+        3260: invokespecial #322                // Method ocaml_fn_94."<init>":()V
         3263: astore        155
-        3265: goto_w        3270
-        3270: new           #321                // class ocaml_fn_94
-        3273: dup
-        3274: invokespecial #322                // Method ocaml_fn_94."<init>":()V
-        3277: astore        156
-        3279: getstatic     #25                 // Field GLOBALS:[Ljava/lang/Object;
-        3282: bipush        46
-        3284: aaload
-        3285: astore        157
-        3287: aload         156
-        3289: aload         157
-        3291: invokevirtual #326                // Method Closure.apply1:(Ljava/lang/Object;)Ljava/lang/Object;
-        3294: astore        158
-        3296: getstatic     #332                // Field java/lang/System.out:Ljava/io/PrintStream;
-        3299: aload         158
-        3301: checkcast     #27                 // class java/lang/Integer
-        3304: invokevirtual #336                // Method java/lang/Integer.intValue:()I
-        3307: invokevirtual #342                // Method java/io/PrintStream.println:(I)V
-        3310: iconst_0
-        3311: invokestatic  #31                 // Method java/lang/Integer.valueOf:(I)Ljava/lang/Integer;
-        3314: astore        159
-        3316: new           #14                 // class Block
-        3319: dup
-        3320: iconst_0
-        3321: iconst_1
-        3322: anewarray     #16                 // class java/lang/Object
-        3325: dup
-        3326: iconst_0
-        3327: aload         156
-        3329: aastore
-        3330: invokespecial #19                 // Method Block."<init>":(I[Ljava/lang/Object;)V
+        3265: getstatic     #25                 // Field GLOBALS:[Ljava/lang/Object;
+        3268: bipush        46
+        3270: aaload
+        3271: astore        156
+        3273: aload         155
+        3275: aload         156
+        3277: invokevirtual #326                // Method Closure.apply1:(Ljava/lang/Object;)Ljava/lang/Object;
+        3280: astore        157
+        3282: getstatic     #332                // Field java/lang/System.out:Ljava/io/PrintStream;
+        3285: aload         157
+        3287: checkcast     #27                 // class java/lang/Integer
+        3290: invokevirtual #336                // Method java/lang/Integer.intValue:()I
+        3293: invokevirtual #342                // Method java/io/PrintStream.println:(I)V
+        3296: iconst_0
+        3297: invokestatic  #31                 // Method java/lang/Integer.valueOf:(I)Ljava/lang/Integer;
+        3300: astore        158
+        3302: new           #14                 // class Block
+        3305: dup
+        3306: iconst_0
+        3307: iconst_1
+        3308: anewarray     #16                 // class java/lang/Object
+        3311: dup
+        3312: iconst_0
+        3313: aload         155
+        3315: aastore
+        3316: invokespecial #19                 // Method Block."<init>":(I[Ljava/lang/Object;)V
+        3319: astore        159
+        3321: getstatic     #25                 // Field GLOBALS:[Ljava/lang/Object;
+        3324: bipush        47
+        3326: aload         159
+        3328: aastore
+        3329: iconst_0
+        3330: invokestatic  #31                 // Method java/lang/Integer.valueOf:(I)Ljava/lang/Integer;
         3333: astore        160
-        3335: getstatic     #25                 // Field GLOBALS:[Ljava/lang/Object;
-        3338: bipush        47
-        3340: aload         160
-        3342: aastore
-        3343: iconst_0
-        3344: invokestatic  #31                 // Method java/lang/Integer.valueOf:(I)Ljava/lang/Integer;
-        3347: astore        161
-        3349: iconst_0
-        3350: istore        162
-        3352: iconst_0
-        3353: istore        163
-        3355: getstatic     #25                 // Field GLOBALS:[Ljava/lang/Object;
-        3358: bipush        45
-        3360: aaload
-        3361: checkcast     #14                 // class Block
-        3364: getfield      #345                // Field Block.fields:[Ljava/lang/Object;
-        3367: bipush        102
-        3369: aaload
-        3370: astore        164
-        3372: aload         164
-        3374: checkcast     #96                 // class Closure
-        3377: iload         163
-        3379: invokestatic  #31                 // Method java/lang/Integer.valueOf:(I)Ljava/lang/Integer;
-        3382: invokevirtual #326                // Method Closure.apply1:(Ljava/lang/Object;)Ljava/lang/Object;
-        3385: astore        165
-        3387: new           #14                 // class Block
-        3390: dup
-        3391: iconst_0
+        3335: iconst_0
+        3336: istore        161
+        3338: getstatic     #25                 // Field GLOBALS:[Ljava/lang/Object;
+        3341: bipush        45
+        3343: aaload
+        3344: checkcast     #14                 // class Block
+        3347: getfield      #345                // Field Block.fields:[Ljava/lang/Object;
+        3350: bipush        102
+        3352: aaload
+        3353: astore        162
+        3355: aload         162
+        3357: checkcast     #96                 // class Closure
+        3360: iload         161
+        3362: invokestatic  #31                 // Method java/lang/Integer.valueOf:(I)Ljava/lang/Integer;
+        3365: invokevirtual #326                // Method Closure.apply1:(Ljava/lang/Object;)Ljava/lang/Object;
+        3368: astore        163
+        3370: new           #14                 // class Block
+        3373: dup
+        3374: iconst_0
+        3375: iconst_0
+        3376: anewarray     #16                 // class java/lang/Object
+        3379: invokespecial #19                 // Method Block."<init>":(I[Ljava/lang/Object;)V
+        3382: astore        164
+        3384: getstatic     #25                 // Field GLOBALS:[Ljava/lang/Object;
+        3387: bipush        48
+        3389: aload         164
+        3391: aastore
         3392: iconst_0
-        3393: anewarray     #16                 // class java/lang/Object
-        3396: invokespecial #19                 // Method Block."<init>":(I[Ljava/lang/Object;)V
-        3399: astore        166
-        3401: getstatic     #25                 // Field GLOBALS:[Ljava/lang/Object;
-        3404: bipush        48
-        3406: aload         166
-        3408: aastore
-        3409: iconst_0
-        3410: invokestatic  #31                 // Method java/lang/Integer.valueOf:(I)Ljava/lang/Integer;
-        3413: astore        167
-        3415: iconst_0
-        3416: istore        168
-        3418: return
+        3393: invokestatic  #31                 // Method java/lang/Integer.valueOf:(I)Ljava/lang/Integer;
+        3396: astore        165
+        3398: return
     }
     |}]
 
@@ -8446,733 +8398,722 @@ let%expect_test "emission: try/with catchall" =
         2196: aload         112
         2198: invokespecial #232                // Method ocaml_fn_64."<init>":(Ljava/lang/Object;Ljava/lang/Object;)V
         2201: astore        116
-        2203: new           #14                 // class Block
+        2203: new           #234                // class ocaml_fn_65
         2206: dup
-        2207: iconst_0
-        2208: iconst_0
-        2209: anewarray     #16                 // class java/lang/Object
-        2212: invokespecial #19                 // Method Block."<init>":(I[Ljava/lang/Object;)V
-        2215: astore        117
-        2217: new           #234                // class ocaml_fn_65
-        2220: dup
-        2221: invokespecial #235                // Method ocaml_fn_65."<init>":()V
-        2224: astore        118
-        2226: new           #237                // class ocaml_fn_66
-        2229: dup
-        2230: aload         56
-        2232: invokespecial #238                // Method ocaml_fn_66."<init>":(Ljava/lang/Object;)V
-        2235: astore        119
-        2237: new           #14                 // class Block
-        2240: dup
-        2241: iconst_0
-        2242: iconst_1
-        2243: anewarray     #16                 // class java/lang/Object
-        2246: dup
-        2247: iconst_0
-        2248: aload         81
-        2250: aastore
-        2251: invokespecial #19                 // Method Block."<init>":(I[Ljava/lang/Object;)V
-        2254: astore        120
-        2256: new           #240                // class ocaml_fn_67
-        2259: dup
-        2260: aload         120
-        2262: invokespecial #241                // Method ocaml_fn_67."<init>":(Ljava/lang/Object;)V
-        2265: astore        121
-        2267: new           #243                // class ocaml_fn_68
-        2270: dup
-        2271: invokespecial #244                // Method ocaml_fn_68."<init>":()V
-        2274: astore        122
-        2276: new           #14                 // class Block
-        2279: dup
-        2280: iconst_0
-        2281: iconst_1
-        2282: anewarray     #16                 // class java/lang/Object
-        2285: dup
-        2286: iconst_0
+        2207: invokespecial #235                // Method ocaml_fn_65."<init>":()V
+        2210: astore        117
+        2212: new           #237                // class ocaml_fn_66
+        2215: dup
+        2216: aload         56
+        2218: invokespecial #238                // Method ocaml_fn_66."<init>":(Ljava/lang/Object;)V
+        2221: astore        118
+        2223: new           #14                 // class Block
+        2226: dup
+        2227: iconst_0
+        2228: iconst_1
+        2229: anewarray     #16                 // class java/lang/Object
+        2232: dup
+        2233: iconst_0
+        2234: aload         81
+        2236: aastore
+        2237: invokespecial #19                 // Method Block."<init>":(I[Ljava/lang/Object;)V
+        2240: astore        119
+        2242: new           #240                // class ocaml_fn_67
+        2245: dup
+        2246: aload         119
+        2248: invokespecial #241                // Method ocaml_fn_67."<init>":(Ljava/lang/Object;)V
+        2251: astore        120
+        2253: new           #243                // class ocaml_fn_68
+        2256: dup
+        2257: invokespecial #244                // Method ocaml_fn_68."<init>":()V
+        2260: astore        121
+        2262: new           #14                 // class Block
+        2265: dup
+        2266: iconst_0
+        2267: iconst_1
+        2268: anewarray     #16                 // class java/lang/Object
+        2271: dup
+        2272: iconst_0
+        2273: aload         121
+        2275: aastore
+        2276: invokespecial #19                 // Method Block."<init>":(I[Ljava/lang/Object;)V
+        2279: astore        122
+        2281: new           #246                // class ocaml_fn_69
+        2284: dup
+        2285: aload         119
         2287: aload         122
-        2289: aastore
-        2290: invokespecial #19                 // Method Block."<init>":(I[Ljava/lang/Object;)V
-        2293: astore        123
-        2295: new           #246                // class ocaml_fn_69
-        2298: dup
-        2299: aload         120
-        2301: aload         123
-        2303: invokespecial #247                // Method ocaml_fn_69."<init>":(Ljava/lang/Object;Ljava/lang/Object;)V
-        2306: astore        124
-        2308: new           #249                // class ocaml_fn_70
-        2311: dup
-        2312: aload         124
-        2314: invokespecial #250                // Method ocaml_fn_70."<init>":(Ljava/lang/Object;)V
-        2317: astore        125
-        2319: getstatic     #25                 // Field GLOBALS:[Ljava/lang/Object;
-        2322: bipush        44
-        2324: aaload
-        2325: astore        126
-        2327: iconst_0
-        2328: invokestatic  #31                 // Method java/lang/Integer.valueOf:(I)Ljava/lang/Integer;
-        2331: astore        127
-        2333: new           #252                // class ocaml_fn_71
-        2336: dup
-        2337: invokespecial #253                // Method ocaml_fn_71."<init>":()V
-        2340: astore        128
-        2342: new           #255                // class ocaml_fn_72
-        2345: dup
-        2346: invokespecial #256                // Method ocaml_fn_72."<init>":()V
-        2349: astore        129
-        2351: new           #258                // class ocaml_fn_73
-        2354: dup
-        2355: invokespecial #259                // Method ocaml_fn_73."<init>":()V
-        2358: astore        130
-        2360: new           #261                // class ocaml_fn_74
-        2363: dup
-        2364: invokespecial #262                // Method ocaml_fn_74."<init>":()V
-        2367: astore        131
-        2369: new           #264                // class ocaml_fn_75
-        2372: dup
-        2373: invokespecial #265                // Method ocaml_fn_75."<init>":()V
-        2376: astore        132
-        2378: new           #267                // class ocaml_fn_76
-        2381: dup
-        2382: invokespecial #268                // Method ocaml_fn_76."<init>":()V
-        2385: astore        133
-        2387: new           #14                 // class Block
-        2390: dup
-        2391: iconst_0
-        2392: bipush        6
-        2394: anewarray     #16                 // class java/lang/Object
-        2397: dup
-        2398: iconst_0
-        2399: aload         133
-        2401: aastore
-        2402: dup
-        2403: iconst_1
-        2404: aload         132
-        2406: aastore
-        2407: dup
-        2408: iconst_2
-        2409: aload         131
-        2411: aastore
-        2412: dup
-        2413: iconst_3
-        2414: aload         130
-        2416: aastore
-        2417: dup
-        2418: iconst_4
-        2419: aload         129
-        2421: aastore
-        2422: dup
-        2423: iconst_5
-        2424: aload         128
-        2426: aastore
-        2427: invokespecial #19                 // Method Block."<init>":(I[Ljava/lang/Object;)V
-        2430: astore        134
-        2432: new           #270                // class ocaml_fn_77
-        2435: dup
-        2436: invokespecial #271                // Method ocaml_fn_77."<init>":()V
-        2439: astore        135
-        2441: new           #273                // class ocaml_fn_78
-        2444: dup
-        2445: invokespecial #274                // Method ocaml_fn_78."<init>":()V
-        2448: astore        136
-        2450: new           #276                // class ocaml_fn_79
-        2453: dup
-        2454: invokespecial #277                // Method ocaml_fn_79."<init>":()V
-        2457: astore        137
-        2459: new           #279                // class ocaml_fn_80
-        2462: dup
-        2463: invokespecial #280                // Method ocaml_fn_80."<init>":()V
-        2466: astore        138
-        2468: new           #282                // class ocaml_fn_81
-        2471: dup
-        2472: invokespecial #283                // Method ocaml_fn_81."<init>":()V
-        2475: astore        139
-        2477: new           #285                // class ocaml_fn_82
-        2480: dup
-        2481: invokespecial #286                // Method ocaml_fn_82."<init>":()V
-        2484: astore        140
-        2486: new           #288                // class ocaml_fn_83
-        2489: dup
-        2490: invokespecial #289                // Method ocaml_fn_83."<init>":()V
-        2493: astore        141
-        2495: new           #291                // class ocaml_fn_84
-        2498: dup
-        2499: invokespecial #292                // Method ocaml_fn_84."<init>":()V
-        2502: astore        142
-        2504: new           #294                // class ocaml_fn_85
-        2507: dup
-        2508: invokespecial #295                // Method ocaml_fn_85."<init>":()V
-        2511: astore        143
-        2513: new           #297                // class ocaml_fn_86
-        2516: dup
-        2517: invokespecial #298                // Method ocaml_fn_86."<init>":()V
-        2520: astore        144
-        2522: new           #300                // class ocaml_fn_87
-        2525: dup
-        2526: invokespecial #301                // Method ocaml_fn_87."<init>":()V
-        2529: astore        145
-        2531: new           #303                // class ocaml_fn_88
-        2534: dup
-        2535: invokespecial #304                // Method ocaml_fn_88."<init>":()V
-        2538: astore        146
-        2540: new           #306                // class ocaml_fn_89
-        2543: dup
-        2544: invokespecial #307                // Method ocaml_fn_89."<init>":()V
-        2547: astore        147
-        2549: new           #309                // class ocaml_fn_90
-        2552: dup
-        2553: invokespecial #310                // Method ocaml_fn_90."<init>":()V
-        2556: astore        148
-        2558: new           #312                // class ocaml_fn_91
-        2561: dup
-        2562: invokespecial #313                // Method ocaml_fn_91."<init>":()V
-        2565: astore        149
-        2567: new           #315                // class ocaml_fn_92
-        2570: dup
-        2571: invokespecial #316                // Method ocaml_fn_92."<init>":()V
-        2574: astore        150
-        2576: new           #318                // class ocaml_fn_93
-        2579: dup
-        2580: invokespecial #319                // Method ocaml_fn_93."<init>":()V
-        2583: astore        151
-        2585: new           #14                 // class Block
-        2588: dup
-        2589: iconst_0
-        2590: bipush        104
-        2592: anewarray     #16                 // class java/lang/Object
-        2595: dup
-        2596: iconst_0
-        2597: aload         18
-        2599: aastore
-        2600: dup
-        2601: iconst_1
-        2602: aload         17
-        2604: aastore
-        2605: dup
-        2606: iconst_2
-        2607: aload         22
-        2609: aastore
-        2610: dup
-        2611: iconst_3
-        2612: aload         23
-        2614: aastore
-        2615: dup
-        2616: iconst_4
-        2617: aload         24
-        2619: aastore
-        2620: dup
-        2621: iconst_5
-        2622: aload         25
-        2624: aastore
-        2625: dup
-        2626: bipush        6
-        2628: aload         26
-        2630: aastore
-        2631: dup
-        2632: bipush        7
-        2634: aload         27
-        2636: aastore
-        2637: dup
-        2638: bipush        8
-        2640: aload         28
-        2642: aastore
-        2643: dup
-        2644: bipush        9
-        2646: aload         29
-        2648: aastore
-        2649: dup
-        2650: bipush        10
-        2652: aload         30
-        2654: aastore
-        2655: dup
-        2656: bipush        11
-        2658: aload         31
-        2660: aastore
-        2661: dup
-        2662: bipush        12
-        2664: aload         32
-        2666: aastore
-        2667: dup
-        2668: bipush        13
-        2670: aload         33
-        2672: aastore
-        2673: dup
-        2674: bipush        14
-        2676: aload         34
-        2678: aastore
-        2679: dup
-        2680: bipush        15
-        2682: aload         35
-        2684: aastore
-        2685: dup
-        2686: bipush        16
-        2688: aload         36
-        2690: aastore
-        2691: dup
-        2692: bipush        17
-        2694: aload         37
-        2696: aastore
-        2697: dup
-        2698: bipush        18
-        2700: iload         41
-        2702: invokestatic  #31                 // Method java/lang/Integer.valueOf:(I)Ljava/lang/Integer;
-        2705: aastore
-        2706: dup
-        2707: bipush        19
-        2709: iload         43
-        2711: invokestatic  #31                 // Method java/lang/Integer.valueOf:(I)Ljava/lang/Integer;
-        2714: aastore
-        2715: dup
-        2716: bipush        20
-        2718: aload         38
-        2720: aastore
-        2721: dup
-        2722: bipush        21
-        2724: aload         45
-        2726: aastore
-        2727: dup
-        2728: bipush        22
-        2730: aload         47
-        2732: aastore
-        2733: dup
-        2734: bipush        23
-        2736: aload         49
-        2738: aastore
-        2739: dup
-        2740: bipush        24
-        2742: aload         51
-        2744: aastore
-        2745: dup
-        2746: bipush        25
-        2748: aload         53
-        2750: aastore
-        2751: dup
-        2752: bipush        26
-        2754: aload         55
-        2756: aastore
-        2757: dup
-        2758: bipush        27
-        2760: aload         56
-        2762: aastore
-        2763: dup
-        2764: bipush        28
-        2766: aload         57
-        2768: aastore
-        2769: dup
-        2770: bipush        29
-        2772: aload         58
-        2774: aastore
-        2775: dup
-        2776: bipush        30
-        2778: aload         60
-        2780: aastore
-        2781: dup
-        2782: bipush        31
-        2784: aload         59
-        2786: aastore
-        2787: dup
-        2788: bipush        32
-        2790: aload         61
-        2792: aastore
-        2793: dup
-        2794: bipush        33
-        2796: aload         62
-        2798: aastore
-        2799: dup
-        2800: bipush        34
-        2802: aload         64
-        2804: aastore
-        2805: dup
-        2806: bipush        35
-        2808: aload         65
-        2810: aastore
-        2811: dup
-        2812: bipush        36
-        2814: aload         66
-        2816: aastore
-        2817: dup
-        2818: bipush        37
-        2820: aload         73
-        2822: aastore
-        2823: dup
-        2824: bipush        38
-        2826: aload         75
-        2828: aastore
-        2829: dup
-        2830: bipush        39
-        2832: aload         77
-        2834: aastore
-        2835: dup
-        2836: bipush        40
-        2838: aload         98
-        2840: aastore
-        2841: dup
-        2842: bipush        41
-        2844: aload         99
-        2846: aastore
-        2847: dup
-        2848: bipush        42
-        2850: aload         100
-        2852: aastore
-        2853: dup
-        2854: bipush        43
-        2856: aload         101
-        2858: aastore
-        2859: dup
-        2860: bipush        44
-        2862: aload         102
-        2864: aastore
-        2865: dup
-        2866: bipush        45
-        2868: aload         103
-        2870: aastore
-        2871: dup
-        2872: bipush        46
-        2874: aload         104
-        2876: aastore
-        2877: dup
-        2878: bipush        47
-        2880: aload         105
-        2882: aastore
-        2883: dup
-        2884: bipush        48
-        2886: aload         106
-        2888: aastore
-        2889: dup
-        2890: bipush        49
-        2892: aload         107
-        2894: aastore
-        2895: dup
-        2896: bipush        50
-        2898: aload         108
-        2900: aastore
-        2901: dup
-        2902: bipush        51
-        2904: aload         109
-        2906: aastore
-        2907: dup
-        2908: bipush        52
-        2910: aload         110
-        2912: aastore
-        2913: dup
-        2914: bipush        53
-        2916: aload         111
-        2918: aastore
-        2919: dup
-        2920: bipush        54
-        2922: aload         112
-        2924: aastore
-        2925: dup
-        2926: bipush        55
-        2928: aload         114
-        2930: aastore
-        2931: dup
-        2932: bipush        56
-        2934: aload         113
-        2936: aastore
-        2937: dup
-        2938: bipush        57
-        2940: aload         116
-        2942: aastore
-        2943: dup
-        2944: bipush        58
-        2946: aload         115
-        2948: aastore
-        2949: dup
-        2950: bipush        59
-        2952: aload         79
-        2954: aastore
-        2955: dup
-        2956: bipush        60
-        2958: aload         80
-        2960: aastore
-        2961: dup
-        2962: bipush        61
-        2964: aload         78
-        2966: aastore
-        2967: dup
-        2968: bipush        62
-        2970: aload         151
-        2972: aastore
-        2973: dup
-        2974: bipush        63
-        2976: aload         81
-        2978: aastore
-        2979: dup
-        2980: bipush        64
-        2982: aload         150
-        2984: aastore
-        2985: dup
-        2986: bipush        65
-        2988: aload         83
-        2990: aastore
-        2991: dup
-        2992: bipush        66
-        2994: aload         82
-        2996: aastore
-        2997: dup
-        2998: bipush        67
-        3000: aload         84
-        3002: aastore
-        3003: dup
-        3004: bipush        68
-        3006: aload         85
-        3008: aastore
-        3009: dup
-        3010: bipush        69
-        3012: aload         149
-        3014: aastore
-        3015: dup
-        3016: bipush        70
-        3018: aload         148
-        3020: aastore
-        3021: dup
-        3022: bipush        71
-        3024: aload         86
-        3026: aastore
-        3027: dup
-        3028: bipush        72
-        3030: aload         147
-        3032: aastore
-        3033: dup
-        3034: bipush        73
-        3036: aload         146
-        3038: aastore
-        3039: dup
-        3040: bipush        74
-        3042: aload         145
-        3044: aastore
-        3045: dup
-        3046: bipush        75
-        3048: aload         87
-        3050: aastore
-        3051: dup
-        3052: bipush        76
-        3054: aload         88
-        3056: aastore
-        3057: dup
-        3058: bipush        77
-        3060: aload         144
-        3062: aastore
-        3063: dup
-        3064: bipush        78
-        3066: aload         90
-        3068: aastore
-        3069: dup
-        3070: bipush        79
-        3072: aload         91
-        3074: aastore
-        3075: dup
-        3076: bipush        80
-        3078: aload         89
-        3080: aastore
-        3081: dup
-        3082: bipush        81
-        3084: aload         143
-        3086: aastore
-        3087: dup
-        3088: bipush        82
-        3090: aload         96
-        3092: aastore
-        3093: dup
-        3094: bipush        83
-        3096: aload         92
-        3098: aastore
-        3099: dup
-        3100: bipush        84
-        3102: aload         94
-        3104: aastore
-        3105: dup
-        3106: bipush        85
-        3108: aload         95
-        3110: aastore
-        3111: dup
-        3112: bipush        86
-        3114: aload         142
-        3116: aastore
-        3117: dup
-        3118: bipush        87
-        3120: aload         141
-        3122: aastore
-        3123: dup
-        3124: bipush        88
-        3126: aload         140
-        3128: aastore
-        3129: dup
-        3130: bipush        89
-        3132: aload         139
-        3134: aastore
-        3135: dup
-        3136: bipush        90
-        3138: aload         138
-        3140: aastore
-        3141: dup
-        3142: bipush        91
-        3144: aload         137
-        3146: aastore
-        3147: dup
-        3148: bipush        92
-        3150: aload         136
-        3152: aastore
-        3153: dup
-        3154: bipush        93
-        3156: aload         97
-        3158: aastore
-        3159: dup
-        3160: bipush        94
-        3162: aload         135
-        3164: aastore
-        3165: dup
-        3166: bipush        95
-        3168: aload         134
-        3170: aastore
-        3171: dup
-        3172: bipush        96
-        3174: aload         118
-        3176: aastore
-        3177: dup
-        3178: bipush        97
-        3180: aload         119
-        3182: aastore
-        3183: dup
-        3184: bipush        98
-        3186: aload         125
-        3188: aastore
-        3189: dup
-        3190: bipush        99
-        3192: aload         121
-        3194: aastore
-        3195: dup
-        3196: bipush        100
-        3198: aload         63
-        3200: aastore
-        3201: dup
-        3202: bipush        101
-        3204: aload         93
-        3206: aastore
-        3207: dup
-        3208: bipush        102
-        3210: aload         124
-        3212: aastore
-        3213: dup
-        3214: bipush        103
-        3216: aload         123
-        3218: aastore
-        3219: invokespecial #19                 // Method Block."<init>":(I[Ljava/lang/Object;)V
+        2289: invokespecial #247                // Method ocaml_fn_69."<init>":(Ljava/lang/Object;Ljava/lang/Object;)V
+        2292: astore        123
+        2294: new           #249                // class ocaml_fn_70
+        2297: dup
+        2298: aload         123
+        2300: invokespecial #250                // Method ocaml_fn_70."<init>":(Ljava/lang/Object;)V
+        2303: astore        124
+        2305: getstatic     #25                 // Field GLOBALS:[Ljava/lang/Object;
+        2308: bipush        44
+        2310: aaload
+        2311: astore        125
+        2313: iconst_0
+        2314: invokestatic  #31                 // Method java/lang/Integer.valueOf:(I)Ljava/lang/Integer;
+        2317: astore        126
+        2319: new           #252                // class ocaml_fn_71
+        2322: dup
+        2323: invokespecial #253                // Method ocaml_fn_71."<init>":()V
+        2326: astore        127
+        2328: new           #255                // class ocaml_fn_72
+        2331: dup
+        2332: invokespecial #256                // Method ocaml_fn_72."<init>":()V
+        2335: astore        128
+        2337: new           #258                // class ocaml_fn_73
+        2340: dup
+        2341: invokespecial #259                // Method ocaml_fn_73."<init>":()V
+        2344: astore        129
+        2346: new           #261                // class ocaml_fn_74
+        2349: dup
+        2350: invokespecial #262                // Method ocaml_fn_74."<init>":()V
+        2353: astore        130
+        2355: new           #264                // class ocaml_fn_75
+        2358: dup
+        2359: invokespecial #265                // Method ocaml_fn_75."<init>":()V
+        2362: astore        131
+        2364: new           #267                // class ocaml_fn_76
+        2367: dup
+        2368: invokespecial #268                // Method ocaml_fn_76."<init>":()V
+        2371: astore        132
+        2373: new           #14                 // class Block
+        2376: dup
+        2377: iconst_0
+        2378: bipush        6
+        2380: anewarray     #16                 // class java/lang/Object
+        2383: dup
+        2384: iconst_0
+        2385: aload         132
+        2387: aastore
+        2388: dup
+        2389: iconst_1
+        2390: aload         131
+        2392: aastore
+        2393: dup
+        2394: iconst_2
+        2395: aload         130
+        2397: aastore
+        2398: dup
+        2399: iconst_3
+        2400: aload         129
+        2402: aastore
+        2403: dup
+        2404: iconst_4
+        2405: aload         128
+        2407: aastore
+        2408: dup
+        2409: iconst_5
+        2410: aload         127
+        2412: aastore
+        2413: invokespecial #19                 // Method Block."<init>":(I[Ljava/lang/Object;)V
+        2416: astore        133
+        2418: new           #270                // class ocaml_fn_77
+        2421: dup
+        2422: invokespecial #271                // Method ocaml_fn_77."<init>":()V
+        2425: astore        134
+        2427: new           #273                // class ocaml_fn_78
+        2430: dup
+        2431: invokespecial #274                // Method ocaml_fn_78."<init>":()V
+        2434: astore        135
+        2436: new           #276                // class ocaml_fn_79
+        2439: dup
+        2440: invokespecial #277                // Method ocaml_fn_79."<init>":()V
+        2443: astore        136
+        2445: new           #279                // class ocaml_fn_80
+        2448: dup
+        2449: invokespecial #280                // Method ocaml_fn_80."<init>":()V
+        2452: astore        137
+        2454: new           #282                // class ocaml_fn_81
+        2457: dup
+        2458: invokespecial #283                // Method ocaml_fn_81."<init>":()V
+        2461: astore        138
+        2463: new           #285                // class ocaml_fn_82
+        2466: dup
+        2467: invokespecial #286                // Method ocaml_fn_82."<init>":()V
+        2470: astore        139
+        2472: new           #288                // class ocaml_fn_83
+        2475: dup
+        2476: invokespecial #289                // Method ocaml_fn_83."<init>":()V
+        2479: astore        140
+        2481: new           #291                // class ocaml_fn_84
+        2484: dup
+        2485: invokespecial #292                // Method ocaml_fn_84."<init>":()V
+        2488: astore        141
+        2490: new           #294                // class ocaml_fn_85
+        2493: dup
+        2494: invokespecial #295                // Method ocaml_fn_85."<init>":()V
+        2497: astore        142
+        2499: new           #297                // class ocaml_fn_86
+        2502: dup
+        2503: invokespecial #298                // Method ocaml_fn_86."<init>":()V
+        2506: astore        143
+        2508: new           #300                // class ocaml_fn_87
+        2511: dup
+        2512: invokespecial #301                // Method ocaml_fn_87."<init>":()V
+        2515: astore        144
+        2517: new           #303                // class ocaml_fn_88
+        2520: dup
+        2521: invokespecial #304                // Method ocaml_fn_88."<init>":()V
+        2524: astore        145
+        2526: new           #306                // class ocaml_fn_89
+        2529: dup
+        2530: invokespecial #307                // Method ocaml_fn_89."<init>":()V
+        2533: astore        146
+        2535: new           #309                // class ocaml_fn_90
+        2538: dup
+        2539: invokespecial #310                // Method ocaml_fn_90."<init>":()V
+        2542: astore        147
+        2544: new           #312                // class ocaml_fn_91
+        2547: dup
+        2548: invokespecial #313                // Method ocaml_fn_91."<init>":()V
+        2551: astore        148
+        2553: new           #315                // class ocaml_fn_92
+        2556: dup
+        2557: invokespecial #316                // Method ocaml_fn_92."<init>":()V
+        2560: astore        149
+        2562: new           #318                // class ocaml_fn_93
+        2565: dup
+        2566: invokespecial #319                // Method ocaml_fn_93."<init>":()V
+        2569: astore        150
+        2571: new           #14                 // class Block
+        2574: dup
+        2575: iconst_0
+        2576: bipush        104
+        2578: anewarray     #16                 // class java/lang/Object
+        2581: dup
+        2582: iconst_0
+        2583: aload         18
+        2585: aastore
+        2586: dup
+        2587: iconst_1
+        2588: aload         17
+        2590: aastore
+        2591: dup
+        2592: iconst_2
+        2593: aload         22
+        2595: aastore
+        2596: dup
+        2597: iconst_3
+        2598: aload         23
+        2600: aastore
+        2601: dup
+        2602: iconst_4
+        2603: aload         24
+        2605: aastore
+        2606: dup
+        2607: iconst_5
+        2608: aload         25
+        2610: aastore
+        2611: dup
+        2612: bipush        6
+        2614: aload         26
+        2616: aastore
+        2617: dup
+        2618: bipush        7
+        2620: aload         27
+        2622: aastore
+        2623: dup
+        2624: bipush        8
+        2626: aload         28
+        2628: aastore
+        2629: dup
+        2630: bipush        9
+        2632: aload         29
+        2634: aastore
+        2635: dup
+        2636: bipush        10
+        2638: aload         30
+        2640: aastore
+        2641: dup
+        2642: bipush        11
+        2644: aload         31
+        2646: aastore
+        2647: dup
+        2648: bipush        12
+        2650: aload         32
+        2652: aastore
+        2653: dup
+        2654: bipush        13
+        2656: aload         33
+        2658: aastore
+        2659: dup
+        2660: bipush        14
+        2662: aload         34
+        2664: aastore
+        2665: dup
+        2666: bipush        15
+        2668: aload         35
+        2670: aastore
+        2671: dup
+        2672: bipush        16
+        2674: aload         36
+        2676: aastore
+        2677: dup
+        2678: bipush        17
+        2680: aload         37
+        2682: aastore
+        2683: dup
+        2684: bipush        18
+        2686: iload         41
+        2688: invokestatic  #31                 // Method java/lang/Integer.valueOf:(I)Ljava/lang/Integer;
+        2691: aastore
+        2692: dup
+        2693: bipush        19
+        2695: iload         43
+        2697: invokestatic  #31                 // Method java/lang/Integer.valueOf:(I)Ljava/lang/Integer;
+        2700: aastore
+        2701: dup
+        2702: bipush        20
+        2704: aload         38
+        2706: aastore
+        2707: dup
+        2708: bipush        21
+        2710: aload         45
+        2712: aastore
+        2713: dup
+        2714: bipush        22
+        2716: aload         47
+        2718: aastore
+        2719: dup
+        2720: bipush        23
+        2722: aload         49
+        2724: aastore
+        2725: dup
+        2726: bipush        24
+        2728: aload         51
+        2730: aastore
+        2731: dup
+        2732: bipush        25
+        2734: aload         53
+        2736: aastore
+        2737: dup
+        2738: bipush        26
+        2740: aload         55
+        2742: aastore
+        2743: dup
+        2744: bipush        27
+        2746: aload         56
+        2748: aastore
+        2749: dup
+        2750: bipush        28
+        2752: aload         57
+        2754: aastore
+        2755: dup
+        2756: bipush        29
+        2758: aload         58
+        2760: aastore
+        2761: dup
+        2762: bipush        30
+        2764: aload         60
+        2766: aastore
+        2767: dup
+        2768: bipush        31
+        2770: aload         59
+        2772: aastore
+        2773: dup
+        2774: bipush        32
+        2776: aload         61
+        2778: aastore
+        2779: dup
+        2780: bipush        33
+        2782: aload         62
+        2784: aastore
+        2785: dup
+        2786: bipush        34
+        2788: aload         64
+        2790: aastore
+        2791: dup
+        2792: bipush        35
+        2794: aload         65
+        2796: aastore
+        2797: dup
+        2798: bipush        36
+        2800: aload         66
+        2802: aastore
+        2803: dup
+        2804: bipush        37
+        2806: aload         73
+        2808: aastore
+        2809: dup
+        2810: bipush        38
+        2812: aload         75
+        2814: aastore
+        2815: dup
+        2816: bipush        39
+        2818: aload         77
+        2820: aastore
+        2821: dup
+        2822: bipush        40
+        2824: aload         98
+        2826: aastore
+        2827: dup
+        2828: bipush        41
+        2830: aload         99
+        2832: aastore
+        2833: dup
+        2834: bipush        42
+        2836: aload         100
+        2838: aastore
+        2839: dup
+        2840: bipush        43
+        2842: aload         101
+        2844: aastore
+        2845: dup
+        2846: bipush        44
+        2848: aload         102
+        2850: aastore
+        2851: dup
+        2852: bipush        45
+        2854: aload         103
+        2856: aastore
+        2857: dup
+        2858: bipush        46
+        2860: aload         104
+        2862: aastore
+        2863: dup
+        2864: bipush        47
+        2866: aload         105
+        2868: aastore
+        2869: dup
+        2870: bipush        48
+        2872: aload         106
+        2874: aastore
+        2875: dup
+        2876: bipush        49
+        2878: aload         107
+        2880: aastore
+        2881: dup
+        2882: bipush        50
+        2884: aload         108
+        2886: aastore
+        2887: dup
+        2888: bipush        51
+        2890: aload         109
+        2892: aastore
+        2893: dup
+        2894: bipush        52
+        2896: aload         110
+        2898: aastore
+        2899: dup
+        2900: bipush        53
+        2902: aload         111
+        2904: aastore
+        2905: dup
+        2906: bipush        54
+        2908: aload         112
+        2910: aastore
+        2911: dup
+        2912: bipush        55
+        2914: aload         114
+        2916: aastore
+        2917: dup
+        2918: bipush        56
+        2920: aload         113
+        2922: aastore
+        2923: dup
+        2924: bipush        57
+        2926: aload         116
+        2928: aastore
+        2929: dup
+        2930: bipush        58
+        2932: aload         115
+        2934: aastore
+        2935: dup
+        2936: bipush        59
+        2938: aload         79
+        2940: aastore
+        2941: dup
+        2942: bipush        60
+        2944: aload         80
+        2946: aastore
+        2947: dup
+        2948: bipush        61
+        2950: aload         78
+        2952: aastore
+        2953: dup
+        2954: bipush        62
+        2956: aload         150
+        2958: aastore
+        2959: dup
+        2960: bipush        63
+        2962: aload         81
+        2964: aastore
+        2965: dup
+        2966: bipush        64
+        2968: aload         149
+        2970: aastore
+        2971: dup
+        2972: bipush        65
+        2974: aload         83
+        2976: aastore
+        2977: dup
+        2978: bipush        66
+        2980: aload         82
+        2982: aastore
+        2983: dup
+        2984: bipush        67
+        2986: aload         84
+        2988: aastore
+        2989: dup
+        2990: bipush        68
+        2992: aload         85
+        2994: aastore
+        2995: dup
+        2996: bipush        69
+        2998: aload         148
+        3000: aastore
+        3001: dup
+        3002: bipush        70
+        3004: aload         147
+        3006: aastore
+        3007: dup
+        3008: bipush        71
+        3010: aload         86
+        3012: aastore
+        3013: dup
+        3014: bipush        72
+        3016: aload         146
+        3018: aastore
+        3019: dup
+        3020: bipush        73
+        3022: aload         145
+        3024: aastore
+        3025: dup
+        3026: bipush        74
+        3028: aload         144
+        3030: aastore
+        3031: dup
+        3032: bipush        75
+        3034: aload         87
+        3036: aastore
+        3037: dup
+        3038: bipush        76
+        3040: aload         88
+        3042: aastore
+        3043: dup
+        3044: bipush        77
+        3046: aload         143
+        3048: aastore
+        3049: dup
+        3050: bipush        78
+        3052: aload         90
+        3054: aastore
+        3055: dup
+        3056: bipush        79
+        3058: aload         91
+        3060: aastore
+        3061: dup
+        3062: bipush        80
+        3064: aload         89
+        3066: aastore
+        3067: dup
+        3068: bipush        81
+        3070: aload         142
+        3072: aastore
+        3073: dup
+        3074: bipush        82
+        3076: aload         96
+        3078: aastore
+        3079: dup
+        3080: bipush        83
+        3082: aload         92
+        3084: aastore
+        3085: dup
+        3086: bipush        84
+        3088: aload         94
+        3090: aastore
+        3091: dup
+        3092: bipush        85
+        3094: aload         95
+        3096: aastore
+        3097: dup
+        3098: bipush        86
+        3100: aload         141
+        3102: aastore
+        3103: dup
+        3104: bipush        87
+        3106: aload         140
+        3108: aastore
+        3109: dup
+        3110: bipush        88
+        3112: aload         139
+        3114: aastore
+        3115: dup
+        3116: bipush        89
+        3118: aload         138
+        3120: aastore
+        3121: dup
+        3122: bipush        90
+        3124: aload         137
+        3126: aastore
+        3127: dup
+        3128: bipush        91
+        3130: aload         136
+        3132: aastore
+        3133: dup
+        3134: bipush        92
+        3136: aload         135
+        3138: aastore
+        3139: dup
+        3140: bipush        93
+        3142: aload         97
+        3144: aastore
+        3145: dup
+        3146: bipush        94
+        3148: aload         134
+        3150: aastore
+        3151: dup
+        3152: bipush        95
+        3154: aload         133
+        3156: aastore
+        3157: dup
+        3158: bipush        96
+        3160: aload         117
+        3162: aastore
+        3163: dup
+        3164: bipush        97
+        3166: aload         118
+        3168: aastore
+        3169: dup
+        3170: bipush        98
+        3172: aload         124
+        3174: aastore
+        3175: dup
+        3176: bipush        99
+        3178: aload         120
+        3180: aastore
+        3181: dup
+        3182: bipush        100
+        3184: aload         63
+        3186: aastore
+        3187: dup
+        3188: bipush        101
+        3190: aload         93
+        3192: aastore
+        3193: dup
+        3194: bipush        102
+        3196: aload         123
+        3198: aastore
+        3199: dup
+        3200: bipush        103
+        3202: aload         122
+        3204: aastore
+        3205: invokespecial #19                 // Method Block."<init>":(I[Ljava/lang/Object;)V
+        3208: astore        151
+        3210: getstatic     #25                 // Field GLOBALS:[Ljava/lang/Object;
+        3213: bipush        45
+        3215: aload         151
+        3217: aastore
+        3218: iconst_0
+        3219: invokestatic  #31                 // Method java/lang/Integer.valueOf:(I)Ljava/lang/Integer;
         3222: astore        152
-        3224: getstatic     #25                 // Field GLOBALS:[Ljava/lang/Object;
-        3227: bipush        45
-        3229: aload         152
-        3231: aastore
-        3232: iconst_0
-        3233: invokestatic  #31                 // Method java/lang/Integer.valueOf:(I)Ljava/lang/Integer;
-        3236: astore        153
-        3238: iconst_0
-        3239: istore        154
-        3241: iload         154
+        3224: iconst_0
+        3225: istore        153
+        3227: iload         153
+        3229: invokestatic  #31                 // Method java/lang/Integer.valueOf:(I)Ljava/lang/Integer;
+        3232: astore        154
+        3234: goto_w        3239
+        3239: iconst_0
+        3240: istore        155
+        3242: iconst_1
         3243: invokestatic  #31                 // Method java/lang/Integer.valueOf:(I)Ljava/lang/Integer;
-        3246: astore        155
-        3248: goto_w        3253
-        3253: iconst_0
-        3254: istore        156
-        3256: iconst_1
-        3257: invokestatic  #31                 // Method java/lang/Integer.valueOf:(I)Ljava/lang/Integer;
-        3260: astore        157
-        3262: getstatic     #25                 // Field GLOBALS:[Ljava/lang/Object;
-        3265: bipush        46
-        3267: aaload
-        3268: astore        158
-        3270: new           #14                 // class Block
-        3273: dup
-        3274: sipush        248
-        3277: iconst_2
-        3278: anewarray     #16                 // class java/lang/Object
-        3281: dup
-        3282: iconst_0
-        3283: aload         158
-        3285: aastore
-        3286: dup
-        3287: iconst_1
-        3288: aload         157
-        3290: aastore
-        3291: invokespecial #19                 // Method Block."<init>":(I[Ljava/lang/Object;)V
-        3294: astore        159
-        3296: new           #321                // class ocaml_fn_94
-        3299: dup
-        3300: aload         159
-        3302: invokespecial #322                // Method ocaml_fn_94."<init>":(Ljava/lang/Object;)V
-        3305: astore        160
-        3307: iconst_0
-        3308: istore        161
-        3310: aload         160
-        3312: iload         161
-        3314: invokestatic  #31                 // Method java/lang/Integer.valueOf:(I)Ljava/lang/Integer;
-        3317: invokevirtual #326                // Method Closure.apply1:(Ljava/lang/Object;)Ljava/lang/Object;
-        3320: astore        162
-        3322: getstatic     #332                // Field java/lang/System.out:Ljava/io/PrintStream;
-        3325: aload         162
-        3327: checkcast     #27                 // class java/lang/Integer
-        3330: invokevirtual #336                // Method java/lang/Integer.intValue:()I
-        3333: invokevirtual #342                // Method java/io/PrintStream.println:(I)V
-        3336: iconst_0
-        3337: invokestatic  #31                 // Method java/lang/Integer.valueOf:(I)Ljava/lang/Integer;
-        3340: astore        163
-        3342: new           #14                 // class Block
-        3345: dup
-        3346: iconst_0
-        3347: iconst_2
-        3348: anewarray     #16                 // class java/lang/Object
-        3351: dup
-        3352: iconst_0
-        3353: aload         159
-        3355: aastore
-        3356: dup
-        3357: iconst_1
-        3358: aload         160
-        3360: aastore
-        3361: invokespecial #19                 // Method Block."<init>":(I[Ljava/lang/Object;)V
+        3246: astore        156
+        3248: getstatic     #25                 // Field GLOBALS:[Ljava/lang/Object;
+        3251: bipush        46
+        3253: aaload
+        3254: astore        157
+        3256: new           #14                 // class Block
+        3259: dup
+        3260: sipush        248
+        3263: iconst_2
+        3264: anewarray     #16                 // class java/lang/Object
+        3267: dup
+        3268: iconst_0
+        3269: aload         157
+        3271: aastore
+        3272: dup
+        3273: iconst_1
+        3274: aload         156
+        3276: aastore
+        3277: invokespecial #19                 // Method Block."<init>":(I[Ljava/lang/Object;)V
+        3280: astore        158
+        3282: new           #321                // class ocaml_fn_94
+        3285: dup
+        3286: aload         158
+        3288: invokespecial #322                // Method ocaml_fn_94."<init>":(Ljava/lang/Object;)V
+        3291: astore        159
+        3293: iconst_0
+        3294: istore        160
+        3296: aload         159
+        3298: iload         160
+        3300: invokestatic  #31                 // Method java/lang/Integer.valueOf:(I)Ljava/lang/Integer;
+        3303: invokevirtual #326                // Method Closure.apply1:(Ljava/lang/Object;)Ljava/lang/Object;
+        3306: astore        161
+        3308: getstatic     #332                // Field java/lang/System.out:Ljava/io/PrintStream;
+        3311: aload         161
+        3313: checkcast     #27                 // class java/lang/Integer
+        3316: invokevirtual #336                // Method java/lang/Integer.intValue:()I
+        3319: invokevirtual #342                // Method java/io/PrintStream.println:(I)V
+        3322: iconst_0
+        3323: invokestatic  #31                 // Method java/lang/Integer.valueOf:(I)Ljava/lang/Integer;
+        3326: astore        162
+        3328: new           #14                 // class Block
+        3331: dup
+        3332: iconst_0
+        3333: iconst_2
+        3334: anewarray     #16                 // class java/lang/Object
+        3337: dup
+        3338: iconst_0
+        3339: aload         158
+        3341: aastore
+        3342: dup
+        3343: iconst_1
+        3344: aload         159
+        3346: aastore
+        3347: invokespecial #19                 // Method Block."<init>":(I[Ljava/lang/Object;)V
+        3350: astore        163
+        3352: getstatic     #25                 // Field GLOBALS:[Ljava/lang/Object;
+        3355: bipush        47
+        3357: aload         163
+        3359: aastore
+        3360: iconst_0
+        3361: invokestatic  #31                 // Method java/lang/Integer.valueOf:(I)Ljava/lang/Integer;
         3364: astore        164
-        3366: getstatic     #25                 // Field GLOBALS:[Ljava/lang/Object;
-        3369: bipush        47
-        3371: aload         164
-        3373: aastore
-        3374: iconst_0
-        3375: invokestatic  #31                 // Method java/lang/Integer.valueOf:(I)Ljava/lang/Integer;
-        3378: astore        165
-        3380: iconst_0
-        3381: istore        166
-        3383: iconst_0
-        3384: istore        167
-        3386: getstatic     #25                 // Field GLOBALS:[Ljava/lang/Object;
-        3389: bipush        45
-        3391: aaload
-        3392: checkcast     #14                 // class Block
-        3395: getfield      #345                // Field Block.fields:[Ljava/lang/Object;
-        3398: bipush        102
-        3400: aaload
-        3401: astore        168
-        3403: aload         168
-        3405: checkcast     #96                 // class Closure
-        3408: iload         167
-        3410: invokestatic  #31                 // Method java/lang/Integer.valueOf:(I)Ljava/lang/Integer;
-        3413: invokevirtual #326                // Method Closure.apply1:(Ljava/lang/Object;)Ljava/lang/Object;
-        3416: astore        169
-        3418: new           #14                 // class Block
-        3421: dup
-        3422: iconst_0
+        3366: iconst_0
+        3367: istore        165
+        3369: getstatic     #25                 // Field GLOBALS:[Ljava/lang/Object;
+        3372: bipush        45
+        3374: aaload
+        3375: checkcast     #14                 // class Block
+        3378: getfield      #345                // Field Block.fields:[Ljava/lang/Object;
+        3381: bipush        102
+        3383: aaload
+        3384: astore        166
+        3386: aload         166
+        3388: checkcast     #96                 // class Closure
+        3391: iload         165
+        3393: invokestatic  #31                 // Method java/lang/Integer.valueOf:(I)Ljava/lang/Integer;
+        3396: invokevirtual #326                // Method Closure.apply1:(Ljava/lang/Object;)Ljava/lang/Object;
+        3399: astore        167
+        3401: new           #14                 // class Block
+        3404: dup
+        3405: iconst_0
+        3406: iconst_0
+        3407: anewarray     #16                 // class java/lang/Object
+        3410: invokespecial #19                 // Method Block."<init>":(I[Ljava/lang/Object;)V
+        3413: astore        168
+        3415: getstatic     #25                 // Field GLOBALS:[Ljava/lang/Object;
+        3418: bipush        48
+        3420: aload         168
+        3422: aastore
         3423: iconst_0
-        3424: anewarray     #16                 // class java/lang/Object
-        3427: invokespecial #19                 // Method Block."<init>":(I[Ljava/lang/Object;)V
-        3430: astore        170
-        3432: getstatic     #25                 // Field GLOBALS:[Ljava/lang/Object;
-        3435: bipush        48
-        3437: aload         170
-        3439: aastore
-        3440: iconst_0
-        3441: invokestatic  #31                 // Method java/lang/Integer.valueOf:(I)Ljava/lang/Integer;
-        3444: astore        171
-        3446: iconst_0
-        3447: istore        172
-        3449: return
+        3424: invokestatic  #31                 // Method java/lang/Integer.valueOf:(I)Ljava/lang/Integer;
+        3427: astore        169
+        3429: return
     }
     |}]
 
@@ -10296,717 +10237,704 @@ let%expect_test "emission: if/else with int compare" =
         2187: aload         112
         2189: invokespecial #232                // Method ocaml_fn_64."<init>":(Ljava/lang/Object;Ljava/lang/Object;)V
         2192: astore        116
-        2194: new           #14                 // class Block
+        2194: new           #234                // class ocaml_fn_65
         2197: dup
-        2198: iconst_0
-        2199: iconst_0
-        2200: anewarray     #16                 // class java/lang/Object
-        2203: invokespecial #19                 // Method Block."<init>":(I[Ljava/lang/Object;)V
-        2206: astore        117
-        2208: new           #234                // class ocaml_fn_65
-        2211: dup
-        2212: invokespecial #235                // Method ocaml_fn_65."<init>":()V
-        2215: astore        118
-        2217: new           #237                // class ocaml_fn_66
-        2220: dup
-        2221: aload         56
-        2223: invokespecial #238                // Method ocaml_fn_66."<init>":(Ljava/lang/Object;)V
-        2226: astore        119
-        2228: new           #14                 // class Block
-        2231: dup
-        2232: iconst_0
-        2233: iconst_1
-        2234: anewarray     #16                 // class java/lang/Object
-        2237: dup
-        2238: iconst_0
-        2239: aload         81
-        2241: aastore
-        2242: invokespecial #19                 // Method Block."<init>":(I[Ljava/lang/Object;)V
-        2245: astore        120
-        2247: new           #240                // class ocaml_fn_67
-        2250: dup
-        2251: aload         120
-        2253: invokespecial #241                // Method ocaml_fn_67."<init>":(Ljava/lang/Object;)V
-        2256: astore        121
-        2258: new           #243                // class ocaml_fn_68
-        2261: dup
-        2262: invokespecial #244                // Method ocaml_fn_68."<init>":()V
-        2265: astore        122
-        2267: new           #14                 // class Block
-        2270: dup
-        2271: iconst_0
-        2272: iconst_1
-        2273: anewarray     #16                 // class java/lang/Object
-        2276: dup
-        2277: iconst_0
+        2198: invokespecial #235                // Method ocaml_fn_65."<init>":()V
+        2201: astore        117
+        2203: new           #237                // class ocaml_fn_66
+        2206: dup
+        2207: aload         56
+        2209: invokespecial #238                // Method ocaml_fn_66."<init>":(Ljava/lang/Object;)V
+        2212: astore        118
+        2214: new           #14                 // class Block
+        2217: dup
+        2218: iconst_0
+        2219: iconst_1
+        2220: anewarray     #16                 // class java/lang/Object
+        2223: dup
+        2224: iconst_0
+        2225: aload         81
+        2227: aastore
+        2228: invokespecial #19                 // Method Block."<init>":(I[Ljava/lang/Object;)V
+        2231: astore        119
+        2233: new           #240                // class ocaml_fn_67
+        2236: dup
+        2237: aload         119
+        2239: invokespecial #241                // Method ocaml_fn_67."<init>":(Ljava/lang/Object;)V
+        2242: astore        120
+        2244: new           #243                // class ocaml_fn_68
+        2247: dup
+        2248: invokespecial #244                // Method ocaml_fn_68."<init>":()V
+        2251: astore        121
+        2253: new           #14                 // class Block
+        2256: dup
+        2257: iconst_0
+        2258: iconst_1
+        2259: anewarray     #16                 // class java/lang/Object
+        2262: dup
+        2263: iconst_0
+        2264: aload         121
+        2266: aastore
+        2267: invokespecial #19                 // Method Block."<init>":(I[Ljava/lang/Object;)V
+        2270: astore        122
+        2272: new           #246                // class ocaml_fn_69
+        2275: dup
+        2276: aload         119
         2278: aload         122
-        2280: aastore
-        2281: invokespecial #19                 // Method Block."<init>":(I[Ljava/lang/Object;)V
-        2284: astore        123
-        2286: new           #246                // class ocaml_fn_69
-        2289: dup
-        2290: aload         120
-        2292: aload         123
-        2294: invokespecial #247                // Method ocaml_fn_69."<init>":(Ljava/lang/Object;Ljava/lang/Object;)V
-        2297: astore        124
-        2299: new           #249                // class ocaml_fn_70
-        2302: dup
-        2303: aload         124
-        2305: invokespecial #250                // Method ocaml_fn_70."<init>":(Ljava/lang/Object;)V
-        2308: astore        125
-        2310: getstatic     #25                 // Field GLOBALS:[Ljava/lang/Object;
-        2313: bipush        44
-        2315: aaload
-        2316: astore        126
-        2318: iconst_0
-        2319: invokestatic  #31                 // Method java/lang/Integer.valueOf:(I)Ljava/lang/Integer;
-        2322: astore        127
-        2324: new           #252                // class ocaml_fn_71
-        2327: dup
-        2328: invokespecial #253                // Method ocaml_fn_71."<init>":()V
-        2331: astore        128
-        2333: new           #255                // class ocaml_fn_72
-        2336: dup
-        2337: invokespecial #256                // Method ocaml_fn_72."<init>":()V
-        2340: astore        129
-        2342: new           #258                // class ocaml_fn_73
-        2345: dup
-        2346: invokespecial #259                // Method ocaml_fn_73."<init>":()V
-        2349: astore        130
-        2351: new           #261                // class ocaml_fn_74
-        2354: dup
-        2355: invokespecial #262                // Method ocaml_fn_74."<init>":()V
-        2358: astore        131
-        2360: new           #264                // class ocaml_fn_75
-        2363: dup
-        2364: invokespecial #265                // Method ocaml_fn_75."<init>":()V
-        2367: astore        132
-        2369: new           #267                // class ocaml_fn_76
-        2372: dup
-        2373: invokespecial #268                // Method ocaml_fn_76."<init>":()V
-        2376: astore        133
-        2378: new           #14                 // class Block
-        2381: dup
-        2382: iconst_0
-        2383: bipush        6
-        2385: anewarray     #16                 // class java/lang/Object
-        2388: dup
-        2389: iconst_0
-        2390: aload         133
-        2392: aastore
-        2393: dup
-        2394: iconst_1
-        2395: aload         132
-        2397: aastore
-        2398: dup
-        2399: iconst_2
-        2400: aload         131
-        2402: aastore
-        2403: dup
-        2404: iconst_3
-        2405: aload         130
-        2407: aastore
-        2408: dup
-        2409: iconst_4
-        2410: aload         129
-        2412: aastore
-        2413: dup
-        2414: iconst_5
-        2415: aload         128
-        2417: aastore
-        2418: invokespecial #19                 // Method Block."<init>":(I[Ljava/lang/Object;)V
-        2421: astore        134
-        2423: new           #270                // class ocaml_fn_77
-        2426: dup
-        2427: invokespecial #271                // Method ocaml_fn_77."<init>":()V
-        2430: astore        135
-        2432: new           #273                // class ocaml_fn_78
-        2435: dup
-        2436: invokespecial #274                // Method ocaml_fn_78."<init>":()V
-        2439: astore        136
-        2441: new           #276                // class ocaml_fn_79
-        2444: dup
-        2445: invokespecial #277                // Method ocaml_fn_79."<init>":()V
-        2448: astore        137
-        2450: new           #279                // class ocaml_fn_80
-        2453: dup
-        2454: invokespecial #280                // Method ocaml_fn_80."<init>":()V
-        2457: astore        138
-        2459: new           #282                // class ocaml_fn_81
-        2462: dup
-        2463: invokespecial #283                // Method ocaml_fn_81."<init>":()V
-        2466: astore        139
-        2468: new           #285                // class ocaml_fn_82
-        2471: dup
-        2472: invokespecial #286                // Method ocaml_fn_82."<init>":()V
-        2475: astore        140
-        2477: new           #288                // class ocaml_fn_83
-        2480: dup
-        2481: invokespecial #289                // Method ocaml_fn_83."<init>":()V
-        2484: astore        141
-        2486: new           #291                // class ocaml_fn_84
-        2489: dup
-        2490: invokespecial #292                // Method ocaml_fn_84."<init>":()V
-        2493: astore        142
-        2495: new           #294                // class ocaml_fn_85
-        2498: dup
-        2499: invokespecial #295                // Method ocaml_fn_85."<init>":()V
-        2502: astore        143
-        2504: new           #297                // class ocaml_fn_86
-        2507: dup
-        2508: invokespecial #298                // Method ocaml_fn_86."<init>":()V
-        2511: astore        144
-        2513: new           #300                // class ocaml_fn_87
-        2516: dup
-        2517: invokespecial #301                // Method ocaml_fn_87."<init>":()V
-        2520: astore        145
-        2522: new           #303                // class ocaml_fn_88
-        2525: dup
-        2526: invokespecial #304                // Method ocaml_fn_88."<init>":()V
-        2529: astore        146
-        2531: new           #306                // class ocaml_fn_89
-        2534: dup
-        2535: invokespecial #307                // Method ocaml_fn_89."<init>":()V
-        2538: astore        147
-        2540: new           #309                // class ocaml_fn_90
-        2543: dup
-        2544: invokespecial #310                // Method ocaml_fn_90."<init>":()V
-        2547: astore        148
-        2549: new           #312                // class ocaml_fn_91
-        2552: dup
-        2553: invokespecial #313                // Method ocaml_fn_91."<init>":()V
-        2556: astore        149
-        2558: new           #315                // class ocaml_fn_92
-        2561: dup
-        2562: invokespecial #316                // Method ocaml_fn_92."<init>":()V
-        2565: astore        150
-        2567: new           #318                // class ocaml_fn_93
-        2570: dup
-        2571: invokespecial #319                // Method ocaml_fn_93."<init>":()V
-        2574: astore        151
-        2576: new           #14                 // class Block
-        2579: dup
-        2580: iconst_0
-        2581: bipush        104
-        2583: anewarray     #16                 // class java/lang/Object
-        2586: dup
-        2587: iconst_0
-        2588: aload         18
-        2590: aastore
-        2591: dup
-        2592: iconst_1
-        2593: aload         17
-        2595: aastore
-        2596: dup
-        2597: iconst_2
-        2598: aload         22
-        2600: aastore
-        2601: dup
-        2602: iconst_3
-        2603: aload         23
-        2605: aastore
-        2606: dup
-        2607: iconst_4
-        2608: aload         24
-        2610: aastore
-        2611: dup
-        2612: iconst_5
-        2613: aload         25
-        2615: aastore
-        2616: dup
-        2617: bipush        6
-        2619: aload         26
-        2621: aastore
-        2622: dup
-        2623: bipush        7
-        2625: aload         27
-        2627: aastore
-        2628: dup
-        2629: bipush        8
-        2631: aload         28
-        2633: aastore
-        2634: dup
-        2635: bipush        9
-        2637: aload         29
-        2639: aastore
-        2640: dup
-        2641: bipush        10
-        2643: aload         30
-        2645: aastore
-        2646: dup
-        2647: bipush        11
-        2649: aload         31
-        2651: aastore
-        2652: dup
-        2653: bipush        12
-        2655: aload         32
-        2657: aastore
-        2658: dup
-        2659: bipush        13
-        2661: aload         33
-        2663: aastore
-        2664: dup
-        2665: bipush        14
-        2667: aload         34
-        2669: aastore
-        2670: dup
-        2671: bipush        15
-        2673: aload         35
-        2675: aastore
-        2676: dup
-        2677: bipush        16
-        2679: aload         36
-        2681: aastore
-        2682: dup
-        2683: bipush        17
-        2685: aload         37
-        2687: aastore
-        2688: dup
-        2689: bipush        18
-        2691: iload         41
-        2693: invokestatic  #31                 // Method java/lang/Integer.valueOf:(I)Ljava/lang/Integer;
-        2696: aastore
-        2697: dup
-        2698: bipush        19
-        2700: iload         43
-        2702: invokestatic  #31                 // Method java/lang/Integer.valueOf:(I)Ljava/lang/Integer;
-        2705: aastore
-        2706: dup
-        2707: bipush        20
-        2709: aload         38
-        2711: aastore
-        2712: dup
-        2713: bipush        21
-        2715: aload         45
-        2717: aastore
-        2718: dup
-        2719: bipush        22
-        2721: aload         47
-        2723: aastore
-        2724: dup
-        2725: bipush        23
-        2727: aload         49
-        2729: aastore
-        2730: dup
-        2731: bipush        24
-        2733: aload         51
-        2735: aastore
-        2736: dup
-        2737: bipush        25
-        2739: aload         53
-        2741: aastore
-        2742: dup
-        2743: bipush        26
-        2745: aload         55
-        2747: aastore
-        2748: dup
-        2749: bipush        27
-        2751: aload         56
-        2753: aastore
-        2754: dup
-        2755: bipush        28
-        2757: aload         57
-        2759: aastore
-        2760: dup
-        2761: bipush        29
-        2763: aload         58
-        2765: aastore
-        2766: dup
-        2767: bipush        30
-        2769: aload         60
-        2771: aastore
-        2772: dup
-        2773: bipush        31
-        2775: aload         59
-        2777: aastore
-        2778: dup
-        2779: bipush        32
-        2781: aload         61
-        2783: aastore
-        2784: dup
-        2785: bipush        33
-        2787: aload         62
-        2789: aastore
-        2790: dup
-        2791: bipush        34
-        2793: aload         64
-        2795: aastore
-        2796: dup
-        2797: bipush        35
-        2799: aload         65
-        2801: aastore
-        2802: dup
-        2803: bipush        36
-        2805: aload         66
-        2807: aastore
-        2808: dup
-        2809: bipush        37
-        2811: aload         73
-        2813: aastore
-        2814: dup
-        2815: bipush        38
-        2817: aload         75
-        2819: aastore
-        2820: dup
-        2821: bipush        39
-        2823: aload         77
-        2825: aastore
-        2826: dup
-        2827: bipush        40
-        2829: aload         98
-        2831: aastore
-        2832: dup
-        2833: bipush        41
-        2835: aload         99
-        2837: aastore
-        2838: dup
-        2839: bipush        42
-        2841: aload         100
-        2843: aastore
-        2844: dup
-        2845: bipush        43
-        2847: aload         101
-        2849: aastore
-        2850: dup
-        2851: bipush        44
-        2853: aload         102
-        2855: aastore
-        2856: dup
-        2857: bipush        45
-        2859: aload         103
-        2861: aastore
-        2862: dup
-        2863: bipush        46
-        2865: aload         104
-        2867: aastore
-        2868: dup
-        2869: bipush        47
-        2871: aload         105
-        2873: aastore
-        2874: dup
-        2875: bipush        48
-        2877: aload         106
-        2879: aastore
-        2880: dup
-        2881: bipush        49
-        2883: aload         107
-        2885: aastore
-        2886: dup
-        2887: bipush        50
-        2889: aload         108
-        2891: aastore
-        2892: dup
-        2893: bipush        51
-        2895: aload         109
-        2897: aastore
-        2898: dup
-        2899: bipush        52
-        2901: aload         110
-        2903: aastore
-        2904: dup
-        2905: bipush        53
-        2907: aload         111
-        2909: aastore
-        2910: dup
-        2911: bipush        54
-        2913: aload         112
-        2915: aastore
-        2916: dup
-        2917: bipush        55
-        2919: aload         114
-        2921: aastore
-        2922: dup
-        2923: bipush        56
-        2925: aload         113
-        2927: aastore
-        2928: dup
-        2929: bipush        57
-        2931: aload         116
-        2933: aastore
-        2934: dup
-        2935: bipush        58
-        2937: aload         115
-        2939: aastore
-        2940: dup
-        2941: bipush        59
-        2943: aload         79
-        2945: aastore
-        2946: dup
-        2947: bipush        60
-        2949: aload         80
-        2951: aastore
-        2952: dup
-        2953: bipush        61
-        2955: aload         78
-        2957: aastore
-        2958: dup
-        2959: bipush        62
-        2961: aload         151
-        2963: aastore
-        2964: dup
-        2965: bipush        63
-        2967: aload         81
-        2969: aastore
-        2970: dup
-        2971: bipush        64
-        2973: aload         150
-        2975: aastore
-        2976: dup
-        2977: bipush        65
-        2979: aload         83
-        2981: aastore
-        2982: dup
-        2983: bipush        66
-        2985: aload         82
-        2987: aastore
-        2988: dup
-        2989: bipush        67
-        2991: aload         84
-        2993: aastore
-        2994: dup
-        2995: bipush        68
-        2997: aload         85
-        2999: aastore
-        3000: dup
-        3001: bipush        69
-        3003: aload         149
-        3005: aastore
-        3006: dup
-        3007: bipush        70
-        3009: aload         148
-        3011: aastore
-        3012: dup
-        3013: bipush        71
-        3015: aload         86
-        3017: aastore
-        3018: dup
-        3019: bipush        72
-        3021: aload         147
-        3023: aastore
-        3024: dup
-        3025: bipush        73
-        3027: aload         146
-        3029: aastore
-        3030: dup
-        3031: bipush        74
-        3033: aload         145
-        3035: aastore
-        3036: dup
-        3037: bipush        75
-        3039: aload         87
-        3041: aastore
-        3042: dup
-        3043: bipush        76
-        3045: aload         88
-        3047: aastore
-        3048: dup
-        3049: bipush        77
-        3051: aload         144
-        3053: aastore
-        3054: dup
-        3055: bipush        78
-        3057: aload         90
-        3059: aastore
-        3060: dup
-        3061: bipush        79
-        3063: aload         91
-        3065: aastore
-        3066: dup
-        3067: bipush        80
-        3069: aload         89
-        3071: aastore
-        3072: dup
-        3073: bipush        81
-        3075: aload         143
-        3077: aastore
-        3078: dup
-        3079: bipush        82
-        3081: aload         96
-        3083: aastore
-        3084: dup
-        3085: bipush        83
-        3087: aload         92
-        3089: aastore
-        3090: dup
-        3091: bipush        84
-        3093: aload         94
-        3095: aastore
-        3096: dup
-        3097: bipush        85
-        3099: aload         95
-        3101: aastore
-        3102: dup
-        3103: bipush        86
-        3105: aload         142
-        3107: aastore
-        3108: dup
-        3109: bipush        87
-        3111: aload         141
-        3113: aastore
-        3114: dup
-        3115: bipush        88
-        3117: aload         140
-        3119: aastore
-        3120: dup
-        3121: bipush        89
-        3123: aload         139
-        3125: aastore
-        3126: dup
-        3127: bipush        90
-        3129: aload         138
-        3131: aastore
-        3132: dup
-        3133: bipush        91
-        3135: aload         137
-        3137: aastore
-        3138: dup
-        3139: bipush        92
-        3141: aload         136
-        3143: aastore
-        3144: dup
-        3145: bipush        93
-        3147: aload         97
-        3149: aastore
-        3150: dup
-        3151: bipush        94
-        3153: aload         135
-        3155: aastore
-        3156: dup
-        3157: bipush        95
-        3159: aload         134
-        3161: aastore
-        3162: dup
-        3163: bipush        96
-        3165: aload         118
-        3167: aastore
-        3168: dup
-        3169: bipush        97
-        3171: aload         119
-        3173: aastore
-        3174: dup
-        3175: bipush        98
-        3177: aload         125
-        3179: aastore
-        3180: dup
-        3181: bipush        99
-        3183: aload         121
-        3185: aastore
-        3186: dup
-        3187: bipush        100
-        3189: aload         63
-        3191: aastore
-        3192: dup
-        3193: bipush        101
-        3195: aload         93
-        3197: aastore
-        3198: dup
-        3199: bipush        102
-        3201: aload         124
-        3203: aastore
-        3204: dup
-        3205: bipush        103
-        3207: aload         123
-        3209: aastore
-        3210: invokespecial #19                 // Method Block."<init>":(I[Ljava/lang/Object;)V
+        2280: invokespecial #247                // Method ocaml_fn_69."<init>":(Ljava/lang/Object;Ljava/lang/Object;)V
+        2283: astore        123
+        2285: new           #249                // class ocaml_fn_70
+        2288: dup
+        2289: aload         123
+        2291: invokespecial #250                // Method ocaml_fn_70."<init>":(Ljava/lang/Object;)V
+        2294: astore        124
+        2296: getstatic     #25                 // Field GLOBALS:[Ljava/lang/Object;
+        2299: bipush        44
+        2301: aaload
+        2302: astore        125
+        2304: iconst_0
+        2305: invokestatic  #31                 // Method java/lang/Integer.valueOf:(I)Ljava/lang/Integer;
+        2308: astore        126
+        2310: new           #252                // class ocaml_fn_71
+        2313: dup
+        2314: invokespecial #253                // Method ocaml_fn_71."<init>":()V
+        2317: astore        127
+        2319: new           #255                // class ocaml_fn_72
+        2322: dup
+        2323: invokespecial #256                // Method ocaml_fn_72."<init>":()V
+        2326: astore        128
+        2328: new           #258                // class ocaml_fn_73
+        2331: dup
+        2332: invokespecial #259                // Method ocaml_fn_73."<init>":()V
+        2335: astore        129
+        2337: new           #261                // class ocaml_fn_74
+        2340: dup
+        2341: invokespecial #262                // Method ocaml_fn_74."<init>":()V
+        2344: astore        130
+        2346: new           #264                // class ocaml_fn_75
+        2349: dup
+        2350: invokespecial #265                // Method ocaml_fn_75."<init>":()V
+        2353: astore        131
+        2355: new           #267                // class ocaml_fn_76
+        2358: dup
+        2359: invokespecial #268                // Method ocaml_fn_76."<init>":()V
+        2362: astore        132
+        2364: new           #14                 // class Block
+        2367: dup
+        2368: iconst_0
+        2369: bipush        6
+        2371: anewarray     #16                 // class java/lang/Object
+        2374: dup
+        2375: iconst_0
+        2376: aload         132
+        2378: aastore
+        2379: dup
+        2380: iconst_1
+        2381: aload         131
+        2383: aastore
+        2384: dup
+        2385: iconst_2
+        2386: aload         130
+        2388: aastore
+        2389: dup
+        2390: iconst_3
+        2391: aload         129
+        2393: aastore
+        2394: dup
+        2395: iconst_4
+        2396: aload         128
+        2398: aastore
+        2399: dup
+        2400: iconst_5
+        2401: aload         127
+        2403: aastore
+        2404: invokespecial #19                 // Method Block."<init>":(I[Ljava/lang/Object;)V
+        2407: astore        133
+        2409: new           #270                // class ocaml_fn_77
+        2412: dup
+        2413: invokespecial #271                // Method ocaml_fn_77."<init>":()V
+        2416: astore        134
+        2418: new           #273                // class ocaml_fn_78
+        2421: dup
+        2422: invokespecial #274                // Method ocaml_fn_78."<init>":()V
+        2425: astore        135
+        2427: new           #276                // class ocaml_fn_79
+        2430: dup
+        2431: invokespecial #277                // Method ocaml_fn_79."<init>":()V
+        2434: astore        136
+        2436: new           #279                // class ocaml_fn_80
+        2439: dup
+        2440: invokespecial #280                // Method ocaml_fn_80."<init>":()V
+        2443: astore        137
+        2445: new           #282                // class ocaml_fn_81
+        2448: dup
+        2449: invokespecial #283                // Method ocaml_fn_81."<init>":()V
+        2452: astore        138
+        2454: new           #285                // class ocaml_fn_82
+        2457: dup
+        2458: invokespecial #286                // Method ocaml_fn_82."<init>":()V
+        2461: astore        139
+        2463: new           #288                // class ocaml_fn_83
+        2466: dup
+        2467: invokespecial #289                // Method ocaml_fn_83."<init>":()V
+        2470: astore        140
+        2472: new           #291                // class ocaml_fn_84
+        2475: dup
+        2476: invokespecial #292                // Method ocaml_fn_84."<init>":()V
+        2479: astore        141
+        2481: new           #294                // class ocaml_fn_85
+        2484: dup
+        2485: invokespecial #295                // Method ocaml_fn_85."<init>":()V
+        2488: astore        142
+        2490: new           #297                // class ocaml_fn_86
+        2493: dup
+        2494: invokespecial #298                // Method ocaml_fn_86."<init>":()V
+        2497: astore        143
+        2499: new           #300                // class ocaml_fn_87
+        2502: dup
+        2503: invokespecial #301                // Method ocaml_fn_87."<init>":()V
+        2506: astore        144
+        2508: new           #303                // class ocaml_fn_88
+        2511: dup
+        2512: invokespecial #304                // Method ocaml_fn_88."<init>":()V
+        2515: astore        145
+        2517: new           #306                // class ocaml_fn_89
+        2520: dup
+        2521: invokespecial #307                // Method ocaml_fn_89."<init>":()V
+        2524: astore        146
+        2526: new           #309                // class ocaml_fn_90
+        2529: dup
+        2530: invokespecial #310                // Method ocaml_fn_90."<init>":()V
+        2533: astore        147
+        2535: new           #312                // class ocaml_fn_91
+        2538: dup
+        2539: invokespecial #313                // Method ocaml_fn_91."<init>":()V
+        2542: astore        148
+        2544: new           #315                // class ocaml_fn_92
+        2547: dup
+        2548: invokespecial #316                // Method ocaml_fn_92."<init>":()V
+        2551: astore        149
+        2553: new           #318                // class ocaml_fn_93
+        2556: dup
+        2557: invokespecial #319                // Method ocaml_fn_93."<init>":()V
+        2560: astore        150
+        2562: new           #14                 // class Block
+        2565: dup
+        2566: iconst_0
+        2567: bipush        104
+        2569: anewarray     #16                 // class java/lang/Object
+        2572: dup
+        2573: iconst_0
+        2574: aload         18
+        2576: aastore
+        2577: dup
+        2578: iconst_1
+        2579: aload         17
+        2581: aastore
+        2582: dup
+        2583: iconst_2
+        2584: aload         22
+        2586: aastore
+        2587: dup
+        2588: iconst_3
+        2589: aload         23
+        2591: aastore
+        2592: dup
+        2593: iconst_4
+        2594: aload         24
+        2596: aastore
+        2597: dup
+        2598: iconst_5
+        2599: aload         25
+        2601: aastore
+        2602: dup
+        2603: bipush        6
+        2605: aload         26
+        2607: aastore
+        2608: dup
+        2609: bipush        7
+        2611: aload         27
+        2613: aastore
+        2614: dup
+        2615: bipush        8
+        2617: aload         28
+        2619: aastore
+        2620: dup
+        2621: bipush        9
+        2623: aload         29
+        2625: aastore
+        2626: dup
+        2627: bipush        10
+        2629: aload         30
+        2631: aastore
+        2632: dup
+        2633: bipush        11
+        2635: aload         31
+        2637: aastore
+        2638: dup
+        2639: bipush        12
+        2641: aload         32
+        2643: aastore
+        2644: dup
+        2645: bipush        13
+        2647: aload         33
+        2649: aastore
+        2650: dup
+        2651: bipush        14
+        2653: aload         34
+        2655: aastore
+        2656: dup
+        2657: bipush        15
+        2659: aload         35
+        2661: aastore
+        2662: dup
+        2663: bipush        16
+        2665: aload         36
+        2667: aastore
+        2668: dup
+        2669: bipush        17
+        2671: aload         37
+        2673: aastore
+        2674: dup
+        2675: bipush        18
+        2677: iload         41
+        2679: invokestatic  #31                 // Method java/lang/Integer.valueOf:(I)Ljava/lang/Integer;
+        2682: aastore
+        2683: dup
+        2684: bipush        19
+        2686: iload         43
+        2688: invokestatic  #31                 // Method java/lang/Integer.valueOf:(I)Ljava/lang/Integer;
+        2691: aastore
+        2692: dup
+        2693: bipush        20
+        2695: aload         38
+        2697: aastore
+        2698: dup
+        2699: bipush        21
+        2701: aload         45
+        2703: aastore
+        2704: dup
+        2705: bipush        22
+        2707: aload         47
+        2709: aastore
+        2710: dup
+        2711: bipush        23
+        2713: aload         49
+        2715: aastore
+        2716: dup
+        2717: bipush        24
+        2719: aload         51
+        2721: aastore
+        2722: dup
+        2723: bipush        25
+        2725: aload         53
+        2727: aastore
+        2728: dup
+        2729: bipush        26
+        2731: aload         55
+        2733: aastore
+        2734: dup
+        2735: bipush        27
+        2737: aload         56
+        2739: aastore
+        2740: dup
+        2741: bipush        28
+        2743: aload         57
+        2745: aastore
+        2746: dup
+        2747: bipush        29
+        2749: aload         58
+        2751: aastore
+        2752: dup
+        2753: bipush        30
+        2755: aload         60
+        2757: aastore
+        2758: dup
+        2759: bipush        31
+        2761: aload         59
+        2763: aastore
+        2764: dup
+        2765: bipush        32
+        2767: aload         61
+        2769: aastore
+        2770: dup
+        2771: bipush        33
+        2773: aload         62
+        2775: aastore
+        2776: dup
+        2777: bipush        34
+        2779: aload         64
+        2781: aastore
+        2782: dup
+        2783: bipush        35
+        2785: aload         65
+        2787: aastore
+        2788: dup
+        2789: bipush        36
+        2791: aload         66
+        2793: aastore
+        2794: dup
+        2795: bipush        37
+        2797: aload         73
+        2799: aastore
+        2800: dup
+        2801: bipush        38
+        2803: aload         75
+        2805: aastore
+        2806: dup
+        2807: bipush        39
+        2809: aload         77
+        2811: aastore
+        2812: dup
+        2813: bipush        40
+        2815: aload         98
+        2817: aastore
+        2818: dup
+        2819: bipush        41
+        2821: aload         99
+        2823: aastore
+        2824: dup
+        2825: bipush        42
+        2827: aload         100
+        2829: aastore
+        2830: dup
+        2831: bipush        43
+        2833: aload         101
+        2835: aastore
+        2836: dup
+        2837: bipush        44
+        2839: aload         102
+        2841: aastore
+        2842: dup
+        2843: bipush        45
+        2845: aload         103
+        2847: aastore
+        2848: dup
+        2849: bipush        46
+        2851: aload         104
+        2853: aastore
+        2854: dup
+        2855: bipush        47
+        2857: aload         105
+        2859: aastore
+        2860: dup
+        2861: bipush        48
+        2863: aload         106
+        2865: aastore
+        2866: dup
+        2867: bipush        49
+        2869: aload         107
+        2871: aastore
+        2872: dup
+        2873: bipush        50
+        2875: aload         108
+        2877: aastore
+        2878: dup
+        2879: bipush        51
+        2881: aload         109
+        2883: aastore
+        2884: dup
+        2885: bipush        52
+        2887: aload         110
+        2889: aastore
+        2890: dup
+        2891: bipush        53
+        2893: aload         111
+        2895: aastore
+        2896: dup
+        2897: bipush        54
+        2899: aload         112
+        2901: aastore
+        2902: dup
+        2903: bipush        55
+        2905: aload         114
+        2907: aastore
+        2908: dup
+        2909: bipush        56
+        2911: aload         113
+        2913: aastore
+        2914: dup
+        2915: bipush        57
+        2917: aload         116
+        2919: aastore
+        2920: dup
+        2921: bipush        58
+        2923: aload         115
+        2925: aastore
+        2926: dup
+        2927: bipush        59
+        2929: aload         79
+        2931: aastore
+        2932: dup
+        2933: bipush        60
+        2935: aload         80
+        2937: aastore
+        2938: dup
+        2939: bipush        61
+        2941: aload         78
+        2943: aastore
+        2944: dup
+        2945: bipush        62
+        2947: aload         150
+        2949: aastore
+        2950: dup
+        2951: bipush        63
+        2953: aload         81
+        2955: aastore
+        2956: dup
+        2957: bipush        64
+        2959: aload         149
+        2961: aastore
+        2962: dup
+        2963: bipush        65
+        2965: aload         83
+        2967: aastore
+        2968: dup
+        2969: bipush        66
+        2971: aload         82
+        2973: aastore
+        2974: dup
+        2975: bipush        67
+        2977: aload         84
+        2979: aastore
+        2980: dup
+        2981: bipush        68
+        2983: aload         85
+        2985: aastore
+        2986: dup
+        2987: bipush        69
+        2989: aload         148
+        2991: aastore
+        2992: dup
+        2993: bipush        70
+        2995: aload         147
+        2997: aastore
+        2998: dup
+        2999: bipush        71
+        3001: aload         86
+        3003: aastore
+        3004: dup
+        3005: bipush        72
+        3007: aload         146
+        3009: aastore
+        3010: dup
+        3011: bipush        73
+        3013: aload         145
+        3015: aastore
+        3016: dup
+        3017: bipush        74
+        3019: aload         144
+        3021: aastore
+        3022: dup
+        3023: bipush        75
+        3025: aload         87
+        3027: aastore
+        3028: dup
+        3029: bipush        76
+        3031: aload         88
+        3033: aastore
+        3034: dup
+        3035: bipush        77
+        3037: aload         143
+        3039: aastore
+        3040: dup
+        3041: bipush        78
+        3043: aload         90
+        3045: aastore
+        3046: dup
+        3047: bipush        79
+        3049: aload         91
+        3051: aastore
+        3052: dup
+        3053: bipush        80
+        3055: aload         89
+        3057: aastore
+        3058: dup
+        3059: bipush        81
+        3061: aload         142
+        3063: aastore
+        3064: dup
+        3065: bipush        82
+        3067: aload         96
+        3069: aastore
+        3070: dup
+        3071: bipush        83
+        3073: aload         92
+        3075: aastore
+        3076: dup
+        3077: bipush        84
+        3079: aload         94
+        3081: aastore
+        3082: dup
+        3083: bipush        85
+        3085: aload         95
+        3087: aastore
+        3088: dup
+        3089: bipush        86
+        3091: aload         141
+        3093: aastore
+        3094: dup
+        3095: bipush        87
+        3097: aload         140
+        3099: aastore
+        3100: dup
+        3101: bipush        88
+        3103: aload         139
+        3105: aastore
+        3106: dup
+        3107: bipush        89
+        3109: aload         138
+        3111: aastore
+        3112: dup
+        3113: bipush        90
+        3115: aload         137
+        3117: aastore
+        3118: dup
+        3119: bipush        91
+        3121: aload         136
+        3123: aastore
+        3124: dup
+        3125: bipush        92
+        3127: aload         135
+        3129: aastore
+        3130: dup
+        3131: bipush        93
+        3133: aload         97
+        3135: aastore
+        3136: dup
+        3137: bipush        94
+        3139: aload         134
+        3141: aastore
+        3142: dup
+        3143: bipush        95
+        3145: aload         133
+        3147: aastore
+        3148: dup
+        3149: bipush        96
+        3151: aload         117
+        3153: aastore
+        3154: dup
+        3155: bipush        97
+        3157: aload         118
+        3159: aastore
+        3160: dup
+        3161: bipush        98
+        3163: aload         124
+        3165: aastore
+        3166: dup
+        3167: bipush        99
+        3169: aload         120
+        3171: aastore
+        3172: dup
+        3173: bipush        100
+        3175: aload         63
+        3177: aastore
+        3178: dup
+        3179: bipush        101
+        3181: aload         93
+        3183: aastore
+        3184: dup
+        3185: bipush        102
+        3187: aload         123
+        3189: aastore
+        3190: dup
+        3191: bipush        103
+        3193: aload         122
+        3195: aastore
+        3196: invokespecial #19                 // Method Block."<init>":(I[Ljava/lang/Object;)V
+        3199: astore        151
+        3201: getstatic     #25                 // Field GLOBALS:[Ljava/lang/Object;
+        3204: bipush        45
+        3206: aload         151
+        3208: aastore
+        3209: iconst_0
+        3210: invokestatic  #31                 // Method java/lang/Integer.valueOf:(I)Ljava/lang/Integer;
         3213: astore        152
-        3215: getstatic     #25                 // Field GLOBALS:[Ljava/lang/Object;
-        3218: bipush        45
-        3220: aload         152
-        3222: aastore
-        3223: iconst_0
-        3224: invokestatic  #31                 // Method java/lang/Integer.valueOf:(I)Ljava/lang/Integer;
-        3227: astore        153
-        3229: iconst_0
-        3230: istore        154
-        3232: iconst_1
-        3233: istore        155
-        3235: iconst_2
-        3236: istore        156
-        3238: iload         156
-        3240: iload         155
-        3242: if_icmple     3251
-        3245: iconst_0
-        3246: goto_w        3252
-        3251: iconst_1
-        3252: istore        157
-        3254: iload         157
-        3256: ifeq          3271
-        3259: iload         155
-        3261: invokestatic  #31                 // Method java/lang/Integer.valueOf:(I)Ljava/lang/Integer;
-        3264: astore        158
-        3266: goto_w        3299
-        3271: iload         155
-        3273: invokestatic  #31                 // Method java/lang/Integer.valueOf:(I)Ljava/lang/Integer;
-        3276: astore        159
-        3278: goto_w        3283
-        3283: bipush        10
-        3285: istore        160
-        3287: iload         160
-        3289: invokestatic  #31                 // Method java/lang/Integer.valueOf:(I)Ljava/lang/Integer;
-        3292: astore        161
-        3294: goto_w        3315
-        3299: bipush        20
-        3301: istore        162
-        3303: iload         162
-        3305: invokestatic  #31                 // Method java/lang/Integer.valueOf:(I)Ljava/lang/Integer;
-        3308: astore        161
-        3310: goto_w        3315
-        3315: getstatic     #325                // Field java/lang/System.out:Ljava/io/PrintStream;
-        3318: aload         161
-        3320: checkcast     #27                 // class java/lang/Integer
-        3323: invokevirtual #329                // Method java/lang/Integer.intValue:()I
-        3326: invokevirtual #335                // Method java/io/PrintStream.println:(I)V
-        3329: iconst_0
-        3330: invokestatic  #31                 // Method java/lang/Integer.valueOf:(I)Ljava/lang/Integer;
-        3333: astore        163
-        3335: new           #14                 // class Block
-        3338: dup
-        3339: iconst_0
+        3215: iconst_1
+        3216: istore        153
+        3218: iconst_2
+        3219: istore        154
+        3221: iload         154
+        3223: iload         153
+        3225: if_icmple     3234
+        3228: iconst_0
+        3229: goto_w        3235
+        3234: iconst_1
+        3235: istore        155
+        3237: iload         155
+        3239: ifeq          3254
+        3242: iload         153
+        3244: invokestatic  #31                 // Method java/lang/Integer.valueOf:(I)Ljava/lang/Integer;
+        3247: astore        156
+        3249: goto_w        3282
+        3254: iload         153
+        3256: invokestatic  #31                 // Method java/lang/Integer.valueOf:(I)Ljava/lang/Integer;
+        3259: astore        157
+        3261: goto_w        3266
+        3266: bipush        10
+        3268: istore        158
+        3270: iload         158
+        3272: invokestatic  #31                 // Method java/lang/Integer.valueOf:(I)Ljava/lang/Integer;
+        3275: astore        159
+        3277: goto_w        3298
+        3282: bipush        20
+        3284: istore        160
+        3286: iload         160
+        3288: invokestatic  #31                 // Method java/lang/Integer.valueOf:(I)Ljava/lang/Integer;
+        3291: astore        159
+        3293: goto_w        3298
+        3298: getstatic     #325                // Field java/lang/System.out:Ljava/io/PrintStream;
+        3301: aload         159
+        3303: checkcast     #27                 // class java/lang/Integer
+        3306: invokevirtual #329                // Method java/lang/Integer.intValue:()I
+        3309: invokevirtual #335                // Method java/io/PrintStream.println:(I)V
+        3312: iconst_0
+        3313: invokestatic  #31                 // Method java/lang/Integer.valueOf:(I)Ljava/lang/Integer;
+        3316: astore        161
+        3318: new           #14                 // class Block
+        3321: dup
+        3322: iconst_0
+        3323: iconst_0
+        3324: anewarray     #16                 // class java/lang/Object
+        3327: invokespecial #19                 // Method Block."<init>":(I[Ljava/lang/Object;)V
+        3330: astore        162
+        3332: getstatic     #25                 // Field GLOBALS:[Ljava/lang/Object;
+        3335: bipush        46
+        3337: aload         162
+        3339: aastore
         3340: iconst_0
-        3341: anewarray     #16                 // class java/lang/Object
-        3344: invokespecial #19                 // Method Block."<init>":(I[Ljava/lang/Object;)V
-        3347: astore        164
+        3341: invokestatic  #31                 // Method java/lang/Integer.valueOf:(I)Ljava/lang/Integer;
+        3344: astore        163
+        3346: iconst_0
+        3347: istore        164
         3349: getstatic     #25                 // Field GLOBALS:[Ljava/lang/Object;
-        3352: bipush        46
-        3354: aload         164
-        3356: aastore
-        3357: iconst_0
-        3358: invokestatic  #31                 // Method java/lang/Integer.valueOf:(I)Ljava/lang/Integer;
-        3361: astore        165
-        3363: iconst_0
-        3364: istore        166
-        3366: iconst_0
-        3367: istore        167
-        3369: getstatic     #25                 // Field GLOBALS:[Ljava/lang/Object;
-        3372: bipush        45
-        3374: aaload
-        3375: checkcast     #14                 // class Block
-        3378: getfield      #338                // Field Block.fields:[Ljava/lang/Object;
-        3381: bipush        102
-        3383: aaload
-        3384: astore        168
-        3386: aload         168
-        3388: checkcast     #96                 // class Closure
-        3391: iload         167
-        3393: invokestatic  #31                 // Method java/lang/Integer.valueOf:(I)Ljava/lang/Integer;
-        3396: invokevirtual #342                // Method Closure.apply1:(Ljava/lang/Object;)Ljava/lang/Object;
-        3399: astore        169
-        3401: new           #14                 // class Block
-        3404: dup
-        3405: iconst_0
-        3406: iconst_0
-        3407: anewarray     #16                 // class java/lang/Object
-        3410: invokespecial #19                 // Method Block."<init>":(I[Ljava/lang/Object;)V
-        3413: astore        170
-        3415: getstatic     #25                 // Field GLOBALS:[Ljava/lang/Object;
-        3418: bipush        47
-        3420: aload         170
-        3422: aastore
-        3423: iconst_0
-        3424: invokestatic  #31                 // Method java/lang/Integer.valueOf:(I)Ljava/lang/Integer;
-        3427: astore        171
-        3429: iconst_0
-        3430: istore        172
-        3432: return
+        3352: bipush        45
+        3354: aaload
+        3355: checkcast     #14                 // class Block
+        3358: getfield      #338                // Field Block.fields:[Ljava/lang/Object;
+        3361: bipush        102
+        3363: aaload
+        3364: astore        165
+        3366: aload         165
+        3368: checkcast     #96                 // class Closure
+        3371: iload         164
+        3373: invokestatic  #31                 // Method java/lang/Integer.valueOf:(I)Ljava/lang/Integer;
+        3376: invokevirtual #342                // Method Closure.apply1:(Ljava/lang/Object;)Ljava/lang/Object;
+        3379: astore        166
+        3381: new           #14                 // class Block
+        3384: dup
+        3385: iconst_0
+        3386: iconst_0
+        3387: anewarray     #16                 // class java/lang/Object
+        3390: invokespecial #19                 // Method Block."<init>":(I[Ljava/lang/Object;)V
+        3393: astore        167
+        3395: getstatic     #25                 // Field GLOBALS:[Ljava/lang/Object;
+        3398: bipush        47
+        3400: aload         167
+        3402: aastore
+        3403: iconst_0
+        3404: invokestatic  #31                 // Method java/lang/Integer.valueOf:(I)Ljava/lang/Integer;
+        3407: astore        168
+        3409: return
     }
     |}]

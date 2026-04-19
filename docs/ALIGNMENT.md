@@ -47,9 +47,13 @@ The IR is in place; these would be natural layered additions now.
   propagation and shape facts. Would extend `Jvm_typing`'s forward
   pass with def-use propagation and a more precise Var.t → Kind.kind
   lattice.
-- **Optimization passes** — `Deadcode`, `Inline`, `Eval`,
-  `Tailcall`, `Global_deadcode` in `js_of_ocaml/compiler/lib/`.
-  All backend-agnostic; operate on `Code.program → Code.program`.
+- **Optimization passes** — `Inline`, `Eval`, `Tailcall`,
+  `Global_deadcode` in `js_of_ocaml/compiler/lib/`. All
+  backend-agnostic; operate on `Code.program → Code.program`.
+  We have a small `Deadcode` (reachability pruning + dead-`Let`
+  removal for pure expressions) but none of the above yet. The
+  jsoo `Deadcode` also does dead-param elimination and a
+  `Pure_fun` fixpoint — layering those on would unblock inlining.
 - **`Closure_conversion`** —
   `js_of_ocaml/compiler/lib-wasm/closure_conversion.ml`. Our IR
   already carries explicit `captures` in `Closure`, but a separate
