@@ -9,7 +9,13 @@
 // [Obj.field] traversals via [checkcast Block] succeed on
 // [caml_ephe_*]-produced values.
 public class Block {
-    public final int tag;
+    // [tag] is mutable to support Lazy's state transitions:
+    // caml_lazy_update_to_forcing flips the tag from [lazy_tag=246]
+    // to [forcing_tag=244]; caml_lazy_update_to_forward rewrites to
+    // [forward_tag=250] after evaluation; caml_lazy_reset_to_lazy
+    // restores [lazy_tag] on exceptional failure. Outside the lazy
+    // state machine the tag never changes.
+    public int tag;
     public final Object[] fields;
 
     public Block(int tag, Object[] fields) {

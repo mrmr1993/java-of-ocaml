@@ -2060,9 +2060,10 @@ and emit_ccall_named ctx name args =
      | _ -> raise (Unsupported "caml_alloc_dummy arity"))
   | "caml_update_dummy" ->
     (* System.arraycopy(src.fields, 0, dst.fields, 0, dst.fields.length).
-       Tag can't be updated since Block.tag is final, but recursive-
-       value patterns from the bytecode compiler share tag=0 so this
-       is safe in practice. *)
+       We don't update the tag here — the bytecode compiler's
+       recursive-value construction keeps dst and src tag-compatible
+       (both tag=0 by construction of caml_alloc_dummy), so skipping
+       the tag write is safe. *)
     (match args with
      | [ Pv dst; Pv src ] ->
        let dst_fields_local = ctx.next_local in
@@ -2279,6 +2280,81 @@ and emit_ccall_named ctx name args =
          ~descriptor:"(I[Ljava/lang/Object;)V";
        Kind.K_obj
      | _ -> raise (Unsupported "caml_obj_with_tag arity"))
+  | "caml_lazy_update_to_forcing" ->
+    (* Atomically flip the tag from [lazy_tag=246] to [forcing_tag=244].
+       Single-threaded semantics: no CAS loop, just a tag check +
+       set. Returns 0 on success, 1 if the tag wasn't [lazy_tag]. *)
+    (match args with
+     | [ Pv v ] ->
+       let mismatch_lbl = Jvm.Code.fresh_label ctx.code in
+       let done_lbl = Jvm.Code.fresh_label ctx.code in
+       emit_load ctx v;
+       Jvm.Code.checkcast ctx.code "Block";
+       Jvm.Code.dup ctx.code;
+       Jvm.Code.getfield ctx.code ~class_:"Block" ~field:"tag" ~descriptor:"I";
+       Jvm.Code.ldc_int ctx.code 246;
+       Jvm.Code.if_icmpne ctx.code mismatch_lbl;
+       (* Match: stack top is the [Block]; set its tag to 244 and
+          push 0. *)
+       Jvm.Code.ldc_int ctx.code 244;
+       Jvm.Code.putfield ctx.code ~class_:"Block" ~field:"tag" ~descriptor:"I";
+       Jvm.Code.ldc_int ctx.code 0;
+       Jvm.Code.goto ctx.code done_lbl;
+       Jvm.Code.mark_label ctx.code mismatch_lbl;
+       (* Mismatch: stack top is the [Block]; discard it and push 1. *)
+       Jvm.Code.pop_top ctx.code;
+       Jvm.Code.ldc_int ctx.code 1;
+       Jvm.Code.mark_label ctx.code done_lbl;
+       Kind.K_int
+     | _ -> raise (Unsupported "caml_lazy_update_to_forcing arity"))
+  | "caml_lazy_reset_to_lazy" ->
+    (* Rewrite the tag back to [lazy_tag=246] on force-exception. *)
+    (match args with
+     | [ Pv v ] ->
+       emit_load ctx v;
+       Jvm.Code.checkcast ctx.code "Block";
+       Jvm.Code.ldc_int ctx.code 246;
+       Jvm.Code.putfield ctx.code ~class_:"Block" ~field:"tag" ~descriptor:"I";
+       Jvm.Code.ldc_int ctx.code 0;
+       Kind.K_int
+     | _ -> raise (Unsupported "caml_lazy_reset_to_lazy arity"))
+  | "caml_lazy_update_to_forward" ->
+    (* Rewrite the tag to [forward_tag=250] once the result is stored.
+       At this point field 0 holds the forced value rather than the
+       thunk closure. *)
+    (match args with
+     | [ Pv v ] ->
+       emit_load ctx v;
+       Jvm.Code.checkcast ctx.code "Block";
+       Jvm.Code.ldc_int ctx.code 250;
+       Jvm.Code.putfield ctx.code ~class_:"Block" ~field:"tag" ~descriptor:"I";
+       Jvm.Code.ldc_int ctx.code 0;
+       Kind.K_int
+     | _ -> raise (Unsupported "caml_lazy_update_to_forward arity"))
+  | "caml_lazy_make_forward" ->
+    (* [new Block(forward_tag=250, new Object[]{ v })]. *)
+    (match args with
+     | [ v ] ->
+       Jvm.Code.new_ ctx.code "Block";
+       Jvm.Code.dup ctx.code;
+       Jvm.Code.ldc_int ctx.code 250;
+       Jvm.Code.ldc_int ctx.code 1;
+       Jvm.Code.anewarray ctx.code "java/lang/Object";
+       Jvm.Code.dup ctx.code;
+       Jvm.Code.ldc_int ctx.code 0;
+       let k = emit_prim_arg ctx v in
+       (match k with
+        | Kind.K_int -> Kind.emit_box_int ctx.code
+        | Kind.K_float -> Kind.emit_box_float ctx.code
+        | _ -> ());
+       Jvm.Code.aastore ctx.code;
+       Jvm.Code.invokespecial
+         ctx.code
+         ~class_:"Block"
+         ~method_:"<init>"
+         ~descriptor:"(I[Ljava/lang/Object;)V";
+       Kind.K_obj
+     | _ -> raise (Unsupported "caml_lazy_make_forward arity"))
   | "caml_array_of_uniform_array" | "caml_make_array" ->
     (* Both are identity for our backend: we represent OCaml arrays
        as [Block]s and the bytecode emits these to promote literal

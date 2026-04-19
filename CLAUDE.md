@@ -79,8 +79,8 @@ Every feature below is covered by at least one test under
 - **`Obj`** — the inlined externals (`%identity`, `%obj_is_int`,
   `%obj_size`, `%obj_field`, `%obj_set_field`) and the C primitives
   `caml_obj_tag`, `caml_obj_block`, `caml_obj_with_tag`,
-  `caml_obj_dup`. Non-inlined entry points like `Obj.is_block` still
-  need the full `Obj` module record and are not yet supported.
+  `caml_obj_dup`. Non-inlined entry points like `Obj.is_block` work
+  when linking against `stdlib.cma`.
 - **`Int`** — `neg`, `succ`, `pred`, `add` / `sub` / `mul` / `div` /
   `rem`, `logand` / `logor` / `logxor`, `shift_left` / `shift_right`
   / `shift_right_logical`, and the matching infix operators. Shifts
@@ -118,6 +118,19 @@ Every feature below is covered by at least one test under
   `caml_compare`, `caml_lessthan`, `caml_greaterthan`,
   `caml_lessequal`, `caml_greaterequal` route through the `Compare`
   runtime class.
+- **`Lazy`** — `lazy expr` and `Lazy.force` round-trip through
+  `CamlinternalLazy` + the four tag-transition primitives
+  (`caml_lazy_update_to_forcing` / `caml_lazy_reset_to_lazy` /
+  `caml_lazy_update_to_forward` / `caml_lazy_make_forward`).
+  Single-threaded semantics: the CAS on the tag is a plain compare
+  + set.
+- **Java FFI** — user-declared `external f : ... = "java:<op>:..."`
+  primitives emit direct JVM `invoke*` / `getfield` / `new`
+  sequences. The `Java` library (`compiler/lib-java-runtime/`)
+  exposes phantom-typed wrappers + `Java.Unsafe`; `ppx_java`
+  (`ppx/ppx_java/`) adds `obj##meth` / `[%java.new]` /
+  `[%java.static]` / `[%java.get]` / `[%java.set]` sugar that
+  expands to calls through the reflective `JavaFFI` runtime class.
 
 Unrecognised C primitives compile to a runtime-throwing
 `UnsupportedOperationException` stub — the class loads cleanly and
@@ -125,22 +138,13 @@ the error only fires if the call path is actually reached.
 
 ### Not yet supported
 
-- `Printf.printf` / `CamlinternalFormat` — hits an `ENVACC capture N
-  out of range` during emission; closure-analysis mismatch when a
-  nested ENVACC chain sees the wrong `ncaps`.
-- Full `Stdlib` module-record materialisation (`Obj.is_block`,
-  non-inlined helper closures).
-- `Lazy.t` / `lazy` / `Lazy.force`.
 - `module rec` — simple cases pass (`corecursion.ml` tests);
   deeper `CamlinternalMod`-driven patterns (recursive module
   records with full Stdlib wired through) still hit runtime
   failures.
 - Threads, OCaml 5 effects, a real GC.
-- JVM method bodies exceeding the 64 KB `Code` attribute limit.
-  (Branch relaxation in `Jvm_code.resolve` handles the 16-bit
-  short-offset limit by widening overflowing branches to `goto_w`
-  / trampolines; the 64 KB cap on the method bytes themselves
-  still applies.)
+- Int64 / unsigned 64-bit arithmetic — JVM `int` wraps at 32 bits;
+  `caml_int64_float_of_bits` and friends are stubbed.
 
 ### Reference submodules
 
