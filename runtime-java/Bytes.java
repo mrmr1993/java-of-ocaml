@@ -2,8 +2,14 @@ public class Bytes {
   public final StringBuilder sb;
 
   public Bytes(int n) {
-    this.sb = new StringBuilder(n);
-    for (int i = 0; i < n; i++) this.sb.append('\0');
+    // Defensive clamp: Buffer.create and friends compute the initial
+    // size via [max size 1] but OCaml's [Sys.max_string_length]
+    // arithmetic may produce a small/negative value here under our
+    // 32-bit int representation. StringBuilder throws
+    // NegativeArraySizeException for n < 0; treat it as 0.
+    int m = Math.max(0, n);
+    this.sb = new StringBuilder(m);
+    for (int i = 0; i < m; i++) this.sb.append('\0');
   }
 
   public Bytes(String s) {
