@@ -844,7 +844,8 @@ and emit_ccall_named ctx name args =
   | "caml_acos_float" | "caml_atan_float" | "caml_log_float"
   | "caml_log10_float" | "caml_exp_float" | "caml_ceil_float"
   | "caml_floor_float" | "caml_sinh_float" | "caml_cosh_float"
-  | "caml_tanh_float" ->
+  | "caml_tanh_float" | "caml_cbrt_float" | "caml_expm1_float"
+  | "caml_log1p_float" ->
     (match args with
      | [ Pv f ] ->
        emit_load ctx f;
@@ -875,6 +876,9 @@ and emit_ccall_named ctx name args =
          | "caml_sinh_float" -> "sinh"
          | "caml_cosh_float" -> "cosh"
          | "caml_tanh_float" -> "tanh"
+         | "caml_cbrt_float" -> "cbrt"
+         | "caml_expm1_float" -> "expm1"
+         | "caml_log1p_float" -> "log1p"
          | _ -> assert false
        in
        Jvm.Code.invokestatic
@@ -885,7 +889,7 @@ and emit_ccall_named ctx name args =
        Kind.K_float
      | _ -> raise (Unsupported (name ^ " arity")))
   | "caml_atan2_float" | "caml_hypot_float" | "caml_power_float"
-  | "caml_fmod_float" ->
+  | "caml_fmod_float" | "caml_copysign_float" ->
     (match args with
      | [ Pv a; Pv b ] ->
        let as_dbl v =
@@ -908,6 +912,7 @@ and emit_ccall_named ctx name args =
          | "caml_hypot_float" -> "hypot"
          | "caml_power_float" -> "pow"
          | "caml_fmod_float" -> "IEEEremainder"
+         | "caml_copysign_float" -> "copySign"
          | _ -> assert false
        in
        Jvm.Code.invokestatic
@@ -1386,6 +1391,43 @@ and emit_ccall_named ctx name args =
          ~descriptor:"(LBytes;IJ)I";
        Kind.K_int
      | _ -> raise (Unsupported "caml_bytes_set64 arity"))
+  | "caml_float_compare" ->
+    (match args with
+     | [ Pv a; Pv b ] ->
+       let as_dbl v =
+         emit_load ctx v;
+         match kind_of ctx v with
+         | K_float -> ()
+         | _ ->
+           Jvm.Code.checkcast ctx.code "java/lang/Double";
+           Jvm.Code.invokevirtual
+             ctx.code ~class_:"java/lang/Double" ~method_:"doubleValue"
+             ~descriptor:"()D"
+       in
+       as_dbl a; as_dbl b;
+       Jvm.Code.invokestatic
+         ctx.code
+         ~class_:"java/lang/Double"
+         ~method_:"compare"
+         ~descriptor:"(DD)I";
+       Kind.K_int
+     | _ -> raise (Unsupported "caml_float_compare arity"))
+  | "caml_bswap16" ->
+    (match args with
+     | [ Pv n ] ->
+       as_int n;
+       Jvm.Code.ldc_int ctx.code 0xFF;
+       Jvm.Code.iand ctx.code;
+       Jvm.Code.ldc_int ctx.code 8;
+       Jvm.Code.ishl ctx.code;
+       as_int n;
+       Jvm.Code.ldc_int ctx.code 8;
+       Jvm.Code.iushr ctx.code;
+       Jvm.Code.ldc_int ctx.code 0xFF;
+       Jvm.Code.iand ctx.code;
+       Jvm.Code.ior ctx.code;
+       Kind.K_int
+     | _ -> raise (Unsupported "caml_bswap16 arity"))
   | "caml_lxm_next" ->
     (match args with
      | [ Pv st ] ->
