@@ -8,6 +8,18 @@ let debug_primitives = Debug.find "primitives"
 let debug_functions = Debug.find "functions"
 let debug_ir_emit = Debug.find "ir_emit"
 let debug_deadcode = Debug.find "deadcode"
+let debug_eval = Debug.find "eval"
+
+let run_eval ~what prog =
+  let prog, { Eval.folded } = Eval.run prog in
+  if debug_eval ()
+  then
+    Format.eprintf
+      "[eval] %s: folded %d expr%s@."
+      what
+      folded
+      (if folded = 1 then "" else "s");
+  prog
 
 let run_deadcode ~what prog =
   let prog, { Deadcode.deleted_blocks; deleted_instrs } = Deadcode.run prog in
@@ -21,6 +33,10 @@ let run_deadcode ~what prog =
       deleted_instrs
       (if deleted_instrs = 1 then "" else "s");
   prog
+
+let optimize ~what prog =
+  let prog = run_eval ~what prog in
+  run_deadcode ~what prog
 
 
 (* Attempt to lower a function body (or the main init range) to the new
@@ -486,7 +502,7 @@ let compile ~bc ~out_dir =
           Jvm.Code.set_min_locals scratch 1;
           (try
              let prog = Parse_bytecode.parse_main instrs ~start_pc ~end_pc in
-             let prog = run_deadcode ~what:"<main> scratch" prog in
+             let prog = optimize ~what:"<main> scratch" prog in
              let typing = Jvm_typing.infer prog in
              Jvm_generate.emit_program
                ~code:scratch
@@ -523,7 +539,7 @@ let compile ~bc ~out_dir =
            ~start_pc:first.pc
            ~end_pc:(last.pc + 1)
        in
-       let prog = run_deadcode ~what:"<main>" prog in
+       let prog = optimize ~what:"<main>" prog in
        let typing = Jvm_typing.infer prog in
        Jvm_generate.emit_program
          ~code:main_code
@@ -626,7 +642,7 @@ let compile ~bc ~out_dir =
                 in
                 take fn_info.nargs params
               in
-              let prog = run_deadcode ~what:fn_info.name prog in
+              let prog = optimize ~what:fn_info.name prog in
               let ir_code = Jvm.Code.create fn_cp in
               Jvm.Code.set_min_locals ir_code (1 + fn_info.nargs);
               let typing = Jvm_typing.infer prog in

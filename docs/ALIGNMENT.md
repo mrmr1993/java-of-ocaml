@@ -47,13 +47,19 @@ The IR is in place; these would be natural layered additions now.
   propagation and shape facts. Would extend `Jvm_typing`'s forward
   pass with def-use propagation and a more precise Var.t → Kind.kind
   lattice.
-- **Optimization passes** — `Inline`, `Eval`, `Tailcall`,
-  `Global_deadcode` in `js_of_ocaml/compiler/lib/`. All
-  backend-agnostic; operate on `Code.program → Code.program`.
-  We have a small `Deadcode` (reachability pruning + dead-`Let`
-  removal for pure expressions) but none of the above yet. The
-  jsoo `Deadcode` also does dead-param elimination and a
-  `Pure_fun` fixpoint — layering those on would unblock inlining.
+- **Optimization passes** — `Inline`, `Tailcall`, `Global_deadcode`
+  in `js_of_ocaml/compiler/lib/`. All backend-agnostic; operate on
+  `Code.program → Code.program`. We have small `Deadcode`
+  (reachability pruning + dead-`Let` removal for pure expressions)
+  and `Eval` (block-local constant folding over the int arithmetic
+  + comparison primitives) but none of the above yet.
+  - `Deadcode` is missing jsoo's dead-param elimination and the
+    `Pure_fun` fixpoint — layering those on would unblock
+    inlining.
+  - `Eval` is block-local; jsoo's eval consults `Flow.Info.t` to
+    propagate constants across block edges. A `Flow` port is the
+    gating item for stronger eval, inlining, and `Shape`
+    inference.
 - **`Closure_conversion`** —
   `js_of_ocaml/compiler/lib-wasm/closure_conversion.ml`. Our IR
   already carries explicit `captures` in `Closure`, but a separate
