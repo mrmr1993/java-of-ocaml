@@ -242,7 +242,7 @@ let cut_is_self_contained prog ~cut_addr ~head ~tail =
 
 let debug_split = Debug.find "split"
 
-let try_cut ?env_var prog regions ~cut_addr =
+let try_cut prog regions ~cut_addr =
   if cut_addr = prog.start
   then None
   else if not (Addr.Map.mem cut_addr prog.blocks)
@@ -275,24 +275,7 @@ let try_cut ?env_var prog regions ~cut_addr =
             "[split]   cut=%d reject: not self-contained@."
             cut_addr;
         None)
-      else (
-        let c = { cut_addr; head; tail } in
-        let forwarded = cut_forwarded_vars ~env_var prog c in
-        (* Strictly reject any cut whose tail references a var
-           defined outside the tail. The safer alternatives
-           (dominance analysis / live-vars-with-Assign-awareness)
-           are a follow-up; in the meantime, this keeps correctness
-           at the cost of passing on some size reduction. *)
-        if not (Var.Set.is_empty forwarded)
-        then (
-          if debug_split ()
-          then
-            Format.eprintf
-              "[split]   cut=%d reject: forward set size %d@."
-              cut_addr
-              (Var.Set.cardinal forwarded);
-          None)
-        else Some c)))
+      else Some { cut_addr; head; tail }))
 
 (* Score a cut by how well it balances the head against [target]
    (the primary goal: halve the body toward the limit) penalised by
@@ -319,7 +302,7 @@ let find_cut_toward ?env_var prog ~target =
   let best = ref None in
   Addr.Set.iter
     (fun a ->
-      match try_cut ?env_var prog regions ~cut_addr:a with
+      match try_cut prog regions ~cut_addr:a with
       | None -> ()
       | Some cut ->
         let score = score_cut ~env_var ~target prog cut in
@@ -512,7 +495,7 @@ let try_intrasplit ~limit prog =
    [cut.cut_addr] in the program. Live-vars analysis guarantees the
    forwarded vars are defined at every predecessor, so extending
    the branch args is always well-formed. *)
-let _augment_cut_params prog (cut : cut) forwarded =
+let augment_cut_params prog (cut : cut) forwarded =
   if Var.Set.is_empty forwarded
   then prog
   else (
@@ -573,6 +556,13 @@ let split ~limit ~class_name ~is_static ~return_kind ?env_var prog =
         (Addr.Map.cardinal prog.blocks);
       match find_cut_toward ?env_var prog ~target:(limit / 2) with
       | Some cut ->
+        (* Forward every live-through var at the cut into the
+           helper by extending the cut block's params and every
+           incoming branch's args. Safe under strict SSA: each
+           forwarded Var has a single [Let] def that dominates
+           every path reaching the cut. *)
+        let forwarded = cut_forwarded_vars ~env_var prog cut in
+        let prog = augment_cut_params prog cut forwarded in
         let cut_block = Addr.Map.find cut.cut_addr prog.blocks in
         let tail_params = cut_block.params in
         let tail = tail_subprogram prog cut in

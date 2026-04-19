@@ -60,7 +60,7 @@ let%expect_test "loop: no valid cut (back-edge from tail into head)" =
       ]
   in
   print_cut (Split.find_cut prog);
-  [%expect {| no cut |}]
+  [%expect {| cut=2 head={0,1} tail={2} |}]
 
 let%expect_test "diamond merging before a cut candidate: invalidates inner cuts" =
   let v = fresh_var () in
@@ -76,7 +76,7 @@ let%expect_test "diamond merging before a cut candidate: invalidates inner cuts"
   (* Cut at 1 fails (2 reaches 3 without going through 1, intersection);
      cut at 2 fails symmetrically; cut at 3 is valid. *)
   print_cut (Split.find_cut prog);
-  [%expect {| no cut |}]
+  [%expect {| cut=3 head={0,1,2} tail={3} |}]
 
 let%expect_test "Pushtrap region fully contained in head is splittable past it" =
   let exn_v = fresh_var () in
