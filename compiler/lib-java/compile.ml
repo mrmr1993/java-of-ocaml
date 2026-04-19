@@ -175,9 +175,8 @@ let emit_globals_init code globals =
       Jvm.Code.aastore code
   done
 
-let compile ~bc ~out_dir =
+let compile_t ~parsed ~out_dir =
   let total = if debug_times () then Some (Timer.make ()) else None in
-  let parsed = time_phase "parse-bytecode" (fun () -> Bytecode.read_exe bc) in
   let prim_table = Prim.find_supported_prims parsed in
   if Hashtbl.length prim_table = 0
   then
@@ -816,3 +815,16 @@ let compile ~bc ~out_dir =
   match total with
   | Some t -> Format.eprintf "[times] total: %a s@." Timer.print t
   | None -> ()
+
+(* Magic-number-dispatched front end. Executables go straight to the
+   pipeline; [.cmo] / [.cma] go through the linker first to produce an
+   equivalent [Bytecode.t]. *)
+let compile ~bc ~out_dir =
+  let parsed =
+    time_phase "read-bytecode" (fun () ->
+      match Bytecode.read_file bc with
+      | Exe t -> t
+      | Cmo u -> Linker.link [ u ]
+      | Cma us -> Linker.link us)
+  in
+  compile_t ~parsed ~out_dir

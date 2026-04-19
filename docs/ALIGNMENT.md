@@ -1,47 +1,28 @@
 # Alignment with js_of_ocaml
 
 `java_of_ocaml` is modeled on `js_of_ocaml` / `wasm_of_ocaml`. This
-document tracks structural or API-level alignments with those
-projects — resolved ones (what's in place today) as a pointer for
-where to look when debugging, and deferred ones as a roadmap.
+document tracks structural / API-level gaps between the two projects
+as a roadmap. Resolved items are removed once landed — git history
+retains the details.
 
-Add new items as they are spotted. Delete resolved items' history
-with a PR-sized description — git history retains the details.
+Add new items as they are spotted.
 
-## Resolved: structural IR
-
-- **`Code.program` IR** —
-  `compiler/lib-java/code.ml{,i}`, adapted from
-  `js_of_ocaml/compiler/lib/code.ml`. Drops CPS, Event, Special;
-  keeps `Var` / `Addr` / `constant` / `expr` / `instr` / `last` /
-  `block` / `program` plus `Print` pretty-printers and
-  `fold_children`. `Switch` carries separate `int_cases` +
-  `tag_cases` arrays to match OCaml's mixed-dispatch SWITCH
-  semantics.
-- **`Parse_bytecode`** —
-  `compiler/lib-java/parse_bytecode.ml{,i}`. Block-boundary scan
-  via `Instr.branch_targets` + terminator successors; a parser
-  state threading accu + OCaml-stack slots + env; DFS over blocks
-  with dynamic target-params promotion; full coverage of the
-  opcode subset `java_of_ocaml` uses.
-- **`Jvm_typing`** (per-Var forward kind inference) +
-  **`Jvm_generate`** (IR → JVM bytecode) —
-  `compiler/lib-java/jvm_typing.ml{,i}` +
-  `compiler/lib-java/jvm_generate.ml{,i}`. Generate walks blocks
-  in topological order, maintains `Var.t → JVM local`, coerces at
-  block-edge parallel renames (convert-on-assign idiom from jsoo's
-  `lib-wasm/generate.ml:1920`), and emits bytecode via
-  `Jvm.Code`.
-
-## Deferred: IR-dependent alignments
-
-The IR is in place; these would be natural layered additions now.
+## IR-dependent alignments
 
 - **`Parse_bytecode.from_cmo` / `from_cma`** —
-  `js_of_ocaml/compiler/lib/parse_bytecode.mli`. We currently only
-  read CODE / PRIM / DATA from a full executable. Separate-
-  compilation inputs (`.cmo` / `.cma`) would let us compile
-  libraries without linking them into a bytecode executable first.
+  `js_of_ocaml/compiler/lib/parse_bytecode.mli`. In progress:
+  `Bytecode.read_cmo` / `read_cma` / `read_file` read the format;
+  `Linker.link` merges one or more `unit_info`s into a
+  `Bytecode.t` equivalent (predefined exception descriptors at
+  canonical slots, per-compunit globals, interned literals, merged
+  primitive table, patched code words). Still to do: wire
+  `Linker.link` into the `Compile` driver so a `.cmo` input works
+  end-to-end (including propagating the main/init entry point),
+  add a `link` CLI sub-command that accepts multiple inputs, and
+  ship a precompiled Stdlib/Core archive so unknown-compunit
+  placeholder slots actually get filled in at load time. Once
+  done, we can compile libraries without linking them into a
+  bytecode executable first.
 - **`Flow.Info.t` / `Flow.f`** —
   `js_of_ocaml/compiler/lib/flow.ml`. Flow-sensitive constant
   propagation and shape facts. Would extend `Jvm_typing`'s forward
@@ -49,13 +30,14 @@ The IR is in place; these would be natural layered additions now.
   lattice.
 - **Optimization passes** — `Inline`, `Tailcall`, `Global_deadcode`
   in `js_of_ocaml/compiler/lib/`. All backend-agnostic; operate on
-  `Code.program → Code.program`. We have small `Deadcode`
-  (reachability pruning + dead-`Let` removal for pure expressions)
-  and `Eval` (block-local constant folding over the int arithmetic
-  + comparison primitives) but none of the above yet.
-  - `Deadcode` is missing jsoo's dead-param elimination and the
-    `Pure_fun` fixpoint — layering those on would unblock
-    inlining.
+  `Code.program → Code.program`.
+  - `Deadcode` still lacks jsoo's dead-param elimination (dropping
+    block params no terminator arg actually feeds) — a natural
+    follow-up now that `Pure_fun` is in place.
+  - `Pure_fun` only sees the current function's blocks (each
+    function is parsed as its own `Code.program`), so it can't
+    classify a closure whose body lives in a sibling program. A
+    cross-function purity pass would need whole-program IR first.
   - `Eval` is block-local; jsoo's eval consults `Flow.Info.t` to
     propagate constants across block edges. A `Flow` port is the
     gating item for stronger eval, inlining, and `Shape`
@@ -72,7 +54,7 @@ The IR is in place; these would be natural layered additions now.
 - **`Shape` inference** — `js_of_ocaml/compiler/lib/shape.ml`.
   Finer-grained than our `Kind.kind`.
 
-## Deferred: tooling & feature gaps
+## Tooling & feature gaps
 
 - **Missing sub-commands on the CLI** —
   `js_of_ocaml/compiler/bin-js_of_ocaml/` defines `link`,

@@ -24,6 +24,61 @@ val read_exe : string -> t
 val prim_index : t -> string -> int option
 (** Look up a primitive name in [prims]. *)
 
+(** Per-unit information extracted from a [.cmo] or one member of
+    a [.cma]. Matches [Cmo_format.compilation_unit] but with the
+    code bytes already decoded into word-granularity ints, and
+    debug events indexed by word-pc. *)
+
+type reloc =
+  | Reloc_literal of Obj.t       (** Structured constant referenced from code;
+                                     the linker interns it into the globals
+                                     table and patches the code word with its
+                                     global index. *)
+  | Reloc_getcompunit of string  (** Read the named unit's global. *)
+  | Reloc_getpredef of string    (** Read a predefined exception descriptor. *)
+  | Reloc_setcompunit of string  (** Write this unit's global (once). *)
+  | Reloc_primitive of string    (** C primitive reference; patched to the
+                                     linker-assigned index in the merged
+                                     [prims] table. *)
+
+type unit_info =
+  { cu_name : string
+  ; cu_code : int array
+        (** Word-decoded code. Relocation placeholders are still in
+            place; the linker must patch them before the code is
+            runnable. *)
+  ; cu_prims : string array
+        (** Primitives the unit declares and references. *)
+  ; cu_reloc : (reloc * int) list
+        (** Offsets are in words (i.e. into [cu_code]). The original
+            [Cmo_format.compilation_unit.cu_reloc] offsets are in
+            bytes; [read_cmo]/[read_cma] divide them by 4. *)
+  ; cu_imports : (string * Digest.t option) list
+        (** Interface CRCs the unit was compiled against. Used for
+            link-time consistency checks. *)
+  ; cu_required : string list
+        (** Other units whose side-effecting initialisation must run
+            before this one's. *)
+  ; cu_force_link : bool
+  ; cu_debug : (int, debug_loc) Hashtbl.t
+        (** Debug events keyed by word-pc within this unit. *)
+  }
+
+val read_cmo : string -> unit_info
+(** Parse a [.cmo] file (produced by [ocamlc -c]). *)
+
+val read_cma : string -> unit_info list
+(** Parse a [.cma] library. Returns the units in link order. *)
+
+type channel_contents =
+  | Exe of t
+  | Cmo of unit_info
+  | Cma of unit_info list
+
+val read_file : string -> channel_contents
+(** Magic-number-dispatched reader. Accepts an executable, [.cmo],
+    or [.cma]. *)
+
 (** Opcode numbers. Extend as new tests demand. *)
 module Op : sig
   val acc0 : int

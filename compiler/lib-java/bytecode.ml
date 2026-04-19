@@ -482,3 +482,172 @@ let prim_index t name =
     else loop (i + 1)
   in
   loop 0
+
+(* ------------------------------------------------------------------ *)
+(* [.cmo] / [.cma] readers.
+
+   File layout per [Cmo_format]:
+     .cmo: [magic][u32 BE offset of compilation_unit]
+           [code bytes][optional debug marshal][compilation_unit marshal]
+     .cma: [magic][u32 BE offset of library]
+           [unit-1 code][unit-1 debug]...[unit-N code][unit-N debug]
+           [library marshal]
+   The code bytes inside each unit are relocatable — some operand
+   words are placeholders until the linker patches them using the
+   unit's [cu_reloc] table. We preserve the reloc list as-is on
+   the [unit_info] record; linking is a later pass.
+
+   Relocation offsets in the on-disk format are in *bytes*; we
+   divide by 4 here so callers can index directly into [cu_code]. *)
+
+type reloc =
+  | Reloc_literal of Obj.t
+  | Reloc_getcompunit of string
+  | Reloc_getpredef of string
+  | Reloc_setcompunit of string
+  | Reloc_primitive of string
+
+type unit_info =
+  { cu_name : string
+  ; cu_code : int array
+  ; cu_prims : string array
+  ; cu_reloc : (reloc * int) list
+  ; cu_imports : (string * Digest.t option) list
+  ; cu_required : string list
+  ; cu_force_link : bool
+  ; cu_debug : (int, debug_loc) Hashtbl.t
+  }
+
+type channel_contents =
+  | Exe of t
+  | Cmo of unit_info
+  | Cma of unit_info list
+
+let compunit_name : Cmo_format.compunit -> string = function
+  | Compunit s -> s
+
+let predef_name : Cmo_format.predef -> string = function
+  | Predef_exn s -> s
+
+let reloc_of_cmo : Cmo_format.reloc_info -> reloc = function
+  | Reloc_literal obj -> Reloc_literal obj
+  | Reloc_getcompunit c -> Reloc_getcompunit (compunit_name c)
+  | Reloc_getpredef p -> Reloc_getpredef (predef_name p)
+  | Reloc_setcompunit c -> Reloc_setcompunit (compunit_name c)
+  | Reloc_primitive s -> Reloc_primitive s
+
+(* Decode [len] bytes of code (at the channel's current position) as
+   little-endian signed int32 words. Mirrors [read_exe]'s CODE-section
+   decoding. *)
+let read_code ic len =
+  if len mod 4 <> 0
+  then failwith "bytecode: compilation unit code size not a multiple of 4";
+  let buf = Bytes.create len in
+  really_input ic buf 0 len;
+  let n = len / 4 in
+  Array.init n (fun i -> Int32.to_int (Bytes.get_int32_le buf (i * 4)))
+
+(* Read the debug-event list the compiler emits at [cu_debug] /
+   [cu_debug + cu_debugsize]: a single marshalled
+   [Instruct.debug_event list] followed by a marshalled [string list]
+   of directories. [orig] is the byte offset of the unit's code start
+   relative to the concatenated CODE view (0 for a single [.cmo];
+   accumulated offsets across [.cma] members). *)
+let read_unit_debug ic ~orig table =
+  let evl : Instruct.debug_event list = input_value ic in
+  let _dirs : string list = input_value ic in
+  List.iter
+    (fun (ev : Instruct.debug_event) ->
+      let pc = (orig + ev.ev_pos) / 4 in
+      let loc_start = ev.ev_loc.Location.loc_start in
+      let file = loc_start.Lexing.pos_fname in
+      let line = loc_start.Lexing.pos_lnum in
+      if file <> "_none_" && line > 0
+      then Hashtbl.replace table pc { file; line; modname = ev.ev_module })
+    evl
+
+let convert_compunit ic (cu : Cmo_format.compilation_unit) : unit_info =
+  seek_in ic cu.cu_pos;
+  let cu_code = read_code ic cu.cu_codesize in
+  let cu_debug = Hashtbl.create 16 in
+  if cu.cu_debug <> 0
+  then (
+    seek_in ic cu.cu_debug;
+    read_unit_debug ic ~orig:0 cu_debug);
+  let cu_reloc =
+    List.map
+      (fun (info, byte_off) -> reloc_of_cmo info, byte_off / 4)
+      cu.cu_reloc
+  in
+  let cu_imports =
+    List.map
+      (fun (n, crc) -> n, crc)
+      cu.cu_imports
+  in
+  let cu_required = List.map compunit_name cu.cu_required_compunits in
+  { cu_name = compunit_name cu.cu_name
+  ; cu_code
+  ; cu_prims = Array.of_list cu.cu_primitives
+  ; cu_reloc
+  ; cu_imports
+  ; cu_required
+  ; cu_force_link = cu.cu_force_link
+  ; cu_debug
+  }
+
+let check_magic ic expected =
+  let n = String.length expected in
+  seek_in ic 0;
+  let got = really_input_string ic n in
+  if got <> expected
+  then failwith (Printf.sprintf "bytecode: bad magic %S (expected %S)" got expected)
+
+let read_cmo path =
+  let ic = open_in_bin path in
+  Fun.protect
+    ~finally:(fun () -> close_in_noerr ic)
+    (fun () ->
+      check_magic ic Config.cmo_magic_number;
+      seek_in ic (String.length Config.cmo_magic_number);
+      let compunit_pos = input_binary_int ic in
+      seek_in ic compunit_pos;
+      let cu : Cmo_format.compilation_unit = input_value ic in
+      convert_compunit ic cu)
+
+let read_cma path =
+  let ic = open_in_bin path in
+  Fun.protect
+    ~finally:(fun () -> close_in_noerr ic)
+    (fun () ->
+      check_magic ic Config.cma_magic_number;
+      seek_in ic (String.length Config.cma_magic_number);
+      let toc_pos = input_binary_int ic in
+      seek_in ic toc_pos;
+      let lib : Cmo_format.library = input_value ic in
+      List.map (convert_compunit ic) lib.lib_units)
+
+let read_file path =
+  let ic = open_in_bin path in
+  let peek_magic n =
+    seek_in ic 0;
+    try really_input_string ic n with End_of_file -> ""
+  in
+  let cmo_magic = Config.cmo_magic_number in
+  let cma_magic = Config.cma_magic_number in
+  (* Executable files end with [exec_magic_number]; [.cmo]/[.cma]
+     start with their respective magics. Pick the first match. *)
+  let tag =
+    let head = peek_magic (max (String.length cmo_magic) (String.length cma_magic)) in
+    if String.length head >= String.length cmo_magic
+       && String.sub head 0 (String.length cmo_magic) = cmo_magic
+    then `Cmo
+    else if String.length head >= String.length cma_magic
+            && String.sub head 0 (String.length cma_magic) = cma_magic
+    then `Cma
+    else `Exe
+  in
+  close_in_noerr ic;
+  match tag with
+  | `Exe -> Exe (read_exe path)
+  | `Cmo -> Cmo (read_cmo path)
+  | `Cma -> Cma (read_cma path)
