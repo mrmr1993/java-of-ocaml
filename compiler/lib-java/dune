@@ -2,4 +2,22 @@
  (name java_of_ocaml_compiler)
  (public_name java_of_ocaml.compiler)
  (libraries java_of_ocaml_runtime_bytes compiler-libs.bytecomp)
+ (modules :standard \ gen_known_prims)
  (wrapped true))
+
+(executable
+ (name gen_known_prims)
+ (modules gen_known_prims))
+
+; Scan [jvm_generate.ml] for the primitive names [emit_ccall]
+; handles and emit [known_prims.ml], a trivial list consumed by the
+; [--list-missing-prims] CLI option. Rebuilds whenever
+; [jvm_generate.ml] changes, so the list never drifts.
+(rule
+ (target known_prims.ml)
+ (deps
+  (:sources jvm_generate.ml))
+ (action
+  (with-stdout-to
+   %{target}
+   (run %{dep:gen_known_prims.exe} %{sources}))))

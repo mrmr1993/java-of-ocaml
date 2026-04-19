@@ -3,12 +3,23 @@
 
 open Cmdliner
 
-let run inputs output_dir debug_flags print_functions print_ir =
+let run inputs output_dir debug_flags print_functions print_ir list_missing =
   List.iter Java_of_ocaml_compiler.Debug.enable debug_flags;
-  match inputs, output_dir with
-  | [], _ -> `Error (true, "missing input file(s)")
-  | _, None -> `Error (true, "missing -o <output_directory>")
-  | bcs, Some out_dir ->
+  match inputs, output_dir, list_missing with
+  | [], _, _ -> `Error (true, "missing input file(s)")
+  | bcs, _, true ->
+    (try
+       let missing =
+         Java_of_ocaml_compiler.Compile.list_missing_prims ~bcs
+       in
+       (match missing with
+        | [] -> print_endline "(all primitives referenced by the input are handled)"
+        | _ -> List.iter print_endline missing);
+       `Ok ()
+     with
+     | Failure msg -> `Error (false, msg))
+  | _, None, _ -> `Error (true, "missing -o <output_directory>")
+  | bcs, Some out_dir, _ ->
     (try
        Java_of_ocaml_compiler.Compile.compile
          ~print_functions
@@ -69,6 +80,16 @@ let print_ir_arg =
     & opt_all int []
     & info [ "print-ir" ] ~docv:"PC" ~doc)
 
+let list_missing_arg =
+  let doc =
+    "Don't compile; instead list every C primitive that the input \
+     bytecode references but that the JVM backend has no explicit \
+     handler for (those would compile to a runtime-throwing \"C \
+     primitive not implemented\" stub). Useful for planning runtime \
+     coverage work without waiting for a full compile."
+  in
+  Arg.(value & flag & info [ "list-missing-prims" ] ~doc)
+
 let term =
   Term.(
     ret
@@ -77,7 +98,8 @@ let term =
        $ output_arg
        $ debug_arg
        $ print_function_arg
-       $ print_ir_arg))
+       $ print_ir_arg
+       $ list_missing_arg))
 
 let info =
   let doc = "Compile OCaml bytecode to JVM class files." in

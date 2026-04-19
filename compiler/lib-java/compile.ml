@@ -1149,3 +1149,52 @@ let compile
         Linker.link units)
   in
   compile_t ~print_functions ~print_ir ~parsed ~out_dir ()
+
+(* Share the "read bcs into a [Bytecode.t]" part of [compile] so the
+   primitive-coverage check can reuse it without duplicating the
+   magic-number dispatch. *)
+let read_bcs bcs =
+  match List.map Bytecode.read_file bcs with
+  | [] -> failwith "java_of_ocaml: no input files"
+  | [ Exe t ] -> t
+  | inputs when List.exists (function Bytecode.Exe _ -> true | _ -> false) inputs ->
+    failwith
+      "java_of_ocaml: an executable (.bc) input cannot be combined \
+       with other inputs; pass either one .bc, or a list of .cmo / \
+       .cma files."
+  | inputs ->
+    let units =
+      List.concat_map
+        (function
+          | Bytecode.Exe _ -> assert false
+          | Bytecode.Cmo u -> [ u ]
+          | Bytecode.Cma us -> us)
+        inputs
+    in
+    Linker.link units
+
+module String_set = Set.Make (String)
+
+let list_missing_prims ~bcs =
+  let parsed = read_bcs bcs in
+  let known =
+    List.fold_left
+      (fun s n -> String_set.add n s)
+      String_set.empty
+      Known_prims.names
+  in
+  let missing = ref String_set.empty in
+  Array.iter
+    (fun name ->
+      (* Skip the [%xxx] "inlined extern" pseudo-primitives — those
+         compile to specific bytecode opcodes ([%addint] →
+         [ADDINT] etc.) rather than C_CALLs, so missing handlers
+         for them wouldn't surface as "C primitive not implemented"
+         runtime errors. The C_CALL path only reaches real C
+         primitives, which are the ones without a leading [%]. *)
+      if String.length name > 0 && name.[0] = '%'
+      then ()
+      else if not (String_set.mem name known)
+      then missing := String_set.add name !missing)
+    parsed.Bytecode.prims;
+  String_set.elements !missing

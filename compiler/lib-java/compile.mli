@@ -19,6 +19,14 @@ val compile :
     Useful when diagnosing "no terminator in function body"
     failures in {!Function_info.find_function_body_range}. *)
 
+val list_missing_prims : bcs:string list -> string list
+(** Read the given inputs (same rules as {!compile}) and return the
+    list of C primitive names referenced by the linked bytecode
+    that the backend does NOT have an explicit handler for in
+    [Jvm_generate.emit_ccall] — i.e. names that would otherwise
+    compile to the runtime-throwing "C primitive not implemented"
+    stub. The returned list is sorted and deduplicated. *)
+
 val compile_t :
      ?print_functions:int list
   -> ?print_ir:int list
