@@ -19,12 +19,20 @@ type function_info =
 
 module Int_set = Set.Make (Int)
 
+(* Binary-search [arr] (sorted by pc) for the index whose pc equals
+   [body_pc]. Returns -1 if absent. *)
+let find_idx_for_pc arr body_pc =
+  let n = Array.length arr in
+  let lo = ref 0 and hi = ref n in
+  while !lo < !hi do
+    let m = (!lo + !hi) / 2 in
+    if arr.(m).pc < body_pc then lo := m + 1 else hi := m
+  done;
+  if !lo < n && arr.(!lo).pc = body_pc then !lo else -1
+
 let find_function_body_range arr ?(pc_upper_bound = max_int) body_pc =
   let n = Array.length arr in
-  let start_idx = ref (-1) in
-  for i = 0 to n - 1 do
-    if !start_idx < 0 && arr.(i).pc = body_pc then start_idx := i
-  done;
+  let start_idx = ref (find_idx_for_pc arr body_pc) in
   if !start_idx < 0
   then
     failwith (Printf.sprintf "java_of_ocaml: no instruction at body_pc %d" body_pc);
