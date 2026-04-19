@@ -428,6 +428,12 @@ let f2d t =
   add_u1 t.buf 0x8D;
   push t 1
 
+(* [d2f] narrows [double] (2 slots) to [float] (1 slot). Used by
+   [Int32.bits_of_float]. *)
+let d2f t =
+  add_u1 t.buf 0x90;
+  pop t 1
+
 (* [long]-manipulation opcodes. A [long] occupies 2 JVM stack slots.
    Binary arithmetic pops 4 (two [long]s) and pushes 2 (one [long]),
    net -2. Shifts take [long] + [int] (3 slots) → [long] (2 slots).

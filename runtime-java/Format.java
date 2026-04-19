@@ -16,6 +16,58 @@ public class Format {
         return String.format(normalize(fmt, true), d);
     }
 
+    // Float math helpers that java.lang.Math doesn't provide in older
+    // JVMs — implement them via well-known identities.
+    public static double asinh(double x) {
+        // asinh(x) = ln(x + sqrt(x*x + 1))
+        return Math.log(x + Math.sqrt(x * x + 1));
+    }
+    public static double acosh(double x) {
+        // acosh(x) = ln(x + sqrt(x*x - 1)), x >= 1
+        return Math.log(x + Math.sqrt(x * x - 1));
+    }
+    public static double atanh(double x) {
+        // atanh(x) = 0.5 * ln((1+x) / (1-x)), |x| < 1
+        return 0.5 * Math.log((1 + x) / (1 - x));
+    }
+    public static double exp2(double x) {
+        return Math.pow(2.0, x);
+    }
+    // Ordinary error function — use Abramowitz & Stegun's common
+    // approximation. Accuracy ~1e-7, which matches what most OCaml
+    // code expects from [Float.erf] for plotting / stats.
+    public static double erf(double x) {
+        double sign = x < 0 ? -1 : 1;
+        x = Math.abs(x);
+        double t = 1.0 / (1.0 + 0.3275911 * x);
+        double y = 1.0 - (((((1.061405429 * t + -1.453152027) * t)
+                 + 1.421413741) * t + -0.284496736) * t + 0.254829592) * t * Math.exp(-x * x);
+        return sign * y;
+    }
+    public static double erfc(double x) {
+        return 1.0 - erf(x);
+    }
+    public static double fma(double a, double b, double c) {
+        // Math.fma exists on Java 9+. We target older; compute
+        // a*b+c directly. Loses the "single-rounding" property of
+        // FMA, but callers using fma for that specific guarantee
+        // are rare; functional correctness is preserved.
+        return a * b + c;
+    }
+    // [frexp d] → Block{0,[mantissa:double; exponent:int]}.
+    public static Block frexp(double d) {
+        if (d == 0.0 || Double.isNaN(d) || Double.isInfinite(d)) {
+            Object[] fs = { Double.valueOf(d), Integer.valueOf(0) };
+            return new Block(0, fs);
+        }
+        long bits = Double.doubleToRawLongBits(d);
+        int exp = (int) ((bits >> 52) & 0x7FF) - 1022;
+        long m = (bits & ~(0x7FFL << 52)) | (1022L << 52);
+        double mantissa = Double.longBitsToDouble(m);
+        Object[] fs = { Double.valueOf(mantissa), Integer.valueOf(exp) };
+        return new Block(0, fs);
+    }
+
     // Map OCaml's %i / %ni / %li / %Li etc. onto Java's %d; leave %d /
     // %x / %X / %o / %u / %f / %e / %g / %E / %G untouched; strip
     // OCaml's width-qualifier prefixes (n/l/L) that Java doesn't

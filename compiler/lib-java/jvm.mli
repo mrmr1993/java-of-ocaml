@@ -181,6 +181,7 @@ module Code : sig
   val i2d : t -> unit
 
   val f2d : t -> unit
+  val d2f : t -> unit
 
   val ladd : t -> unit
   val lsub : t -> unit

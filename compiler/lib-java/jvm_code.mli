@@ -124,6 +124,7 @@ val dcmpg : t -> unit
 val d2i : t -> unit
 val i2d : t -> unit
 val f2d : t -> unit
+val d2f : t -> unit
 
 (** {1 [long] / [Int64] opcodes} — a [long] occupies 2 stack slots. *)
 

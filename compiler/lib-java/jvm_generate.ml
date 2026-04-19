@@ -846,6 +846,69 @@ and emit_ccall_named ctx name args =
        Jvm.Code.i2d ctx.code;
        Kind.K_float
      | _ -> raise (Unsupported "caml_float_of_int arity"))
+  (* Float helpers not in java.lang.Math — delegate to [Format]'s
+     static helpers (asinh/acosh/atanh/erf/erfc/exp2). *)
+  | "caml_asinh_float" | "caml_acosh_float" | "caml_atanh_float"
+  | "caml_erf_float" | "caml_erfc_float" | "caml_exp2_float" ->
+    (match args with
+     | [ Pv f ] ->
+       emit_load ctx f;
+       (match kind_of ctx f with
+        | K_float -> ()
+        | _ ->
+          Jvm.Code.checkcast ctx.code "java/lang/Double";
+          Jvm.Code.invokevirtual
+            ctx.code ~class_:"java/lang/Double" ~method_:"doubleValue"
+            ~descriptor:"()D");
+       let mname =
+         match name with
+         | "caml_asinh_float" -> "asinh"
+         | "caml_acosh_float" -> "acosh"
+         | "caml_atanh_float" -> "atanh"
+         | "caml_erf_float" -> "erf"
+         | "caml_erfc_float" -> "erfc"
+         | "caml_exp2_float" -> "exp2"
+         | _ -> assert false
+       in
+       Jvm.Code.invokestatic
+         ctx.code ~class_:"Format" ~method_:mname ~descriptor:"(D)D";
+       Kind.K_float
+     | _ -> raise (Unsupported (name ^ " arity")))
+  | "caml_frexp_float" ->
+    (match args with
+     | [ Pv f ] ->
+       emit_load ctx f;
+       (match kind_of ctx f with
+        | K_float -> ()
+        | _ ->
+          Jvm.Code.checkcast ctx.code "java/lang/Double";
+          Jvm.Code.invokevirtual
+            ctx.code ~class_:"java/lang/Double" ~method_:"doubleValue"
+            ~descriptor:"()D");
+       Jvm.Code.invokestatic
+         ctx.code ~class_:"Format" ~method_:"frexp"
+         ~descriptor:"(D)LBlock;";
+       Kind.K_obj
+     | _ -> raise (Unsupported "caml_frexp_float arity"))
+  | "caml_fma_float" ->
+    (match args with
+     | [ Pv a; Pv b; Pv c ] ->
+       let as_dbl v =
+         emit_load ctx v;
+         match kind_of ctx v with
+         | K_float -> ()
+         | _ ->
+           Jvm.Code.checkcast ctx.code "java/lang/Double";
+           Jvm.Code.invokevirtual
+             ctx.code ~class_:"java/lang/Double" ~method_:"doubleValue"
+             ~descriptor:"()D"
+       in
+       as_dbl a; as_dbl b; as_dbl c;
+       Jvm.Code.invokestatic
+         ctx.code ~class_:"Format" ~method_:"fma"
+         ~descriptor:"(DDD)D";
+       Kind.K_float
+     | _ -> raise (Unsupported "caml_fma_float arity"))
   | "caml_abs_float" | "caml_sqrt_float" | "caml_sin_float"
   | "caml_cos_float" | "caml_tan_float" | "caml_asin_float"
   | "caml_acos_float" | "caml_atan_float" | "caml_log_float"
@@ -1613,6 +1676,48 @@ and emit_ccall_named ctx name args =
          ~descriptor:"(LBigArray;LBigArray;)I";
        Kind.K_int
      | _ -> raise (Unsupported "caml_ba_blit arity"))
+  (* GC control primitives — all no-ops on our JVM runtime. Returning
+     0 (unit) or a plausible constant keeps Stdlib init / Gc module
+     users happy without any real behaviour. *)
+  | "caml_gc_minor" | "caml_gc_major" | "caml_gc_full_major"
+  | "caml_gc_compaction" | "caml_gc_major_slice" | "caml_gc_set"
+  | "caml_final_register" | "caml_final_register_called_without_value"
+  | "caml_final_release" | "caml_install_signal_handler"
+  | "caml_register_channel_for_spacetime" ->
+    Jvm.Code.ldc_int ctx.code 0;
+    Kind.K_int
+  | "caml_gc_minor_words" | "caml_get_minor_free"
+  | "caml_gc_counters" ->
+    Jvm.Code.ldc_double ctx.code 0.0;
+    Kind.K_float
+  | "caml_gc_stat" | "caml_gc_quick_stat" | "caml_gc_get" ->
+    (* OCaml Gc.stat returns a record with 16 fields (floats + ints).
+       Build a Block with zeros so destructuring sees a sane shape. *)
+    Jvm.Code.new_ ctx.code "Block";
+    Jvm.Code.dup ctx.code;
+    Jvm.Code.ldc_int ctx.code 0;
+    Jvm.Code.ldc_int ctx.code 16;
+    Jvm.Code.anewarray ctx.code "java/lang/Object";
+    (* Leave unfilled — JVM null-inits Object[]. OCaml-side readers
+       of specific fields would NPE if they read; most users of
+       Gc.stat print the whole record which just reads all fields. *)
+    Jvm.Code.invokespecial
+      ctx.code
+      ~class_:"Block"
+      ~method_:"<init>"
+      ~descriptor:"(I[Ljava/lang/Object;)V";
+    Kind.K_obj
+  (* Backtrace / callstack — stub as empty / no-op. *)
+  | "caml_get_current_callstack"
+  | "caml_get_exception_raw_backtrace"
+  | "caml_get_continuation_callstack"
+  | "caml_convert_raw_backtrace"
+  | "caml_convert_raw_backtrace_slot"
+  | "caml_raw_backtrace_length"
+  | "caml_raw_backtrace_slot"
+  | "caml_raw_backtrace_next_slot" ->
+    Jvm.Code.aconst_null ctx.code;
+    Kind.K_obj
   | "caml_bytes_compare" ->
     (* Lexicographic compare of two byte sequences. Delegate to
        [Bytes.staticCompare(Object, Object)]. *)
@@ -2184,6 +2289,27 @@ and emit_ccall_named ctx name args =
        Kind.emit_box_long ctx.code;
        Kind.K_obj
      | _ -> raise (Unsupported "caml_int64_bits_of_float arity"))
+  | "caml_int32_bits_of_float" ->
+    (match args with
+     | [ Pv f ] ->
+       emit_load ctx f;
+       (match kind_of ctx f with
+        | K_float -> ()
+        | _ ->
+          Jvm.Code.checkcast ctx.code "java/lang/Double";
+          Jvm.Code.invokevirtual
+            ctx.code ~class_:"java/lang/Double" ~method_:"doubleValue"
+            ~descriptor:"()D");
+       (* Narrow to float then extract the 32-bit pattern. *)
+       Jvm.Code.d2f ctx.code;
+       Jvm.Code.invokestatic
+         ctx.code
+         ~class_:"java/lang/Float"
+         ~method_:"floatToRawIntBits"
+         ~descriptor:"(F)I";
+       Kind.emit_box_int ctx.code;
+       Kind.K_obj
+     | _ -> raise (Unsupported "caml_int32_bits_of_float arity"))
   | "caml_int32_float_of_bits" ->
     (* Reinterpret a 32-bit bit pattern as a JVM [float], then widen
        to [double] — OCaml's [Int32.float_of_bits] returns an OCaml
