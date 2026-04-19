@@ -131,6 +131,9 @@ val ifle : t -> label -> unit
 val if_acmpeq : t -> label -> unit
 val if_acmpne : t -> label -> unit
 
+val ifnull : t -> label -> unit
+val ifnonnull : t -> label -> unit
+
 val goto : t -> label -> unit
 
 val goto_w : t -> label -> unit

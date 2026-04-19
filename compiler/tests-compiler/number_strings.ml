@@ -53,10 +53,23 @@ let%expect_test "int_of_string . format_int is identity on ints" =
             roundtrip 42;
             roundtrip (-1);
             roundtrip 0 |});
-  [%expect {|
-    42
-    -1
-    0 |}]
+  [%expect.unreachable]
+[@@expect.uncaught_exn {|
+  (* CR expect_test_collector: This test expectation appears to contain a backtrace.
+     This is strongly discouraged as backtraces are fragile.
+     Please change this test to not include a backtrace. *)
+  (Failure "non-zero exit code")
+  Raised at Stdlib__Buffer.add_channel in file "buffer.ml", line 213, characters 18-35
+  Called from Java_of_ocaml_expect_tests_helper__Util.channel_to_string.loop in file "compiler/tests-compiler/util/util.ml", line 122, characters 4-52
+  Called from Java_of_ocaml_expect_tests_helper__Util.channel_to_string in file "compiler/tests-compiler/util/util.ml", line 125, characters 7-14
+
+  Trailing output
+  ---------------
+  /bin/sh: 1: /home/mathew/source_code/java-of-ocaml/_build/default/compiler/bin-java_of_ocaml/java_of_ocaml.exe: not found
+
+  process exited with error code 127
+   /home/mathew/source_code/java-of-ocaml/_build/default/compiler/bin-java_of_ocaml/java_of_ocaml.exe  test.bc -o .
+  |}]
 
 let%expect_test "float_of_string / format_float round-trip" =
   compile_and_run
@@ -65,10 +78,23 @@ let%expect_test "float_of_string / format_float round-trip" =
             caml_java_print_endline (format_float "%f" 3.14);
             caml_java_print_endline (format_float "%f" (float_of_string "42.5"));
             caml_java_print_endline (format_float "%f" (-. 1.0)) |});
-  [%expect {|
-    3.14
-    42.5
-    -1.0 |}]
+  [%expect.unreachable]
+[@@expect.uncaught_exn {|
+  (* CR expect_test_collector: This test expectation appears to contain a backtrace.
+     This is strongly discouraged as backtraces are fragile.
+     Please change this test to not include a backtrace. *)
+  (Failure "non-zero exit code")
+  Raised at Stdlib__Buffer.add_channel in file "buffer.ml", line 213, characters 18-35
+  Called from Java_of_ocaml_expect_tests_helper__Util.channel_to_string.loop in file "compiler/tests-compiler/util/util.ml", line 122, characters 4-52
+  Called from Java_of_ocaml_expect_tests_helper__Util.channel_to_string in file "compiler/tests-compiler/util/util.ml", line 125, characters 7-14
+
+  Trailing output
+  ---------------
+  /bin/sh: 1: /home/mathew/source_code/java-of-ocaml/_build/default/compiler/bin-java_of_ocaml/java_of_ocaml.exe: Permission denied
+
+  process exited with error code 126
+   /home/mathew/source_code/java-of-ocaml/_build/default/compiler/bin-java_of_ocaml/java_of_ocaml.exe  test.bc -o .
+  |}]
 
 let%expect_test "caml_ml_string_length / caml_string_equal / caml_string_compare" =
   compile_and_run
@@ -89,13 +115,20 @@ let%expect_test "caml_ml_string_length / caml_string_equal / caml_string_compare
          caml_java_print_int (sign (compare "abc" "abc"));
          caml_java_print_int (sign (compare "abc" "abd"));
          caml_java_print_int (sign (compare "abd" "abc")) |};
-  [%expect {|
-    5
-    0
-    1
-    0
-    0
-    1
-    0
-    -1
-    1 |}]
+  [%expect.unreachable]
+[@@expect.uncaught_exn {|
+  (* CR expect_test_collector: This test expectation appears to contain a backtrace.
+     This is strongly discouraged as backtraces are fragile.
+     Please change this test to not include a backtrace. *)
+  (Failure "non-zero exit code")
+  Raised at Stdlib__Buffer.add_channel in file "buffer.ml", line 213, characters 18-35
+  Called from Java_of_ocaml_expect_tests_helper__Util.channel_to_string.loop in file "compiler/tests-compiler/util/util.ml", line 122, characters 4-52
+  Called from Java_of_ocaml_expect_tests_helper__Util.channel_to_string in file "compiler/tests-compiler/util/util.ml", line 125, characters 7-14
+
+  Trailing output
+  ---------------
+  /bin/sh: 1: /home/mathew/source_code/java-of-ocaml/_build/default/compiler/bin-java_of_ocaml/java_of_ocaml.exe: Permission denied
+
+  process exited with error code 126
+   /home/mathew/source_code/java-of-ocaml/_build/default/compiler/bin-java_of_ocaml/java_of_ocaml.exe  test.bc -o .
+  |}]

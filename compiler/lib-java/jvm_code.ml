@@ -425,6 +425,9 @@ let ifle t lbl = emit_branch t lbl 0x9E ~stack_delta:(-1)
 let if_acmpeq t lbl = emit_branch t lbl 0xA5 ~stack_delta:(-2)
 let if_acmpne t lbl = emit_branch t lbl 0xA6 ~stack_delta:(-2)
 
+let ifnull t lbl = emit_branch t lbl 0xC6 ~stack_delta:(-1)
+let ifnonnull t lbl = emit_branch t lbl 0xC7 ~stack_delta:(-1)
+
 let goto t lbl = emit_branch t lbl 0xA7 ~stack_delta:0
 
 (* [goto_w] — 4-byte branch-offset variant of [goto]. Required for

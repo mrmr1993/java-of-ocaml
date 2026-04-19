@@ -215,7 +215,13 @@ let compile ~bc ~out_dir =
          | G_string s -> Printf.sprintf "G_string %S" s
          | G_float _ -> "G_float"
          | G_int64 n -> Printf.sprintf "G_int64 %Ld" n
-         | G_block _ -> "G_block"
+         | G_block (tag, fields) ->
+           let f0 =
+             match fields with
+             | Gv_string s :: _ -> Printf.sprintf " f0=%S" s
+             | _ -> ""
+           in
+           Printf.sprintf "G_block tag=%d size=%d%s" tag (List.length fields) f0
          | G_unsupported -> "G_unsupported"
        in
        Format.eprintf "[global] %d: %s@." i classified

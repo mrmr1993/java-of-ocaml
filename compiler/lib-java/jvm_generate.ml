@@ -22,6 +22,9 @@ type ctx =
   ; prim_name : int -> string
   ; enclosing : (Function_info.function_info * Code.Var.t) option
   ; fresh_oo_id : int ref
+  ; not_found_idx : int ref
+        (* Index into Main.GLOBALS of the [Not_found] exception
+           descriptor. Populated by the driver. *)
   ; mutable next_local : int
   ; block_start : (Code.Addr.t, Jvm.Code.label) Hashtbl.t
         (* Start label per block (same as [labels]; kept for
@@ -922,11 +925,77 @@ let emit_ccall ctx name args =
   | "caml_ml_pos_in_64" ->
     Jvm.Code.ldc_int ctx.code 0;
     Kind.K_int
+  | "caml_sys_getenv" ->
+    (* Look up the env var via java.lang.System.getenv; if absent,
+       raise OCaml's [Not_found] so [Sys.getenv_opt]'s [try ... with
+       Not_found -> None] catches it. [Not_found]'s descriptor is
+       [ctx.not_found_idx] (scanned out of the DATA section at
+       compile time) — we raise via [CamlException] wrapping
+       [GLOBALS[idx]]. *)
+    (match args with
+     | [ Pv k ] ->
+       as_string k;
+       Jvm.Code.invokestatic ctx.code
+         ~class_:"java/lang/System"
+         ~method_:"getenv"
+         ~descriptor:"(Ljava/lang/String;)Ljava/lang/String;";
+       let lbl_nn = Jvm.Code.fresh_label ctx.code in
+       Jvm.Code.dup ctx.code;
+       Jvm.Code.ifnonnull ctx.code lbl_nn;
+       (* getenv returned null → raise Not_found. *)
+       Jvm.Code.pop_top ctx.code;
+       Jvm.Code.new_ ctx.code "CamlException";
+       Jvm.Code.dup ctx.code;
+       Jvm.Code.getstatic ctx.code
+         ~class_:"Main"
+         ~field:"GLOBALS"
+         ~descriptor:"[Ljava/lang/Object;";
+       Jvm.Code.ldc_int ctx.code !(ctx.not_found_idx);
+       Jvm.Code.aaload ctx.code;
+       Jvm.Code.invokespecial ctx.code
+         ~class_:"CamlException"
+         ~method_:"<init>"
+         ~descriptor:"(Ljava/lang/Object;)V";
+       Jvm.Code.athrow ctx.code;
+       Jvm.Code.mark_label ctx.code lbl_nn;
+       Kind.K_string
+     | _ -> raise (Unsupported "caml_sys_getenv arity"))
+  | "caml_sys_get_argv" ->
+    (* Return ("a.out", [|"a.out"|]) — a tuple so [Sys.argv] / [Sys.argv.(0)]
+       / [Sys.executable_name] work without NPE. *)
+    Jvm.Code.new_ ctx.code "Block";
+    Jvm.Code.dup ctx.code;
+    Jvm.Code.ldc_int ctx.code 0;
+    Jvm.Code.ldc_int ctx.code 2;
+    Jvm.Code.anewarray ctx.code "java/lang/Object";
+    Jvm.Code.dup ctx.code;
+    Jvm.Code.ldc_int ctx.code 0;
+    Jvm.Code.ldc_string ctx.code "a.out";
+    Jvm.Code.aastore ctx.code;
+    Jvm.Code.dup ctx.code;
+    Jvm.Code.ldc_int ctx.code 1;
+    Jvm.Code.new_ ctx.code "Block";
+    Jvm.Code.dup ctx.code;
+    Jvm.Code.ldc_int ctx.code 0;
+    Jvm.Code.ldc_int ctx.code 1;
+    Jvm.Code.anewarray ctx.code "java/lang/Object";
+    Jvm.Code.dup ctx.code;
+    Jvm.Code.ldc_int ctx.code 0;
+    Jvm.Code.ldc_string ctx.code "a.out";
+    Jvm.Code.aastore ctx.code;
+    Jvm.Code.invokespecial ctx.code
+      ~class_:"Block"
+      ~method_:"<init>"
+      ~descriptor:"(I[Ljava/lang/Object;)V";
+    Jvm.Code.aastore ctx.code;
+    Jvm.Code.invokespecial ctx.code
+      ~class_:"Block"
+      ~method_:"<init>"
+      ~descriptor:"(I[Ljava/lang/Object;)V";
+    Kind.K_obj
   | "caml_ml_open_descriptor_in"
   | "caml_channel_descriptor"
-  | "caml_sys_get_argv"
   | "caml_sys_executable_name"
-  | "caml_sys_getenv"
   | "caml_sys_system_command"
   | "caml_sys_file_exists" ->
     Jvm.Code.aconst_null ctx.code;
@@ -2479,6 +2548,7 @@ let emit_program
     ~prim_name
     ?(arg_vars = [])
     ?enclosing
+    ?(not_found_idx = 6)
     (prog : Code.program)
   =
   let ctx =
@@ -2491,6 +2561,7 @@ let emit_program
     ; prim_name
     ; enclosing
     ; fresh_oo_id = ref 0
+    ; not_found_idx = ref not_found_idx
     ; next_local = 1
     ; block_start = Hashtbl.create 32
     ; block_end = Hashtbl.create 32

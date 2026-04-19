@@ -30,5 +30,10 @@ val emit_program :
   -> prim_name:(int -> string)
   -> ?arg_vars:Code.Var.t list
   -> ?enclosing:Function_info.function_info * Code.Var.t
+  -> ?not_found_idx:int
+      (** Index of the [Not_found] exception descriptor in
+          [Main.GLOBALS]. Used by [caml_sys_getenv] to raise on
+          missing env lookups. Defaults to 6 (OCaml's standard
+          predef-exn ordering). *)
   -> Code.program
   -> unit

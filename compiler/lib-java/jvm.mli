@@ -208,6 +208,9 @@ module Code : sig
   (** Branch if the top two references on the stack differ (JVM
       [if_acmpne]). *)
 
+  val ifnull : t -> label -> unit
+  val ifnonnull : t -> label -> unit
+
   val goto : t -> label -> unit
 
   val goto_w : t -> label -> unit
