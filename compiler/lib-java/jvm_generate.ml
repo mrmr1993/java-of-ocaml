@@ -1304,6 +1304,95 @@ and emit_ccall_named ctx name args =
          ~descriptor:"(I)I";
        Kind.K_int
      | _ -> raise (Unsupported "caml_sys_close arity"))
+  | "caml_sys_time" | "caml_sys_time_include_children" ->
+    (* Seconds since an arbitrary epoch as an OCaml float.
+       [System.nanoTime()] gives relative nanos; scale to seconds. *)
+    (match args with
+     | [ _ ] ->
+       Jvm.Code.invokestatic
+         ctx.code
+         ~class_:"java/lang/System"
+         ~method_:"nanoTime"
+         ~descriptor:"()J";
+       Jvm.Code.l2d ctx.code;
+       Jvm.Code.ldc_double ctx.code 1e9;
+       Jvm.Code.ddiv ctx.code;
+       Kind.K_float
+     | _ -> raise (Unsupported (name ^ " arity")))
+  | "caml_sys_random_seed" ->
+    (* Returns an [int array] (Block tag 0) used to seed the PRNG.
+       One element of [System.nanoTime()] cast to int is enough. *)
+    (match args with
+     | [ _ ] ->
+       Jvm.Code.new_ ctx.code "Block";
+       Jvm.Code.dup ctx.code;
+       Jvm.Code.ldc_int ctx.code 0;
+       Jvm.Code.ldc_int ctx.code 1;
+       Jvm.Code.anewarray ctx.code "java/lang/Object";
+       Jvm.Code.dup ctx.code;
+       Jvm.Code.ldc_int ctx.code 0;
+       Jvm.Code.invokestatic
+         ctx.code
+         ~class_:"java/lang/System"
+         ~method_:"nanoTime"
+         ~descriptor:"()J";
+       Jvm.Code.l2i ctx.code;
+       Kind.emit_box_int ctx.code;
+       Jvm.Code.aastore ctx.code;
+       Jvm.Code.invokespecial
+         ctx.code
+         ~class_:"Block"
+         ~method_:"<init>"
+         ~descriptor:"(I[Ljava/lang/Object;)V";
+       Kind.K_obj
+     | _ -> raise (Unsupported "caml_sys_random_seed arity"))
+  | "caml_sys_getcwd" ->
+    (match args with
+     | [ _ ] ->
+       Jvm.Code.ldc_string ctx.code "user.dir";
+       Jvm.Code.invokestatic
+         ctx.code
+         ~class_:"java/lang/System"
+         ~method_:"getProperty"
+         ~descriptor:"(Ljava/lang/String;)Ljava/lang/String;";
+       Kind.K_string
+     | _ -> raise (Unsupported "caml_sys_getcwd arity"))
+  | "caml_sys_is_directory" ->
+    (match args with
+     | [ Pv path ] ->
+       Jvm.Code.new_ ctx.code "java/io/File";
+       Jvm.Code.dup ctx.code;
+       as_string path;
+       Jvm.Code.invokespecial
+         ctx.code
+         ~class_:"java/io/File"
+         ~method_:"<init>"
+         ~descriptor:"(Ljava/lang/String;)V";
+       Jvm.Code.invokevirtual
+         ctx.code
+         ~class_:"java/io/File"
+         ~method_:"isDirectory"
+         ~descriptor:"()Z";
+       Kind.K_int
+     | _ -> raise (Unsupported "caml_sys_is_directory arity"))
+  | "caml_sys_is_regular_file" ->
+    (match args with
+     | [ Pv path ] ->
+       Jvm.Code.new_ ctx.code "java/io/File";
+       Jvm.Code.dup ctx.code;
+       as_string path;
+       Jvm.Code.invokespecial
+         ctx.code
+         ~class_:"java/io/File"
+         ~method_:"<init>"
+         ~descriptor:"(Ljava/lang/String;)V";
+       Jvm.Code.invokevirtual
+         ctx.code
+         ~class_:"java/io/File"
+         ~method_:"isFile"
+         ~descriptor:"()Z";
+       Kind.K_int
+     | _ -> raise (Unsupported "caml_sys_is_regular_file arity"))
   | "caml_sys_remove" ->
     (match args with
      | [ Pv path ] ->
