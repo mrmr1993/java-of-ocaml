@@ -13,4 +13,13 @@ public final class Block {
         this.tag = tag;
         this.fields = fields;
     }
+
+    // Shallow copy: fresh Block with the same tag and a copy of the
+    // fields array. Used by caml_obj_dup / caml_array_dup /
+    // caml_update_dummy patterns.
+    public Block dup() {
+        Object[] copy = new Object[this.fields.length];
+        System.arraycopy(this.fields, 0, copy, 0, this.fields.length);
+        return new Block(this.tag, copy);
+    }
 }
