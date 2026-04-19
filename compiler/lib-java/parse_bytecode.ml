@@ -36,24 +36,43 @@ module IntMap = Map.Make (Int)
    - the PC immediately after a PUSHTRAP (the handler prelude target)
      is already covered as a branch target, and the fall-through PC
      starts a block too. *)
+(* The decoded [instrs] array is sorted by pc (the bytecode decoder
+   walks the stream linearly). Binary-search for the first / last
+   index whose pc lies in [[start_pc, end_pc)]. Callers iterate that
+   slice instead of the whole array — essential when we're parsing
+   one closure body out of a linked bytecode with thousands of
+   functions. *)
+let range_indices (instrs : Instr.instr array) ~start_pc ~end_pc =
+  let n = Array.length instrs in
+  let rec lower_bound lo hi =
+    if lo >= hi then lo
+    else (
+      let m = (lo + hi) / 2 in
+      if instrs.(m).pc < start_pc then lower_bound (m + 1) hi
+      else lower_bound lo m)
+  in
+  let rec upper_bound lo hi =
+    if lo >= hi then lo
+    else (
+      let m = (lo + hi) / 2 in
+      if instrs.(m).pc < end_pc then upper_bound (m + 1) hi
+      else upper_bound lo m)
+  in
+  lower_bound 0 n, upper_bound 0 n
+
 let block_starts (instrs : Instr.instr array) ~start_pc ~end_pc =
   let s = ref (IntSet.singleton start_pc) in
   let in_range pc = pc >= start_pc && pc < end_pc in
   let add pc = if in_range pc then s := IntSet.add pc !s in
-  (* Single forward pass over the array: for each in-range
-     instruction, add its branch targets, and if it's a terminator
-     / trap boundary also add the PC of the following instruction. *)
-  let n = Array.length instrs in
-  for i = 0 to n - 1 do
+  let lo, hi = range_indices instrs ~start_pc ~end_pc in
+  for i = lo to hi - 1 do
     let ins = instrs.(i) in
-    if in_range ins.pc
-    then (
-      List.iter add (Instr.branch_targets ins);
-      if (Instr.is_terminator ins.opcode
-          || ins.opcode = Bytecode.Op.pushtrap
-          || ins.opcode = Bytecode.Op.poptrap)
-         && i + 1 < n
-      then add instrs.(i + 1).pc)
+    List.iter add (Instr.branch_targets ins);
+    if (Instr.is_terminator ins.opcode
+        || ins.opcode = Bytecode.Op.pushtrap
+        || ins.opcode = Bytecode.Op.poptrap)
+       && i + 1 < hi
+    then add instrs.(i + 1).pc
   done;
   !s
 
@@ -1006,9 +1025,13 @@ let step (state : state) (ins : Instr.instr) : last option =
    Top-level drivers
    ------------------------------------------------------------------ *)
 
-let build_addr_map (instrs : Instr.instr array) =
+let build_addr_map (instrs : Instr.instr array) ~start_pc ~end_pc =
+  let lo, hi = range_indices instrs ~start_pc ~end_pc in
   let m = ref IntMap.empty in
-  Array.iter (fun (ins : Instr.instr) -> m := IntMap.add ins.pc ins !m) instrs;
+  for i = lo to hi - 1 do
+    let ins = instrs.(i) in
+    m := IntMap.add ins.pc ins !m
+  done;
   !m
 
 (* Process one block: consume instructions until we hit the next block
@@ -1118,7 +1141,7 @@ let parse_generic_with_stack
       |> String.concat ","
     in
     Format.eprintf "[ir_trace] block_starts near 1354: %s@." near_1354);
-  let addr_map = build_addr_map instrs in
+  let addr_map = build_addr_map instrs ~start_pc ~end_pc in
   let start_accu = Var.fresh () in
   let state =
     { accu = V start_accu
