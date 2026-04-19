@@ -77,12 +77,12 @@ let%expect_test "link assigns predef slots + compunit slot + literals" =
     [14] int 0
     |}]
 
-(* End-to-end smoke: the compile CLI accepts a [.cmo], routes it
-   through the linker, and writes the expected class files. The
-   program cannot execute — unknown-compunit placeholder slots
-   (e.g. Stdlib) are not filled in — but emission itself must
-   succeed. Integration blocker lands once a precompiled Stdlib is
-   available. *)
+(* End-to-end smoke: the compile CLI accepts multiple .cmo inputs,
+   linked together via [Linker.link], and writes the expected class
+   files. The program cannot execute on the trivial unit alone —
+   Stdlib would need to be linked in via a second input (or in
+   practice, [$(ocamlc -where)/stdlib.cma]) — but emission itself
+   must succeed. *)
 let%expect_test "compile accepts a .cmo and emits class files" =
   Util.with_temp_dir ~f:(fun () ->
       let oc = open_out "unit.ml" in

@@ -818,14 +818,34 @@ let compile_t ~parsed ~out_dir =
   | None -> ()
 
 (* Magic-number-dispatched front end. Executables go straight to the
-   pipeline; [.cmo] / [.cma] go through the linker first to produce an
-   equivalent [Bytecode.t]. *)
-let compile ~bc ~out_dir =
+   pipeline; one or more [.cmo] / [.cma] inputs are flattened into a
+   single unit list and passed through [Linker.link] to produce an
+   equivalent [Bytecode.t].
+
+   Mixed input kinds are not supported: an executable already contains
+   a fully-linked globals table, so mixing it with separately-
+   compiled inputs would double-assign slots. Callers either hand us
+   one [.bc] or a list of [.cmo]/[.cma]. *)
+let compile ~bcs ~out_dir =
   let parsed =
     time_phase "read-bytecode" (fun () ->
-      match Bytecode.read_file bc with
-      | Exe t -> t
-      | Cmo u -> Linker.link [ u ]
-      | Cma us -> Linker.link us)
+      match List.map Bytecode.read_file bcs with
+      | [] -> failwith "java_of_ocaml: no input files"
+      | [ Exe t ] -> t
+      | inputs when List.exists (function Bytecode.Exe _ -> true | _ -> false) inputs ->
+        failwith
+          "java_of_ocaml: an executable (.bc) input cannot be combined \
+           with other inputs; pass either one .bc, or a list of .cmo / \
+           .cma files."
+      | inputs ->
+        let units =
+          List.concat_map
+            (function
+              | Bytecode.Exe _ -> assert false (* handled above *)
+              | Bytecode.Cmo u -> [ u ]
+              | Bytecode.Cma us -> us)
+            inputs
+        in
+        Linker.link units)
   in
   compile_t ~parsed ~out_dir

@@ -3,24 +3,26 @@
 
 open Cmdliner
 
-let run input output_dir debug_flags =
+let run inputs output_dir debug_flags =
   List.iter Java_of_ocaml_compiler.Debug.enable debug_flags;
-  match input, output_dir with
-  | None, _ -> `Error (true, "missing input file")
+  match inputs, output_dir with
+  | [], _ -> `Error (true, "missing input file(s)")
   | _, None -> `Error (true, "missing -o <output_directory>")
-  | Some bc, Some out_dir ->
+  | bcs, Some out_dir ->
     (try
-       Java_of_ocaml_compiler.Compile.compile ~bc ~out_dir;
+       Java_of_ocaml_compiler.Compile.compile ~bcs ~out_dir;
        `Ok ()
      with
      | Failure msg -> `Error (false, msg))
 
 let input_arg =
   let doc =
-    "Path to the input OCaml bytecode executable (as produced by \
-     $(b,ocamlc -o foo.bc))."
+    "Input file(s). Either a single OCaml bytecode executable \
+     (from $(b,ocamlc -o foo.bc)), or one or more $(b,.cmo) / \
+     $(b,.cma) files to be linked together (e.g. \
+     $(i,stdlib.cma user.cmo))."
   in
-  Arg.(value & pos 0 (some file) None & info [] ~docv:"INPUT" ~doc)
+  Arg.(value & pos_all file [] & info [] ~docv:"INPUT..." ~doc)
 
 let output_arg =
   let doc = "Directory to write $(b,Main.class) and runtime classes into." in
