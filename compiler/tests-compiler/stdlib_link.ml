@@ -1,19 +1,20 @@
 (* End-to-end: the compiler accepts [stdlib.cma + user.cmo] through
    its linker and produces a class directory. This exercises the
    separate-compilation pipeline (Bytecode.read_cma + Linker.link +
-   CLI driver) together with method splitting on the linked
-   closures.
+   CLI driver), method splitting on the linked closures, and
+   splitting of the combined [Main.main] body (which would
+   otherwise exceed the 65535-byte [Code]-attribute limit).
 
-   A known gap: stdlib's combined main-init body is still oversized
-   after strict-closedness splitting, so at present the driver
-   stubs [Main.main] with a runtime-throwing
-   [UnsupportedOperationException]. The test therefore asserts that
-   (a) compilation succeeds, (b) a full class set is emitted,
-   including [Main] and the stdlib closure classes, and (c) running
-   [java Main] surfaces that stub (rather than a verifier error or
-   a silent pass). When the split-with-forwarding correctness hole
-   is closed, this test should be flipped to a real runtime
-   assertion on the user program's stdout. *)
+   Asserts:
+   - compilation succeeds;
+   - a class set is emitted (Main.class + many closure classes);
+   - running [java Main] loads [Main] without a JVM verifier error
+     — i.e. the splitter produced a self-consistent main + helper
+     call chain. We reach stdlib's [Domain] init, which currently
+     hits an unimplemented C primitive ([caml_array_blit]); the
+     test captures that as stderr rather than a clean stdout.
+     Flipping to a full stdout assertion is blocked on
+     C-primitive coverage, not on splitting correctness. *)
 
 open Util
 
@@ -92,9 +93,50 @@ let%expect_test "stdlib.cma + user.cmo compiles and produces a class set" =
       has_main
       has_closures
       many_classes;
+    (* Run the resulting class set. We only care that the JVM
+       successfully loaded [Main] (no verifier error) and started
+       executing — the actual program reaches an unimplemented C
+       primitive before completing, so we summarise the run
+       outcome as either "verifier error" or "runtime error". *)
+    let run_cmd =
+      Format.sprintf "java -cp %s Main 2>&1" (Filename.quote out_dir)
+    in
+    let ic = Unix.open_process_in run_cmd in
+    let buf = Buffer.create 512 in
+    (try
+       while true do
+         Buffer.add_channel buf ic 512
+       done
+     with End_of_file -> ());
+    let _ = Unix.close_process_in ic in
+    let output = Buffer.contents buf in
+    let has_verify_error =
+      try
+        let _ = Str.search_forward (Str.regexp_string "VerifyError") output 0 in
+        true
+      with Not_found -> false
+    in
+    let reaches_runtime =
+      try
+        let _ =
+          Str.search_forward
+            (Str.regexp_string "C primitive")
+            output
+            0
+        in
+        true
+      with Not_found -> false
+    in
+    Printf.printf
+      "verify_error=%b reaches_runtime=%b\n"
+      has_verify_error
+      reaches_runtime;
     (* Clean up. *)
     Array.iter
       (fun f -> try Unix.unlink (Filename.concat out_dir f) with _ -> ())
       (Sys.readdir out_dir);
     (try Unix.rmdir out_dir with _ -> ()));
-  [%expect {| has_main=true has_closures=true many_classes=true |}]
+  [%expect {|
+    has_main=true has_closures=true many_classes=true
+    verify_error=false reaches_runtime=true
+    |}]
