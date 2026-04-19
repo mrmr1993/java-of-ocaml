@@ -4,9 +4,58 @@ open Function_info
 
 (* Debug flags. Enable via [JAVA_OF_OCAML_DEBUG=times,primitives,functions,emit]. *)
 let debug_times = Debug.find "times"
+let debug_times_detail = Debug.find "times_detail"
 let debug_primitives = Debug.find "primitives"
 let debug_functions = Debug.find "functions"
 let debug_ir_emit = Debug.find "ir_emit"
+
+(* Accumulating bucketed timer. [times_detail] aggregates per-step
+   cost across a loop (per-function work inside emit-closures,
+   per-helper work inside main's split-and-emit path) and prints
+   the totals + call counts at the end. Zero cost when the flag
+   is off. *)
+module Timer_bucket = struct
+  type entry = { mutable total : float; mutable count : int }
+  type t = (string, entry) Hashtbl.t
+  let make () : t = Hashtbl.create 8
+  let track (t : t) name f =
+    if not (debug_times_detail ())
+    then f ()
+    else
+      let start = Sys.time () in
+      let r = f () in
+      let elapsed = Sys.time () -. start in
+      let e =
+        match Hashtbl.find_opt t name with
+        | Some e -> e
+        | None ->
+          let e = { total = 0.0; count = 0 } in
+          Hashtbl.add t name e;
+          e
+      in
+      e.total <- e.total +. elapsed;
+      e.count <- e.count + 1;
+      r
+  let print fmt ~label (t : t) =
+    if debug_times_detail ()
+    then (
+      let entries =
+        Hashtbl.fold (fun k v acc -> (k, v) :: acc) t []
+        |> List.sort (fun (_, a) (_, b) -> compare b.total a.total)
+      in
+      let total = List.fold_left (fun a (_, e) -> a +. e.total) 0.0 entries in
+      Format.fprintf fmt "[times_detail] %s total=%.2fs:@." label total;
+      List.iter
+        (fun (k, e) ->
+          Format.fprintf
+            fmt
+            "[times_detail]   %-24s %6.2fs (%d calls, %.2fms avg)@."
+            k
+            e.total
+            e.count
+            (1000.0 *. e.total /. float_of_int (max 1 e.count)))
+        entries)
+end
 
 (* Method-body size limit, normally the JVM's 65535-byte [Code]-attribute
    cap. Tests can set [JAVA_OF_OCAML_SPLIT_THRESHOLD=<bytes>] to force
@@ -638,6 +687,7 @@ let compile_t
     | Some (_, f) -> Some (Filename.basename f)
     | None -> source_file_from 0
   in
+  let main_tb = Timer_bucket.make () in
   time_phase "emit-main" (fun () ->
     let body_pc_to_fi = Hashtbl.create 64 in
     List.iter
@@ -670,46 +720,53 @@ let compile_t
           let start_pc = first.pc in
           let end_pc = last.pc + 1 in
           try
-             let prog = Parse_bytecode.parse_main arr ~start_pc ~end_pc in
-             let prog = optimize ~what:"<main>" prog in
-             let typing = Jvm_typing.infer prog in
-             (* Run the splitter as an IR pass on main too. Main's
-                helpers are static methods on the [Main] class;
-                [Invoke_tail { is_static = true }] gets emitted as
-                [invokestatic], matching. *)
+             let prog =
+               Timer_bucket.track main_tb "parse_main" (fun () ->
+                 Parse_bytecode.parse_main arr ~start_pc ~end_pc)
+             in
+             let prog =
+               Timer_bucket.track main_tb "optimize" (fun () ->
+                 optimize ~what:"<main>" prog)
+             in
+             let typing =
+               Timer_bucket.track main_tb "typing.infer" (fun () ->
+                 Jvm_typing.infer prog)
+             in
              let limit = Lazy.force method_size_limit in
              let split_result =
-               Method_split.split
-                 ~limit
-                 ~class_name:"Main"
-                 ~is_static:true
-                 ~return_kind:Method_split.Return_void
-                 prog
+               Timer_bucket.track main_tb "method_split.split" (fun () ->
+                 Method_split.split
+                   ~limit
+                   ~class_name:"Main"
+                   ~is_static:true
+                   ~return_kind:Method_split.Return_void
+                   prog)
              in
              let helpers =
-               List.map
-                 (fun (h : Method_split.helper) ->
-                   let helper_code = Jvm.Code.create cp in
-                   Jvm.Code.set_min_locals
-                     helper_code
-                     (List.length h.params);
-                   Jvm_generate.emit_program
-                     ~code:helper_code
-                     ~typing
-                     ~name_of_body
-                     ~fn_info_of_body
-                     ~prim_name
-                     ~arg_vars:h.params
-                     ~line_of_pc
-                     ~unbox_args:true
-                     ~is_static:true
-                     h.prog;
-                   { Jvm.name = h.method_name
-                   ; descriptor = h.descriptor
-                   ; access_flags = 0x0009 (* ACC_PUBLIC | ACC_STATIC *)
-                   ; code = helper_code
-                   })
-                 split_result.helpers
+               Timer_bucket.track main_tb "emit_helpers" (fun () ->
+                 List.map
+                   (fun (h : Method_split.helper) ->
+                     let helper_code = Jvm.Code.create cp in
+                     Jvm.Code.set_min_locals
+                       helper_code
+                       (List.length h.params);
+                     Jvm_generate.emit_program
+                       ~code:helper_code
+                       ~typing
+                       ~name_of_body
+                       ~fn_info_of_body
+                       ~prim_name
+                       ~arg_vars:h.params
+                       ~line_of_pc
+                       ~unbox_args:true
+                       ~is_static:true
+                       h.prog;
+                     { Jvm.name = h.method_name
+                     ; descriptor = h.descriptor
+                     ; access_flags = 0x0009 (* ACC_PUBLIC | ACC_STATIC *)
+                     ; code = helper_code
+                     })
+                   split_result.helpers)
              in
              Some (split_result.head, typing, helpers)
            with
@@ -728,19 +785,24 @@ let compile_t
      | Some (head, typing, helpers) ->
        emit_sys_argv_prologue main_code;
        let globals_helpers =
-         emit_globals_init cp parsed.globals ~main_code
+         Timer_bucket.track main_tb "emit_globals_init" (fun () ->
+           emit_globals_init cp parsed.globals ~main_code)
        in
        emit_runtime_init_after_globals main_code;
        main_split_helpers := helpers @ globals_helpers;
-       Jvm_generate.emit_program
-         ~code:main_code
-         ~typing
-         ~name_of_body
-         ~fn_info_of_body
-         ~prim_name
-         ~line_of_pc
-         head;
-       let size = Jvm.Code.resolved_size main_code in
+       Timer_bucket.track main_tb "emit_head" (fun () ->
+         Jvm_generate.emit_program
+           ~code:main_code
+           ~typing
+           ~name_of_body
+           ~fn_info_of_body
+           ~prim_name
+           ~line_of_pc
+           head);
+       let size =
+         Timer_bucket.track main_tb "resolved_size" (fun () ->
+           Jvm.Code.resolved_size main_code)
+       in
        if size > 65535
        then (
          if debug_ir_emit ()
@@ -792,6 +854,7 @@ let compile_t
          ~method_:"<init>"
          ~descriptor:"(Ljava/lang/String;)V";
        Jvm.Code.athrow main_code));
+  Timer_bucket.print Format.err_formatter ~label:"emit-main" main_tb;
   let main_method =
     { Jvm.name = "main"
     ; descriptor = "([Ljava/lang/String;)V"
@@ -856,7 +919,9 @@ let compile_t
     then raise Not_found
     else parsed.prims.(idx)
   in
+  let closure_tb = Timer_bucket.make () in
   let closure_class_files = time_phase "emit-closures" (fun () ->
+    let r =
     List.map
       (fun (fn_info : function_info) ->
         let cap_kinds = !(fn_info.capture_kinds) in
@@ -891,12 +956,13 @@ let compile_t
           let end_pc = arr.(fn_info.body_end_idx).pc in
           try
               let prog, params, env_var =
-                Parse_bytecode.parse_function
-                  arr
-                  ~start_pc:body_pc
-                  ~end_pc:(end_pc + 1)
-                  ~nargs:fn_info.nargs
-                  ~ncaps
+                Timer_bucket.track closure_tb "parse_function" (fun () ->
+                  Parse_bytecode.parse_function
+                    arr
+                    ~start_pc:body_pc
+                    ~end_pc:(end_pc + 1)
+                    ~nargs:fn_info.nargs
+                    ~ncaps)
               in
               let arg_vars =
                 let rec take n = function
@@ -906,67 +972,74 @@ let compile_t
                 in
                 take fn_info.nargs params
               in
-              let prog = optimize ~what:fn_info.name prog in
+              let prog =
+                Timer_bucket.track closure_tb "optimize" (fun () ->
+                  optimize ~what:fn_info.name prog)
+              in
               let ir_code = Jvm.Code.create fn_cp in
               Jvm.Code.set_min_locals ir_code (1 + fn_info.nargs);
-              let typing = Jvm_typing.infer prog in
-              (* Run the 64 KB splitter as an IR pass: it returns the
-                 (possibly rewritten) head plus an ordered list of
-                 helper programs. Each helper is emitted as its own
-                 method; the head carries [Invoke_tail] terminators
-                 that the emitter lowers to [invokevirtual; areturn]
-                 at the cut boundaries. *)
+              let typing =
+                Timer_bucket.track closure_tb "typing.infer" (fun () ->
+                  Jvm_typing.infer prog)
+              in
               let limit = Lazy.force method_size_limit in
               let split_result =
-                Method_split.split
-                  ~limit
-                  ~class_name:fn_info.name
-                  ~is_static:false
-                  ~return_kind:Method_split.Return_object
-                  ~env_var
-                  prog
+                Timer_bucket.track closure_tb "method_split.split" (fun () ->
+                  Method_split.split
+                    ~limit
+                    ~class_name:fn_info.name
+                    ~is_static:false
+                    ~return_kind:Method_split.Return_object
+                    ~env_var
+                    prog)
               in
               let split_helpers =
-                List.map
-                  (fun (h : Method_split.helper) ->
-                    let helper_code = Jvm.Code.create fn_cp in
-                    Jvm.Code.set_min_locals
-                      helper_code
-                      (1 + List.length h.params);
-                    Jvm_generate.emit_program
-                      ~code:helper_code
-                      ~typing
-                      ~name_of_body
-                      ~fn_info_of_body
-                      ~prim_name
-                      ~arg_vars:h.params
-                      ~enclosing:(fn_info, env_var)
-                      ~line_of_pc
-                      ~unbox_args:true
-                      h.prog;
-                    { Jvm.name = h.method_name
-                    ; descriptor = h.descriptor
-                    ; access_flags = 0x0001 (* ACC_PUBLIC *)
-                    ; code = helper_code
-                    })
-                  split_result.helpers
+                Timer_bucket.track closure_tb "emit_helpers" (fun () ->
+                  List.map
+                    (fun (h : Method_split.helper) ->
+                      let helper_code = Jvm.Code.create fn_cp in
+                      Jvm.Code.set_min_locals
+                        helper_code
+                        (1 + List.length h.params);
+                      Jvm_generate.emit_program
+                        ~code:helper_code
+                        ~typing
+                        ~name_of_body
+                        ~fn_info_of_body
+                        ~prim_name
+                        ~arg_vars:h.params
+                        ~enclosing:(fn_info, env_var)
+                        ~line_of_pc
+                        ~unbox_args:true
+                        h.prog;
+                      { Jvm.name = h.method_name
+                      ; descriptor = h.descriptor
+                      ; access_flags = 0x0001 (* ACC_PUBLIC *)
+                      ; code = helper_code
+                      })
+                    split_result.helpers)
               in
-              Jvm_generate.emit_program
-                ~code:ir_code
-                ~typing
-                ~name_of_body
-                ~fn_info_of_body
-                ~prim_name
-                ~arg_vars
-                ~enclosing:(fn_info, env_var)
-                ~line_of_pc
-                split_result.head;
-              let head_size = Jvm.Code.resolved_size ir_code in
+              Timer_bucket.track closure_tb "emit_head" (fun () ->
+                Jvm_generate.emit_program
+                  ~code:ir_code
+                  ~typing
+                  ~name_of_body
+                  ~fn_info_of_body
+                  ~prim_name
+                  ~arg_vars
+                  ~enclosing:(fn_info, env_var)
+                  ~line_of_pc
+                  split_result.head);
+              let head_size =
+                Timer_bucket.track closure_tb "resolved_size" (fun () ->
+                  Jvm.Code.resolved_size ir_code)
+              in
               let helper_sizes =
-                List.map
-                  (fun (m : Jvm.method_desc) ->
-                    Jvm.Code.resolved_size m.code)
-                  split_helpers
+                Timer_bucket.track closure_tb "resolved_size" (fun () ->
+                  List.map
+                    (fun (m : Jvm.method_desc) ->
+                      Jvm.Code.resolved_size m.code)
+                    split_helpers)
               in
               let too_big size = size > 65535 in
               if too_big head_size || List.exists too_big helper_sizes
@@ -1109,7 +1182,10 @@ let compile_t
             ()
         in
         fn_info.name, bytes)
-      !func_list)
+      !func_list
+    in
+    Timer_bucket.print Format.err_formatter ~label:"emit-closures" closure_tb;
+    r)
   in
   let write_class name bytes =
     let path = Filename.concat out_dir (name ^ ".class") in

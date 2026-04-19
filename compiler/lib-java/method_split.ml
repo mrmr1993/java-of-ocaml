@@ -399,19 +399,29 @@ let score_cut ~block_cost ~forward_size ~target (cut : cut) =
   let forward_penalty = forward_size * 50 in
   balance_cost + forward_penalty
 
-let find_cut_toward ?env_var prog ~target =
-  (* Once-per-call precomputation. Each piece is O(n); the
-     resulting [try_cut] + scoring per candidate is O(1) on the
-     cached sets plus O(|tail|) for the structural reachability
-     checks (which remain the irreducible cost). *)
-  let regions = pushtrap_regions prog in
+(* Precomputed tables that stay valid across the split recursion.
+   [block_cost] and [pushtrap_regions] are invariants of the
+   original program: sub-programs are subsets, and the tables
+   remain correct lookups (extra entries are ignored, missing
+   entries fall back to 0). Only [reachable] and [live_in] change
+   per sub-program and are recomputed inside each call. *)
+type split_cache =
+  { cache_block_cost : (Addr.t, int) Hashtbl.t
+  ; cache_regions : (Addr.t * Addr.t * Addr.Set.t) list
+  }
+
+let build_split_cache (prog : program) =
+  { cache_block_cost = precompute_block_costs prog
+  ; cache_regions = pushtrap_regions prog
+  }
+
+let find_cut_toward ~cache ?env_var prog ~target =
   let reachable = reachable_from prog ~start:prog.start in
   let live_in = precompute_live_in prog in
-  let block_cost = precompute_block_costs prog in
   let best = ref None in
   Addr.Set.iter
     (fun a ->
-      match try_cut ~reachable prog regions ~cut_addr:a with
+      match try_cut ~reachable prog cache.cache_regions ~cut_addr:a with
       | None -> ()
       | Some cut ->
         let live_at_cut =
@@ -425,7 +435,7 @@ let find_cut_toward ?env_var prog ~target =
         in
         let score =
           score_cut
-            ~block_cost
+            ~block_cost:cache.cache_block_cost
             ~forward_size:(Var.Set.cardinal forwarded)
             ~target
             cut
@@ -439,9 +449,18 @@ let find_cut_toward ?env_var prog ~target =
   | None -> None
   | Some (_, cut) -> Some cut
 
+let program_cost ~cache (prog : program) =
+  Addr.Map.fold
+    (fun a _ acc ->
+      acc + (try Hashtbl.find cache.cache_block_cost a with Not_found -> 0))
+    prog.blocks
+    0
+  + Code_cost.entry_overhead prog
+
 let find_cut prog =
-  let target = max 1 (Code_cost.program prog / 2) in
-  find_cut_toward prog ~target
+  let cache = build_split_cache prog in
+  let target = max 1 (program_cost ~cache prog / 2) in
+  find_cut_toward ~cache prog ~target
 
 (* --- Sub-program construction -------------------------------------- *)
 
@@ -660,13 +679,14 @@ let trace fmt =
   else Format.ikfprintf (fun _ -> ()) Format.std_formatter fmt
 
 let split ~limit ~class_name ~is_static ~return_kind ?env_var prog =
+  let cache = build_split_cache prog in
   let helpers_rev = ref [] in
   let fresh_helper_name () =
     Printf.sprintf "split_%d" (List.length !helpers_rev)
   in
   let max_depth = 128 in
   let rec go depth prog =
-    let cost = Code_cost.program prog in
+    let cost = program_cost ~cache prog in
     if cost <= limit
     then prog
     else if depth >= max_depth
@@ -678,13 +698,8 @@ let split ~limit ~class_name ~is_static ~return_kind ?env_var prog =
         cost
         limit
         (Addr.Map.cardinal prog.blocks);
-      match find_cut_toward ?env_var prog ~target:(limit / 2) with
+      match find_cut_toward ~cache ?env_var prog ~target:(limit / 2) with
       | Some cut ->
-        (* Forward every live-through var at the cut into the
-           helper by extending the cut block's params and every
-           incoming branch's args. Safe under strict SSA: each
-           forwarded Var has a single [Let] def that dominates
-           every path reaching the cut. *)
         let forwarded = cut_forwarded_vars ~env_var prog cut in
         let prog = augment_cut_params prog cut forwarded in
         let cut_block = Addr.Map.find cut.cut_addr prog.blocks in

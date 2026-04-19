@@ -23,6 +23,12 @@ val program : Code.program -> int
     overhead for the entry prologue (null-init of params, [aload 0] /
     capture loads). *)
 
+val entry_overhead : Code.program -> int
+(** The fixed prologue component of [program]: entry null-init +
+    [aload 0]. Exposed so callers that already hold a block-cost
+    sum (e.g. [Method_split]'s cached splitter) can add the
+    overhead without re-walking the blocks. *)
+
 val subset : Code.program -> Code.Addr.Set.t -> int
 (** Cost of the sub-program restricted to the given set of block
     addresses, plus the program's fixed entry overhead. *)
