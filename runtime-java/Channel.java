@@ -160,6 +160,25 @@ public class Channel {
     }
   }
 
+  // Read a big-endian 32-bit int from the stream. [caml_ml_input_int]
+  // targets this shape (Stdlib's [input_binary_int]).
+  public int inputInt() throws IOException {
+    int b0 = inputChar() & 0xFF;
+    int b1 = inputChar() & 0xFF;
+    int b2 = inputChar() & 0xFF;
+    int b3 = inputChar() & 0xFF;
+    return (b0 << 24) | (b1 << 16) | (b2 << 8) | b3;
+  }
+
+  public int outputInt(int v) {
+    if (out == null) return 0;
+    out.write((v >> 24) & 0xFF);
+    out.write((v >> 16) & 0xFF);
+    out.write((v >> 8) & 0xFF);
+    out.write(v & 0xFF);
+    return 0;
+  }
+
   public int close() throws IOException {
     if (in != null) in.close();
     if (out != null && out != System.out && out != System.err) out.close();

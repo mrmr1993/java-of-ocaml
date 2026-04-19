@@ -54,6 +54,14 @@ public class Format {
         // are rare; functional correctness is preserved.
         return a * b + c;
     }
+    // [modf d] → Block{0,[frac:double; int_part:double]}.
+    public static Block modf(double d) {
+        double intPart = d >= 0 ? Math.floor(d) : Math.ceil(d);
+        double frac = d - intPart;
+        Object[] fs = { Double.valueOf(frac), Double.valueOf(intPart) };
+        return new Block(0, fs);
+    }
+
     // [frexp d] → Block{0,[mantissa:double; exponent:int]}.
     public static Block frexp(double d) {
         if (d == 0.0 || Double.isNaN(d) || Double.isInfinite(d)) {

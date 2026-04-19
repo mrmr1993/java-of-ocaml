@@ -848,6 +848,131 @@ and emit_ccall_named ctx name args =
      | _ -> raise (Unsupported "caml_float_of_int arity"))
   (* Float helpers not in java.lang.Math — delegate to [Format]'s
      static helpers (asinh/acosh/atanh/erf/erfc/exp2). *)
+  | "caml_round_float" ->
+    (match args with
+     | [ Pv f ] ->
+       emit_load ctx f;
+       (match kind_of ctx f with
+        | K_float -> ()
+        | _ ->
+          Jvm.Code.checkcast ctx.code "java/lang/Double";
+          Jvm.Code.invokevirtual
+            ctx.code ~class_:"java/lang/Double" ~method_:"doubleValue"
+            ~descriptor:"()D");
+       Jvm.Code.invokestatic
+         ctx.code ~class_:"java/lang/Math" ~method_:"rint"
+         ~descriptor:"(D)D";
+       Kind.K_float
+     | _ -> raise (Unsupported "caml_round_float arity"))
+  | "caml_trunc_float" ->
+    (match args with
+     | [ Pv f ] ->
+       emit_load ctx f;
+       (match kind_of ctx f with
+        | K_float -> ()
+        | _ ->
+          Jvm.Code.checkcast ctx.code "java/lang/Double";
+          Jvm.Code.invokevirtual
+            ctx.code ~class_:"java/lang/Double" ~method_:"doubleValue"
+            ~descriptor:"()D");
+       (* trunc = sign(x) * floor(|x|). Implement via d2l + l2d for
+          round-toward-zero semantics on finite values. *)
+       Jvm.Code.d2l ctx.code;
+       Jvm.Code.l2d ctx.code;
+       Kind.K_float
+     | _ -> raise (Unsupported "caml_trunc_float arity"))
+  | "caml_signbit_float" ->
+    (match args with
+     | [ Pv f ] ->
+       emit_load ctx f;
+       (match kind_of ctx f with
+        | K_float -> ()
+        | _ ->
+          Jvm.Code.checkcast ctx.code "java/lang/Double";
+          Jvm.Code.invokevirtual
+            ctx.code ~class_:"java/lang/Double" ~method_:"doubleValue"
+            ~descriptor:"()D");
+       Jvm.Code.invokestatic
+         ctx.code ~class_:"java/lang/Double" ~method_:"doubleToRawLongBits"
+         ~descriptor:"(D)J";
+       Jvm.Code.ldc_int ctx.code 63;
+       Jvm.Code.lushr ctx.code;
+       Jvm.Code.l2i ctx.code;
+       Kind.K_int
+     | _ -> raise (Unsupported "caml_signbit_float arity"))
+  | "caml_nextafter_float" ->
+    (match args with
+     | [ Pv a; Pv b ] ->
+       let as_dbl v =
+         emit_load ctx v;
+         match kind_of ctx v with
+         | K_float -> ()
+         | _ ->
+           Jvm.Code.checkcast ctx.code "java/lang/Double";
+           Jvm.Code.invokevirtual
+             ctx.code ~class_:"java/lang/Double" ~method_:"doubleValue"
+             ~descriptor:"()D"
+       in
+       as_dbl a; as_dbl b;
+       Jvm.Code.invokestatic
+         ctx.code ~class_:"java/lang/Math" ~method_:"nextAfter"
+         ~descriptor:"(DD)D";
+       Kind.K_float
+     | _ -> raise (Unsupported "caml_nextafter_float arity"))
+  | "caml_ldexp_float" ->
+    (* ldexp x n = x * 2^n. Math has [Math.scalb(double, int)]. *)
+    (match args with
+     | [ Pv x; Pv n ] ->
+       emit_load ctx x;
+       (match kind_of ctx x with
+        | K_float -> ()
+        | _ ->
+          Jvm.Code.checkcast ctx.code "java/lang/Double";
+          Jvm.Code.invokevirtual
+            ctx.code ~class_:"java/lang/Double" ~method_:"doubleValue"
+            ~descriptor:"()D");
+       as_int n;
+       Jvm.Code.invokestatic
+         ctx.code ~class_:"java/lang/Math" ~method_:"scalb"
+         ~descriptor:"(DI)D";
+       Kind.K_float
+     | _ -> raise (Unsupported "caml_ldexp_float arity"))
+  | "caml_modf_float" ->
+    (* modf x = (frac, int) as Block{0, [frac; int]}. *)
+    (match args with
+     | [ Pv x ] ->
+       emit_load ctx x;
+       (match kind_of ctx x with
+        | K_float -> ()
+        | _ ->
+          Jvm.Code.checkcast ctx.code "java/lang/Double";
+          Jvm.Code.invokevirtual
+            ctx.code ~class_:"java/lang/Double" ~method_:"doubleValue"
+            ~descriptor:"()D");
+       Jvm.Code.invokestatic
+         ctx.code ~class_:"Format" ~method_:"modf"
+         ~descriptor:"(D)LBlock;";
+       Kind.K_obj
+     | _ -> raise (Unsupported "caml_modf_float arity"))
+  | "caml_log2_float" ->
+    (match args with
+     | [ Pv f ] ->
+       emit_load ctx f;
+       (match kind_of ctx f with
+        | K_float -> ()
+        | _ ->
+          Jvm.Code.checkcast ctx.code "java/lang/Double";
+          Jvm.Code.invokevirtual
+            ctx.code ~class_:"java/lang/Double" ~method_:"doubleValue"
+            ~descriptor:"()D");
+       (* log2(x) = log(x) / log(2). *)
+       Jvm.Code.invokestatic
+         ctx.code ~class_:"java/lang/Math" ~method_:"log"
+         ~descriptor:"(D)D";
+       Jvm.Code.ldc_double ctx.code 0.6931471805599453;
+       Jvm.Code.ddiv ctx.code;
+       Kind.K_float
+     | _ -> raise (Unsupported "caml_log2_float arity"))
   | "caml_asinh_float" | "caml_acosh_float" | "caml_atanh_float"
   | "caml_erf_float" | "caml_erfc_float" | "caml_exp2_float" ->
     (match args with
@@ -2181,6 +2306,96 @@ and emit_ccall_named ctx name args =
          ~descriptor:"()Z";
        Kind.K_int
      | _ -> raise (Unsupported "caml_sys_is_regular_file arity"))
+  | "caml_sys_read_directory" ->
+    (match args with
+     | [ Pv path ] ->
+       as_string path;
+       Jvm.Code.invokestatic
+         ctx.code
+         ~class_:"Block"
+         ~method_:"readDirectory"
+         ~descriptor:"(Ljava/lang/String;)LBlock;";
+       Kind.K_obj
+     | _ -> raise (Unsupported "caml_sys_read_directory arity"))
+  | "caml_ml_channel_size" ->
+    (match args with
+     | [ Pv _ ] ->
+       (* Our buffered Channel doesn't currently track underlying
+          file size. Return 0 as a sentinel; Stdlib paths that
+          actually care (in_channel_length) will see 0 and likely
+          bail or handle gracefully. *)
+       Jvm.Code.ldc_int ctx.code 0;
+       Kind.K_int
+     | _ -> raise (Unsupported "caml_ml_channel_size arity"))
+  | "caml_ml_channel_size_64" ->
+    (match args with
+     | [ Pv _ ] ->
+       Jvm.Code.ldc_long ctx.code 0L;
+       Kind.emit_box_long ctx.code;
+       Kind.K_obj
+     | _ -> raise (Unsupported "caml_ml_channel_size_64 arity"))
+  | "caml_ml_input_int" ->
+    (* Read 4 bytes big-endian from the channel. *)
+    (match args with
+     | [ Pv chan ] ->
+       emit_load ctx chan;
+       Jvm.Code.checkcast ctx.code "Channel";
+       Jvm.Code.invokevirtual
+         ctx.code ~class_:"Channel" ~method_:"inputInt"
+         ~descriptor:"()I";
+       Kind.K_int
+     | _ -> raise (Unsupported "caml_ml_input_int arity"))
+  | "caml_ml_output_int" ->
+    (match args with
+     | [ Pv chan; Pv v ] ->
+       emit_load ctx chan;
+       Jvm.Code.checkcast ctx.code "Channel";
+       as_int v;
+       Jvm.Code.invokevirtual
+         ctx.code ~class_:"Channel" ~method_:"outputInt"
+         ~descriptor:"(I)I";
+       Kind.K_int
+     | _ -> raise (Unsupported "caml_ml_output_int arity"))
+  | "caml_obj_raw_field" ->
+    (match args with
+     | [ Pv b; Pv i ] ->
+       as_block b;
+       Jvm.Code.getfield
+         ctx.code ~class_:"Block" ~field:"fields" ~descriptor:"[Ljava/lang/Object;";
+       as_int i;
+       Jvm.Code.aaload ctx.code;
+       Kind.K_obj
+     | _ -> raise (Unsupported "caml_obj_raw_field arity"))
+  | "caml_obj_set_raw_field" ->
+    (match args with
+     | [ Pv b; Pv i; Pv v ] ->
+       as_block b;
+       Jvm.Code.getfield
+         ctx.code ~class_:"Block" ~field:"fields" ~descriptor:"[Ljava/lang/Object;";
+       as_int i;
+       emit_load ctx v;
+       (match kind_of ctx v with
+        | K_int -> Kind.emit_box_int ctx.code
+        | K_float -> Kind.emit_box_float ctx.code
+        | _ -> ());
+       Jvm.Code.aastore ctx.code;
+       Jvm.Code.ldc_int ctx.code 0;
+       Kind.K_int
+     | _ -> raise (Unsupported "caml_obj_set_raw_field arity"))
+  | "caml_obj_add_offset" ->
+    (match args with
+     | [ Pv b; _ ] ->
+       (* OCaml pointer arithmetic — not meaningful on JVM. Identity. *)
+       emit_load ctx b;
+       Kind.K_obj
+     | _ -> raise (Unsupported "caml_obj_add_offset arity"))
+  | "caml_obj_reachable_words" ->
+    (match args with
+     | [ _ ] ->
+       (* JVM GC doesn't expose per-object retained set; return 0. *)
+       Jvm.Code.ldc_int ctx.code 0;
+       Kind.K_int
+     | _ -> raise (Unsupported "caml_obj_reachable_words arity"))
   | "caml_sys_remove" ->
     (match args with
      | [ Pv path ] ->
@@ -2424,6 +2639,129 @@ and emit_ccall_named ctx name args =
        as_int a; as_int b;
        Jvm.Code.ishr ctx.code; Kind.emit_box_int ctx.code; Kind.K_obj
      | _ -> raise (Unsupported (name ^ " arity")))
+  | "caml_int32_compare" ->
+    (match args with
+     | [ Pv a; Pv b ] ->
+       as_int a; as_int b;
+       Jvm.Code.invokestatic
+         ctx.code ~class_:"java/lang/Integer" ~method_:"compare"
+         ~descriptor:"(II)I";
+       Kind.K_int
+     | _ -> raise (Unsupported "caml_int32_compare arity"))
+  | "caml_int32_div" ->
+    (match args with
+     | [ Pv a; Pv b ] ->
+       as_int a; as_int b;
+       Jvm.Code.idiv ctx.code; Kind.emit_box_int ctx.code; Kind.K_obj
+     | _ -> raise (Unsupported "caml_int32_div arity"))
+  | "caml_int32_mod" ->
+    (match args with
+     | [ Pv a; Pv b ] ->
+       as_int a; as_int b;
+       Jvm.Code.irem ctx.code; Kind.emit_box_int ctx.code; Kind.K_obj
+     | _ -> raise (Unsupported "caml_int32_mod arity"))
+  | "caml_int32_neg" ->
+    (match args with
+     | [ Pv a ] ->
+       as_int a;
+       Jvm.Code.ineg ctx.code; Kind.emit_box_int ctx.code; Kind.K_obj
+     | _ -> raise (Unsupported "caml_int32_neg arity"))
+  | "caml_int32_of_float" ->
+    (match args with
+     | [ Pv v ] ->
+       emit_load ctx v;
+       (match kind_of ctx v with
+        | K_float -> ()
+        | _ ->
+          Jvm.Code.checkcast ctx.code "java/lang/Double";
+          Jvm.Code.invokevirtual
+            ctx.code ~class_:"java/lang/Double" ~method_:"doubleValue"
+            ~descriptor:"()D");
+       Jvm.Code.d2i ctx.code;
+       Kind.emit_box_int ctx.code; Kind.K_obj
+     | _ -> raise (Unsupported "caml_int32_of_float arity"))
+  | "caml_int32_to_float" ->
+    (match args with
+     | [ Pv v ] ->
+       as_int v;
+       Jvm.Code.i2d ctx.code;
+       Kind.K_float
+     | _ -> raise (Unsupported "caml_int32_to_float arity"))
+  | "caml_int32_of_string" ->
+    (match args with
+     | [ Pv s ] ->
+       as_string s;
+       Jvm.Code.invokestatic
+         ctx.code ~class_:"java/lang/Integer" ~method_:"parseInt"
+         ~descriptor:"(Ljava/lang/String;)I";
+       Kind.emit_box_int ctx.code; Kind.K_obj
+     | _ -> raise (Unsupported "caml_int32_of_string arity"))
+  | "caml_int32_bswap" ->
+    (match args with
+     | [ Pv v ] ->
+       as_int v;
+       Jvm.Code.invokestatic
+         ctx.code ~class_:"java/lang/Integer" ~method_:"reverseBytes"
+         ~descriptor:"(I)I";
+       Kind.emit_box_int ctx.code; Kind.K_obj
+     | _ -> raise (Unsupported "caml_int32_bswap arity"))
+  | "caml_int64_bswap" ->
+    (match args with
+     | [ Pv v ] ->
+       emit_load ctx v;
+       Kind.emit_unbox_long ctx.code;
+       Jvm.Code.invokestatic
+         ctx.code ~class_:"java/lang/Long" ~method_:"reverseBytes"
+         ~descriptor:"(J)J";
+       Kind.emit_box_long ctx.code; Kind.K_obj
+     | _ -> raise (Unsupported "caml_int64_bswap arity"))
+  | "caml_int64_of_nativeint" | "caml_int64_to_nativeint" ->
+    (* Both nativeint and int64 use JVM [long], so identity. *)
+    (match args with
+     | [ Pv v ] ->
+       emit_load ctx v;
+       Kind.K_obj
+     | _ -> raise (Unsupported (name ^ " arity")))
+  | "caml_int64_of_string" ->
+    (match args with
+     | [ Pv s ] ->
+       as_string s;
+       Jvm.Code.invokestatic
+         ctx.code ~class_:"java/lang/Long" ~method_:"parseLong"
+         ~descriptor:"(Ljava/lang/String;)J";
+       Kind.emit_box_long ctx.code; Kind.K_obj
+     | _ -> raise (Unsupported "caml_int64_of_string arity"))
+  | "caml_nativeint_of_float" ->
+    (match args with
+     | [ Pv v ] ->
+       emit_load ctx v;
+       (match kind_of ctx v with
+        | K_float -> ()
+        | _ ->
+          Jvm.Code.checkcast ctx.code "java/lang/Double";
+          Jvm.Code.invokevirtual
+            ctx.code ~class_:"java/lang/Double" ~method_:"doubleValue"
+            ~descriptor:"()D");
+       Jvm.Code.d2l ctx.code;
+       Kind.emit_box_long ctx.code; Kind.K_obj
+     | _ -> raise (Unsupported "caml_nativeint_of_float arity"))
+  | "caml_nativeint_to_float" ->
+    (match args with
+     | [ Pv v ] ->
+       emit_load ctx v;
+       Kind.emit_unbox_long ctx.code;
+       Jvm.Code.l2d ctx.code;
+       Kind.K_float
+     | _ -> raise (Unsupported "caml_nativeint_to_float arity"))
+  | "caml_nativeint_of_string" ->
+    (match args with
+     | [ Pv s ] ->
+       as_string s;
+       Jvm.Code.invokestatic
+         ctx.code ~class_:"java/lang/Long" ~method_:"parseLong"
+         ~descriptor:"(Ljava/lang/String;)J";
+       Kind.emit_box_long ctx.code; Kind.K_obj
+     | _ -> raise (Unsupported "caml_nativeint_of_string arity"))
   | "caml_int32_shift_right_unsigned" ->
     (match args with
      | [ Pv a; Pv b ] ->

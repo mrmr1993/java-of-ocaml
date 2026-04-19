@@ -80,6 +80,18 @@ public class Block {
         return new Block(0, arr);
     }
 
+    // caml_sys_read_directory helper — returns a Block holding the
+    // directory entries as Strings. Empty/missing directories
+    // produce an empty Block.
+    public static Block readDirectory(String path) {
+        java.io.File dir = new java.io.File(path);
+        String[] entries = dir.list();
+        if (entries == null) entries = new String[0];
+        Object[] fields = new Object[entries.length];
+        for (int i = 0; i < entries.length; i++) fields[i] = entries[i];
+        return new Block(0, fields);
+    }
+
     // Shallow copy: fresh Block with the same tag and a copy of the
     // fields array. Used by caml_obj_dup / caml_array_dup /
     // caml_update_dummy patterns.
