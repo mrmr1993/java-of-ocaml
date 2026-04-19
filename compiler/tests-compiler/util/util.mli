@@ -1,5 +1,10 @@
 module Filetype : Filetype_intf.S
 
+(** Absolute path to the repo's [_build/default] root — used by tests
+    to locate sibling build artefacts (e.g. the [ppx_java] executable
+    for FFI-sugar tests). *)
+val java_of_ocaml_root : string
+
 val with_temp_dir : f:(unit -> 'a) -> 'a
 
 val compile_ocaml_to_cmo : ?debug:bool -> Filetype.ocaml_file -> Filetype.cmo_file

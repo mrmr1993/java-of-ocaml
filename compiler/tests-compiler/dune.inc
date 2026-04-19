@@ -216,6 +216,18 @@
   (pps ppx_expect)))
 
 (library
+ ;; compiler/tests-compiler/java_ffi_ppx.ml
+ (name java_ffi_ppx_15)
+ (enabled_if true)
+ (modules java_ffi_ppx)
+ (libraries unix str java_of_ocaml_expect_tests_helper)
+ (inline_tests
+  (enabled_if true))
+ (flags (:standard -open Java_of_ocaml_expect_tests_helper))
+ (preprocess
+  (pps ppx_expect)))
+
+(library
  ;; compiler/tests-compiler/linker.ml
  (name linker_15)
  (enabled_if true)
