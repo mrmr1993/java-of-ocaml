@@ -349,18 +349,21 @@ let emit_ccall ctx name args =
        Kind.K_obj
      | _ -> raise (Unsupported "caml_bytes_of_string arity"))
   | "caml_blit_string" ->
+    (* [caml_blit_string src srcofs dst dstofs len]. Bytes.blitString
+       has signature [(String src, int sofs, int dofs, int len)], so
+       we push args: dst (receiver), src, srcofs, dstofs, len. *)
     (match args with
      | [ Pv s; Pv si; Pv b; Pv bi; Pv n ] ->
        as_bytes b;
-       as_int bi;
        as_string s;
        as_int si;
+       as_int bi;
        as_int n;
        Jvm.Code.invokevirtual
          ctx.code
          ~class_:"Bytes"
          ~method_:"blitString"
-         ~descriptor:"(ILjava/lang/String;II)V";
+         ~descriptor:"(Ljava/lang/String;III)V";
        Jvm.Code.ldc_int ctx.code 0;
        Kind.K_int
      | _ -> raise (Unsupported "caml_blit_string arity"))
@@ -368,15 +371,15 @@ let emit_ccall ctx name args =
     (match args with
      | [ Pv s; Pv si; Pv b; Pv bi; Pv n ] ->
        as_bytes b;
-       as_int bi;
        as_bytes s;
        as_int si;
+       as_int bi;
        as_int n;
        Jvm.Code.invokevirtual
          ctx.code
          ~class_:"Bytes"
          ~method_:"blitBytes"
-         ~descriptor:"(ILBytes;II)V";
+         ~descriptor:"(LBytes;III)V";
        Jvm.Code.ldc_int ctx.code 0;
        Kind.K_int
      | _ -> raise (Unsupported "caml_blit_bytes arity"))
