@@ -1137,6 +1137,7 @@ let compile_t
     write_class "Mutex" (Jvm.mutex_class_bytes ());
     write_class "CondVar" (Jvm.cond_var_class_bytes ());
     write_class "BigArray" (Jvm.big_array_class_bytes ());
+    write_class "ThreadPrim" (Jvm.thread_prim_class_bytes ());
     List.iter (fun (name, bytes) -> write_class name bytes) closure_class_files);
   match total with
   | Some t -> Format.eprintf "[times] total: %a s@." Timer.print t

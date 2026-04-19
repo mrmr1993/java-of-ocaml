@@ -391,6 +391,10 @@ val big_array_class_bytes : unit -> string
 (** Bytes of the [BigArray] runtime class — boxed [Object[]]
     storage + kind / layout / dims, backing OCaml [Bigarray.t]. *)
 
+val thread_prim_class_bytes : unit -> string
+(** Bytes of the [ThreadPrim] runtime class — OCaml Thread
+    primitives delegating to [java.lang.Thread]. *)
+
 val closure_class_bytes : unit -> string
 
 val partial_closure_class_bytes : unit -> string

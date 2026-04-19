@@ -1266,7 +1266,14 @@ and emit_ccall_named ctx name args =
   | "caml_channel_descriptor"
   | "caml_sys_executable_name"
   | "caml_sys_system_command"
-  | "caml_sys_file_exists" ->
+  | "caml_sys_file_exists"
+  (* Unix init-time stubs. When linking threads.cma the Unix module
+     is pulled in; its init touches a few inet helpers whose results
+     aren't used unless the application actually reaches for
+     sockets. Returning null keeps init flowing; an actual socket
+     call later would NPE at the use site. *)
+  | "caml_unix_inet_addr_of_string"
+  | "caml_unix_string_of_inet_addr" ->
     Jvm.Code.aconst_null ctx.code;
     Kind.K_obj
   | "caml_ml_open_descriptor_in" ->
@@ -1599,6 +1606,104 @@ and emit_ccall_named ctx name args =
          ~descriptor:"(LBigArray;LBigArray;)I";
        Kind.K_int
      | _ -> raise (Unsupported "caml_ba_blit arity"))
+  | "caml_thread_new" ->
+    (match args with
+     | [ Pv f ] ->
+       emit_load ctx f;
+       Jvm.Code.checkcast ctx.code "Closure";
+       Jvm.Code.invokestatic
+         ctx.code
+         ~class_:"ThreadPrim"
+         ~method_:"threadNew"
+         ~descriptor:"(LClosure;)Ljava/lang/Thread;";
+       Kind.K_obj
+     | _ -> raise (Unsupported "caml_thread_new arity"))
+  | "caml_thread_self" ->
+    (match args with
+     | [ _ ] ->
+       Jvm.Code.invokestatic
+         ctx.code
+         ~class_:"ThreadPrim"
+         ~method_:"threadSelf"
+         ~descriptor:"()Ljava/lang/Thread;";
+       Kind.K_obj
+     | _ -> raise (Unsupported "caml_thread_self arity"))
+  | "caml_thread_id" ->
+    (match args with
+     | [ Pv t ] ->
+       emit_load ctx t;
+       Jvm.Code.checkcast ctx.code "java/lang/Thread";
+       Jvm.Code.invokestatic
+         ctx.code
+         ~class_:"ThreadPrim"
+         ~method_:"threadId"
+         ~descriptor:"(Ljava/lang/Thread;)I";
+       Kind.K_int
+     | _ -> raise (Unsupported "caml_thread_id arity"))
+  | "caml_thread_join" ->
+    (match args with
+     | [ Pv t ] ->
+       emit_load ctx t;
+       Jvm.Code.checkcast ctx.code "java/lang/Thread";
+       Jvm.Code.invokestatic
+         ctx.code
+         ~class_:"ThreadPrim"
+         ~method_:"threadJoin"
+         ~descriptor:"(Ljava/lang/Thread;)I";
+       Kind.K_int
+     | _ -> raise (Unsupported "caml_thread_join arity"))
+  | "caml_thread_yield" ->
+    (match args with
+     | [ _ ] ->
+       Jvm.Code.invokestatic
+         ctx.code
+         ~class_:"ThreadPrim"
+         ~method_:"threadYield"
+         ~descriptor:"()I";
+       Kind.K_int
+     | _ -> raise (Unsupported "caml_thread_yield arity"))
+  | "caml_thread_initialize" ->
+    (match args with
+     | [ _ ] ->
+       Jvm.Code.invokestatic
+         ctx.code
+         ~class_:"ThreadPrim"
+         ~method_:"threadInitialize"
+         ~descriptor:"()I";
+       Kind.K_int
+     | _ -> raise (Unsupported "caml_thread_initialize arity"))
+  | "caml_thread_cleanup" ->
+    (match args with
+     | [ _ ] ->
+       Jvm.Code.invokestatic
+         ctx.code
+         ~class_:"ThreadPrim"
+         ~method_:"threadCleanup"
+         ~descriptor:"()I";
+       Kind.K_int
+     | _ -> raise (Unsupported "caml_thread_cleanup arity"))
+  | "caml_thread_uncaught_exception" ->
+    (match args with
+     | [ Pv e ] ->
+       emit_load ctx e;
+       Jvm.Code.invokestatic
+         ctx.code
+         ~class_:"ThreadPrim"
+         ~method_:"threadUncaughtException"
+         ~descriptor:"(Ljava/lang/Object;)I";
+       Kind.K_int
+     | _ -> raise (Unsupported "caml_thread_uncaught_exception arity"))
+  | "caml_thread_set_name" ->
+    (match args with
+     | [ Pv n ] ->
+       as_string n;
+       Jvm.Code.invokestatic
+         ctx.code
+         ~class_:"ThreadPrim"
+         ~method_:"setCurrentThreadName"
+         ~descriptor:"(Ljava/lang/String;)I";
+       Kind.K_int
+     | _ -> raise (Unsupported "caml_thread_set_name arity"))
   | "caml_ml_mutex_new" ->
     (match args with
      | [ _ ] ->

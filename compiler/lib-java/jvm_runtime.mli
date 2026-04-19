@@ -58,3 +58,8 @@ val cond_var_class_bytes : unit -> string
 val big_array_class_bytes : unit -> string
 (** Minimal OCaml [Bigarray.Genarray.t] backing — boxed uniform
     storage in an [Object[]] with kind + layout + dims recorded. *)
+
+val thread_prim_class_bytes : unit -> string
+(** OCaml Thread primitives: [caml_thread_new] / [_self] / [_id]
+    / [_join] / [_yield] / [_initialize] / [_cleanup] etc., all
+    delegating to [java.lang.Thread]. *)

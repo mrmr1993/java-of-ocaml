@@ -153,6 +153,14 @@ Every feature below is covered by at least one test under
   lazily-bound `Condition` (in `CondVar`). Behaves correctly under
   real contention; in the single-threaded case the lock ops are
   cheap and `signal` / `broadcast` are no-ops.
+- **`Thread`** — `Thread.create` / `self` / `id` / `join` / `yield`
+  via the `ThreadPrim` runtime class delegating to
+  `java.lang.Thread`. Each OCaml thread is a Java thread running a
+  `Runnable` that unwraps the OCaml closure and applies it. Requires
+  linking against `threads.cma` for the OCaml-side API; the low-
+  level primitives (`caml_thread_new` etc.) also need a handful of
+  Unix init-stubs (`caml_unix_inet_addr_of_string` etc.) since
+  `threads.cma` pulls in `Unix`.
 - **`Lazy`** — `lazy expr` and `Lazy.force` round-trip through
   `CamlinternalLazy` + the four tag-transition primitives
   (`caml_lazy_update_to_forcing` / `caml_lazy_reset_to_lazy` /

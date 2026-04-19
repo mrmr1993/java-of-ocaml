@@ -16,7 +16,8 @@
   JavaFFI.class
   Mutex.class
   CondVar.class
-  BigArray.class)
+  BigArray.class
+  ThreadPrim.class)
  (deps
   Block.java
   Closure.java
@@ -30,7 +31,8 @@
   JavaFFI.java
   Mutex.java
   CondVar.java
-  BigArray.java)
+  BigArray.java
+  ThreadPrim.java)
  (action
   (run javac -d . %{deps})))
 
@@ -50,7 +52,8 @@
    JavaFFI.class
    Mutex.class
    CondVar.class
-   BigArray.class))
+   BigArray.class
+  ThreadPrim.class))
  (action
   (with-stdout-to
    %{targets}
