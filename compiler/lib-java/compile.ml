@@ -478,11 +478,14 @@ let compile ~bc ~out_dir =
       if not (ir_emit_enabled ())
       then None
       else (
-        let instrs =
-          Array.to_list arr
-          |> List.filter (fun (ins : Instr.instr) ->
-               not (Hashtbl.mem fn_body_pcs ins.pc))
-        in
+        (* Don't filter out fn_body_pcs — the parser's block-boundary
+           scan needs the full instruction stream to find successor
+           PCs via addr_map. Function bodies aren't reachable via
+           fall-through (their entry pc is only ever a caller of
+           a CLOSURE/CLOSUREREC body-pc argument, which doesn't
+           appear in [Instr.branch_targets]), so they won't get
+           processed as blocks. *)
+        let instrs = Array.to_list arr in
         match instrs with
         | [] -> None
         | first :: _ ->
@@ -521,15 +524,7 @@ let compile ~bc ~out_dir =
     (match try_main_ir () with
      | Some _scratch_ir_code ->
        emit_globals_init main_code parsed.globals;
-       (* Copy scratch's emitted bytecode into main_code by re-
-          running IR emission directly into main_code — now that we
-          know it succeeds, contamination on failure is not a
-          concern. *)
-       let instrs =
-         Array.to_list arr
-         |> List.filter (fun (ins : Instr.instr) ->
-              not (Hashtbl.mem fn_body_pcs ins.pc))
-       in
+       let instrs = Array.to_list arr in
        let first = List.hd instrs in
        let last = List.nth instrs (List.length instrs - 1) in
        let prog =
