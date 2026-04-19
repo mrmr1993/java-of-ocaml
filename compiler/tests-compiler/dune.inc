@@ -24,6 +24,18 @@
   (pps ppx_expect)))
 
 (library
+ ;; compiler/tests-compiler/branch_relaxation.ml
+ (name branch_relaxation_15)
+ (enabled_if true)
+ (modules branch_relaxation)
+ (libraries unix str java_of_ocaml_expect_tests_helper)
+ (inline_tests
+  (enabled_if true))
+ (flags (:standard -open Java_of_ocaml_expect_tests_helper))
+ (preprocess
+  (pps ppx_expect)))
+
+(library
  ;; compiler/tests-compiler/bytecode_smoke.ml
  (name bytecode_smoke_15)
  (enabled_if true)

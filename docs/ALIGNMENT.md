@@ -113,12 +113,13 @@ The IR is in place; these would be natural layered additions now.
   as a JS number. We should pick a strategy before `int64`
   arithmetic or `Sys.int_size`-dependent code (popcount,
   leading_zeros) starts mattering.
-- **Large method bodies** — the JVM branch-offset format is signed
-  16-bit, so a method body more than ~32 KB of bytecode breaks
-  class-file assembly. Deep Stdlib internals (`Marshal`, deep
-  `Printf` routing) can exceed this. Fixes: use `goto_w` / `jsr_w`
-  for branches beyond the 16-bit window, or split long methods
-  into pieces.
+- **JVM method bodies past 64 KB** — even with branch relaxation
+  in place (`Jvm_code.resolve` widens overflowing short branches
+  to `goto_w` / trampolines), a single method's `Code` attribute
+  is capped at 65 535 bytes by the class-file format. We haven't
+  hit this yet, but deep Stdlib internals will eventually. The
+  jsoo escape hatch here is splitting: spill long runs of straight
+  -line code into auxiliary methods that the main body calls.
 
 ## Stdlib wrapper functions needing `Invalid_argument`
 

@@ -136,9 +136,11 @@ the error only fires if the call path is actually reached.
   records with full Stdlib wired through) still hit runtime
   failures.
 - Threads, OCaml 5 effects, a real GC.
-- JVM method bodies exceeding the signed 16-bit branch-offset limit
-  (~32 KB per method) — deep Stdlib internals (`Marshal`, deep
-  `Printf` routing) hit this.
+- JVM method bodies exceeding the 64 KB `Code` attribute limit.
+  (Branch relaxation in `Jvm_code.resolve` handles the 16-bit
+  short-offset limit by widening overflowing branches to `goto_w`
+  / trampolines; the 64 KB cap on the method bytes themselves
+  still applies.)
 
 ### Reference submodules
 

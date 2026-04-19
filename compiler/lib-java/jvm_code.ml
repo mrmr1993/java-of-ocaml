@@ -552,40 +552,290 @@ let areturn t =
   add_u1 t.buf 0xB0;
   t.stack <- 0
 
+(* Invert a conditional-branch opcode. Used by branch relaxation when
+   a short [if_cond L] needs to become [if_!cond +8; goto_w L]. *)
+let invert_conditional_branch = function
+  | 0x99 -> 0x9A | 0x9A -> 0x99 (* ifeq / ifne *)
+  | 0x9B -> 0x9C | 0x9C -> 0x9B (* iflt / ifge *)
+  | 0x9D -> 0x9E | 0x9E -> 0x9D (* ifgt / ifle *)
+  | 0x9F -> 0xA0 | 0xA0 -> 0x9F (* if_icmpeq / if_icmpne *)
+  | 0xA1 -> 0xA2 | 0xA2 -> 0xA1 (* if_icmplt / if_icmpge *)
+  | 0xA3 -> 0xA4 | 0xA4 -> 0xA3 (* if_icmpgt / if_icmple *)
+  | 0xA5 -> 0xA6 | 0xA6 -> 0xA5 (* if_acmpeq / if_acmpne *)
+  | 0xC6 -> 0xC7 | 0xC7 -> 0xC6 (* ifnull / ifnonnull *)
+  | op -> failwith (Printf.sprintf "jvm: not a conditional branch: 0x%02x" op)
+
+(* [resolve] — patch branch offsets into the buffer, widening any
+   short (3-byte) branch whose target is farther than the signed
+   16-bit range. Widening a short branch can push other targets out
+   of range, so iterate the decision until stable, then rebuild the
+   buffer with the widened forms.
+
+   Widening:
+   - [goto L] (3 bytes) -> [goto_w L] (5 bytes), +2 bytes.
+   - [if_cond L] (3 bytes) -> [if_!cond +8; goto_w L] (8 bytes), +5
+     bytes. The fall-through of the inverted branch lands past the
+     [goto_w], preserving [if_cond L] semantics while giving us a
+     4-byte offset for the actual jump.
+
+   Labels and line-number entries have positions in original-buffer
+   coordinates; we remap them to new coordinates after the rebuild
+   so [exception_entries] and [line_entries] stay consistent. *)
 let resolve t =
   let bytes = Bytes.of_string (Buffer.contents t.buf) in
+  let label_target lbl =
+    match lbl.target with
+    | Some p -> p
+    | None ->
+      failwith
+        (Printf.sprintf "jvm: label %d referenced but never marked" lbl.id)
+  in
+  (* Gather every branch ref along with its enclosing label's target
+     in original coordinates. Widening state is tracked per ref. *)
+  let all_refs =
+    List.concat_map
+      (fun lbl ->
+        let tgt = label_target lbl in
+        List.map (fun r -> lbl, tgt, r) lbl.refs)
+      t.labels
+  in
+  let widened = Hashtbl.create 16 in
+  let is_short r = r.width = 2 in
+  (* Original end of the instruction an opcode_pc belongs to. For
+     width=2 this is opcode_pc + 3 (opcode + u2). For width=4 we
+     conservatively use the maximum [offset_pc + 4] across refs at
+     that opcode — captures goto_w (1 ref) and tableswitch (N refs
+     ending at the last case's offset). *)
+  let instr_end_by_opcode = Hashtbl.create 16 in
   List.iter
-    (fun lbl ->
-      match lbl.target with
-      | None ->
-        failwith
-          (Printf.sprintf "jvm: label %d referenced but never marked" lbl.id)
-      | Some target ->
+    (fun (_, _, r) ->
+      let prev = try Hashtbl.find instr_end_by_opcode r.opcode_pc with Not_found -> 0 in
+      let this_end =
+        if r.width = 2 then r.opcode_pc + 3 else r.offset_pc + r.width
+      in
+      if this_end > prev then Hashtbl.replace instr_end_by_opcode r.opcode_pc this_end)
+    all_refs;
+  let widening_delta r =
+    if not (Hashtbl.mem widened (r.opcode_pc, r.offset_pc))
+    then 0
+    else
+      let op = Bytes.get_uint8 bytes r.opcode_pc in
+      if op = 0xA7 then 2 else 5
+  in
+  (* Cumulative shift at an original byte position: the sum of deltas
+     for all widened branches whose original instruction ended at or
+     before [pos]. O(n_widenings) per query, but n_widenings is tiny
+     compared to the buffer. *)
+  let shift_at pos =
+    List.fold_left
+      (fun acc (_, _, r) ->
+        if is_short r
+           && Hashtbl.mem widened (r.opcode_pc, r.offset_pc)
+           && Hashtbl.find instr_end_by_opcode r.opcode_pc <= pos
+        then acc + widening_delta r
+        else acc)
+      0
+      all_refs
+  in
+  let short_fits_in_16 offset = offset >= -32768 && offset <= 32767 in
+  let changed = ref true in
+  while !changed do
+    changed := false;
+    List.iter
+      (fun (_, tgt, r) ->
+        if is_short r && not (Hashtbl.mem widened (r.opcode_pc, r.offset_pc))
+        then (
+          let new_target = tgt + shift_at tgt in
+          let new_base = r.offset_base + shift_at r.offset_base in
+          let offset = new_target - new_base in
+          if not (short_fits_in_16 offset)
+          then (
+            Hashtbl.add widened (r.opcode_pc, r.offset_pc) ();
+            changed := true)))
+      all_refs
+  done;
+  (* If no widenings were needed, patch offsets in place and we're done. *)
+  if Hashtbl.length widened = 0
+  then (
+    List.iter
+      (fun (_, tgt, r) ->
+        let offset = tgt - r.offset_base in
+        match r.width with
+        | 2 ->
+          let off = offset land 0xffff in
+          Bytes.set_uint8 bytes r.offset_pc ((off lsr 8) land 0xff);
+          Bytes.set_uint8 bytes (r.offset_pc + 1) (off land 0xff)
+        | 4 ->
+          let off = offset land 0xffffffff in
+          Bytes.set_uint8 bytes r.offset_pc ((off lsr 24) land 0xff);
+          Bytes.set_uint8 bytes (r.offset_pc + 1) ((off lsr 16) land 0xff);
+          Bytes.set_uint8 bytes (r.offset_pc + 2) ((off lsr 8) land 0xff);
+          Bytes.set_uint8 bytes (r.offset_pc + 3) (off land 0xff)
+        | _ -> assert false)
+      all_refs;
+    Buffer.clear t.buf;
+    Buffer.add_bytes t.buf bytes)
+  else (
+    (* Rebuild the buffer with widened instructions spliced in.
+       Walk original byte positions in order, grouping refs by
+       opcode_pc so tableswitch's many refs are processed together. *)
+    let new_buf = Buffer.create (Bytes.length bytes + 16) in
+    let opcode_pcs =
+      List.sort_uniq compare (List.map (fun (_, _, r) -> r.opcode_pc) all_refs)
+    in
+    (* For each ref, remember its new (opcode_pc, offset_pc, width)
+       so we can patch the offset once target shifts are known. *)
+    let new_refs = Hashtbl.create 16 in
+    let cursor = ref 0 in
+    List.iter
+      (fun opc ->
+        (* Copy bytes from cursor up to this opcode. *)
+        if opc > !cursor
+        then Buffer.add_subbytes new_buf bytes !cursor (opc - !cursor);
+        cursor := opc;
+        let refs_here =
+          List.filter (fun (_, _, r) -> r.opcode_pc = opc) all_refs
+        in
+        let orig_end = Hashtbl.find instr_end_by_opcode opc in
+        let any_widened_here =
+          List.exists
+            (fun (_, _, r) -> Hashtbl.mem widened (r.opcode_pc, r.offset_pc))
+            refs_here
+        in
+        if any_widened_here
+        then (
+          (* Exactly one ref per opcode for short branches. *)
+          let lbl, _, r =
+            match refs_here with
+            | [ x ] -> x
+            | _ -> assert false
+          in
+          let op = Bytes.get_uint8 bytes opc in
+          if op = 0xA7
+          then (
+            (* goto -> goto_w *)
+            let new_opc = Buffer.length new_buf in
+            Buffer.add_char new_buf (Char.chr 0xC8);
+            let new_off = Buffer.length new_buf in
+            for _ = 1 to 4 do
+              Buffer.add_char new_buf '\x00'
+            done;
+            Hashtbl.add
+              new_refs
+              (r.opcode_pc, r.offset_pc)
+              (lbl, { opcode_pc = new_opc; offset_pc = new_off; width = 4; offset_base = new_opc }))
+          else (
+            (* if_cond L -> if_!cond +8; goto_w L *)
+            let new_opc = Buffer.length new_buf in
+            Buffer.add_char new_buf (Char.chr (invert_conditional_branch op));
+            Buffer.add_char new_buf '\x00';
+            Buffer.add_char new_buf (Char.chr 8);
+            Buffer.add_char new_buf (Char.chr 0xC8);
+            let new_off = Buffer.length new_buf in
+            for _ = 1 to 4 do
+              Buffer.add_char new_buf '\x00'
+            done;
+            Hashtbl.add
+              new_refs
+              (r.opcode_pc, r.offset_pc)
+              (lbl, { opcode_pc = new_opc; offset_pc = new_off; width = 4; offset_base = new_opc + 3 })))
+        else (
+          (* Not widened — copy the instruction's bytes through and
+             remap each ref's offset_pc to its new position. Keeping
+             width / offset_base semantics from the original. *)
+          let orig_start = opc in
+          let new_start = Buffer.length new_buf in
+          Buffer.add_subbytes new_buf bytes orig_start (orig_end - orig_start);
+          List.iter
+            (fun (lbl, _, r) ->
+              let new_offset_pc = new_start + (r.offset_pc - orig_start) in
+              let new_offset_base = new_start + (r.offset_base - orig_start) in
+              Hashtbl.add
+                new_refs
+                (r.opcode_pc, r.offset_pc)
+                (lbl
+                , { opcode_pc = new_start
+                  ; offset_pc = new_offset_pc
+                  ; width = r.width
+                  ; offset_base = new_offset_base
+                  }))
+            refs_here);
+        cursor := orig_end)
+      opcode_pcs;
+    (* Trailing bytes after the last branch. *)
+    if !cursor < Bytes.length bytes
+    then
+      Buffer.add_subbytes
+        new_buf
+        bytes
+        !cursor
+        (Bytes.length bytes - !cursor);
+    let new_bytes = Bytes.of_string (Buffer.contents new_buf) in
+    (* Remap label targets, then patch offsets. *)
+    List.iter
+      (fun lbl ->
+        match lbl.target with
+        | Some p -> lbl.target <- Some (p + shift_at p)
+        | None -> ())
+      t.labels;
+    (* Replace each label's [refs] with the post-rebuild version. *)
+    List.iter
+      (fun lbl ->
+        lbl.refs <-
+          List.map
+            (fun r ->
+              let _, r' = Hashtbl.find new_refs (r.opcode_pc, r.offset_pc) in
+              r')
+            lbl.refs)
+      t.labels;
+    List.iter
+      (fun lbl ->
+        let tgt =
+          match lbl.target with
+          | Some p -> p
+          | None -> assert false
+        in
         List.iter
-          (fun { opcode_pc = _; offset_pc; width; offset_base } ->
-            let offset = target - offset_base in
-            match width with
+          (fun r ->
+            let offset = tgt - r.offset_base in
+            match r.width with
             | 2 ->
               if offset < -32768 || offset > 32767
               then
                 failwith
                   (Printf.sprintf
-                     "jvm: branch offset %d out of signed 16-bit range"
+                     "jvm: short branch still overflows after relaxation \
+                      (offset %d)"
                      offset);
               let off = offset land 0xffff in
-              Bytes.set_uint8 bytes offset_pc ((off lsr 8) land 0xff);
-              Bytes.set_uint8 bytes (offset_pc + 1) (off land 0xff)
+              Bytes.set_uint8
+                new_bytes
+                r.offset_pc
+                ((off lsr 8) land 0xff);
+              Bytes.set_uint8 new_bytes (r.offset_pc + 1) (off land 0xff)
             | 4 ->
               let off = offset land 0xffffffff in
-              Bytes.set_uint8 bytes offset_pc ((off lsr 24) land 0xff);
-              Bytes.set_uint8 bytes (offset_pc + 1) ((off lsr 16) land 0xff);
-              Bytes.set_uint8 bytes (offset_pc + 2) ((off lsr 8) land 0xff);
-              Bytes.set_uint8 bytes (offset_pc + 3) (off land 0xff)
+              Bytes.set_uint8
+                new_bytes
+                r.offset_pc
+                ((off lsr 24) land 0xff);
+              Bytes.set_uint8
+                new_bytes
+                (r.offset_pc + 1)
+                ((off lsr 16) land 0xff);
+              Bytes.set_uint8
+                new_bytes
+                (r.offset_pc + 2)
+                ((off lsr 8) land 0xff);
+              Bytes.set_uint8 new_bytes (r.offset_pc + 3) (off land 0xff)
             | _ -> assert false)
           lbl.refs)
-    t.labels;
-  Buffer.clear t.buf;
-  Buffer.add_bytes t.buf bytes
+      t.labels;
+    (* Remap line entries to new coordinates. *)
+    t.line_entries <-
+      List.map (fun (pc, line) -> pc + shift_at pc, line) t.line_entries;
+    Buffer.clear t.buf;
+    Buffer.add_bytes t.buf new_bytes)
 
 let contents t =
   resolve t;
