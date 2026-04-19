@@ -28,19 +28,12 @@ module IntMap = Map.Make (Int)
    Block boundary discovery
    ------------------------------------------------------------------ *)
 
-(* [block_starts] returns the sorted set of PCs that start a block
-   within [start_pc..end_pc). A block starts at:
-   - [start_pc] itself
-   - any branch target
-   - the PC immediately after a terminator
-   - the PC immediately after a PUSHTRAP (the handler prelude target)
-     is already covered as a branch target, and the fall-through PC
-     starts a block too. *)
 (* The decoded [instrs] array is sorted by pc (the bytecode decoder
-   walks the stream linearly). Binary-search for the first / last
-   index whose pc lies in [[start_pc, end_pc)]. Callers iterate that
-   slice instead of the whole array — essential when we're parsing
-   one closure body out of a linked bytecode with thousands of
+   walks the stream linearly). [range_indices] binary-searches for
+   the first / last index whose pc lies in [[start_pc, end_pc)], so
+   callers scanning a single function body iterate that slice
+   instead of the whole array — essential when we're parsing one
+   closure body out of a linked bytecode with thousands of
    functions. *)
 let range_indices (instrs : Instr.instr array) ~start_pc ~end_pc =
   let n = Array.length instrs in
@@ -60,6 +53,15 @@ let range_indices (instrs : Instr.instr array) ~start_pc ~end_pc =
   in
   lower_bound 0 n, upper_bound 0 n
 
+(* [block_starts] returns the sorted set of PCs that begin a basic
+   block within [[start_pc, end_pc)]. A block starts at:
+   - [start_pc] itself;
+   - any branch target reached by an in-range instruction;
+   - the PC immediately after a terminator / PUSHTRAP / POPTRAP
+     (the fall-through begins a fresh block even when the branch
+     target also does).
+   Iteration is bounded to the slice given by [range_indices] so
+   out-of-range instructions are never visited. *)
 let block_starts (instrs : Instr.instr array) ~start_pc ~end_pc =
   let s = ref (IntSet.singleton start_pc) in
   let in_range pc = pc >= start_pc && pc < end_pc in
