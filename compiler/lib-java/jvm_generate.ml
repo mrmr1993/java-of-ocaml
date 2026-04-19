@@ -1304,6 +1304,259 @@ and emit_ccall_named ctx name args =
          ~descriptor:"(I)I";
        Kind.K_int
      | _ -> raise (Unsupported "caml_sys_close arity"))
+  | "caml_md5_bytes" | "caml_md5_string" ->
+    (* 16-byte MD5 digest of [s[ofs..ofs+len)] as a Bytes. Routes
+       through a static [Bytes.md5] helper that wraps
+       [java.security.MessageDigest]. *)
+    (match args with
+     | [ Pv s; Pv ofs; Pv len ] ->
+       emit_load ctx s;
+       as_int ofs;
+       as_int len;
+       Jvm.Code.invokestatic
+         ctx.code
+         ~class_:"Bytes"
+         ~method_:"md5"
+         ~descriptor:"(Ljava/lang/Object;II)Ljava/lang/String;";
+       Kind.K_string
+     | _ -> raise (Unsupported (name ^ " arity")))
+  | "caml_bytes_get16" | "caml_string_get16" ->
+    (match args with
+     | [ Pv b; Pv i ] ->
+       emit_load ctx b;
+       as_int i;
+       Jvm.Code.invokestatic
+         ctx.code ~class_:"Bytes" ~method_:"get16"
+         ~descriptor:"(Ljava/lang/Object;I)I";
+       Kind.K_int
+     | _ -> raise (Unsupported (name ^ " arity")))
+  | "caml_bytes_get32" | "caml_string_get32" ->
+    (match args with
+     | [ Pv b; Pv i ] ->
+       emit_load ctx b;
+       as_int i;
+       Jvm.Code.invokestatic
+         ctx.code ~class_:"Bytes" ~method_:"get32"
+         ~descriptor:"(Ljava/lang/Object;I)I";
+       Kind.emit_box_int ctx.code;
+       Kind.K_obj
+     | _ -> raise (Unsupported (name ^ " arity")))
+  | "caml_bytes_get64" | "caml_string_get64" ->
+    (match args with
+     | [ Pv b; Pv i ] ->
+       emit_load ctx b;
+       as_int i;
+       Jvm.Code.invokestatic
+         ctx.code ~class_:"Bytes" ~method_:"get64"
+         ~descriptor:"(Ljava/lang/Object;I)J";
+       Kind.emit_box_long ctx.code;
+       Kind.K_obj
+     | _ -> raise (Unsupported (name ^ " arity")))
+  | "caml_bytes_set16" ->
+    (match args with
+     | [ Pv b; Pv i; Pv v ] ->
+       as_bytes b;
+       as_int i;
+       as_int v;
+       Jvm.Code.invokestatic
+         ctx.code ~class_:"Bytes" ~method_:"set16"
+         ~descriptor:"(LBytes;II)I";
+       Kind.K_int
+     | _ -> raise (Unsupported "caml_bytes_set16 arity"))
+  | "caml_bytes_set32" ->
+    (match args with
+     | [ Pv b; Pv i; Pv v ] ->
+       as_bytes b;
+       as_int i;
+       as_int v;
+       Jvm.Code.invokestatic
+         ctx.code ~class_:"Bytes" ~method_:"set32"
+         ~descriptor:"(LBytes;II)I";
+       Kind.K_int
+     | _ -> raise (Unsupported "caml_bytes_set32 arity"))
+  | "caml_bytes_set64" ->
+    (match args with
+     | [ Pv b; Pv i; Pv v ] ->
+       as_bytes b;
+       as_int i;
+       emit_load ctx v;
+       Kind.emit_unbox_long ctx.code;
+       Jvm.Code.invokestatic
+         ctx.code ~class_:"Bytes" ~method_:"set64"
+         ~descriptor:"(LBytes;IJ)I";
+       Kind.K_int
+     | _ -> raise (Unsupported "caml_bytes_set64 arity"))
+  | "caml_lxm_next" ->
+    (match args with
+     | [ Pv st ] ->
+       emit_load ctx st;
+       Jvm.Code.checkcast ctx.code "BigArray";
+       Jvm.Code.invokestatic
+         ctx.code ~class_:"BigArray" ~method_:"lxmNext"
+         ~descriptor:"(LBigArray;)J";
+       Kind.emit_box_long ctx.code;
+       Kind.K_obj
+     | _ -> raise (Unsupported "caml_lxm_next arity"))
+  | "caml_ba_create" ->
+    (* [caml_ba_create kind layout dims] where dims is a Block
+       (OCaml int array) of sizes. *)
+    (match args with
+     | [ Pv kind; Pv layout; Pv dims ] ->
+       as_int kind;
+       as_int layout;
+       as_block dims;
+       Jvm.Code.invokestatic
+         ctx.code
+         ~class_:"BigArray"
+         ~method_:"create"
+         ~descriptor:"(IILBlock;)LBigArray;";
+       Kind.K_obj
+     | _ -> raise (Unsupported "caml_ba_create arity"))
+  | "caml_ba_num_dims" ->
+    (match args with
+     | [ Pv ba ] ->
+       emit_load ctx ba;
+       Jvm.Code.checkcast ctx.code "BigArray";
+       Jvm.Code.invokevirtual
+         ctx.code ~class_:"BigArray" ~method_:"numDims" ~descriptor:"()I";
+       Kind.K_int
+     | _ -> raise (Unsupported "caml_ba_num_dims arity"))
+  | "caml_ba_dim" ->
+    (match args with
+     | [ Pv ba; Pv n ] ->
+       emit_load ctx ba;
+       Jvm.Code.checkcast ctx.code "BigArray";
+       as_int n;
+       Jvm.Code.invokevirtual
+         ctx.code ~class_:"BigArray" ~method_:"dim" ~descriptor:"(I)I";
+       Kind.K_int
+     | _ -> raise (Unsupported "caml_ba_dim arity"))
+  | "caml_ba_dim_1" ->
+    (match args with
+     | [ Pv ba ] ->
+       emit_load ctx ba;
+       Jvm.Code.checkcast ctx.code "BigArray";
+       Jvm.Code.invokevirtual
+         ctx.code ~class_:"BigArray" ~method_:"dim1" ~descriptor:"()I";
+       Kind.K_int
+     | _ -> raise (Unsupported "caml_ba_dim_1 arity"))
+  | "caml_ba_dim_2" ->
+    (match args with
+     | [ Pv ba ] ->
+       emit_load ctx ba;
+       Jvm.Code.checkcast ctx.code "BigArray";
+       Jvm.Code.invokevirtual
+         ctx.code ~class_:"BigArray" ~method_:"dim2" ~descriptor:"()I";
+       Kind.K_int
+     | _ -> raise (Unsupported "caml_ba_dim_2 arity"))
+  | "caml_ba_dim_3" ->
+    (match args with
+     | [ Pv ba ] ->
+       emit_load ctx ba;
+       Jvm.Code.checkcast ctx.code "BigArray";
+       Jvm.Code.invokevirtual
+         ctx.code ~class_:"BigArray" ~method_:"dim3" ~descriptor:"()I";
+       Kind.K_int
+     | _ -> raise (Unsupported "caml_ba_dim_3 arity"))
+  | "caml_ba_kind" ->
+    (match args with
+     | [ Pv ba ] ->
+       emit_load ctx ba;
+       Jvm.Code.checkcast ctx.code "BigArray";
+       Jvm.Code.getfield
+         ctx.code ~class_:"BigArray" ~field:"kind" ~descriptor:"I";
+       Kind.K_int
+     | _ -> raise (Unsupported "caml_ba_kind arity"))
+  | "caml_ba_layout" ->
+    (match args with
+     | [ Pv ba ] ->
+       emit_load ctx ba;
+       Jvm.Code.checkcast ctx.code "BigArray";
+       Jvm.Code.getfield
+         ctx.code ~class_:"BigArray" ~field:"layout" ~descriptor:"I";
+       Kind.K_int
+     | _ -> raise (Unsupported "caml_ba_layout arity"))
+  | "caml_ba_get_1" ->
+    (match args with
+     | [ Pv ba; Pv i ] ->
+       emit_load ctx ba;
+       Jvm.Code.checkcast ctx.code "BigArray";
+       as_int i;
+       Jvm.Code.invokevirtual
+         ctx.code ~class_:"BigArray" ~method_:"get1"
+         ~descriptor:"(I)Ljava/lang/Object;";
+       Kind.K_obj
+     | _ -> raise (Unsupported "caml_ba_get_1 arity"))
+  | "caml_ba_set_1" ->
+    (match args with
+     | [ Pv ba; Pv i; Pv v ] ->
+       emit_load ctx ba;
+       Jvm.Code.checkcast ctx.code "BigArray";
+       as_int i;
+       emit_load ctx v;
+       (match kind_of ctx v with
+        | K_int -> Kind.emit_box_int ctx.code
+        | K_float -> Kind.emit_box_float ctx.code
+        | _ -> ());
+       Jvm.Code.invokevirtual
+         ctx.code ~class_:"BigArray" ~method_:"set1"
+         ~descriptor:"(ILjava/lang/Object;)I";
+       Kind.K_int
+     | _ -> raise (Unsupported "caml_ba_set_1 arity"))
+  | "caml_ba_get_2" ->
+    (match args with
+     | [ Pv ba; Pv i; Pv j ] ->
+       emit_load ctx ba;
+       Jvm.Code.checkcast ctx.code "BigArray";
+       as_int i; as_int j;
+       Jvm.Code.invokevirtual
+         ctx.code ~class_:"BigArray" ~method_:"get2"
+         ~descriptor:"(II)Ljava/lang/Object;";
+       Kind.K_obj
+     | _ -> raise (Unsupported "caml_ba_get_2 arity"))
+  | "caml_ba_set_2" ->
+    (match args with
+     | [ Pv ba; Pv i; Pv j; Pv v ] ->
+       emit_load ctx ba;
+       Jvm.Code.checkcast ctx.code "BigArray";
+       as_int i; as_int j;
+       emit_load ctx v;
+       (match kind_of ctx v with
+        | K_int -> Kind.emit_box_int ctx.code
+        | K_float -> Kind.emit_box_float ctx.code
+        | _ -> ());
+       Jvm.Code.invokevirtual
+         ctx.code ~class_:"BigArray" ~method_:"set2"
+         ~descriptor:"(IILjava/lang/Object;)I";
+       Kind.K_int
+     | _ -> raise (Unsupported "caml_ba_set_2 arity"))
+  | "caml_ba_fill" ->
+    (match args with
+     | [ Pv ba; Pv v ] ->
+       emit_load ctx ba;
+       Jvm.Code.checkcast ctx.code "BigArray";
+       emit_load ctx v;
+       (match kind_of ctx v with
+        | K_int -> Kind.emit_box_int ctx.code
+        | K_float -> Kind.emit_box_float ctx.code
+        | _ -> ());
+       Jvm.Code.invokevirtual
+         ctx.code ~class_:"BigArray" ~method_:"fill"
+         ~descriptor:"(Ljava/lang/Object;)I";
+       Kind.K_int
+     | _ -> raise (Unsupported "caml_ba_fill arity"))
+  | "caml_ba_blit" ->
+    (match args with
+     | [ Pv src; Pv dst ] ->
+       emit_load ctx src;
+       Jvm.Code.checkcast ctx.code "BigArray";
+       emit_load ctx dst;
+       Jvm.Code.checkcast ctx.code "BigArray";
+       Jvm.Code.invokestatic
+         ctx.code ~class_:"BigArray" ~method_:"blit"
+         ~descriptor:"(LBigArray;LBigArray;)I";
+       Kind.K_int
+     | _ -> raise (Unsupported "caml_ba_blit arity"))
   | "caml_ml_mutex_new" ->
     (match args with
      | [ _ ] ->

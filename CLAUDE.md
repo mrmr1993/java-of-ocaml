@@ -135,6 +135,18 @@ Every feature below is covered by at least one test under
   `caml_compare`, `caml_lessthan`, `caml_greaterthan`,
   `caml_lessequal`, `caml_greaterequal` route through the `Compare`
   runtime class.
+- **`Bigarray`** — `Array1.create` / `get` / `set` / `dim`, `Array2.get` /
+  `set`, `Genarray.{dims,kind,layout,blit,fill}` via the `BigArray`
+  runtime class (boxed `Object[]` storage per cell, supports any
+  kind/layout combination). Fast enough for setup paths like
+  `Random.State` but every access boxes — hot users should get a
+  typed-storage version later.
+- **`Digest`** — `Digest.string` / `bytes` via `caml_md5_string` /
+  `caml_md5_bytes`, backed by `java.security.MessageDigest`. Return
+  value is a `java.lang.String` (matching OCaml's `Digest.t = string`).
+- **`Random`** — `Random.State.make_self_init` / `int` / `int64` /
+  `float` / ... compile cleanly (stdlib's state is a 4-int64
+  `BigArray` advanced by `caml_lxm_next`).
 - **`Mutex` / `Condition`** — `Mutex.{create,lock,try_lock,unlock}`
   and `Condition.{create,wait,signal,broadcast}` backed by
   `java.util.concurrent.locks.ReentrantLock` (in `Mutex`) and a

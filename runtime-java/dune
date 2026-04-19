@@ -15,7 +15,8 @@
   Ephemeron.class
   JavaFFI.class
   Mutex.class
-  CondVar.class)
+  CondVar.class
+  BigArray.class)
  (deps
   Block.java
   Closure.java
@@ -28,7 +29,8 @@
   Ephemeron.java
   JavaFFI.java
   Mutex.java
-  CondVar.java)
+  CondVar.java
+  BigArray.java)
  (action
   (run javac -d . %{deps})))
 
@@ -47,7 +49,8 @@
    Ephemeron.class
    JavaFFI.class
    Mutex.class
-   CondVar.class))
+   CondVar.class
+   BigArray.class))
  (action
   (with-stdout-to
    %{targets}

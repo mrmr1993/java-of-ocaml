@@ -387,6 +387,10 @@ val cond_var_class_bytes : unit -> string
 (** Bytes of the [CondVar] runtime class — OCaml [Condition.t]
     backed by a lazily-bound [java.util.concurrent.locks.Condition]. *)
 
+val big_array_class_bytes : unit -> string
+(** Bytes of the [BigArray] runtime class — boxed [Object[]]
+    storage + kind / layout / dims, backing OCaml [Bigarray.t]. *)
+
 val closure_class_bytes : unit -> string
 
 val partial_closure_class_bytes : unit -> string

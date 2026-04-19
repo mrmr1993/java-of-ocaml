@@ -24,6 +24,18 @@
   (pps ppx_expect)))
 
 (library
+ ;; compiler/tests-compiler/bigarray_module.ml
+ (name bigarray_module_15)
+ (enabled_if true)
+ (modules bigarray_module)
+ (libraries unix str java_of_ocaml_expect_tests_helper)
+ (inline_tests
+  (enabled_if true))
+ (flags (:standard -open Java_of_ocaml_expect_tests_helper))
+ (preprocess
+  (pps ppx_expect)))
+
+(library
  ;; compiler/tests-compiler/branch_relaxation.ml
  (name branch_relaxation_15)
  (enabled_if true)

@@ -41,3 +41,5 @@ let java_ffi_class_bytes = Jvm_runtime.java_ffi_class_bytes
 let mutex_class_bytes = Jvm_runtime.mutex_class_bytes
 
 let cond_var_class_bytes = Jvm_runtime.cond_var_class_bytes
+
+let big_array_class_bytes = Jvm_runtime.big_array_class_bytes

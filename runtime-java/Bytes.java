@@ -85,4 +85,61 @@ public class Bytes {
     if (o instanceof Bytes) return ((Bytes) o).sb.toString();
     return (String) o;
   }
+
+  // Wide-load / wide-store helpers — OCaml's [Bytes.get16 / get32 /
+  // get64] and set counterparts. Little-endian; matches OCaml's
+  // runtime semantics.
+  public static int get16(Object o, int i) {
+    int b0 = staticGet(o, i) & 0xFF;
+    int b1 = staticGet(o, i + 1) & 0xFF;
+    return b0 | (b1 << 8);
+  }
+
+  public static int get32(Object o, int i) {
+    int b0 = staticGet(o, i) & 0xFF;
+    int b1 = staticGet(o, i + 1) & 0xFF;
+    int b2 = staticGet(o, i + 2) & 0xFF;
+    int b3 = staticGet(o, i + 3) & 0xFF;
+    return b0 | (b1 << 8) | (b2 << 16) | (b3 << 24);
+  }
+
+  public static long get64(Object o, int i) {
+    long r = 0L;
+    for (int k = 0; k < 8; k++) r |= ((long) (staticGet(o, i + k) & 0xFF)) << (8 * k);
+    return r;
+  }
+
+  public static int set16(Bytes b, int i, int v) {
+    b.sb.setCharAt(i, (char) (v & 0xFF));
+    b.sb.setCharAt(i + 1, (char) ((v >> 8) & 0xFF));
+    return 0;
+  }
+
+  public static int set32(Bytes b, int i, int v) {
+    for (int k = 0; k < 4; k++) b.sb.setCharAt(i + k, (char) ((v >> (8 * k)) & 0xFF));
+    return 0;
+  }
+
+  public static int set64(Bytes b, int i, long v) {
+    for (int k = 0; k < 8; k++) b.sb.setCharAt(i + k, (char) ((v >>> (8 * k)) & 0xFFL));
+    return 0;
+  }
+
+  // OCaml's [Digest.t = string], so caml_md5_bytes / caml_md5_string
+  // return a String (16 bytes), not a Bytes — upstream Stdlib calls
+  // [Bytes.unsafe_to_string] on the result and expects String
+  // semantics.
+  public static String md5(Object s, int ofs, int len) {
+    byte[] input = new byte[len];
+    for (int i = 0; i < len; i++) input[i] = (byte) (staticGet(s, ofs + i) & 0xFF);
+    try {
+      java.security.MessageDigest md = java.security.MessageDigest.getInstance("MD5");
+      byte[] digest = md.digest(input);
+      char[] chars = new char[digest.length];
+      for (int i = 0; i < digest.length; i++) chars[i] = (char) (digest[i] & 0xFF);
+      return new String(chars);
+    } catch (java.security.NoSuchAlgorithmException e) {
+      throw new RuntimeException(e);
+    }
+  }
 }

@@ -54,3 +54,7 @@ val mutex_class_bytes : unit -> string
 val cond_var_class_bytes : unit -> string
 (** OCaml [Condition.t] backed by [java.util.concurrent.locks.Condition]
     (lazily bound to the mutex on first wait). *)
+
+val big_array_class_bytes : unit -> string
+(** Minimal OCaml [Bigarray.Genarray.t] backing — boxed uniform
+    storage in an [Object[]] with kind + layout + dims recorded. *)
