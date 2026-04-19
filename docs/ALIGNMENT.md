@@ -82,12 +82,15 @@ Add new items as they are spotted.
 - **Effects / CPS translation** —
   `js_of_ocaml/compiler/lib/effects.ml`. Needed if we ever support
   OCaml 5 effect handlers.
-- **Stdlib compilation pipeline** — jsoo compiles all of Stdlib
-  ahead-of-time and links it in. We currently compile Stdlib from
-  the input bytecode on the fly, which means each program's
-  Stdlib chunks are re-compiled. A precompiled-Stdlib cache would
-  be a significant speedup, and would let us sidestep the handful
-  of Stdlib internals we don't yet get through.
+- **Stdlib IR cache (optimisation, not a correctness item).**
+  Jsoo re-lowers Stdlib from bytecode on every invocation and it's
+  fast enough in practice; we do the same. If compile times ever
+  become painful, the cheapest speedup is caching the output of
+  `Parse_bytecode.from_cma` on `$(ocamlc -where)/stdlib.cma`
+  (IR-level cache) and re-running codegen each compile. Full
+  ahead-of-time class-file precompilation was considered and
+  dropped — correct but adds bootstrap staging and slot-assignment
+  plumbing for a win that's uncertain.
 - **`StackMapTable` / Java 6+ verifier** — we emit Java 5
   class-file format (major version 49), relying on the old
   type-inference verifier. Moving to the stricter Java 6+ verifier

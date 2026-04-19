@@ -40,21 +40,21 @@ rise.
    tables on the fly. *(Reader + partial linker landed; driver and
    CLI integration outstanding — tracked in `ALIGNMENT.md`.)*
 
-2. **Precompiled-Stdlib cache (and probably Core / Base too).**
-   Once libraries compile separately, recompiling Stdlib for every
-   test is prohibitive. A persistent on-disk cache is essential
-   for development loop times. Extends naturally once the link
-   step exists.
-
-3. **Full `Stdlib` module-record materialisation.** Unblocks
+2. **Full `Stdlib` module-record materialisation.** Unblocks
    `invalid_arg`, `Printf` / `CamlinternalFormat`, `Lazy`,
    `module rec`, and the non-inlined `Obj` entry points. Core
    exercises every one of these pervasively; you will hit all of
    them in the first hour. Currently we sidestep some by binding
    `external`s directly — that won't scale to library code you
-   don't own.
+   don't own. Following jsoo's lead here: Stdlib is not
+   precompiled ahead of time; it is linked into every build from
+   `$(ocamlc -where)/stdlib.cma` alongside user code. The
+   separate-compilation linker from item #1 already does most of
+   what's needed — the remaining work is wiring Stdlib into the
+   default input set and making the full module record flow
+   through without gaps.
 
-4. **Integer width — commit to a 63-bit-clean representation.**
+3. **Integer width — commit to a 63-bit-clean representation.**
    Anything that handles balances, block heights, nonces, or other
    quantities via `Int64` / unsigned arithmetic will silently wrap
    at the JVM 32-bit boundary. This is a correctness issue, not a
@@ -62,7 +62,7 @@ rise.
    or you are debugging ghost bugs indefinitely. jsoo's `long`-
    for-`nativeint` approach is the precedent.
 
-5. **64 KB method splitting.** Derived functors (`bin_io`,
+4. **64 KB method splitting.** Derived functors (`bin_io`,
    `sexp_of`, `compare`) plus heavy `ppx_deriving` / `ppx_jane`
    expansion generate long straight-line functions. The
    class-file `Code` attribute caps at 65 535 bytes. We haven't
@@ -70,7 +70,7 @@ rise.
    scale we will, and the jsoo escape hatch (spill into auxiliary
    methods) is the blueprint.
 
-6. **Broader C-primitive coverage.** File I/O
+5. **Broader C-primitive coverage.** File I/O
    (`caml_sys_open`, `caml_ml_input`, `caml_ml_input_char`, …),
    hashing, `Bigstring` / `Bigarray`, randomness, and whatever
    domain-specific stubs a caller ships. A strategy for the
@@ -78,7 +78,7 @@ rise.
    reimplementations dropped into `runtime-java/`, or JNI bridges
    for anything that absolutely must stay C.
 
-7. **Minimal concurrency story.** The application's async /
+6. **Minimal concurrency story.** The application's async /
    lightweight-thread scheduler is not OCaml 5 effects — it's a
    monadic CPS layer over a scheduler that needs `Thread`,
    `Mutex`, `Condition`, and a real event loop. These can be
@@ -87,41 +87,41 @@ rise.
 
 ## Phase B — making the test pipeline usable
 
-8. **`ppx_inline_test` / `ppx_expect` runner integration.** A
+7. **`ppx_inline_test` / `ppx_expect` runner integration.** A
    JVM-side runner that plays the role of `inline_test_runner`,
    invokable via a new CLI sub-command or external driver.
    Without it there is no way to *run* the application's tests
    even when things compile.
 
-9. **Source-map granularity.** Debugging stack traces through
+8. **Source-map granularity.** Debugging stack traces through
    Core's functor layers with only block-start line numbers is
    impractical at this size. Per-expression `LineNumberTable` plus
    probably `SourceDebugExtension` (SMAP / JSR-45) so mainstream
    JVM IDEs can step through generated code.
 
-10. **`check-runtime` / primitive registry.** Catches missing
+9. **`check-runtime` / primitive registry.** Catches missing
     primitives at link time rather than after a long test run
     hits a stub exception.
 
-11. **`StackMapTable` / Java 6+ verifier.** If any JVM-side test
+10. **`StackMapTable` / Java 6+ verifier.** If any JVM-side test
     harness (JUnit, modern agents) insists on modern class files,
     Java 5 output becomes a blocker.
 
 ## Phase C — performance (only matters once Phase A/B works)
 
-12. `Flow.Info.t` — the gating item for the whole optimiser layer.
+11. `Flow.Info.t` — the gating item for the whole optimiser layer.
 
-13. Layer on Flow: stronger `Eval` → `Inline` → `Global_deadcode`.
+12. Layer on Flow: stronger `Eval` → `Inline` → `Global_deadcode`.
     Core's "zero-cost" abstractions assume aggressive inlining;
     without it the application runs, but slowly.
 
-14. `Closure_conversion` / `Curry` refactor — cleanup, not
+13. `Closure_conversion` / `Curry` refactor — cleanup, not
     blocking.
 
-15. Dead-param elim in `Deadcode` — small local win, fits anywhere
+14. Dead-param elim in `Deadcode` — small local win, fits anywhere
     after `Pure_fun`.
 
-16. `Shape` inference — layered on Flow.
+15. `Shape` inference — layered on Flow.
 
 ## Phase D — deferrable
 
@@ -136,16 +136,22 @@ effects and is monadic.
 | Item | Generic priority | Target-driven priority |
 |------|------------------|------------------------|
 | `from_cmo` / `from_cma` + link | mid | **#1** |
-| Precompiled-Stdlib cache | low | **#2** |
-| Full Stdlib materialisation | mid | **#3** |
-| Integer width | "as needed" | **#4 (correctness blocker)** |
-| 64 KB method splitting | "when we hit it" | **#5** |
-| Broad C-primitive coverage | ad-hoc | **#6** |
-| Concurrency / Thread runtime | deferred | **#7** |
-| Inline-test runner | not listed | **#8 (new)** |
-| Source-map granularity | mid | **#9** |
-| `Flow` + optimiser layer | **top of deferred** | **#12 (demoted)** |
+| Full Stdlib materialisation | mid | **#2** |
+| Integer width | "as needed" | **#3 (correctness blocker)** |
+| 64 KB method splitting | "when we hit it" | **#4** |
+| Broad C-primitive coverage | ad-hoc | **#5** |
+| Concurrency / Thread runtime | deferred | **#6** |
+| Inline-test runner | not listed | **#7 (new)** |
+| Source-map granularity | mid | **#8** |
+| `Flow` + optimiser layer | **top of deferred** | **#11 (demoted)** |
 | Effects | mid | **Phase D** |
+
+(Precompiled-Stdlib caching was initially listed as Phase A but
+dropped after reviewing jsoo's architecture: jsoo recompiles Stdlib
+on every invocation and it's fast enough, so we follow suit. If
+build times become a pain point we can cache the IR after
+`Parse_bytecode.from_cma` as a targeted optimisation — tracked in
+`ALIGNMENT.md`.)
 
 The high-level reshuffle: the optimiser layer moves from
 "do this next after the IR lands" down to "once the thing runs".
