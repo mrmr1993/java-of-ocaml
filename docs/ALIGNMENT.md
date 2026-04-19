@@ -147,12 +147,15 @@ Add new items as they are spotted.
     via `JAVA_OF_OCAML_SPLIT_THRESHOLD=<bytes>`; the
     `method_split_e2e` test uses this hook to force splitting on a
     modest function.
-  - Remaining work: closed-form analysis on cuts whose tail
-    references head-Let-defined vars (today those cuts are
-    rejected; full acceptance requires per-predecessor live-in
-    analysis). Getting this to land will unlock the remaining
-    unsplittable oversize functions, most notably the stdlib-
-    linked `<main>`.
+  - Remaining work: fold forwarded-var plumbing for cuts whose
+    tail references a head-defined var. Doing this safely requires
+    per-predecessor dominance for [Assign]-touched vars (strict
+    SSA-lite only applies to [Let]-defined vars; [Assign] can
+    re-write its target on any path, so a forwarded [Assign] var
+    may be uninitialised along some predecessors). For now the
+    splitter rejects such cuts and falls back on intra-block
+    splitting, which is enough to bring stdlib's combined main-init
+    body — previously 95 KB — under the limit.
 
 ## Stdlib wrapper functions needing `Invalid_argument`
 
