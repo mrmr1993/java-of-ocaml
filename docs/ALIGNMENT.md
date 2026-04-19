@@ -1,193 +1,150 @@
 # Alignment with js_of_ocaml
 
-`java_of_ocaml` is modeled on `js_of_ocaml`/`wasm_of_ocaml`. This document
-tracks structural or API-level alignments that have been *identified* but
-deferred — typically because they depend on infrastructure we don't yet
-have (notably an intermediate representation), or because the cost is
-only justified once the feature set demands it.
+`java_of_ocaml` is modeled on `js_of_ocaml` / `wasm_of_ocaml`. This
+document tracks structural or API-level alignments with those
+projects — resolved ones (what's in place today) as a pointer for
+where to look when debugging, and deferred ones as a roadmap.
 
-Add new items as they are spotted. Delete resolved items — git history
-retains them.
+Add new items as they are spotted. Delete resolved items' history
+with a PR-sized description — git history retains the details.
 
 ## Resolved: structural IR
 
-- **`Code.program` IR** — landed as
+- **`Code.program` IR** —
   `compiler/lib-java/code.ml{,i}`, adapted from
   `js_of_ocaml/compiler/lib/code.ml`. Drops CPS, Event, Special;
-  keeps Var / Addr / constant / expr / instr / last / block /
-  program plus Print and fold_children. `Switch` carries separate
-  int_cases + tag_cases arrays to match OCaml's mixed-dispatch
-  SWITCH semantics.
-- **`Parse_bytecode`** — landed as
+  keeps `Var` / `Addr` / `constant` / `expr` / `instr` / `last` /
+  `block` / `program` plus `Print` pretty-printers and
+  `fold_children`. `Switch` carries separate `int_cases` +
+  `tag_cases` arrays to match OCaml's mixed-dispatch SWITCH
+  semantics.
+- **`Parse_bytecode`** —
   `compiler/lib-java/parse_bytecode.ml{,i}`. Block-boundary scan
-  via `Instr.branch_targets` + terminator successors; DFS with
-  dynamic target-params promotion; full coverage of the opcode
-  subset `java_of_ocaml` uses.
-- **`Jvm_typing`** (per-Var kind inference) + **`Jvm_generate`**
-  (IR → JVM bytecode) — `compiler/lib-java/jvm_typing.ml{,i}` +
-  `jvm_generate.ml{,i}`. Generate walks blocks in topological
-  order, maintains a Var.t → JVM local map, coerces at block-edge
-  parallel renames (convert-on-assign idiom from jsoo's
-  lib-wasm/generate.ml:1920), and emits JVM bytecode.
-- **Legacy forward-walk emitter retired.** The old `Emit_instr` /
-  `Emit_*` / `Inference` / `Cfg` / `State` modules that walked the
-  bytecode directly and threaded a mutable State are deleted.
+  via `Instr.branch_targets` + terminator successors; a parser
+  state threading accu + OCaml-stack slots + env; DFS over blocks
+  with dynamic target-params promotion; full coverage of the
+  opcode subset `java_of_ocaml` uses.
+- **`Jvm_typing`** (per-Var forward kind inference) +
+  **`Jvm_generate`** (IR → JVM bytecode) —
+  `compiler/lib-java/jvm_typing.ml{,i}` +
+  `compiler/lib-java/jvm_generate.ml{,i}`. Generate walks blocks
+  in topological order, maintains `Var.t → JVM local`, coerces at
+  block-edge parallel renames (convert-on-assign idiom from jsoo's
+  `lib-wasm/generate.ml:1920`), and emits bytecode via
+  `Jvm.Code`.
+
+The legacy forward-walk emitter — the old `Emit_instr` / `Emit_*` /
+`Inference` / `Cfg` / `State` modules that walked bytecode directly
+through a mutable state — is retired.
 
 ## Deferred: IR-dependent alignments
 
-The IR is in place; these would be natural layered additions.
+The IR is in place; these would be natural layered additions now.
 
 - **`Parse_bytecode.from_cmo` / `from_cma`** —
   `js_of_ocaml/compiler/lib/parse_bytecode.mli`. We currently only
-  read CODE/PRIM/DATA from a full executable. Separate-compilation
-  inputs (cmo / cma) would let us compile libraries without linking
-  them into a bytecode executable first.
+  read CODE / PRIM / DATA from a full executable. Separate-
+  compilation inputs (`.cmo` / `.cma`) would let us compile
+  libraries without linking them into a bytecode executable first.
 - **`Flow.Info.t` / `Flow.f`** —
-  `js_of_ocaml/compiler/lib/flow.ml`. Flow-sensitive
-  constant-propagation and shape facts. Would extend
-  `Jvm_typing`'s forward pass with def-use propagation.
-- **Optimization passes** — `Deadcode`, `Inline`, `Eval`, `Tailcall`,
-  `Global_deadcode` in `js_of_ocaml/compiler/lib/`. All
-  backend-agnostic; operate on `Code.program → Code.program`.
+  `js_of_ocaml/compiler/lib/flow.ml`. Flow-sensitive constant
+  propagation and shape facts. Would extend `Jvm_typing`'s forward
+  pass with def-use propagation and a more precise Var.t → Kind.kind
+  lattice.
+- **Optimization passes** — `Deadcode`, `Inline`, `Eval`,
+  `Tailcall`, `Global_deadcode` in `js_of_ocaml/compiler/lib/`.
+  All backend-agnostic; operate on `Code.program → Code.program`.
 - **`Closure_conversion`** —
   `js_of_ocaml/compiler/lib-wasm/closure_conversion.ml`. Our IR
-  already carries explicit `captures` in `Closure` but a separate
+  already carries explicit `captures` in `Closure`, but a separate
   conversion pass would give us free-variable analysis and match
   jsoo's layering.
 - **`Curry`** — `js_of_ocaml/compiler/lib-wasm/curry.ml`. Generates
-  arity-specific apply/curry helpers; semantically close to the
+  arity-specific apply/curry helpers; semantically close to our
   hand-rolled `PartialClosure` + `apply1..apply7` dispatch in
   `runtime-java/`.
 - **`Shape` inference** — `js_of_ocaml/compiler/lib/shape.ml`.
-  Finer-grained than `Kind`.
+  Finer-grained than our `Kind.kind`.
 
-## Deferred: features beyond current maturity
+## Deferred: tooling & feature gaps
 
 - **Proper CLI via Cmdliner** —
-  `js_of_ocaml/compiler/bin-js_of_ocaml/` and `bin-wasm_of_ocaml/`
-  define sub-commands (`compile`, `link`, `check-runtime`, …). The
-  single `java_of_ocaml.exe` entry point will need breaking up once
-  linking / runtime checks / other commands exist.
-- **Separate compilation (`.cmo` / `.cma`)** — we only consume linked
-  `.exe` bytecode; `Parse_bytecode.from_cmo` / `from_cma` cover the
-  other entry points.
+  `js_of_ocaml/compiler/bin-js_of_ocaml/` and
+  `bin-wasm_of_ocaml/` define sub-commands (`compile`, `link`,
+  `check-runtime`, …). The single `java_of_ocaml.exe` entry point
+  will need breaking up once linking / runtime checks / other
+  commands exist.
 - **Source maps** — `js_of_ocaml/compiler/lib/source_map.ml`,
   `lib-wasm/wasm_source_map.ml`. Stepped debugging in JVM tooling
-  would need a different mapping target (e.g. SMAP for JSR-45), but
-  the design is a useful reference.
+  would need a different mapping target (e.g. SMAP for JSR-45),
+  but the design is a useful reference.
 - **Target-backend signature** —
-  `js_of_ocaml/compiler/lib-wasm/target_sig.ml`. Only pays off once
-  we have more than one backend (Dalvik, CIL, …), but even with one
-  it documents the runtime-value contract.
+  `js_of_ocaml/compiler/lib-wasm/target_sig.ml`. Only pays off
+  once we have more than one backend (Dalvik, CIL, …), but even
+  with one it documents the runtime-value contract.
 - **Effects / CPS translation** —
   `js_of_ocaml/compiler/lib/effects.ml`. Needed if we ever support
   OCaml 5 effect handlers.
 - **Stdlib compilation pipeline** — jsoo compiles all of Stdlib
-  ahead-of-time and links it in. Currently `java_of_ocaml` falls back
-  to a handful of custom C primitives (`caml_java_print_*`, array
-  ops). Replacing that requires either our own Stdlib compilation or
-  cross-compiled artefacts.
-
-## Stdlib wrapper functions needing `Invalid_argument`
-
-Several Stdlib functions (`Array.sub`, `Array.blit`, `Array.fill`,
-`String.sub`, `Bytes.sub`, `Buffer.*`) are thin OCaml wrappers around
-an `external` primitive that call `Stdlib.invalid_arg` for
-bounds-check failures. The primitive itself works today; the wrapper
-doesn't, because `Stdlib.invalid_arg` is a closure living in the
-`Stdlib` module record, which we can't materialise. Tests route
-around this by binding the underlying `external` directly. Lift
-once Stdlib compilation (or a targeted materialisation of
-`Stdlib.Invalid_argument` / `Stdlib.invalid_arg`) lands.
-
-## Whole-bytecode compilation
-
-Whole-bytecode is now the default and only mode: the compile
-driver emits every instruction in the CODE section, including
-Stdlib init, module-init boilerplate, and user code. Mismatched
-types at join blocks are merged structurally via the CFG's
-block-parameter locals (see `Cfg` + `State.spill_to_block_params`
-/ `reload_from_block_params`), so programs like
-`List.length [1;2;3]`, `List.sort compare xs`, and
-`List.fold_left (+) 0 xs` compile, pass the JVM verifier, and
-run correctly.
-
-Working through Stdlib today (all end-to-end under whole-bytecode,
-with no custom externals):
-
-- `print_endline`, `print_string`, `print_int`, `print_newline`
-  (I/O via the `Channel` runtime class — `caml_ml_output` /
-  `caml_ml_output_char` / `caml_ml_flush` / `caml_ml_open_descriptor_out`).
-- `(^)` string concat (via `caml_create_bytes` / `caml_blit_string`
-  / `caml_string_of_bytes` backed by the `Bytes` runtime class —
-  `StringBuilder`-wrapped mutable byte buffer).
-- `List.length` / `List.fold_left` / `List.sort` / `List.iter`.
-- `invalid_arg` / `failwith` / `raise Not_found` etc. round-trip
-  through `try … with Invalid_argument _ | Failure _ | Not_found`.
-  User-defined exceptions with args also match correctly.
-
-Remaining gaps on the path to `Printf.printf` and the fuller
-Stdlib surface:
-
-- `Printf` via `CamlinternalFormat` hits an `ENVACC capture
-  index N out of range` during compilation — looks like a
-  closure-analysis mismatch where a deeply-nested capture chain
-  isn't being sized correctly by the CLOSUREREC pre-scan.
-- The `max_stack` tracker is off-by-1 around a narrow class of
-  `apply5`-at-peak-stack shapes; papered over with a [+8]
-  margin in `jvm_class_file`.
-- A handful of stub primitives (`caml_channel_descriptor`,
-  `caml_sys_get_argv`, etc.) still return `null`; programs that
-  subsequently read fields off the returned value NPE at runtime.
+  ahead-of-time and links it in. We currently compile Stdlib from
+  the input bytecode on the fly, which means each program's
+  Stdlib chunks are re-compiled. A precompiled-Stdlib cache would
+  be a significant speedup, and would let us sidestep the handful
+  of Stdlib internals we don't yet get through.
+- **`StackMapTable` / Java 6+ verifier** — we emit Java 5
+  class-file format (major version 49), relying on the old
+  type-inference verifier. Moving to the stricter Java 6+ verifier
+  would need `StackMapTable` attributes but would make our output
+  compatible with tools that reject the older format.
 
 ## Known representation gaps
 
 - **Integer width** — our ints run as JVM 32-bit `int`, not OCaml's
   63-bit tagged int. Arithmetic, shifts, and bitwise ops silently
-  wrap at the JVM boundary. A 64-bit-clean representation would
+  wrap at the JVM boundary. A 63-bit-clean representation would
   either promote every int to `long` or keep `int` everywhere and
   add explicit wrap-to-63-bit masks on operations; jsoo takes the
-  first approach for `nativeint`/`int64` but leaves plain `int` as
-  a JS number. We should pick a strategy before either int64
-  arithmetic or Sys.int_size-dependent code (popcount,
+  first approach for `nativeint` / `int64` but leaves plain `int`
+  as a JS number. We should pick a strategy before `int64`
+  arithmetic or `Sys.int_size`-dependent code (popcount,
   leading_zeros) starts mattering.
+- **Large method bodies** — the JVM branch-offset format is signed
+  16-bit, so a method body more than ~32 KB of bytecode breaks
+  class-file assembly. Deep Stdlib internals (`Marshal`, deep
+  `Printf` routing) can exceed this. Fixes: use `goto_w` / `jsr_w`
+  for branches beyond the 16-bit window, or split long methods
+  into pieces.
 
-## Known bugs surfaced but not fixed
+## Stdlib wrapper functions needing `Invalid_argument`
 
-Recorded here so they don't get lost; each has a focused repro.
+Several Stdlib functions (`Array.sub`, `Array.blit`, `Array.fill`,
+`String.sub`, `Bytes.sub`, `Buffer.*`) are thin OCaml wrappers
+around an `external` primitive that calls `Stdlib.invalid_arg` for
+bounds-check failures. The primitive itself works; the wrapper
+doesn't, because `Stdlib.invalid_arg` is a closure living in the
+`Stdlib` module record. Tests bind the underlying `external`
+directly to sidestep this. Resolved once the full `Stdlib` module
+record materialises.
 
-- **Oversupply + inline closure call**:
+## Feature gaps
 
-  ```ocaml
-  let mk n = fun x -> x + n
-  let () = caml_java_print_int (mk 10 32)
-  ```
-
-  Direct CLI invocation of `java_of_ocaml.exe` on the resulting
-  bytecode produces a correct `Main.class` that prints `42`; running
-  through `compile_and_run` / `compile_and_javap` inside dune's test
-  sandbox fails with `kind mismatch — have Locaml_fn_0;, need I`.
-  Exact environmental divergence is unclear — same binary hash, same
-  source bytes, same cwd-to-bytecode flow — but the test sandbox
-  reliably triggers it. Binding the intermediate (`let add10 = mk 10
-  in add10 32`) avoids it entirely. Run with
-  `JAVA_OF_OCAML_DEBUG=emit` for a per-opcode trace of acc-kind
-  transitions.
-
-## Feature gaps (also noted in the README / CLAUDE.md)
-
-Listed here because each has an analogue in jsoo worth studying when
-implementing:
+Listed here because each has an analogue in jsoo worth studying
+when implementing:
 
 - Non-inlined `Obj` entry points that flow through a closure
   reference (e.g. `Obj.is_block`, `Obj.Extension_constructor.*`).
-  Those require pulling in the `Obj` module record from
+  Require pulling in the `Obj` module record from
   `caml_global_data`, which we can't materialise yet because its
-  fields are closures; the inlined externals (`%obj_is_int`,
-  `%obj_size`, `%obj_field`, `%obj_set_field`, `%identity`) work, as
-  do the C primitives `caml_obj_tag`, `caml_obj_block`,
+  fields are closures. The inlined externals (`%obj_is_int`,
+  `%obj_size`, `%obj_field`, `%obj_set_field`, `%identity`) work,
+  as do the C primitives `caml_obj_tag`, `caml_obj_block`,
   `caml_obj_with_tag`, `caml_obj_dup`.
 - `Lazy.t` / `lazy` / `Lazy.force`.
-- `module rec` (jsoo uses `CamlinternalMod`'s lazy-initialised
-  placeholders).
-- Floats, IO, threads.
+- `module rec` — simple cases pass (`corecursion.ml` tests);
+  deeper `CamlinternalMod`-driven patterns still hit runtime
+  failures. jsoo uses `CamlinternalMod`'s lazy-initialised
+  placeholders end-to-end.
+- `Printf.printf` via `CamlinternalFormat` — hits an `ENVACC
+  capture N out of range` during emission. Closure-analysis
+  mismatch when a nested ENVACC chain sees the wrong `ncaps`.
+- I/O beyond stdout, threads.
