@@ -205,7 +205,14 @@ let pushtrap_regions (prog : program) =
                | Switch (_, ints, tags) ->
                  Array.iter step ints;
                  Array.iter step tags
-               | Pushtrap (b_c, _, _) -> step b_c))
+               (* A nested [Pushtrap]'s handler runs with only the
+                  outer trap on the runtime stack (the inner trap was
+                  popped by the raise that entered the handler). So
+                  any exception raised inside that handler, and any
+                  [Poptrap] it executes, is scoped to the outer trap
+                  — the handler's blocks are part of the outer's
+                  protected region. *)
+               | Pushtrap (b_c, _, h_c) -> step b_c; step h_c))
         in
         collect body_addr;
         regions := (pushtrap_addr, handler_addr, !protected) :: !regions
