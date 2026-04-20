@@ -213,33 +213,10 @@ let pushtrap_regions (prog : program) =
     prog.blocks;
   !regions
 
-let cut_respects_trap_regions regions ~head ~tail =
-  List.for_all
-    (fun (pushtrap_addr, handler_addr, protected) ->
-      let all_in set s = Addr.Set.for_all (fun a -> Addr.Set.mem a set) s in
-      if Addr.Set.mem pushtrap_addr head
-      then all_in head protected && Addr.Set.mem handler_addr head
-      else if Addr.Set.mem pushtrap_addr tail
-      then all_in tail protected && Addr.Set.mem handler_addr tail
-      else true)
-    regions
-
-let cut_is_self_contained prog ~cut_addr ~head ~tail =
-  let head_ok =
-    Addr.Set.for_all
-      (fun a ->
-        List.for_all
-          (fun s -> Addr.Set.mem s head || s = cut_addr)
-          (successors prog a))
-      head
-  in
-  let tail_ok =
-    Addr.Set.for_all
-      (fun a ->
-        List.for_all (fun s -> Addr.Set.mem s tail) (successors prog a))
-      tail
-  in
-  head_ok && tail_ok
+(* [cut_respects_trap_regions] and [cut_is_self_contained] used to
+   be the set-based trap + disjointness checks inside [try_cut].
+   [try_cut_fast]'s predecessor-based validation plus
+   [cut_respects_trap_regions_fast] subsume them. Removed. *)
 
 
 (* Backward-dataflow [live_in] for every reachable block. One
@@ -397,39 +374,150 @@ module Stat = struct
           entries))
 end
 
-let try_cut ~reachable prog regions ~cut_addr =
+(* Predecessor map built once per split_cache. The predecessor of [b]
+   is any block whose terminator's successor edges include [b]. We
+   only record edges to blocks that are still in [prog.blocks]
+   (matching [successors]'s filter). *)
+let compute_predecessors (prog : program) =
+  let tbl = Hashtbl.create (Addr.Map.cardinal prog.blocks) in
+  Addr.Map.iter
+    (fun src b ->
+      let step (s, _) =
+        if Addr.Map.mem s prog.blocks
+        then (
+          let prev =
+            match Hashtbl.find_opt tbl s with Some l -> l | None -> []
+          in
+          Hashtbl.replace tbl s (src :: prev))
+      in
+      match b.branch with
+      | Return _ | Raise _ | Stop | Invoke_tail _ -> ()
+      | Branch c -> step c
+      | Cond (_, c1, c2) ->
+        step c1;
+        step c2
+      | Switch (_, ints, tags) ->
+        Array.iter step ints;
+        Array.iter step tags
+      | Pushtrap (body, _, handler) ->
+        step body;
+        step handler
+      | Poptrap c -> step c)
+    prog.blocks;
+  tbl
+
+(* Trap-region check that works from a [Hashtbl] tail set plus the
+   outer [reachable] set (so [head] doesn't need to be materialized
+   per candidate — see [try_cut_fast]). Semantically equivalent to
+   [cut_respects_trap_regions]: a region must sit entirely in the
+   same side as its pushtrap. *)
+let cut_respects_trap_regions_fast ~reachable ~tail_tbl regions =
+  let in_tail a = Hashtbl.mem tail_tbl a in
+  let in_head a = Addr.Set.mem a reachable && not (in_tail a) in
+  List.for_all
+    (fun (pushtrap_addr, handler_addr, protected) ->
+      if in_tail pushtrap_addr
+      then
+        Addr.Set.for_all in_tail protected && in_tail handler_addr
+      else if in_head pushtrap_addr
+      then
+        Addr.Set.for_all in_head protected && in_head handler_addr
+      else true)
+    regions
+
+(* O(|tail|) cut validation via predecessor table. [try_cut] with
+   the old two-BFS + intersection-test approach was O(|reachable|)
+   per candidate with balanced-tree [Addr.Set] ops in tight loops —
+   100+ ms per call on sub-programs with a few hundred blocks. This
+   version:
+
+   - runs a single BFS from [cut_addr] using a [Hashtbl] (O(1) ops),
+   - validates the cut by checking that every reachable predecessor
+     of a tail block is either in the tail or is [cut_addr] itself
+     (equivalent to the old head/tail-disjointness plus self-
+     containment checks combined),
+   - defers materializing [head] as an [Addr.Set.t] until the
+     winning candidate — [find_end_cut]'s scoring only needs the
+     tail cost, which sums directly out of the [Hashtbl].
+
+   Returns [None] / [Some (cut_addr, tail_tbl)] rather than a
+   [cut] record so callers can decide when to pay the set-build.
+   The final [cut] is assembled only for the one chosen winner. *)
+let try_cut_fast ~reachable ~predecessors prog regions ~cut_addr =
   if cut_addr = prog.start
   then None
   else if not (Addr.Map.mem cut_addr prog.blocks)
   then None
+  else if not (Addr.Set.mem cut_addr reachable)
+  then None
   else (
-    if not (Addr.Set.mem cut_addr reachable)
-    then None
-    else (
-      let head =
-        reachable_avoiding prog ~start:prog.start ~avoid:(Some cut_addr)
-      in
-      let tail = reachable_from prog ~start:cut_addr in
-      if not (Addr.Set.is_empty (Addr.Set.inter head tail))
-      then (
-        if debug_split ()
-        then Format.eprintf "[split]   cut=%d reject: head∩tail@." cut_addr;
-        None)
-      else if not (cut_respects_trap_regions regions ~head ~tail)
+    let tail_tbl = Hashtbl.create 32 in
+    let stack = Stack.create () in
+    Hashtbl.add tail_tbl cut_addr ();
+    Stack.push cut_addr stack;
+    while not (Stack.is_empty stack) do
+      let a = Stack.pop stack in
+      List.iter
+        (fun s ->
+          if not (Hashtbl.mem tail_tbl s)
+          then (
+            Hashtbl.add tail_tbl s ();
+            Stack.push s stack))
+        (successors prog a)
+    done;
+    let exception Invalid in
+    match
+      try
+        Hashtbl.iter
+          (fun a () ->
+            if a <> cut_addr
+            then
+              let preds =
+                match Hashtbl.find_opt predecessors a with
+                | Some l -> l
+                | None -> []
+              in
+              List.iter
+                (fun p ->
+                  if p <> cut_addr
+                     && not (Hashtbl.mem tail_tbl p)
+                     && Addr.Set.mem p reachable
+                  then raise_notrace Invalid)
+                preds)
+          tail_tbl;
+        true
+      with Invalid -> false
+    with
+    | false ->
+      if debug_split ()
+      then
+        Format.eprintf
+          "[split]   cut=%d reject: head-reaches-tail@."
+          cut_addr;
+      None
+    | true ->
+      if not (cut_respects_trap_regions_fast ~reachable ~tail_tbl regions)
       then (
         if debug_split ()
         then
           Format.eprintf "[split]   cut=%d reject: trap-region@." cut_addr;
         None)
-      else if not (cut_is_self_contained prog ~cut_addr ~head ~tail)
-      then (
-        if debug_split ()
-        then
-          Format.eprintf
-            "[split]   cut=%d reject: not self-contained@."
-            cut_addr;
-        None)
-      else Some { cut_addr; head; tail }))
+      else Some (cut_addr, tail_tbl))
+
+(* Materializing wrapper around [try_cut_fast]: produces the full
+   [cut] record with [head] and [tail] as [Addr.Set.t]. Callers
+   outside the hot inner loop of [find_end_cut] use this because
+   they need to plug the cut straight into [head_subprogram] /
+   [tail_subprogram] / [augment_cut_params]. *)
+let try_cut ~reachable ~predecessors prog regions ~cut_addr =
+  match try_cut_fast ~reachable ~predecessors prog regions ~cut_addr with
+  | None -> None
+  | Some (cut_addr, tail_tbl) ->
+    let tail =
+      Hashtbl.fold (fun a () acc -> Addr.Set.add a acc) tail_tbl Addr.Set.empty
+    in
+    let head = Addr.Set.diff reachable tail in
+    Some { cut_addr; head; tail }
 
 (* Score a cut: primary term balances head cost against [target]
    (halve toward the limit); secondary term penalises the number
@@ -467,6 +555,7 @@ type split_cache =
   { cache_block_cost : (Addr.t, int) Hashtbl.t
   ; cache_regions : (Addr.t * Addr.t * Addr.Set.t) list
   ; cache_forward_size : (Addr.t, int) Hashtbl.t
+  ; cache_predecessors : (Addr.t, Addr.t list) Hashtbl.t
   }
 
 let build_split_cache ?env_var (prog : program) =
@@ -484,6 +573,7 @@ let build_split_cache ?env_var (prog : program) =
   { cache_block_cost = precompute_block_costs prog
   ; cache_regions = pushtrap_regions prog
   ; cache_forward_size = forward_size
+  ; cache_predecessors = compute_predecessors prog
   }
 
 let find_cut_toward ~cache prog ~target =
@@ -491,7 +581,14 @@ let find_cut_toward ~cache prog ~target =
   let best = ref None in
   Addr.Set.iter
     (fun a ->
-      match try_cut ~reachable prog cache.cache_regions ~cut_addr:a with
+      match
+        try_cut
+          ~reachable
+          ~predecessors:cache.cache_predecessors
+          prog
+          cache.cache_regions
+          ~cut_addr:a
+      with
       | None -> ()
       | Some cut ->
         let forward_size =
@@ -519,12 +616,8 @@ let find_cut_toward ~cache prog ~target =
    walks this order it finds a cut whose tail-cost fits under the
    limit early — no need to score every candidate against a balance
    target. *)
-let sum_cost ~cache set =
-  Addr.Set.fold
-    (fun a acc ->
-      acc + (try Hashtbl.find cache.cache_block_cost a with Not_found -> 0))
-    set
-    0
+(* [find_end_cut] sums tail cost from [try_cut_fast]'s [Hashtbl]
+   directly; the previous set-based helper is no longer needed. *)
 
 (* DFS-subtree cost per block: [subtree_cost.(a) = block_cost.(a) +
    sum(subtree_cost of DFS children of a)]. Computed alongside a
@@ -591,6 +684,7 @@ let find_end_cut ~cache prog ~limit =
     postorder_with_subtree_cost ~cache prog ~start:prog.start
   in
   let best = ref None in
+  let predecessors = cache.cache_predecessors in
   List.iter
     (fun a ->
       if a = prog.start
@@ -605,19 +699,43 @@ let find_end_cut ~cache prog ~limit =
         if lower > limit
         then ()
         else (
-          match try_cut ~reachable prog cache.cache_regions ~cut_addr:a with
+          match
+            try_cut_fast
+              ~reachable
+              ~predecessors
+              prog
+              cache.cache_regions
+              ~cut_addr:a
+          with
           | None -> ()
-          | Some cut ->
-            let tail_cost = sum_cost ~cache cut.tail in
+          | Some (_, tail_tbl) ->
+            let tail_cost =
+              Hashtbl.fold
+                (fun a () acc ->
+                  acc
+                  + (try Hashtbl.find cache.cache_block_cost a
+                     with Not_found -> 0))
+                tail_tbl
+                0
+            in
             if tail_cost > 0 && tail_cost <= limit
             then
               match !best with
-              | None -> best := Some (tail_cost, cut)
-              | Some (c, _) when tail_cost > c ->
-                best := Some (tail_cost, cut)
+              | None -> best := Some (tail_cost, a, tail_tbl)
+              | Some (c, _, _) when tail_cost > c ->
+                best := Some (tail_cost, a, tail_tbl)
               | _ -> ()))
     candidates;
-  Option.map snd !best
+  match !best with
+  | None -> None
+  | Some (_, cut_addr, tail_tbl) ->
+    (* Now materialize the [Addr.Set.t] head/tail for the one
+       winning candidate. *)
+    let tail =
+      Hashtbl.fold (fun a () acc -> Addr.Set.add a acc) tail_tbl Addr.Set.empty
+    in
+    let head = Addr.Set.diff reachable tail in
+    Some { cut_addr; head; tail }
 
 let program_cost ~cache (prog : program) =
   Addr.Map.fold
@@ -1031,14 +1149,14 @@ let drive_intrasplit ~limit prog =
    trap-region coherence. The first one that passes is returned;
    addresses no longer in the program (already swallowed by an
    earlier cut's tail) are skipped. *)
-let pop_known_cut ~reachable prog regions queue =
+let pop_known_cut ~reachable ~predecessors prog regions queue =
   let rec drop = function
     | [] -> None, []
     | addr :: rest ->
       if not (Addr.Map.mem addr prog.blocks)
       then drop rest
       else (
-        match try_cut ~reachable prog regions ~cut_addr:addr with
+        match try_cut ~reachable ~predecessors prog regions ~cut_addr:addr with
         | Some cut -> Some cut, rest
         | None -> drop rest)
   in
@@ -1098,6 +1216,7 @@ let split ~limit ~class_name ~is_static ~return_kind ?env_var prog =
           Stat.track "pop_known_cut" (fun () ->
             pop_known_cut
               ~reachable:(Lazy.force reachable_lazy)
+              ~predecessors:cache.cache_predecessors
               prog
               cache.cache_regions
               queue)
