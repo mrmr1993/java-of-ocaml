@@ -122,25 +122,3 @@ let subset (prog : program) keep =
   in
   entry_overhead prog + body
 
-let heaviest_block (prog : program) =
-  let best = ref None in
-  Addr.Map.iter
-    (fun a b ->
-      (* Upper-bound filter: a block whose best-case ([length * max])
-         byte estimate can't beat the current best is skipped without
-         the full [block] walk. On inputs with tens of thousands of
-         one- and two-instruction blocks, this dodges nearly all the
-         work. *)
-      let upper =
-        (Array.length b.body * max_instr_cost) + max_instr_cost
-      in
-      match !best with
-      | Some (_, c) when upper <= c -> ()
-      | _ ->
-        let cost = block b in
-        (match !best with
-         | None -> best := Some (a, cost)
-         | Some (_, c) when cost > c -> best := Some (a, cost)
-         | _ -> ()))
-    prog.blocks;
-  !best

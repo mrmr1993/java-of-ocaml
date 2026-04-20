@@ -50,7 +50,3 @@ val subset : Code.program -> Code.Addr.Set.t -> int
 (** Cost of the sub-program restricted to the given set of block
     addresses, plus the program's fixed entry overhead. *)
 
-val heaviest_block : Code.program -> (Code.Addr.t * int) option
-(** Address + cost of the single heaviest block in [prog], or [None]
-    if [prog] is empty. Used by intra-block splitting to pick the
-    block to break up when no structural cut is available. *)

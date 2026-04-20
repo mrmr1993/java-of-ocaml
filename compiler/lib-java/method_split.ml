@@ -1040,33 +1040,49 @@ let trace fmt =
    stops to avoid an infinite loop; the structural pass then
    shoulders whatever it can. *)
 let drive_intrasplit ~limit prog =
-  let acc_addrs = ref [] in
-  let rec loop p =
-    match Code_cost.heaviest_block p with
-    | Some (addr, c) when c > limit ->
-      let n_before = Addr.Map.cardinal p.blocks in
-      let p' =
-        match Stat.track "intra_split_block_at" (fun () ->
-          intra_split_block_at ~limit p ~addr) with
-        | Some (p', addrs) ->
-          acc_addrs := List.rev_append addrs !acc_addrs;
-          p'
-        | None ->
-          (match Stat.track "split_block_at" (fun () ->
-            split_block_at p ~addr ~target:(limit / 2)) with
-           | Some (p', addrs) ->
-             acc_addrs := List.rev_append addrs !acc_addrs;
-             p'
-           | None -> p)
-      in
-      if Addr.Map.cardinal p'.blocks > n_before then loop p' else p'
-    | _ -> p
-  in
-  let prog' = Stat.track "drive_intrasplit" (fun () -> loop prog) in
-  (* [acc_addrs] is reverse-of-creation order; later (deeper) chunks
-     come first, which is exactly the order we want to peel them as
-     helper tails — smallest tail off the end first. *)
-  prog', !acc_addrs
+  Stat.track "drive_intrasplit" (fun () ->
+    let acc_addrs = ref [] in
+    (* One-pass scan for blocks whose cost exceeds [limit]. The
+       [length * max_instr_cost] upper bound is cheap; the full
+       [Code_cost.block] walk only happens when the upper bound is
+       itself too big. *)
+    let work = Queue.create () in
+    Addr.Map.iter
+      (fun a b ->
+        let upper =
+          (Array.length b.body * Code_cost.max_instr_cost)
+          + Code_cost.max_instr_cost
+        in
+        if upper > limit && Code_cost.block b > limit
+        then Queue.push a work)
+      prog.blocks;
+    let prog = ref prog in
+    while not (Queue.is_empty work) do
+      let addr = Queue.pop work in
+      (match Addr.Map.find_opt addr (!prog).blocks with
+       | None -> ()
+       | Some b when Code_cost.block b <= limit -> ()
+       | Some _ ->
+         let split =
+           match intra_split_block_at ~limit !prog ~addr with
+           | Some r -> Some r
+           | None -> split_block_at !prog ~addr ~target:(limit / 2)
+         in
+         (match split with
+          | None -> ()
+          | Some (p', new_addrs) ->
+            prog := p';
+            acc_addrs := List.rev_append new_addrs !acc_addrs;
+            (* Chunks are sized under [limit] by the splitter's own
+               budget check, so requeuing them is just a safety
+               net — the [cost <= limit] guard at the top of the
+               loop is what lets the queue drain. Requeue [addr]
+               too; [intra_split_block_at] kept it as chunk 0 but
+               its new body might, in theory, still be heavy. *)
+            Queue.push addr work;
+            List.iter (fun a -> Queue.push a work) new_addrs))
+    done;
+    !prog, !acc_addrs)
 
 (* Consume the next valid known cut from [queue] (deepest-first). A
    known cut is an address that intra-splitting created as a fresh
