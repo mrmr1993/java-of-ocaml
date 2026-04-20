@@ -51,3 +51,36 @@ let%expect_test "exception propagates through one frame into try" =
     10
     999
     0 |}]
+
+(* Nested [try]/[with] where the inner handler itself raises. At
+   runtime the inner trap is popped by the raise that enters the
+   inner handler, so the outer trap is the active catcher while the
+   handler runs — the raise there must route to the outer handler.
+
+   This exercises the JVM exception-table coverage question: the
+   outer's table must include every block reachable under the outer
+   trap, including the inner handler's blocks. *)
+let%expect_test "raise inside inner handler routes to outer" =
+  compile_and_run
+    {| exception A
+       exception B of string
+       let () =
+         try
+           (try raise A with A -> raise (B "from inner"))
+         with B m -> print_endline m |};
+  [%expect {| from inner |}]
+
+(* Code that sits between an inner [Poptrap] (normal exit from inner
+   try) and the outer's [Poptrap] is still under the outer trap —
+   a raise there must be caught by the outer handler, not escape.
+
+   The inner [try () with _ -> ()] completes normally and flows into
+   the [failwith] below it; that failwith is protected by the outer. *)
+let%expect_test "raise after inner poptrap still caught by outer" =
+  compile_and_run
+    {| let () =
+         try
+           (try () with _ -> ());
+           failwith "after-inner"
+         with Failure m -> print_endline m |};
+  [%expect {| after-inner |}]
