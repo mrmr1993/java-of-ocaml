@@ -7,7 +7,14 @@
     are valid-by-construction cut candidates.
 
     The migration happens stepwise; see
-    [/home/mathew/.claude/plans/it-seems-like-it-adaptive-duckling.md]. *)
+    [/home/mathew/.claude/plans/it-seems-like-it-adaptive-duckling.md].
+
+    Construction strategy: recognise patterns ([Seq] chains, if-diamonds,
+    trap regions) where they're clean; fall back to [Flat] for anything
+    the grammar can't express cleanly. Round-trip identity is preserved
+    regardless of how much structure was recovered: [to_program] emits
+    every leaf's block with its original branch, so the block graph
+    round-trips byte-for-byte. *)
 
 type leaf =
   { entry_addr : Code.Addr.t
@@ -19,27 +26,44 @@ type leaf =
 type node =
   | Leaf of leaf
   | Flat of node list
-      (** Unordered bag of nodes. *)
+      (** Unordered bag — the fallback when no structural pattern fits. *)
+  | Seq of node list
+      (** Linear chain: each element's sole successor is the next
+          element's entry, and each non-first element has a single
+          predecessor (the previous element). Valid cut candidate:
+          a suffix of a [Seq] can be lifted into a helper. *)
+  | If of
+      { cond_leaf : leaf
+            (** The [Cond]-terminated block that guards the diamond. *)
+      ; t_branch : node
+      ; f_branch : node
+      ; join : node option
+            (** The subtree at the reconvergence block, if both
+                branches merge back cleanly. [None] if both branches
+                terminate (Return/Raise/Stop/Invoke_tail) or exit via
+                other paths. *)
+      }
+  | Switch of
+      { scrut_leaf : leaf
+      ; int_cases : node array
+      ; tag_cases : node array
+      ; join : node option
+      }
+  | Loop of
+      { header_leaf : leaf
+            (** The loop entry block; every back-edge in the body
+                targets this block. *)
+      ; body : node
+            (** Blocks reachable from the header along edges inside
+                the loop (i.e. within the natural-loop closure of the
+                back-edges). *)
+      }
   | Try_region of
       { pushtrap : leaf
-            (** The [Pushtrap]-terminated block itself. Sits in the
-                parent level (its context is the parent's), but the
-                [Try_region] node pulls it out so the protected subtree
-                can be pointed to. *)
       ; exn_var : Code.Var.t
       ; handler_addr : Code.Addr.t
-            (** The handler block lives in the *parent* level of the
-                tree (its trap context is the parent's). The address
-                is recorded here so cut validity can check that
-                pushtrap + handler stay co-sided without rewalking the
-                CFG. *)
       ; poptraps : Code.Addr.Set.t
-            (** Every block in the protected subtree whose terminator
-                is a [Poptrap] popping this trap. *)
       ; protected : node
-            (** Blocks whose innermost active trap is this one.
-                Nested trap regions appear here as further
-                [Try_region] nodes. *)
       }
 
 type t =
@@ -54,11 +78,7 @@ val to_program : t -> Code.program
 val iter_leaves : node -> (leaf -> unit) -> unit
 
 val leaf_addrs : t -> Code.Addr.Set.t
-(** Entry addresses of every leaf in the tree. Equals the block-addr
-    set of the underlying program (every block is a leaf). *)
 
 val trap_regions
   :  t
   -> (Code.Addr.t * Code.Addr.t * Code.Addr.Set.t * Code.Addr.Set.t) list
-(** Same shape as [Method_split.pushtrap_regions]: for each trap, the tuple
-    [(pushtrap_addr, handler_addr, poptraps, protected)]. *)
