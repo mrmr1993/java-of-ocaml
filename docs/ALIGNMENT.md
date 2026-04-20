@@ -9,20 +9,6 @@ Add new items as they are spotted.
 
 ## IR-dependent alignments
 
-- **`Parse_bytecode.from_cmo` / `from_cma`** —
-  `js_of_ocaml/compiler/lib/parse_bytecode.mli`. In progress:
-  `Bytecode.read_cmo` / `read_cma` / `read_file` read the format;
-  `Linker.link` merges one or more `unit_info`s into a
-  `Bytecode.t` equivalent (predefined exception descriptors at
-  canonical slots, per-compunit globals, interned literals, merged
-  primitive table, patched code words). Still to do: wire
-  `Linker.link` into the `Compile` driver so a `.cmo` input works
-  end-to-end (including propagating the main/init entry point),
-  add a `link` CLI sub-command that accepts multiple inputs, and
-  ship a precompiled Stdlib/Core archive so unknown-compunit
-  placeholder slots actually get filled in at load time. Once
-  done, we can compile libraries without linking them into a
-  bytecode executable first.
 - **`Flow.Info.t` / `Flow.f`** —
   `js_of_ocaml/compiler/lib/flow.ml`. Flow-sensitive constant
   propagation and shape facts. Would extend `Jvm_typing`'s forward
@@ -60,10 +46,11 @@ Add new items as they are spotted.
   `js_of_ocaml/compiler/bin-js_of_ocaml/` defines `link`,
   `build-fs`, `build-runtime`, `print-runtime`, `check-runtime`.
   The Cmdliner scaffolding is in place (`compile` is the default,
-  `print-runtime` exists) but the rest don't yet have analogues.
-  `link` is the important one once `from_cmo` / `from_cma` lands;
-  `check-runtime` needs a runtime-primitive registry to validate
-  against, which we also don't have.
+  `print-runtime` exists) and `compile` now accepts multiple
+  `.cmo` / `.cma` inputs, so the `link` case is subsumed; the rest
+  (`build-fs`, `build-runtime`, `check-runtime`) don't yet have
+  analogues. `check-runtime` needs a runtime-primitive registry to
+  validate against, which we also don't have.
 - **Source maps: JSR-45 SMAP** — `js_of_ocaml/compiler/lib/source_map.ml`,
   `lib-wasm/wasm_source_map.ml`. We emit JVM `SourceFile` +
   `LineNumberTable` at per-bytecode-instruction granularity: IR
@@ -148,15 +135,17 @@ Add new items as they are spotted.
     via `JAVA_OF_OCAML_SPLIT_THRESHOLD=<bytes>`; the
     `method_split_e2e` test uses this hook to force splitting on a
     modest function.
-  - Remaining work: fold forwarded-var plumbing for cuts whose
-    tail references a head-defined var. Doing this safely requires
-    per-predecessor dominance for [Assign]-touched vars (strict
-    SSA-lite only applies to [Let]-defined vars; [Assign] can
-    re-write its target on any path, so a forwarded [Assign] var
-    may be uninitialised along some predecessors). For now the
-    splitter rejects such cuts and falls back on intra-block
-    splitting, which is enough to bring stdlib's combined main-init
-    body — previously 95 KB — under the limit.
+  - Strict SSA (no `Assign`) means forwarded live-through vars at a
+    cut are well-defined on every predecessor by construction, so
+    `augment_cut_params` can forward them without per-predecessor
+    dominance analysis. Cuts that would need var forwarding are
+    accepted directly.
+  - Trap-region validation at cut time is driven by
+    `Code.compute_trap_contexts` (forward DFS from `prog.start`
+    tracking the active trap stack). Both `Method_split` (cut
+    validation) and `Jvm_generate` (JVM exception-table entries)
+    consume the same per-block context map so nested `Pushtrap` /
+    `Poptrap` keep coherent semantics after a split.
 
 ## Stdlib wrapper functions needing `Invalid_argument`
 
@@ -182,7 +171,6 @@ when implementing:
   `%obj_size`, `%obj_field`, `%obj_set_field`, `%identity`) work,
   as do the C primitives `caml_obj_tag`, `caml_obj_block`,
   `caml_obj_with_tag`, `caml_obj_dup`.
-- `Lazy.t` / `lazy` / `Lazy.force`.
 - `module rec` — simple cases pass (`corecursion.ml` tests);
   deeper `CamlinternalMod`-driven patterns still hit runtime
   failures. jsoo uses `CamlinternalMod`'s lazy-initialised
@@ -190,4 +178,3 @@ when implementing:
 - `Printf.printf` via `CamlinternalFormat` — hits an `ENVACC
   capture N out of range` during emission. Closure-analysis
   mismatch when a nested ENVACC chain sees the wrong `ncaps`.
-- I/O beyond stdout, threads.

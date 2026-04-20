@@ -4,53 +4,80 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project overview
 
-**java-of-ocaml** compiles OCaml bytecode executables (as produced by
-`ocamlc`) to JVM class files. It is modeled after `wasm_of_ocaml` (the
-WASM backend in `js_of_ocaml`), which compiles OCaml bytecode to
-WebAssembly.
+**java-of-ocaml** compiles OCaml bytecode (full executables from
+`ocamlc`, or a set of `.cmo` / `.cma` files linked together) to JVM
+class files. It is modeled after `wasm_of_ocaml` (the WASM backend
+in `js_of_ocaml`), which compiles OCaml bytecode to WebAssembly.
 
 The project uses a local opam switch with OCaml 5.3.0 and dune 3.17.
+A secondary 4.14.2 switch (`./.opam-4.14`) lets the same codebase
+ingest 4.14-built bytecode — a tiny `bytecode_compat` shim, selected
+by dune via `%{ocaml_version}`, normalises 4.14's and 5.x's
+incompatible `Cmo_format` relocation variants into one shape.
 
 ## Architecture
 
 Compilation is a single pass with no legacy / fallback paths:
 
 ```
-.bc                               — input OCaml bytecode executable
-  → Bytecode.read_exe             (CODE / PRIM / DATA / SYMB sections)
-  → Instr.decode_all              (→ Instr.instr list)
+.bc / .cmo / .cma                 — input bytecode
+  → Bytecode.read_exe / Linker.link
+                                  (CODE / PRIM / DATA / SYMB + reloc)
+  → Instr.decode_all              (→ Instr.instr array)
   → Parse_bytecode.parse_{main,function}
                                   (→ Code.program)
+  → Eval + Deadcode (optional)    (→ Code.program)
   → Jvm_typing.infer              (per-Var Kind.kind)
+  → Method_split.split            (if the method would exceed 64 KB)
   → Jvm_generate.emit_program     (→ Jvm.Code.t per method)
   → Jvm.assemble_class            (→ .class bytes)
 ```
 
-`Code.program` is an SSA-ish IR adapted from
+`Code.program` is a strict-SSA IR adapted from
 `js_of_ocaml/compiler/lib/code.ml`: basic blocks with explicit
 `params : Var.t list`, straight-line instruction bodies (`Let` /
-`Assign` / `Set_field` / `Offset_ref` / `Array_set`), and `last`
+`Set_field` / `Offset_ref` / `Array_set` / `Source_pc`), and `last`
 terminators (`Return` / `Raise` / `Stop` / `Branch` / `Cond` /
-`Switch` / `Pushtrap` / `Poptrap`). Every cross-block value flows
-through a dedicated JVM local. Block-edge parallel renames coerce
-each arg to a caller param's declared kind — same convert-on-assign
-idiom as jsoo's `lib-wasm/generate.ml`.
+`Switch` / `Pushtrap` / `Poptrap` / `Invoke_tail`). Every cross-block
+value flows through a dedicated JVM local. Block-edge parallel
+renames coerce each arg to a caller param's declared kind —
+same convert-on-assign idiom as jsoo's `lib-wasm/generate.ml`.
 
 Key invariants:
-- SSA-lite. `Let (x, e)` binds a fresh `Var.t`; `Assign (x, y)` copies
-  one Var into another, with kind coercion. SWITCH's Var is consumed
-  into one `Switch` terminator holding both int- and tag-case arrays.
-- Universal carrier is `java.lang.Object`. Primitives (`int` / `double`)
-  are an unboxing optimisation, not a requirement. Block params default
-  to `K_obj`; downstream uses unbox on demand via `emit_store`'s
-  coercion from the producing kind.
+- Strict SSA. `Let (x, e)` binds a fresh `Var.t`, and that's the
+  only way to define a Var. OCaml bytecode's `ASSIGN` is handled
+  by the parser reseating the stack slot's `Var.t` rather than
+  emitting a re-definition — so every Var has exactly one def.
+  Downstream passes rely on this (most notably `Method_split`,
+  which forwards live-through vars at a cut without needing
+  per-predecessor dominance analysis).
+- `Switch` carries both int- and tag-case arrays in one terminator.
+- Universal carrier is `java.lang.Object`. Primitives (`int` /
+  `double`) are an unboxing optimisation, not a requirement. Block
+  params default to `K_obj`; downstream uses unbox on demand via
+  `emit_store`'s coercion from the producing kind.
 - Apply-method locals 1..N are the formal args by JVM calling
-  convention; `emit_program` pre-binds each arg Var to its local so
-  `emit_load arg_i` reads from the right slot.
+  convention; `emit_program` pre-binds each arg Var to its local
+  so `emit_load arg_i` reads from the right slot.
 - The env Var (the current closure's `this`) maps to `aload 0`.
   `Field(env, i)` resolves to a capture-field read on the enclosing
-  function's class; `Prim (Extern "offsetclosure", [env; k])` resolves
-  to the sibling-field lookup.
+  function's class; `Prim (Extern "offsetclosure", [env; k])`
+  resolves to the sibling-field lookup.
+- Trap regions are stack-relative, not block-relative.
+  `Code.compute_trap_contexts` derives the active-trap stack at
+  every reachable block by forward DFS from `prog.start`. Both
+  `Method_split` (for cut validation) and `Jvm_generate` (for
+  JVM exception-table entries) consume the resulting map so that
+  nested try/with is laid out correctly even after structural
+  splits. Two paths reaching the same block with different trap
+  contexts fail loudly.
+- Method splitting. `Method_split.split` rewrites any program
+  whose emitted body would exceed the JVM 64 KB `Code`-attribute
+  limit into a head method plus `Invoke_tail` helper methods,
+  with `Code_cost.program_upper_bound` / `program` as cheap
+  size estimators. Intra-block chunking handles individually
+  oversized blocks; CFG cut-point search handles the rest. Cuts
+  are always validated against trap regions.
 
 ## What's implemented
 
@@ -185,7 +212,8 @@ the error only fires if the call path is actually reached.
   deeper `CamlinternalMod`-driven patterns (recursive module
   records with full Stdlib wired through) still hit runtime
   failures.
-- Threads, OCaml 5 effects, a real GC.
+- OCaml 5 effects; no OCaml-style allocator bridge (the JVM does
+  the GC).
 - Plain OCaml `int` still runs as JVM 32-bit `int` (not 63-bit);
   bitwise / overflow-sensitive code that expects OCaml's full
   width will diverge. `Int64` / `Nativeint` use JVM `long` and
@@ -219,6 +247,38 @@ _build/default/compiler/bin-java_of_ocaml/java_of_ocaml.exe prog.bc -o out_dir
 java -cp out_dir Main
 ```
 
+Linking `.cmo` / `.cma` inputs directly is also supported:
+
+```bash
+_build/default/compiler/bin-java_of_ocaml/java_of_ocaml.exe stdlib.cma user.cmo -o out_dir
+```
+
+Useful CLI flags during development:
+
+- `--debug FLAG` — enable a debug trace (comma-separated or repeated).
+  Equivalent to adding `FLAG` to `JAVA_OF_OCAML_DEBUG`.
+- `--print-function PC` — dump the decoded bytecode for the function
+  body at `PC` to stderr (diagnosing `no terminator in function
+  body` etc.).
+- `--print-ir PC` — dump the `Code.program` produced by the parser
+  for the function body at `PC`, or the failure message if IR
+  lowering couldn't handle it. Pass `0` to target the main init
+  code.
+- `--list-missing-prims` — don't compile; list every C primitive
+  the input references but that the backend has no explicit handler
+  for. Useful for planning coverage work on unfamiliar bytecode.
+
+Performance tuning for very large inputs (hundreds of MB):
+
+```bash
+OCAMLRUNPARAM='s=32M,o=300' _build/default/compiler/bin-java_of_ocaml/java_of_ocaml.exe ...
+```
+
+Default GC settings make many thousands of minor collections + a
+handful of compactions on a multi-MB heap; raising the minor heap
+size + space-overhead shaves a meaningful chunk of wall-clock off
+end-to-end compiles.
+
 ## Repository layout
 
 Each module under `compiler/lib-java/` has a companion `.mli`.
@@ -231,6 +291,15 @@ Each module under `compiler/lib-java/` has a companion `.mli`.
   `Symtable.global_map` (do NOT re-implement via `Obj` traversal —
   that route is fragile across OCaml versions and has been explicitly
   ruled out).
+- `bytecode_compat` — `Cmo_format` normalisation shim for 4.14 vs
+  5.x. `bytecode_compat_4.ml` / `bytecode_compat_5.ml` are the two
+  impls; dune picks one by `%{ocaml_version}`. Only the reloc
+  variants and `cu_required*` field shape differ; the rest is
+  passthrough.
+- `linker` — `.cmo` / `.cma` linking. Concatenates code sections,
+  resolves relocations across units, appends a trailing `STOP`
+  terminator so the linked program behaves like a unified bytecode
+  executable.
 - `jvm_bin` / `jvm_constant_pool` / `jvm_code` / `jvm_class_file` —
   class-file construction. `jvm_bin` is the u1/u2/u4 buffer helpers;
   `jvm_constant_pool` is the `Cp` builder; `jvm_code` is the
@@ -258,10 +327,11 @@ Each module under `compiler/lib-java/` has a companion `.mli`.
 **IR:**
 - `code.ml` + `.mli` — the IR. `Var.t`, `Addr.t`, `constant`, `expr`
   (`Apply` / `Block` / `Field` / `Closure` / `Constant` / `Prim`),
-  `instr` (`Let` / `Assign` / `Set_field` / `Offset_ref` /
-  `Array_set`), `last` (`Return` / `Raise` / `Stop` / `Branch` /
-  `Cond` / `Switch` / `Pushtrap` / `Poptrap`), `block`, `program`.
-  Plus `Print` pretty-printers and `fold_children`.
+  `instr` (`Let` / `Set_field` / `Offset_ref` / `Array_set` /
+  `Source_pc`), `last` (`Return` / `Raise` / `Stop` / `Branch` /
+  `Cond` / `Switch` / `Pushtrap` / `Poptrap` / `Invoke_tail`),
+  `block`, `program`. Plus `Print` pretty-printers, `fold_children`,
+  and `compute_trap_contexts` (per-block active-trap stack).
 - `parse_bytecode.ml` + `.mli` — bytecode → IR. Block-boundary scan
   via `Instr.branch_targets` + terminator successors; a parser
   `state` threading accu + OCaml-stack slots + env; DFS over blocks
@@ -270,14 +340,32 @@ Each module under `compiler/lib-java/` has a companion `.mli`.
   cmp / APPLY* / CLOSURE* / OFFSETCLOSURE* / ENVACC* / GETFIELD /
   SETFIELD / MAKEBLOCK* / BRANCH* / BEQ..BGE / BULTINT / BUGEINT /
   SWITCH / PUSHTRAP / POPTRAP / RAISE / RETURN / STOP / APPTERM* /
-  C_CALL* / GRAB / RESTART / GETMETHOD / GETPUBMET / GETDYNMET /
-  ATOM / float-block ops). Unsupported opcodes raise
-  `Not_supported`.
+  RESUMETERM / REPERFORMTERM / C_CALL* / GRAB / RESTART / GETMETHOD
+  / GETPUBMET / GETDYNMET / ATOM / float-block ops). Unsupported
+  opcodes raise `Not_supported`.
+
+**Optimisation & splitting:**
+- `eval` — constant folding over IR (pure / cheap cases).
+- `deadcode` — dead-block / dead-instruction elimination driven by
+  reachability + `pure_fun` purity info.
+- `pure_fun` — classifies exprs as pure (no observable effect) for
+  deadcode to drop.
+- `code_cost` — conservative per-instr / per-block / per-program
+  byte-size upper bounds used by `method_split`. Cheap
+  `program_upper_bound` (no per-instr walk) + exact
+  `program` / `block` walks.
+- `method_split` — splits a `Code.program` whose emitted body
+  would exceed the JVM 64 KB `Code`-attribute limit into a head
+  method plus `Invoke_tail` helper methods. Phase 1 is an
+  intra-block chunker that carves individually oversized blocks;
+  Phase 2 is a CFG cut-point search that balances cuts against a
+  target size. Cuts are validated against the trap regions
+  derived from `Code.compute_trap_contexts`.
 
 **Typing & generation:**
 - `jvm_typing.ml` + `.mli` — per-Var kind inference. Forward pass
-  over blocks: `Let`-bound Vars take their expression's kind;
-  `Assign` joins. Defaults to `K_obj`. Mirrors
+  over blocks: `Let`-bound Vars take their expression's kind.
+  Defaults to `K_obj`. Mirrors
   `js_of_ocaml/compiler/lib-wasm/typing.ml`.
 - `jvm_generate.ml` + `.mli` — IR → JVM bytecode. Walks blocks in a
   DFS-derived order, maintains `Var.t → JVM local` + `Addr.t →
@@ -292,20 +380,29 @@ Each module under `compiler/lib-java/` has a companion `.mli`.
   `exn_var`. Raises `Unsupported` on gaps (mostly uncommon C
   primitives); the driver turns those into runtime-throwing stubs.
 
-**Driver:**
-- `compile.ml` + `.mli` — the compile driver. Reads the bytecode,
-  runs the CLOSUREREC / CLOSURE pre-scan to collect function-info
-  metadata, builds a per-function IR (`parse_function`), runs
-  typing, emits via `jvm_generate`, and assembles class files.
-  Also emits the globals-init prelude that populates
+**Driver & pretty-printers:**
+- `compile.ml` + `.mli` — the compile driver. Reads the bytecode (or
+  links multiple `.cmo` / `.cma` inputs), runs the CLOSUREREC /
+  CLOSURE pre-scan to collect function-info metadata, builds a
+  per-function IR (`parse_function`), runs eval/deadcode/typing,
+  applies `Method_split.split` for anything that wouldn't fit the
+  JVM 64 KB limit, emits via `jvm_generate`, and assembles class
+  files. Also emits the globals-init prelude that populates
   `Main.GLOBALS` from the DATA section at method entry. Any IR
   failure (parse or generate) writes a runtime-throwing method
   body instead of aborting.
+- `print_function` / `print_ir` — debug dumps for the `--print-
+  function PC` and `--print-ir PC` CLI flags. Neither compiles
+  output; both exit after printing.
 
 **Instrumentation:**
 - `debug` / `timer` — opt-in per-pass tracing. Toggle via
-  `JAVA_OF_OCAML_DEBUG=times,primitives,functions,ir_emit,ir_trace,
-  ir_gen_trace` (comma-separated; any subset).
+  `JAVA_OF_OCAML_DEBUG=times,times_detail,primitives,functions,
+  ir_emit,ir_trace,ir_gen_trace,split,split_times,eval,deadcode,
+  dbug` (comma-separated; any subset). `times_detail` adds
+  per-phase sub-breakdowns inside `emit-main` / `emit-closures`
+  via `Timer_bucket`; `split_times` adds per-phase breakdowns
+  inside `Method_split.split` via its own `Stat` module.
 
 ### Runtime
 
@@ -322,12 +419,19 @@ Each module under `compiler/lib-java/` has a companion `.mli`.
 ### Tests
 
 - `compiler/tests-compiler/` — ppx_expect tests, one file per topic
-  (`arithmetic.ml`, `array_module.ml`, `bytecode_smoke.ml`,
-  `corecursion.ml`, `emission_snapshots.ml`, `exceptions.ml`,
-  `extensible.ml`, `float_module.ml`, `functions.ml`, `gadts.ml`,
-  `high_arity.ml`, `int_module.ml`, `lists.ml`, `modules.ml`,
-  `number_strings.ml`, `obj_module.ml`, `records.ml`, `refs.ml`,
-  `strings.ml`, `tuples_records_arrays.ml`). Auto-discovered by
+  (`arithmetic.ml`, `array_module.ml`, `bigarray_module.ml`,
+  `branch_relaxation.ml`, `bytecode_smoke.ml`, `cmo_reader.ml`,
+  `corecursion.ml`, `deadcode.ml`, `emission_snapshots.ml`,
+  `ephemeron.ml`, `eval.ml`, `exceptions.ml`, `extensible.ml`,
+  `file_io.ml`, `float_module.ml`, `functions.ml`, `gadts.ml`,
+  `high_arity.ml`, `int64_module.ml`, `int_module.ml`,
+  `java_ffi.ml`, `java_ffi_ppx.ml`, `lazy_.ml`, `linker.ml`,
+  `lists.ml`, `method_size_limit.ml`, `method_split.ml`,
+  `method_split_e2e.ml`, `modules.ml`, `mutex_cond.ml`,
+  `number_strings.ml`, `obj_module.ml`, `primitive_as_value.ml`,
+  `pure_fun.ml`, `records.ml`, `refs.ml`, `source_map.ml`,
+  `stdlib_link.ml`, `strings.ml`, `sys_module.ml`,
+  `tuples_records_arrays.ml`, `variants.ml`). Auto-discovered by
   `gen-rules/gen.ml` which generates `dune.inc`. Run `dune promote`
   after adding a new test file. `emission_snapshots.ml` pins `javap
   -c Main.class` output for representative programs.
