@@ -246,6 +246,58 @@ let debug_split_lifetimes = Debug.find "split_lifetimes"
    and pre-bound cut-augmented vars) and last-use position. Report
    blocks with high simultaneous liveness and the span distribution
    of their defs. *)
+(* Count each Var's occurrences across a block's body and terminator.
+   Distinguishes from [fv_instr] (which returns a set) because we
+   want per-use totals, not per-instruction presence — a [Prim]
+   that reads the same [Var] twice counts as 2 uses. That
+   distinction matters for the "single-use" classifier: a var
+   referenced in three instructions at one position each = 3 uses;
+   a var referenced once in a Prim that loads it twice = 2 uses. *)
+let count_uses_in_block (b : block) =
+  let counts : (Var.t, int) Hashtbl.t = Hashtbl.create 64 in
+  let bump v =
+    let c = try Hashtbl.find counts v with Not_found -> 0 in
+    Hashtbl.replace counts v (c + 1)
+  in
+  let bump_prim_arg = function
+    | Pv v -> bump v
+    | Pc _ -> ()
+  in
+  let bump_expr = function
+    | Apply { f; args; _ } -> bump f; List.iter bump args
+    | Block (_, fs) -> Array.iter bump fs
+    | Field (v, _) -> bump v
+    | Closure { captures; _ } -> List.iter bump captures
+    | Constant _ -> ()
+    | Prim (_, args) -> List.iter bump_prim_arg args
+  in
+  let bump_instr = function
+    | Let (_, e) -> bump_expr e
+    | Set_field (x, _, y) -> bump x; bump y
+    | Offset_ref (x, _) -> bump x
+    | Array_set (a, i, v) -> bump a; bump i; bump v
+    | Source_pc _ -> ()
+  in
+  let bump_cont (_, args) = List.iter bump args in
+  let bump_last = function
+    | Return v | Raise v -> bump v
+    | Stop -> ()
+    | Branch c -> bump_cont c
+    | Cond (v, c1, c2) -> bump v; bump_cont c1; bump_cont c2
+    | Switch (v, ints, tags) ->
+      bump v;
+      Array.iter bump_cont ints;
+      Array.iter bump_cont tags
+    | Pushtrap (body, _, handler) ->
+      bump_cont body;
+      bump_cont handler
+    | Poptrap c -> bump_cont c
+    | Invoke_tail { args; _ } -> List.iter bump args
+  in
+  Array.iter bump_instr b.body;
+  bump_last b.branch;
+  counts
+
 let analyze_block_lifetimes (b : block) =
   let n = Array.length b.body in
   (* def_pos: where each var is defined. Params get -1. Body Let
@@ -280,14 +332,19 @@ let analyze_block_lifetimes (b : block) =
   let max_live =
     Array.fold_left max 0 live_count
   in
+  let uses = count_uses_in_block b in
   (* Span per defined var, expressed as body-index distance. Params
-     count from -1 so their span is last_use + 1. *)
+     count from -1 so their span is last_use + 1. Each row also
+     carries the var's total use count so the reporter can bucket
+     single-use / multi-use long-livers. *)
   let spans = ref [] in
   Hashtbl.iter
     (fun v dp ->
       match Hashtbl.find_opt last_use v with
       | None -> ()
-      | Some lu -> spans := (v, dp, lu, lu - dp) :: !spans)
+      | Some lu ->
+        let uc = try Hashtbl.find uses v with Not_found -> 0 in
+        spans := (v, dp, lu, lu - dp, uc) :: !spans)
     def_pos;
   !spans, max_live, n
 
@@ -325,21 +382,34 @@ let report_lifetimes_if_requested prog =
             let long_threshold = max 1 (n * 8 / 10) in
             let long_lived =
               List.fold_left
-                (fun acc (_, _, _, span) ->
+                (fun acc (_, _, _, span, _) ->
                   if span >= long_threshold then acc + 1 else acc)
                 0
                 spans
             in
             let short_lived =
               List.fold_left
-                (fun acc (_, _, _, span) ->
+                (fun acc (_, _, _, span, _) ->
                   if span <= 5 then acc + 1 else acc)
                 0
                 spans
             in
+            (* Use-count buckets for long-lived vars. A long-lived
+               single-use var is the cleanest candidate for sinking
+               its def down to its use site: no aliasing concern,
+               and the transform strictly shrinks live range. *)
+            let ll_use_bucket = Array.make 6 0 in
+            (* 0 -> 1 use, 1 -> 2, 2 -> 3, 3 -> 4, 4 -> 5, 5 -> 6+ *)
+            List.iter
+              (fun (_, _, _, span, uc) ->
+                if span >= long_threshold
+                then (
+                  let idx = if uc >= 6 then 5 else max 0 (uc - 1) in
+                  ll_use_bucket.(idx) <- ll_use_bucket.(idx) + 1))
+              spans;
             let sorted =
               List.sort
-                (fun (_, _, _, a) (_, _, _, b) -> compare a b)
+                (fun (_, _, _, a, _) (_, _, _, b, _) -> compare a b)
                 spans
             in
             let arr = Array.of_list sorted in
@@ -351,7 +421,7 @@ let report_lifetimes_if_requested prog =
                   min (Array.length arr - 1)
                     (Array.length arr * p / 100)
                 in
-                let _, _, _, s = arr.(idx) in
+                let _, _, _, s, _ = arr.(idx) in
                 s
             in
             Format.eprintf
@@ -369,7 +439,17 @@ let report_lifetimes_if_requested prog =
               (pct 25)
               (pct 50)
               (pct 75)
-              (pct 90)))
+              (pct 90);
+            if long_lived > 0
+            then
+              Format.eprintf
+                "[lifetimes]     long-lived uses: 1=%d 2=%d 3=%d 4=%d 5=%d 6+=%d@."
+                ll_use_bucket.(0)
+                ll_use_bucket.(1)
+                ll_use_bucket.(2)
+                ll_use_bucket.(3)
+                ll_use_bucket.(4)
+                ll_use_bucket.(5)))
         rows)
 
 (* Per-phase wall-clock counters inside [split], printed at process
