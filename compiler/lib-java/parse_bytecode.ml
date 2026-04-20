@@ -547,21 +547,25 @@ let step (state : state) (ins : Instr.instr) : last option =
     done;
     None)
   (* C_CALL family — external primitives indexed by prim table. In the
-     IR they're Extern prims. *)
-  else if Instr.is_c_call op
+     IR they're Extern prims. [c_calln] (opcode 98) has its own operand
+     shape (nargs immediate then prim_idx) and must be handled before
+     the fixed-arity branch — [Instr.is_c_call] covers 93..98, so
+     without an earlier branch its [op - 92 = 6] arity would silently
+     mask every variadic call as a 6-arg one. *)
+  else if op = Bytecode.Op.c_calln
   then (
-    let nargs_ccall = op - 92 (* C_CALL1=93 → 1 arg *) in
-    let prim_idx = args.(0) in
+    let nargs_ccall = args.(0) in
+    let prim_idx = args.(1) in
     let prim_name = "ccall_" ^ string_of_int prim_idx in
     let a = var_of state.accu in
     let rest = take_args state (nargs_ccall - 1) in
     let all_args = List.map (fun v -> Pv v) (a :: rest) in
     set_accu_let state (Prim (Extern prim_name, all_args));
     None)
-  else if op = Bytecode.Op.c_calln
+  else if Instr.is_c_call op
   then (
-    let nargs_ccall = args.(0) in
-    let prim_idx = args.(1) in
+    let nargs_ccall = op - 92 (* C_CALL1=93 → 1 arg *) in
+    let prim_idx = args.(0) in
     let prim_name = "ccall_" ^ string_of_int prim_idx in
     let a = var_of state.accu in
     let rest = take_args state (nargs_ccall - 1) in

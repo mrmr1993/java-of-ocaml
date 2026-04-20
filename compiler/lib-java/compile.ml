@@ -87,18 +87,24 @@ module Timer_bucket = struct
       snapshot fmt ~label t)
 end
 
-(* Method-body size limit, normally the JVM's 65535-byte [Code]-attribute
-   cap. Tests can set [JAVA_OF_OCAML_SPLIT_THRESHOLD=<bytes>] to force
-   splitting on smaller bodies — far easier than coaxing OCaml into
-   producing a genuine 64 KB method. *)
+(* Method-body size limit passed to [Method_split]. The JVM's
+   [Code]-attribute cap is 65535 bytes, but [Code_cost] is an
+   estimate (conservative by design, but not byte-exact); using the
+   full cap as the split budget left too little headroom and some
+   post-split helpers overran by a few kilobytes on the OCaml 4.14
+   Base / Core stdlib. A 15% margin has been enough to eat the
+   residual estimate error on every input tested.
+   Tests override via [JAVA_OF_OCAML_SPLIT_THRESHOLD=<bytes>] to
+   force splitting on smaller bodies — far easier than coaxing
+   OCaml into producing a genuine 55 KB method. *)
 let method_size_limit =
   lazy
     (match Sys.getenv_opt "JAVA_OF_OCAML_SPLIT_THRESHOLD" with
      | Some s ->
        (match int_of_string_opt (String.trim s) with
         | Some n when n > 0 -> n
-        | _ -> 65535)
-     | None -> 65535)
+        | _ -> 55000)
+     | None -> 55000)
 let debug_deadcode = Debug.find "deadcode"
 let debug_eval = Debug.find "eval"
 
@@ -333,12 +339,19 @@ let emit_runtime_init_after_globals main_code =
     ~field:"endOfFileExn"
     ~descriptor:"Ljava/lang/Object;"
 
-(* [emit_globals_init cp globals ~main_code] allocates the [GLOBALS]
+(* [emit_globals_init globals ~main_code] allocates the [GLOBALS]
    array in [main_code] and then populates it. Entries flow into
    [main_code] until it approaches the 65535-byte [Code]-attribute
-   limit, then spill into static helper methods (returned as
-   [method_desc]s so the caller can attach them to [Main]). Each
-   helper closes when its own buffer crosses the same threshold.
+   limit, then spill into sibling classes — each chunk becomes a
+   standalone class [Main$globals_<N>] with its own constant pool
+   and a single [init()V] static method. [main_code] reaches them
+   via cross-class [invokestatic].
+
+   Using sibling classes (rather than sibling methods on [Main])
+   keeps each chunk's CP independent; [Main]'s CP was overflowing
+   the class-file u2 limit (65534 entries) on data-heavy inputs
+   where globals-init alone contributed hundreds of thousands of
+   [ldc_string] / [new Block] entries.
 
    Chunk boundary is decided from the actual emitted byte count
    ([Jvm.Code.current_size]), not a fixed entry count: globals span a
@@ -355,7 +368,23 @@ let emit_runtime_init_after_globals main_code =
    splitting and isn't observed on the inputs we currently run. *)
 let chunk_byte_limit = 60000
 
-let emit_globals_init cp globals ~main_code =
+let assemble_sibling_class ~class_name ~method_name ~descriptor ~cp ~code =
+  Jvm.assemble_class
+    ~class_name
+    ~super_name:"java/lang/Object"
+    ~cp
+    ~fields:[]
+    ~methods:
+      [ { Jvm.name = method_name
+        ; descriptor
+        ; access_flags = 0x0009 (* ACC_PUBLIC | ACC_STATIC *)
+        ; code
+        }
+      ]
+    ~access_flags:0x0021 (* ACC_PUBLIC | ACC_SUPER *)
+    ()
+
+let emit_globals_init globals ~main_code =
   let n = Array.length globals in
   Jvm.Code.ldc_int main_code n;
   Jvm.Code.anewarray main_code "java/lang/Object";
@@ -364,50 +393,53 @@ let emit_globals_init cp globals ~main_code =
     ~class_:"Main"
     ~field:"GLOBALS"
     ~descriptor:"[Ljava/lang/Object;";
-  let helpers = ref [] in
+  let sibling_classes = ref [] in
   let chunk_idx = ref 0 in
   let current = ref None in
-  let finalize_helper code =
-    Jvm.Code.return_void code;
-    let name = Printf.sprintf "init_globals_%d" !chunk_idx in
-    helpers
-      := { Jvm.name
-         ; descriptor = "()V"
-         ; access_flags = 0x0009 (* ACC_PUBLIC | ACC_STATIC *)
-         ; code
-         }
-         :: !helpers;
-    Jvm.Code.invokestatic
-      main_code
-      ~class_:"Main"
-      ~method_:name
-      ~descriptor:"()V";
-    incr chunk_idx
+  let finalize_helper () =
+    match !current with
+    | None -> ()
+    | Some (helper_cp, helper_code, helper_class) ->
+      Jvm.Code.return_void helper_code;
+      let bytes =
+        assemble_sibling_class
+          ~class_name:helper_class
+          ~method_name:"init"
+          ~descriptor:"()V"
+          ~cp:helper_cp
+          ~code:helper_code
+      in
+      sibling_classes := (helper_class, bytes) :: !sibling_classes;
+      Jvm.Code.invokestatic
+        main_code
+        ~class_:helper_class
+        ~method_:"init"
+        ~descriptor:"()V";
+      current := None;
+      incr chunk_idx
+  in
+  let start_helper () =
+    let helper_class = Printf.sprintf "Main$globals_%d" !chunk_idx in
+    let helper_cp = Jvm.Cp.create () in
+    let helper_code = Jvm.Code.create helper_cp in
+    Jvm.Code.set_min_locals helper_code 0;
+    current := Some (helper_cp, helper_code, helper_class);
+    helper_code
   in
   for i = 0 to n - 1 do
     let target =
       match !current with
-      | Some c -> c
-      | None ->
-        if Jvm.Code.current_size main_code > chunk_byte_limit
-        then (
-          let c = Jvm.Code.create cp in
-          Jvm.Code.set_min_locals c 0;
-          current := Some c;
-          c)
-        else main_code
+      | Some (_, c, _) -> c
+      | None -> start_helper ()
     in
     emit_globals_entry target i (Global_view.inspect_global globals i);
     match !current with
-    | Some c when Jvm.Code.current_size c > chunk_byte_limit ->
-      finalize_helper c;
-      current := None
+    | Some (_, c, _) when Jvm.Code.current_size c > chunk_byte_limit ->
+      finalize_helper ()
     | _ -> ()
   done;
-  (match !current with
-   | Some c -> finalize_helper c
-   | None -> ());
-  List.rev !helpers
+  finalize_helper ();
+  List.rev !sibling_classes
 
 let compile_t
       ?(print_functions = [])
@@ -623,6 +655,12 @@ let compile_t
   let cp = Jvm.Cp.create () in
   let main_code = Jvm.Code.create cp in
   let main_split_helpers = ref [] in
+  (* Sibling classes emitted alongside [Main] to keep each
+     constant pool under the JVM u2 limit of 65534 entries. The
+     globals-init helpers live here, as do the [Method_split]
+     helpers for main's body (each on its own [Main$split_<N>]
+     class so every helper's CP is independent of [Main]'s). *)
+  let main_sibling_classes = ref [] in
   (* If post-split main still overflows 65535 bytes, the driver
      replaces [main_code] with the fallback stub below. Tracked
      via this ref because [Jvm.Code.t] has no reset. *)
@@ -807,14 +845,48 @@ let compile_t
                    ~return_kind:Method_split.Return_void
                    prog)
              in
-             let helpers =
+             (* Move each [Method_split] helper out to its own sibling
+                class [Main$split_<idx>]. Each sibling has its own
+                constant pool, so the helpers' CP pressure stops
+                accumulating into [Main]'s. Invoke_tail targets in
+                the head (and in other helpers) that reference
+                [Main.<helper>] are rewritten to
+                [Main$split_<idx>.<helper>]. *)
+             let placement = Hashtbl.create (List.length split_result.helpers) in
+             List.iteri
+               (fun idx (h : Method_split.helper) ->
+                 Hashtbl.add
+                   placement
+                   h.method_name
+                   (Printf.sprintf "Main$split_%d" idx))
+               split_result.helpers;
+             let rewrite_last (l : Code.last) =
+               match l with
+               | Code.Invoke_tail ({ class_ = "Main"; method_; _ } as it) ->
+                 (match Hashtbl.find_opt placement method_ with
+                  | Some sibling -> Code.Invoke_tail { it with class_ = sibling }
+                  | None -> l)
+               | _ -> l
+             in
+             let rewrite_prog (p : Code.program) =
+               { p with
+                 Code.blocks =
+                   Code.Addr.Map.map
+                     (fun (b : Code.block) -> { b with branch = rewrite_last b.branch })
+                     p.blocks
+               }
+             in
+             let head = rewrite_prog split_result.head in
+             let split_sibling_classes =
                Timer_bucket.track main_tb "emit_helpers" (fun () ->
                  List.map
                    (fun (h : Method_split.helper) ->
-                     let helper_code = Jvm.Code.create cp in
+                     let helper_cp = Jvm.Cp.create () in
+                     let helper_code = Jvm.Code.create helper_cp in
                      Jvm.Code.set_min_locals
                        helper_code
                        (List.length h.params);
+                     let h_prog = rewrite_prog h.prog in
                      (try
                         Jvm_generate.emit_program
                           ~code:helper_code
@@ -826,7 +898,7 @@ let compile_t
                           ~line_of_pc
                           ~unbox_args:true
                           ~is_static:true
-                          h.prog
+                          h_prog
                       with Failure msg ->
                         Format.eprintf
                           "[ir_emit] main helper %s: %s (params=%d, \
@@ -834,16 +906,21 @@ let compile_t
                           h.method_name
                           msg
                           (List.length h.params)
-                          (Code.Addr.Map.cardinal h.prog.blocks);
+                          (Code.Addr.Map.cardinal h_prog.blocks);
                         raise (Failure msg));
-                     { Jvm.name = h.method_name
-                     ; descriptor = h.descriptor
-                     ; access_flags = 0x0009 (* ACC_PUBLIC | ACC_STATIC *)
-                     ; code = helper_code
-                     })
+                     let sibling = Hashtbl.find placement h.method_name in
+                     let bytes =
+                       assemble_sibling_class
+                         ~class_name:sibling
+                         ~method_name:h.method_name
+                         ~descriptor:h.descriptor
+                         ~cp:helper_cp
+                         ~code:helper_code
+                     in
+                     sibling, bytes)
                    split_result.helpers)
              in
-             Some (split_result.head, typing, helpers)
+             Some (head, typing, split_sibling_classes)
            with
            | Parse_bytecode.Not_supported msg ->
              if debug_ir_emit ()
@@ -857,14 +934,15 @@ let compile_t
              None)
     in
     (match try_main_ir () with
-     | Some (head, typing, helpers) ->
+     | Some (head, typing, split_sibling_classes) ->
        emit_sys_argv_prologue main_code;
-       let globals_helpers =
+       let globals_sibling_classes =
          Timer_bucket.track main_tb "emit_globals_init" (fun () ->
-           emit_globals_init cp parsed.globals ~main_code)
+           emit_globals_init parsed.globals ~main_code)
        in
        emit_runtime_init_after_globals main_code;
-       main_split_helpers := helpers @ globals_helpers;
+       main_sibling_classes :=
+         split_sibling_classes @ globals_sibling_classes;
        Timer_bucket.track main_tb "emit_head" (fun () ->
          try
            Jvm_generate.emit_program
@@ -894,6 +972,7 @@ let compile_t
               — stubbing@."
              size;
          main_split_helpers := [];
+         main_sibling_classes := [];
          (* Build a fresh stub into a new [Code.t]; the emitter
             never exposes a reset, so we swap [main_code] out at
             assembly time via [main_code_override]. *)
@@ -917,14 +996,14 @@ let compile_t
        then
          Format.eprintf
            "[ir_emit] <main>: used IR (helpers=%d)@."
-           (List.length helpers)
+           (List.length split_sibling_classes)
      | None ->
        emit_sys_argv_prologue main_code;
-       let globals_helpers =
-         emit_globals_init cp parsed.globals ~main_code
+       let globals_sibling_classes =
+         emit_globals_init parsed.globals ~main_code
        in
        emit_runtime_init_after_globals main_code;
-       main_split_helpers := globals_helpers;
+       main_sibling_classes := globals_sibling_classes;
        Jvm.Code.new_ main_code "java/lang/UnsupportedOperationException";
        Jvm.Code.dup main_code;
        Jvm.Code.ldc_string
@@ -1319,6 +1398,7 @@ let compile_t
     write_class "CondVar" (Jvm.cond_var_class_bytes ());
     write_class "BigArray" (Jvm.big_array_class_bytes ());
     write_class "ThreadPrim" (Jvm.thread_prim_class_bytes ());
+    List.iter (fun (name, bytes) -> write_class name bytes) !main_sibling_classes;
     List.iter (fun (name, bytes) -> write_class name bytes) closure_class_files);
   match total with
   | Some t -> Format.eprintf "[times] total: %a s@." Timer.print t

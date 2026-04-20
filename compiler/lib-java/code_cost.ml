@@ -21,11 +21,17 @@ let prim_cost = function
   | Not | IsInt -> 10
   | Eq | Neq | Lt | Le | Gt | Ge | Ult | Uge -> 16
   | Extern _ ->
-    (* Conservative upper bound: many externs compile to a single
-       invokevirtual (6 bytes), but the unknown-extern path falls
-       back to a runtime-throwing stub of ~40 bytes. Picking the
-       larger keeps us safe. *)
-    40
+    (* Conservative upper bound over all extern handlers in
+       [Jvm_generate]. Many externs compile to a single
+       invokevirtual (6 bytes) and the unknown-extern stub is
+       ~40 bytes, but several inlined C primitives
+       ([caml_array_append], [caml_string_of_bytes], the
+       structural-equality dispatch, the OO-method lookups, etc.)
+       emit 100–200 bytes of straight-line code. Picking the
+       larger keeps us safe — Method_split's budget is a byte
+       count, and overestimating forces an extra cut rather than
+       letting a post-split body overrun the 64 KB JVM limit. *)
+    200
 
 let prim_arg_cost = function
   | Pv _ -> 3        (* aload + possible checkcast *)
