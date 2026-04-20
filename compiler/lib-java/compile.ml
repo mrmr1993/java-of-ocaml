@@ -24,14 +24,106 @@ type oversized_stub =
 
 let oversized_stubs : oversized_stub list ref = ref []
 
-let note_oversized_stub ~owner ~name ~size =
+(* Gated by [JAVA_OF_OCAML_DEBUG=split_shape]. Dumps CFG structure
+   of a program that couldn't be cut under the size limit, so we
+   can see at a glance whether the stub is forced by one giant
+   block, by heavy trap structure, by already-split helpers that
+   went no further, or some other shape. *)
+let debug_split_shape = Debug.find "split_shape"
+
+let dump_cfg_shape ~owner ~name (prog : Code.program) =
+  if not (debug_split_shape ())
+  then ()
+  else
+    let open Code in
+    let n_blocks = Addr.Map.cardinal prog.blocks in
+    let total_instrs = ref 0 in
+    let max_block_cost = ref 0 in
+    let max_block_instrs = ref 0 in
+    let n_pushtrap = ref 0 in
+    let n_invoke_tail = ref 0 in
+    let n_branch = ref 0 in
+    let n_cond = ref 0 in
+    let n_switch = ref 0 in
+    let n_return = ref 0 in
+    let n_raise = ref 0 in
+    let n_stop = ref 0 in
+    let n_poptrap = ref 0 in
+    (* Back-edges = a block branches to a target whose address
+       precedes its own in a DFS post-order. Approximate cheaply
+       by "target ≤ this addr" — good enough to flag loop shape
+       without a full dominator calculation. *)
+    let back_edges = ref 0 in
+    let count_cont_as_back_edge src (tgt, _) =
+      if tgt <= src then incr back_edges
+    in
+    Addr.Map.iter
+      (fun addr (b : block) ->
+        let body_len = Array.length b.body in
+        total_instrs := !total_instrs + body_len;
+        if body_len > !max_block_instrs then max_block_instrs := body_len;
+        let cost = Code_cost.block b in
+        if cost > !max_block_cost then max_block_cost := cost;
+        match b.branch with
+        | Return _ -> incr n_return
+        | Raise _ -> incr n_raise
+        | Stop -> incr n_stop
+        | Branch c ->
+          incr n_branch;
+          count_cont_as_back_edge addr c
+        | Cond (_, c1, c2) ->
+          incr n_cond;
+          count_cont_as_back_edge addr c1;
+          count_cont_as_back_edge addr c2
+        | Switch (_, ints, tags) ->
+          incr n_switch;
+          Array.iter (count_cont_as_back_edge addr) ints;
+          Array.iter (count_cont_as_back_edge addr) tags
+        | Pushtrap (body, _, handler) ->
+          incr n_pushtrap;
+          count_cont_as_back_edge addr body;
+          count_cont_as_back_edge addr handler
+        | Poptrap c ->
+          incr n_poptrap;
+          count_cont_as_back_edge addr c
+        | Invoke_tail _ -> incr n_invoke_tail)
+      prog.blocks;
+    let prog_cost = Code_cost.program prog in
+    Format.eprintf
+      "[split_shape] %s %s: blocks=%d instrs=%d prog_cost=%d \
+       max_block=(cost=%d instrs=%d) \
+       terminators=(branch=%d cond=%d switch=%d invoke_tail=%d \
+       pushtrap=%d poptrap=%d return=%d raise=%d stop=%d) \
+       back_edges=%d@."
+      owner
+      name
+      n_blocks
+      !total_instrs
+      prog_cost
+      !max_block_cost
+      !max_block_instrs
+      !n_branch
+      !n_cond
+      !n_switch
+      !n_invoke_tail
+      !n_pushtrap
+      !n_poptrap
+      !n_return
+      !n_raise
+      !n_stop
+      !back_edges
+
+let note_oversized_stub ?prog ~owner ~name ~size () =
   oversized_stubs := { owner; name; size } :: !oversized_stubs;
   Format.eprintf
     "[warning] %s %s oversized after split (%d bytes > 65535) — \
      body replaced with a runtime-throwing stub@."
     owner
     name
-    size
+    size;
+  match prog with
+  | Some p -> dump_cfg_shape ~owner ~name p
+  | None -> ()
 
 let strict_size_mode () =
   match Sys.getenv_opt "JAVA_OF_OCAML_STRICT_SIZE" with
@@ -1032,9 +1124,11 @@ let compile_t
                        then helper_cp, helper_code
                        else (
                          note_oversized_stub
+                           ~prog:h_prog
                            ~owner:"<helper>"
                            ~name:h.method_name
-                           ~size;
+                           ~size
+                           ();
                          let stub_cp = Jvm.Cp.create () in
                          let stub = Jvm.Code.create stub_cp in
                          Jvm.Code.set_min_locals
@@ -1118,7 +1212,12 @@ let compile_t
        in
        if size > 65535
        then (
-         note_oversized_stub ~owner:"<main>" ~name:"main" ~size;
+         note_oversized_stub
+           ~prog:head
+           ~owner:"<main>"
+           ~name:"main"
+           ~size
+           ();
          main_split_helpers := [];
          main_sibling_classes := [];
          (* Build a fresh stub into a new [Code.t]; the emitter
@@ -1380,9 +1479,11 @@ let compile_t
                   List.fold_left max head_size helper_sizes
                 in
                 note_oversized_stub
+                  ~prog
                   ~owner:"<closure>"
                   ~name:fn_info.name
-                  ~size:worst;
+                  ~size:worst
+                  ();
                 if debug_ir_emit ()
                 then
                   Format.eprintf
