@@ -114,6 +114,8 @@ let primitives : prim_entry list =
   ; { name = "caml_obj_with_tag"; handler = P_obj_with_tag; seed = false }
   ; { name = "caml_fresh_oo_id"; handler = P_fresh_oo_id; seed = false }
   ; { name = "caml_alloc_dummy"; handler = P_alloc_dummy; seed = true }
+  ; { name = "caml_alloc_dummy_function"; handler = P_alloc_dummy; seed = true }
+  ; { name = "caml_alloc_dummy_float"; handler = P_alloc_dummy; seed = true }
   ; { name = "caml_update_dummy"; handler = P_update_dummy; seed = true }
   ; { name = "caml_add_float"; handler = P_float_add; seed = false }
   ; { name = "caml_sub_float"; handler = P_float_sub; seed = false }

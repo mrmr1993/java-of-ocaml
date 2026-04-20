@@ -3607,10 +3607,15 @@ and emit_ccall_named ctx name args =
          ~descriptor:"(I[Ljava/lang/Object;)V";
        Kind.K_obj
      | _ -> raise (Unsupported "caml_obj_block arity"))
-  | "caml_alloc_dummy" ->
-    (* Allocates a placeholder Block that will later be filled by
-       caml_update_dummy. Our runtime uses [Block] with size-1
-       placeholder; a minimal approximation is a 0-field block. *)
+  | "caml_alloc_dummy" | "caml_alloc_dummy_float" ->
+    (* [caml_alloc_dummy size] allocates a placeholder [Block] with
+       tag 0 and [size] fields, later filled in by
+       [caml_update_dummy]. Used by the compiler for recursive
+       values ([let rec x = ...]) and by [CamlinternalMod] for
+       recursive-module value / module shapes.
+
+       [caml_alloc_dummy_float] has the same semantics in our
+       representation since we don't flatten double arrays. *)
     (match args with
      | [ Pv size ] ->
        Jvm.Code.new_ ctx.code "Block";
@@ -3625,17 +3630,64 @@ and emit_ccall_named ctx name args =
          ~descriptor:"(I[Ljava/lang/Object;)V";
        Kind.K_obj
      | _ -> raise (Unsupported "caml_alloc_dummy arity"))
+  | "caml_alloc_dummy_function" ->
+    (* Recursive-closure placeholder: [let rec f x = ...] that
+       references [f] inside the body, and the Function-shape slots
+       [CamlinternalMod] pre-fills for recursive modules. Returns a
+       [DummyClosure] whose applyN forwards to a null [target] until
+       [caml_update_dummy] patches it to the real body.
+       Both args (size, arity) are ignored — DummyClosure doesn't
+       need either; arity comes from the real target at patch time. *)
+    (match args with
+     | [ _size; _arity ] ->
+       Jvm.Code.new_ ctx.code "DummyClosure";
+       Jvm.Code.dup ctx.code;
+       Jvm.Code.invokespecial
+         ctx.code
+         ~class_:"DummyClosure"
+         ~method_:"<init>"
+         ~descriptor:"()V";
+       Kind.K_obj
+     | _ -> raise (Unsupported "caml_alloc_dummy_function arity"))
   | "caml_update_dummy" ->
-    (* System.arraycopy(src.fields, 0, dst.fields, 0, dst.fields.length).
-       We don't update the tag here — the bytecode compiler's
-       recursive-value construction keeps dst and src tag-compatible
-       (both tag=0 by construction of caml_alloc_dummy), so skipping
-       the tag write is safe. *)
+    (* Dispatch on [dst]'s runtime type:
+       - [DummyClosure] (from [caml_alloc_dummy_function]): set its
+         [target] field to [src]; subsequent applyN on the dummy
+         forwards there.
+       - [Block] (from [caml_alloc_dummy] / [caml_alloc_dummy_float]):
+         arraycopy [src.fields] into [dst.fields], leaving the tag
+         at its [caml_alloc_dummy] value of 0. This covers the
+         common recursive-value ([let rec xs = x :: xs]) and
+         recursive-module cases where [src] is also a Block.
+
+       We pick the branch via an [instanceof DummyClosure] check
+       rather than emitting two different prim calls from the front
+       end, because the same [caml_update_dummy] is invoked for both
+       closure and data dummies from within user OCaml code like
+       [CamlinternalMod]. *)
     (match args with
      | [ Pv dst; Pv src ] ->
+       let end_lbl = Jvm.Code.fresh_label ctx.code in
+       let not_dummy_lbl = Jvm.Code.fresh_label ctx.code in
        let dst_fields_local = ctx.next_local in
        ctx.next_local <- dst_fields_local + 1;
        Jvm.Code.set_min_locals ctx.code ctx.next_local;
+       (* if (dst instanceof DummyClosure) ((DummyClosure)dst).target = (Closure)src; *)
+       emit_load ctx dst;
+       Jvm.Code.instanceof_ ctx.code "DummyClosure";
+       Jvm.Code.ifeq ctx.code not_dummy_lbl;
+       emit_load ctx dst;
+       Jvm.Code.checkcast ctx.code "DummyClosure";
+       emit_load ctx src;
+       Jvm.Code.checkcast ctx.code "Closure";
+       Jvm.Code.putfield
+         ctx.code
+         ~class_:"DummyClosure"
+         ~field:"target"
+         ~descriptor:"LClosure;";
+       Jvm.Code.goto ctx.code end_lbl;
+       (* else copy src.fields into dst.fields *)
+       Jvm.Code.mark_label ctx.code not_dummy_lbl;
        as_block dst;
        Jvm.Code.getfield
          ctx.code
@@ -3660,6 +3712,7 @@ and emit_ccall_named ctx name args =
          ~method_:"arraycopy"
          ~descriptor:
            "(Ljava/lang/Object;ILjava/lang/Object;II)V";
+       Jvm.Code.mark_label ctx.code end_lbl;
        Jvm.Code.ldc_int ctx.code 0;
        Kind.K_int
      | _ -> raise (Unsupported "caml_update_dummy arity"))
@@ -4236,6 +4289,19 @@ let emit_prim ctx (p : Code.prim) (args : Code.prim_arg list) : Kind.kind =
     let l_end = Jvm.Code.fresh_label ctx.code in
     if use_ref
     then (
+      (* [Object.equals] gives us what OCaml's bitwise [=] /
+         [<>] want on every representation we actually use:
+         - Two boxed [Integer]s compare by value (the JVM's
+           [Integer.valueOf] cache only covers -128..127, so
+           [if_acmpeq] on Integer(128) would silently be false).
+         - [Block] (heap tuples / variants / exception
+           descriptors) doesn't override [equals], so it falls
+           back to reference equality, which is the right thing
+           for exception-constructor matching.
+         - Same for [Closure]. [String.equals] is content
+           equality, slightly stricter than OCaml's raw [==] on
+           strings, but OCaml code rarely relies on string
+           pointer equality. *)
       let load_as_obj pa =
         let k = emit_prim_arg ctx pa in
         match k with
@@ -4245,9 +4311,14 @@ let emit_prim ctx (p : Code.prim) (args : Code.prim_arg list) : Kind.kind =
       in
       load_as_obj a;
       load_as_obj b;
+      Jvm.Code.invokevirtual
+        ctx.code
+        ~class_:"java/lang/Object"
+        ~method_:"equals"
+        ~descriptor:"(Ljava/lang/Object;)Z";
       (match p with
-       | Eq -> Jvm.Code.if_acmpeq ctx.code l_true
-       | Neq -> Jvm.Code.if_acmpne ctx.code l_true
+       | Eq -> Jvm.Code.ifne ctx.code l_true
+       | Neq -> Jvm.Code.ifeq ctx.code l_true
        | _ -> assert false))
     else (
       let _ = emit_prim_arg ctx a in

@@ -401,6 +401,12 @@ val thread_prim_class_bytes : unit -> string
 
 val closure_class_bytes : unit -> string
 
+val dummy_closure_class_bytes : unit -> string
+(** Bytes of a [DummyClosure] class file. Extends [Closure] with a
+    mutable [target] field; each [applyN] delegates to [target].
+    Returned by [caml_alloc_dummy_function] as the recursive-binding
+    placeholder; [caml_update_dummy] later patches [target]. *)
+
 val partial_closure_class_bytes : unit -> string
 (** Bytes of a [PartialClosure] class file. Extends [Closure]; holds a
     target closure, a captured-args array, and a caller's arity.

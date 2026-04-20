@@ -13,6 +13,12 @@ val partial_closure_class_bytes : unit -> string
 (** Captures a target closure plus some args. [applyN] combines, and either
     builds a deeper partial or dispatches once saturated. *)
 
+val dummy_closure_class_bytes : unit -> string
+(** Placeholder returned by [caml_alloc_dummy_function]. Holds a
+    mutable [target : Closure] field that [caml_update_dummy] writes
+    when the real recursive body is built; each [applyN] delegates
+    to [target]. *)
+
 val camlexception_class_bytes : unit -> string
 (** [RuntimeException] carrier for the OCaml exception value. Used by
     [raise] / [try ... with] to cross JVM call boundaries. *)

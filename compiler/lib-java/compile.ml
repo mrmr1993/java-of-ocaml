@@ -368,8 +368,16 @@ let emit_runtime_init_after_globals main_code =
    splitting and isn't observed on the inputs we currently run. *)
 let chunk_byte_limit = 60000
 
-let assemble_sibling_class ~class_name ~method_name ~descriptor ~cp ~code =
+let assemble_sibling_class
+      ?source_file
+      ~class_name
+      ~method_name
+      ~descriptor
+      ~cp
+      ~code
+      () =
   Jvm.assemble_class
+    ?source_file
     ~class_name
     ~super_name:"java/lang/Object"
     ~cp
@@ -408,6 +416,7 @@ let emit_globals_init globals ~main_code =
           ~descriptor:"()V"
           ~cp:helper_cp
           ~code:helper_code
+          ()
       in
       sibling_classes := (helper_class, bytes) :: !sibling_classes;
       Jvm.Code.invokestatic
@@ -911,11 +920,13 @@ let compile_t
                      let sibling = Hashtbl.find placement h.method_name in
                      let bytes =
                        assemble_sibling_class
+                         ?source_file:main_source_file
                          ~class_name:sibling
                          ~method_name:h.method_name
                          ~descriptor:h.descriptor
                          ~cp:helper_cp
                          ~code:helper_code
+                         ()
                      in
                      sibling, bytes)
                    split_result.helpers)
@@ -1388,6 +1399,7 @@ let compile_t
     write_class "Closure" (Jvm.closure_class_bytes ());
     write_class "CamlException" (Jvm.camlexception_class_bytes ());
     write_class "PartialClosure" (Jvm.partial_closure_class_bytes ());
+    write_class "DummyClosure" (Jvm.dummy_closure_class_bytes ());
     write_class "Compare" (Jvm.compare_class_bytes ());
     write_class "Channel" (Jvm.channel_class_bytes ());
     write_class "Bytes" (Jvm.bytes_class_bytes ());

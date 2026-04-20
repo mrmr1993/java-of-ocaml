@@ -7,6 +7,7 @@
   Block.class
   Closure.class
   PartialClosure.class
+  DummyClosure.class
   CamlException.class
   Compare.class
   Channel.class
@@ -22,6 +23,7 @@
   Block.java
   Closure.java
   PartialClosure.java
+  DummyClosure.java
   CamlException.java
   Compare.java
   Channel.java
@@ -43,6 +45,7 @@
    Block.class
    Closure.class
    PartialClosure.class
+   DummyClosure.class
    CamlException.class
    Compare.class
    Channel.class
