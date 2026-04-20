@@ -90,7 +90,7 @@ let defined_in_blocks prog addrs =
         let acc =
           List.fold_left (fun s v -> Var.Set.add v s) acc b.params
         in
-        List.fold_left
+        Array.fold_left
           (fun s i -> Var.Set.union s (defs_of_instr i))
           acc
           b.body)
@@ -104,7 +104,7 @@ let used_in_blocks prog addrs =
       | None -> acc
       | Some b ->
         let acc =
-          List.fold_left
+          Array.fold_left
             (fun s i -> Var.Set.union s (fv_instr i))
             acc
             b.body
@@ -244,7 +244,7 @@ let precompute_live_in (prog : program) =
           b.params
         in
         let body_defs =
-          List.fold_left
+          Array.fold_left
             (fun s i -> Var.Set.union s (defs_of_instr i))
             Var.Set.empty
             b.body
@@ -252,7 +252,7 @@ let precompute_live_in (prog : program) =
         let defs = Var.Set.union defs body_defs in
         let uses =
           let body_uses =
-            List.fold_left
+            Array.fold_left
               (fun s i -> Var.Set.union s (fv_instr i))
               Var.Set.empty
               b.body
@@ -554,22 +554,32 @@ let score_cut ~block_cost ~forward_size ~target (cut : cut) =
 type split_cache =
   { cache_block_cost : (Addr.t, int) Hashtbl.t
   ; cache_regions : (Addr.t * Addr.t * Addr.Set.t) list
-  ; cache_forward_size : (Addr.t, int) Hashtbl.t
+  ; cache_forward_size : (Addr.t, int) Hashtbl.t Lazy.t
   ; cache_predecessors : (Addr.t, Addr.t list) Hashtbl.t
   }
 
+(* [forward_size] — the live-in cardinality per block, used by
+   [find_cut_toward]'s balanced-score heuristic — costs a whole-
+   program backward dataflow fixpoint. The common path
+   ([find_end_cut] + [pop_known_cut]) never reads it, so deferring
+   the computation to the one place it's used ([find_cut_toward])
+   cuts the [build_split_cache] bill on the vast majority of calls. *)
 let build_split_cache ?env_var (prog : program) =
-  let live_in = precompute_live_in prog in
-  let forward_size = Hashtbl.create (Hashtbl.length live_in) in
-  Hashtbl.iter
-    (fun addr live ->
-      let size =
-        match env_var with
-        | Some e when Var.Set.mem e live -> Var.Set.cardinal live - 1
-        | _ -> Var.Set.cardinal live
-      in
-      Hashtbl.replace forward_size addr size)
-    live_in;
+  let forward_size =
+    lazy
+      (let live_in = precompute_live_in prog in
+       let forward_size = Hashtbl.create (Hashtbl.length live_in) in
+       Hashtbl.iter
+         (fun addr live ->
+           let size =
+             match env_var with
+             | Some e when Var.Set.mem e live -> Var.Set.cardinal live - 1
+             | _ -> Var.Set.cardinal live
+           in
+           Hashtbl.replace forward_size addr size)
+         live_in;
+       forward_size)
+  in
   { cache_block_cost = precompute_block_costs prog
   ; cache_regions = pushtrap_regions prog
   ; cache_forward_size = forward_size
@@ -592,7 +602,7 @@ let find_cut_toward ~cache prog ~target =
       | None -> ()
       | Some cut ->
         let forward_size =
-          try Hashtbl.find cache.cache_forward_size cut.cut_addr
+          try Hashtbl.find (Lazy.force cache.cache_forward_size) cut.cut_addr
           with Not_found -> 0
         in
         let score =
@@ -795,7 +805,7 @@ let rewrite_head_cut
     incr free_pc;
     let blk =
       { params = []
-      ; body = []
+      ; body = [||]
       ; branch =
           Invoke_tail
             { class_ = class_name
@@ -843,43 +853,33 @@ let rewrite_head_cut
 
 (* --- Intra-block splitting ------------------------------------------ *)
 
-let live_in_at ~suffix ~branch =
-  let used =
-    List.fold_left
-      (fun acc i -> Var.Set.union acc (fv_instr i))
-      (fv_last branch)
-      suffix
-  in
-  let defined =
-    List.fold_left
-      (fun acc i -> Var.Set.union acc (defs_of_instr i))
-      Var.Set.empty
-      suffix
-  in
-  Var.Set.diff used defined
+let live_in_at_arr ~body ~lo ~hi ~branch =
+  let used = ref (fv_last branch) in
+  for k = hi - 1 downto lo do
+    let i = body.(k) in
+    used := Var.Set.diff !used (defs_of_instr i);
+    used := Var.Set.union !used (fv_instr i)
+  done;
+  !used
 
 let pick_split_index ~target body =
-  let n = List.length body in
+  let n = Array.length body in
   if n < 2
   then None
   else (
-    let rec walk i acc = function
-      | [] -> None
-      | _ when acc >= target && i >= 1 && i <= n - 1 -> Some i
-      | i' :: rest -> walk (i + 1) (acc + Code_cost.instr i') rest
-    in
-    match walk 0 0 body with
-    | Some k -> Some k
+    let acc = ref 0 in
+    let chosen = ref None in
+    let i = ref 0 in
+    while !chosen = None && !i < n do
+      if !acc >= target && !i >= 1 && !i <= n - 1 then chosen := Some !i
+      else (
+        acc := !acc + Code_cost.instr body.(!i);
+        incr i)
+    done;
+    match !chosen with
+    | Some _ as r -> r
     | None when n >= 2 -> Some (n / 2)
     | None -> None)
-
-let split_list_at k xs =
-  let rec loop i acc = function
-    | [] -> List.rev acc, []
-    | x :: rest when i < k -> loop (i + 1) (x :: acc) rest
-    | rest -> List.rev acc, rest
-  in
-  loop 0 [] xs
 
 (* Split [addr]'s block body at the cost midpoint. The original block
    retains its addr and params; its body becomes the prefix and its
@@ -894,8 +894,12 @@ let split_block_at prog ~addr ~target =
     (match pick_split_index ~target b.body with
      | None -> None
      | Some k ->
-       let prefix, suffix = split_list_at k b.body in
-       let live = live_in_at ~suffix ~branch:b.branch in
+       let n = Array.length b.body in
+       let prefix = Array.sub b.body 0 k in
+       let suffix = Array.sub b.body k (n - k) in
+       let live =
+         live_in_at_arr ~body:b.body ~lo:k ~hi:n ~branch:b.branch
+       in
        let live_list = Var.Set.elements live in
        let fresh_addr = prog.free_pc in
        let suffix_block =
@@ -945,7 +949,7 @@ let intra_split_block_at ~limit prog ~addr =
   match Addr.Map.find_opt addr prog.blocks with
   | None -> None
   | Some b ->
-    let body_arr = Array.of_list b.body in
+    let body_arr = b.body in
     let n = Array.length body_arr in
     if n < 2
     then None
@@ -1013,16 +1017,10 @@ let intra_split_block_at ~limit prog ~addr =
         done;
         let live_lists = Array.map Var.Set.elements live_at in
         let fresh_addrs = Array.init m (fun i -> prog.free_pc + i) in
-        let slice lo hi =
-          let rec loop k acc =
-            if k < lo then acc else loop (k - 1) (body_arr.(k) :: acc)
-          in
-          loop (hi - 1) []
-        in
         let chunk_body i =
           let lo = if i = 0 then 0 else cuts_arr.(i - 1) in
           let hi = if i = m then n else cuts_arr.(i) in
-          slice lo hi
+          Array.sub body_arr lo (hi - lo)
         in
         let chunk_params i =
           if i = 0 then b.params else live_lists.(i - 1)
@@ -1163,13 +1161,15 @@ let pop_known_cut ~reachable ~predecessors prog regions queue =
   drop queue
 
 let split ~limit ~class_name ~is_static ~return_kind ?env_var prog =
-  (* Cheap up-front check for the common case: the program already
-     fits, no splitting needed. This dominates on emit-closures
-     where ~all 100k+ closures are tiny and the cache+drive pipeline
-     would be pure overhead per call. On a single-call site like
-     emit-main the savings vanished into noise; here it's the
-     bottleneck. *)
-  if Code_cost.program prog <= limit
+  (* Two-tier early return for the common case (tiny closure that
+     already fits):
+     1. Array-length upper bound — no per-instr walk, just sums
+        [max_instr_cost * body_length] across blocks. Nearly every
+        closure in a real link short-circuits here.
+     2. Exact program cost — only walked when the upper bound
+        exceeds the limit. *)
+  if Code_cost.program_upper_bound prog <= limit
+     || Code_cost.program prog <= limit
   then { head = prog; helpers = [] }
   else
   let helpers_rev = ref [] in

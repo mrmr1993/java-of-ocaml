@@ -75,7 +75,7 @@ let run (prog : program) : program * stats =
       (fun b ->
         let env = Hashtbl.create 8 in
         let body =
-          List.map
+          Array.map
             (fun instr ->
               match instr with
               | Let (x, Constant c) ->

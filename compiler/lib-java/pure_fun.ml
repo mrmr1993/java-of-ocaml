@@ -130,7 +130,7 @@ and block blocks pc visited pure_blocks funs =
     | Raise _ | Invoke_tail _ -> false
     | _ -> true
   in
-  List.fold_left
+  Array.fold_left
     (fun pure i ->
       (match i with
        | Let (x, Closure { body = pc', _; _ }) ->

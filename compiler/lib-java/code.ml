@@ -122,7 +122,7 @@ type last =
 
 type block =
   { params : Var.t list
-  ; body : instr list
+  ; body : instr array
   ; branch : last
   }
 
@@ -268,7 +268,7 @@ module Print = struct
 
   let block fmt addr { params; body; branch = br } =
     Format.fprintf fmt "block %d(%a):@\n" addr var_list params;
-    List.iter
+    Array.iter
       (fun i -> Format.fprintf fmt "  %a@\n" instr i)
       body;
     Format.fprintf fmt "  %a@\n" last br

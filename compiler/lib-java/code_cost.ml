@@ -72,7 +72,16 @@ let last = function
     12 + (4 * List.length args)
 
 let block (b : block) =
-  List.fold_left (fun acc i -> acc + instr i) 0 b.body + last b.branch
+  Array.fold_left (fun acc i -> acc + instr i) 0 b.body + last b.branch
+
+(* Conservative upper bound on per-instruction bytes. Callers use
+   this with [Array.length body] for an O(1) "could this block need
+   splitting?" filter that dodges the full walk on the overwhelming
+   majority of blocks. Keep strictly >= every return value of
+   [instr]: an [Apply] with many args or a [Closure] with many
+   captures can run large; 256 bytes is enough slack that we'd need
+   a single instruction with ~40 extern-call args to breach it. *)
+let max_instr_cost = 256
 
 (* Entry prologue overhead: the emitter pre-binds arg_vars to locals
    and null-initialises remaining start-block params. Tiny compared
@@ -88,6 +97,19 @@ let program (prog : program) =
   in
   entry_overhead prog + body
 
+(* [Array.length]-based upper bound on [program]. Cheap (no per-instr
+   walk); [max_instr_cost * total_instrs + per_block_slack]. When
+   this sits comfortably under the method-size limit we can skip the
+   exact [program] walk entirely — the common case for the tens of
+   thousands of tiny closures in a real link. *)
+let program_upper_bound (prog : program) =
+  let body_slack = 64 in
+  Addr.Map.fold
+    (fun _ b acc ->
+      acc + (Array.length b.body * max_instr_cost) + body_slack)
+    prog.blocks
+    (entry_overhead prog)
+
 let subset (prog : program) keep =
   let body =
     Addr.Set.fold
@@ -101,12 +123,24 @@ let subset (prog : program) keep =
   entry_overhead prog + body
 
 let heaviest_block (prog : program) =
-  Addr.Map.fold
-    (fun a b acc ->
-      let cost = block b in
-      match acc with
-      | None -> Some (a, cost)
-      | Some (_, c) when cost > c -> Some (a, cost)
-      | _ -> acc)
-    prog.blocks
-    None
+  let best = ref None in
+  Addr.Map.iter
+    (fun a b ->
+      (* Upper-bound filter: a block whose best-case ([length * max])
+         byte estimate can't beat the current best is skipped without
+         the full [block] walk. On inputs with tens of thousands of
+         one- and two-instruction blocks, this dodges nearly all the
+         work. *)
+      let upper =
+        (Array.length b.body * max_instr_cost) + max_instr_cost
+      in
+      match !best with
+      | Some (_, c) when upper <= c -> ()
+      | _ ->
+        let cost = block b in
+        (match !best with
+         | None -> best := Some (a, cost)
+         | Some (_, c) when cost > c -> best := Some (a, cost)
+         | _ -> ()))
+    prog.blocks;
+  !best

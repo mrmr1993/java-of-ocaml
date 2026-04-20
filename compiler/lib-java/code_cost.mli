@@ -11,8 +11,14 @@
 
 val instr : Code.instr -> int
 (** Byte estimate for a single instruction. Exposed so the intra-block
-    splitter in [Method_split] can walk a [body : instr list] and
+    splitter in [Method_split] can walk a [body : instr array] and
     pick the cost-midpoint index without duplicating the table. *)
+
+val max_instr_cost : int
+(** Conservative upper bound on per-instruction bytes. Use with
+    [Array.length b.body] for an O(1) upper bound on block cost —
+    the splitter uses it to skip expensive analysis on blocks that
+    trivially can't approach the method-size limit. *)
 
 val last : Code.last -> int
 (** Byte estimate for a block terminator. Exposed for the same reason
@@ -27,6 +33,12 @@ val program : Code.program -> int
 (** Byte estimate for the whole program. Includes a small fixed
     overhead for the entry prologue (null-init of params, [aload 0] /
     capture loads). *)
+
+val program_upper_bound : Code.program -> int
+(** [Array.length]-only upper bound for [program]: no per-instruction
+    walk, just [max_instr_cost * total_instrs + per-block slack]. Use
+    as a cheap short-circuit — if the upper bound sits under the
+    split limit, the real [program] value does too. *)
 
 val entry_overhead : Code.program -> int
 (** The fixed prologue component of [program]: entry null-init +

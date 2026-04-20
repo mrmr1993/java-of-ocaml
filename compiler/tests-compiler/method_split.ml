@@ -10,7 +10,7 @@ module Split = Method_split
 
 let fresh_var () = C.Var.fresh ()
 
-let block ?(params = []) ?(body = []) branch =
+let block ?(params = []) ?(body = [||]) branch =
   { C.params; body; branch }
 
 let build_program ~start blocks =
@@ -43,7 +43,7 @@ let%expect_test "linear chain: cut is in the middle" =
       ; 1, block (C.Branch (2, []))
       ; 2, block (C.Branch (3, []))
       ; 3, block (C.Branch (4, []))
-      ; 4, block ~body:[ C.Let (v, C.Constant (C.Int 0)) ] (C.Return v)
+      ; 4, block ~body:[| C.Let (v, C.Constant (C.Int 0)) |] (C.Return v)
       ]
   in
   print_cut (Split.find_cut prog);
@@ -98,7 +98,7 @@ let%expect_test "Pushtrap region fully contained in head is splittable past it" 
       ; 1, block (C.Branch (2, []))
       ; 2, block (C.Poptrap (4, []))
       ; 3, block (C.Branch (4, []))
-      ; 4, block ~body:[ C.Let (v, C.Constant (C.Int 0)) ] (C.Return v)
+      ; 4, block ~body:[| C.Let (v, C.Constant (C.Int 0)) |] (C.Return v)
       ]
   in
   print_cut (Split.find_cut prog);
@@ -116,8 +116,8 @@ let%expect_test "Pushtrap with no Poptrap is unsplittable when handler sits past
       ~start:0
       [ 0, block (C.Pushtrap ((1, []), exn_v, (3, [])))
       ; 1, block (C.Branch (2, []))
-      ; 2, block ~body:[ C.Let (v, C.Constant (C.Int 0)) ] (C.Return v)
-      ; 3, block ~body:[ C.Let (v, C.Constant (C.Int 0)) ] (C.Return v)
+      ; 2, block ~body:[| C.Let (v, C.Constant (C.Int 0)) |] (C.Return v)
+      ; 3, block ~body:[| C.Let (v, C.Constant (C.Int 0)) |] (C.Return v)
       ]
   in
   print_cut (Split.find_cut prog);
@@ -128,7 +128,7 @@ let%expect_test "single-block program: no cut" =
   let prog =
     build_program
       ~start:0
-      [ 0, block ~body:[ C.Let (v, C.Constant (C.Int 0)) ] (C.Return v) ]
+      [ 0, block ~body:[| C.Let (v, C.Constant (C.Int 0)) |] (C.Return v) ]
   in
   print_cut (Split.find_cut prog);
   [%expect {| no cut |}]
@@ -140,7 +140,7 @@ let%expect_test "head and tail programs shape" =
       ~start:0
       [ 0, block (C.Branch (1, []))
       ; 1, block (C.Branch (2, []))
-      ; 2, block ~body:[ C.Let (v, C.Constant (C.Int 0)) ] (C.Return v)
+      ; 2, block ~body:[| C.Let (v, C.Constant (C.Int 0)) |] (C.Return v)
       ]
   in
   let r =

@@ -135,7 +135,7 @@ type last =
 
 type block =
   { params : Var.t list
-  ; body : instr list
+  ; body : instr array
   ; branch : last
   }
 

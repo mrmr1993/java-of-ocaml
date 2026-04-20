@@ -20,10 +20,10 @@ let%expect_test "fold add_int on two constants" =
       0
       { Code.params = []
       ; body =
-          [ Let (a, Constant (Int 3))
-          ; Let (b, Constant (Int 4))
-          ; Let (s, Prim (Extern "add_int", [ Pv a; Pv b ]))
-          ]
+          [| Let (a, Constant (Int 3))
+           ; Let (b, Constant (Int 4))
+           ; Let (s, Prim (Extern "add_int", [ Pv a; Pv b ]))
+          |]
       ; branch = Return s
       }
   in
@@ -52,12 +52,12 @@ let%expect_test "fold chained arithmetic in a single block" =
       0
       { Code.params = []
       ; body =
-          [ Let (a, Constant (Int 10))
-          ; Let (b, Constant (Int 3))
-          ; Let (c, Constant (Int 2))
-          ; Let (s1, Prim (Extern "mul_int", [ Pv b; Pv c ]))
-          ; Let (s2, Prim (Extern "add_int", [ Pv a; Pv s1 ]))
-          ]
+          [| Let (a, Constant (Int 10))
+           ; Let (b, Constant (Int 3))
+           ; Let (c, Constant (Int 2))
+           ; Let (s1, Prim (Extern "mul_int", [ Pv b; Pv c ]))
+           ; Let (s2, Prim (Extern "add_int", [ Pv a; Pv s1 ]))
+          |]
       ; branch = Return s2
       }
   in
@@ -86,9 +86,9 @@ let%expect_test "don't fold when args aren't both constants" =
       0
       { Code.params = [ a ]
       ; body =
-          [ Let (b, Constant (Int 5))
-          ; Let (s, Prim (Extern "add_int", [ Pv a; Pv b ]))
-          ]
+          [| Let (b, Constant (Int 5))
+           ; Let (s, Prim (Extern "add_int", [ Pv a; Pv b ]))
+          |]
       ; branch = Return s
       }
   in
@@ -114,10 +114,10 @@ let%expect_test "don't fold div_int by zero" =
       0
       { Code.params = []
       ; body =
-          [ Let (a, Constant (Int 6))
-          ; Let (b, Constant (Int 0))
-          ; Let (q, Prim (Extern "div_int", [ Pv a; Pv b ]))
-          ]
+          [| Let (a, Constant (Int 6))
+           ; Let (b, Constant (Int 0))
+           ; Let (q, Prim (Extern "div_int", [ Pv a; Pv b ]))
+          |]
       ; branch = Return q
       }
   in
@@ -145,11 +145,11 @@ let%expect_test "comparison on ints collapses to 0/1" =
       0
       { Code.params = []
       ; body =
-          [ Let (a, Constant (Int 2))
-          ; Let (b, Constant (Int 5))
-          ; Let (lt, Prim (Lt, [ Pv a; Pv b ]))
-          ; Let (eq, Prim (Eq, [ Pv a; Pv b ]))
-          ]
+          [| Let (a, Constant (Int 2))
+           ; Let (b, Constant (Int 5))
+           ; Let (lt, Prim (Lt, [ Pv a; Pv b ]))
+           ; Let (eq, Prim (Eq, [ Pv a; Pv b ]))
+          |]
       ; branch = Return lt
       }
   in
@@ -178,16 +178,16 @@ let%expect_test "env does not cross block boundaries" =
     |> Code.Addr.Map.add
          0
          { Code.params = []
-         ; body = [ Let (a, Constant (Int 7)) ]
+         ; body = [| Let (a, Constant (Int 7)) |]
          ; branch = Branch (1, [ a ])
          }
     |> Code.Addr.Map.add
          1
          { Code.params = [ ap ]
          ; body =
-             [ Let (b, Constant (Int 1))
-             ; Let (s, Prim (Extern "add_int", [ Pv ap; Pv b ]))
-             ]
+             [| Let (b, Constant (Int 1))
+              ; Let (s, Prim (Extern "add_int", [ Pv ap; Pv b ]))
+             |]
          ; branch = Return s
          }
   in

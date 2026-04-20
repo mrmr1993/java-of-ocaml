@@ -1117,7 +1117,7 @@ let process_block state start_pc next_starts addr_map =
            walk next_pc)
   in
   let br = walk start_pc in
-  { params; body = List.rev state.body; branch = br }
+  { params; body = Array.of_list (List.rev state.body); branch = br }
 
 let parse_generic_with_stack
     ?(extra_starts = [])

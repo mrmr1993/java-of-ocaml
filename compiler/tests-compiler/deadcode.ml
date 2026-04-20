@@ -30,19 +30,19 @@ let%expect_test "prune_unreachable drops orphan blocks" =
     |> Code.Addr.Map.add
          0
          { Code.params = []
-         ; body = [ Let (x, Constant (Int 1)) ]
+         ; body = [| Let (x, Constant (Int 1)) |]
          ; branch = Branch (1, [ x ])
          }
     |> Code.Addr.Map.add
          1
          { Code.params = [ y ]
-         ; body = []
+         ; body = [||]
          ; branch = Return y
          }
     |> Code.Addr.Map.add
          99
          { Code.params = []
-         ; body = [ Let (Code.Var.fresh_n "zombie", Constant (Int 42)) ]
+         ; body = [| Let (Code.Var.fresh_n "zombie", Constant (Int 42)) |]
          ; branch = Stop
          }
   in
@@ -70,9 +70,9 @@ let%expect_test "drop_dead_lets removes unused pure bindings" =
       0
       { Code.params = []
       ; body =
-          [ Let (live, Constant (Int 7))
-          ; Let (dead, Constant (Int 99))
-          ]
+          [| Let (live, Constant (Int 7))
+           ; Let (dead, Constant (Int 99))
+          |]
       ; branch = Return live
       }
   in
@@ -100,7 +100,7 @@ let%expect_test "drop_dead_lets removes unused known-pure externs" =
       0
       { Code.params = [ a; b ]
       ; body =
-          [ Let (unused, Prim (Extern "caml_compare", [ Pv a; Pv b ])) ]
+          [| Let (unused, Prim (Extern "caml_compare", [ Pv a; Pv b ])) |]
       ; branch = Stop
       }
   in
@@ -126,7 +126,7 @@ let%expect_test "drop_dead_lets keeps unused externs (unknown purity)" =
       0
       { Code.params = [ v ]
       ; body =
-          [ Let (unused, Prim (Extern "caml_ml_flush", [ Pv v ])) ]
+          [| Let (unused, Prim (Extern "caml_ml_flush", [ Pv v ])) |]
       ; branch = Stop
       }
   in

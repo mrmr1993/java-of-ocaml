@@ -27,13 +27,13 @@ let%expect_test "closure returning a constant is pure" =
     |> Code.Addr.Map.add
          10
          { Code.params = [ x ]
-         ; body = [ Let (k, Constant (Int 0)) ]
+         ; body = [| Let (k, Constant (Int 0)) |]
          ; branch = Return k
          }
     |> Code.Addr.Map.add
          0
          { Code.params = []
-         ; body = [ Let (f, Closure { captures = []; body = 10, [] }) ]
+         ; body = [| Let (f, Closure { captures = []; body = 10, [] }) |]
          ; branch = Stop
          }
   in
@@ -49,11 +49,11 @@ let%expect_test "closure that raises is impure" =
     Code.Addr.Map.empty
     |> Code.Addr.Map.add
          10
-         { Code.params = [ x ]; body = []; branch = Raise x }
+         { Code.params = [ x ]; body = [||]; branch = Raise x }
     |> Code.Addr.Map.add
          0
          { Code.params = []
-         ; body = [ Let (f, Closure { captures = []; body = 10, [] }) ]
+         ; body = [| Let (f, Closure { captures = []; body = 10, [] }) |]
          ; branch = Stop
          }
   in
@@ -71,13 +71,13 @@ let%expect_test "closure calling an impure extern is impure" =
     |> Code.Addr.Map.add
          10
          { Code.params = [ x ]
-         ; body = [ Let (y, Prim (Extern "caml_ml_flush", [ Pv x ])) ]
+         ; body = [| Let (y, Prim (Extern "caml_ml_flush", [ Pv x ])) |]
          ; branch = Return y
          }
     |> Code.Addr.Map.add
          0
          { Code.params = []
-         ; body = [ Let (f, Closure { captures = []; body = 10, [] }) ]
+         ; body = [| Let (f, Closure { captures = []; body = 10, [] }) |]
          ; branch = Stop
          }
   in
@@ -95,13 +95,13 @@ let%expect_test "closure calling caml_compare is pure" =
     |> Code.Addr.Map.add
          10
          { Code.params = [ x ]
-         ; body = [ Let (y, Prim (Extern "caml_compare", [ Pv x; Pv x ])) ]
+         ; body = [| Let (y, Prim (Extern "caml_compare", [ Pv x; Pv x ])) |]
          ; branch = Return y
          }
     |> Code.Addr.Map.add
          0
          { Code.params = []
-         ; body = [ Let (f, Closure { captures = []; body = 10, [] }) ]
+         ; body = [| Let (f, Closure { captures = []; body = 10, [] }) |]
          ; branch = Stop
          }
   in

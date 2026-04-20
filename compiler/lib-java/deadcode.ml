@@ -88,7 +88,7 @@ let count_uses (prog : program) : int VarTbl.t =
   let cont_uses (_, args) = List.iter (bump uses) args in
   Addr.Map.iter
     (fun _ b ->
-      List.iter instr_uses b.body;
+      Array.iter instr_uses b.body;
       match b.branch with
       | Return v -> bump uses v
       | Raise v -> bump uses v
@@ -152,7 +152,15 @@ let drop_dead_lets ~pure_funs (prog : program) : program * int =
   in
   let blocks =
     Addr.Map.map
-      (fun b -> { b with body = List.filter_map keep_instr b.body })
+      (fun b ->
+        let kept = ref [] in
+        Array.iter
+          (fun i ->
+            match keep_instr i with
+            | Some i' -> kept := i' :: !kept
+            | None -> ())
+          b.body;
+        { b with body = Array.of_list (List.rev !kept) })
       prog.blocks
   in
   { prog with blocks }, !deleted

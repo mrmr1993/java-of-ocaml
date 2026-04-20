@@ -59,7 +59,7 @@ let infer (program : Code.program) : t =
   in
   Code.Addr.Map.iter
     (fun _ (b : Code.block) ->
-      List.iter
+      Array.iter
         (fun i ->
           match (i : Code.instr) with
           | Let (x, e) -> set x (kind_of_expr e)

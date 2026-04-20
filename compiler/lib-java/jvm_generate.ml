@@ -5086,7 +5086,7 @@ let emit_block ctx prog addr (b : Code.block) =
    | Some line -> Jvm.Code.mark_line ctx.code line
    | None -> ());
   Hashtbl.replace ctx.block_start addr start_lbl;
-  List.iter (fun i -> emit_instr ctx i) b.body;
+  Array.iter (fun i -> emit_instr ctx i) b.body;
   emit_last ctx prog b.branch;
   (* Mark the end-of-block label if anyone (a Pushtrap deferred
      handler install) asked for one. *)
