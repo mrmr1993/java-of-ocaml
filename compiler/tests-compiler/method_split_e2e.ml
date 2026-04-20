@@ -49,3 +49,38 @@ let%expect_test "function with many blocks runs correctly under a tight split th
     530
     490
     |}]
+
+let%expect_test "try/with catches an exception raised across a cut boundary" =
+  (* Relaxed trap rule: the protected body of a try/with can end up
+     in a split-generated helper method, while the Pushtrap + handler
+     stay in the caller. An exception raised in the helper propagates
+     up the JVM call stack to the caller's [Invoke_tail] site, which
+     is inside the emitted exception-table range for T, so T's
+     handler catches it. Force the splitter with a small threshold
+     and write a try/with whose body is big enough to cross a cut. *)
+  with_env "JAVA_OF_OCAML_SPLIT_THRESHOLD" "400" ~f:(fun () ->
+    compile_and_run
+      {|
+        external caml_java_print_endline : string -> unit = "caml_java_print_endline"
+        let boom n = if n > 3 then raise (Failure "raised") else n
+
+        let run () =
+          try
+            let a = boom 0 in
+            let b = boom 1 in
+            let c = boom 2 in
+            let d = boom 3 in
+            let e = boom 4 in  (* <-- raises *)
+            let g = boom 5 in
+            let h = boom 6 in
+            let i = boom 7 in
+            let j = boom 8 in
+            let k = boom 9 in
+            let total = a + b + c + d + e + g + h + i + j + k in
+            string_of_int total
+          with
+          | Failure msg -> "caught: " ^ msg
+
+        let () = caml_java_print_endline (run ())
+      |});
+  [%expect {| caught: raised |}]

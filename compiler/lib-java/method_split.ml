@@ -202,11 +202,42 @@ let pushtrap_regions (prog : program) =
           s := Addr.Set.add addr !s)
         ctx)
     contexts;
+  (* Per-trap Poptrap set: a Poptrap at block B pops the top of B's
+     trap-context stack. Collect the Poptraps that pop each trap so
+     the cut validator can keep them co-sided with the pushtrap
+     (and thus with the exception table and handler-label that
+     reference them in the emitted method). *)
+  let poptraps_by_trap : (Addr.t, Addr.Set.t ref) Hashtbl.t =
+    Hashtbl.create 8
+  in
+  Addr.Map.iter
+    (fun addr (b : block) ->
+      match b.branch with
+      | Poptrap _ ->
+        (match Hashtbl.find_opt contexts addr with
+         | Some (top :: _) ->
+           let s =
+             match Hashtbl.find_opt poptraps_by_trap top with
+             | Some s -> s
+             | None ->
+               let s = ref Addr.Set.empty in
+               Hashtbl.add poptraps_by_trap top s;
+               s
+           in
+           s := Addr.Set.add addr !s
+         | _ -> ())
+      | _ -> ())
+    prog.blocks;
   Hashtbl.fold
     (fun trap_addr protected acc ->
       match Addr.Map.find_opt trap_addr prog.blocks with
       | Some { branch = Pushtrap (_, _, (handler_addr, _)); _ } ->
-        (trap_addr, handler_addr, !protected) :: acc
+        let poptraps =
+          match Hashtbl.find_opt poptraps_by_trap trap_addr with
+          | Some s -> !s
+          | None -> Addr.Set.empty
+        in
+        (trap_addr, handler_addr, poptraps, !protected) :: acc
       | _ -> acc)
     by_trap
     []
@@ -533,20 +564,41 @@ let compute_predecessors (prog : program) =
 
 (* Trap-region check that works from a [Hashtbl] tail set plus the
    outer [reachable] set (so [head] doesn't need to be materialized
-   per candidate — see [try_cut_fast]). Semantically equivalent to
-   [cut_respects_trap_regions]: a region must sit entirely in the
-   same side as its pushtrap. *)
+   per candidate — see [try_cut_fast]).
+
+   Relaxed rule (vs the original "everything on one side"):
+
+   - Pushtrap, handler, and every Poptrap for the trap must all be
+     on the same side. They share a method's constant pool, the
+     JVM exception-table entry, the handler bytecode label, and
+     the trap-context stack depth — none of which can span
+     methods.
+   - Protected *body* blocks can be on either side. When a
+     protected body ends up in the tail helper, exceptions thrown
+     there propagate up through the JVM call stack to the head's
+     [Invoke_tail] site. That site sits inside the exception-table
+     range for T (because [compute_trap_contexts] records the
+     stub's trap context correctly), so T's handler catches. *)
+let debug_strict_traps = Debug.find "strict_traps"
+
 let cut_respects_trap_regions_fast ~reachable ~tail_tbl regions =
   let in_tail a = Hashtbl.mem tail_tbl a in
   let in_head a = Addr.Set.mem a reachable && not (in_tail a) in
+  let strict = debug_strict_traps () in
   List.for_all
-    (fun (pushtrap_addr, handler_addr, protected) ->
+    (fun (pushtrap_addr, handler_addr, poptraps, protected) ->
+      let all_in_tail s = Addr.Set.for_all in_tail s in
+      let all_in_head s = Addr.Set.for_all in_head s in
       if in_tail pushtrap_addr
       then
-        Addr.Set.for_all in_tail protected && in_tail handler_addr
+        in_tail handler_addr
+        && all_in_tail poptraps
+        && (not strict || all_in_tail protected)
       else if in_head pushtrap_addr
       then
-        Addr.Set.for_all in_head protected && in_head handler_addr
+        in_head handler_addr
+        && (not strict
+            || (all_in_head protected && all_in_head poptraps))
       else true)
     regions
 
@@ -720,7 +772,7 @@ let score_cut ~block_cost ~forward_size ~target (cut : cut) =
    compute on demand at the one cut we commit to. *)
 type split_cache =
   { cache_block_cost : (Addr.t, int) Hashtbl.t
-  ; cache_regions : (Addr.t * Addr.t * Addr.Set.t) list
+  ; cache_regions : (Addr.t * Addr.t * Addr.Set.t * Addr.Set.t) list
   ; cache_predecessors : (Addr.t, Addr.t list) Hashtbl.t
   }
 
@@ -916,11 +968,41 @@ let restrict (prog : program) keep =
 let head_subprogram prog cut =
   { prog with blocks = restrict prog cut.head }
 
-let tail_subprogram prog cut =
-  { start = cut.cut_addr
-  ; blocks = restrict prog cut.tail
-  ; free_pc = prog.free_pc
-  }
+(* Rewrite [Poptrap c] -> [Branch c] for any tail block whose
+   top-of-stack trap was pushed OUTSIDE the tail. After the cut,
+   tail runs as its own method with an empty trap stack at entry;
+   an orphan [Poptrap] there would (a) crash [compute_trap_contexts]
+   on the tail sub-program, and (b) semantically try to pop a trap
+   that was never installed in this method. Dropping the pop is
+   safe — the trap's exception table is emitted in head's method,
+   JVM propagation handles the handler lookup via the [Invoke_tail]
+   site in head, and the pop-stack accounting only matters within
+   a single method. *)
+let tail_subprogram prog (cut : cut) =
+  let contexts = Code.compute_trap_contexts prog in
+  let in_tail a = Addr.Set.mem a cut.tail in
+  let blocks =
+    Addr.Set.fold
+      (fun a acc ->
+        match Addr.Map.find_opt a prog.blocks with
+        | None -> acc
+        | Some b ->
+          let b =
+            match b.branch with
+            | Poptrap c ->
+              let trap_in_tail =
+                match Hashtbl.find_opt contexts a with
+                | Some (top :: _) -> in_tail top
+                | _ -> false
+              in
+              if trap_in_tail then b else { b with branch = Branch c }
+            | _ -> b
+          in
+          Addr.Map.add a b acc)
+      cut.tail
+      Addr.Map.empty
+  in
+  { start = cut.cut_addr; blocks; free_pc = prog.free_pc }
 
 type return_kind =
   | Return_object

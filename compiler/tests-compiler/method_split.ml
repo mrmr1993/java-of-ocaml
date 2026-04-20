@@ -104,13 +104,19 @@ let%expect_test "Pushtrap region fully contained in head is splittable past it" 
   print_cut (Split.find_cut prog);
   [%expect {| cut=4 head={0,1,2,3} tail={4} |}]
 
-let%expect_test "Pushtrap with no Poptrap is unsplittable when handler sits past every Return" =
+let%expect_test "Pushtrap body can split when pushtrap + handler stay co-sided" =
   let exn_v = fresh_var () in
   let v = fresh_var () in
   (* Block 0: Pushtrap body=1 handler=3; Block 1: Branch 2; Block 2:
-     Return; Block 3: Return. Region = {1,2}, handler = 3.
-     Every candidate cut either straddles the region or puts the
-     handler on the opposite side of the Pushtrap block. *)
+     Return; Block 3: Return. Region = {1,2}, handler = 3, no
+     Poptrap.
+
+     Under the relaxed trap rule the protected body can move to
+     the tail: cut=1 puts {1,2} in the tail helper while
+     pushtrap (0) + handler (3) stay in the head. Exceptions
+     thrown in the helper propagate back through the JVM call
+     stack to the head's Invoke_tail site — which sits inside T's
+     exception-table range, so T's handler catches. *)
   let prog =
     build_program
       ~start:0
@@ -121,7 +127,33 @@ let%expect_test "Pushtrap with no Poptrap is unsplittable when handler sits past
       ]
   in
   print_cut (Split.find_cut prog);
-  [%expect {| no cut |}]
+  [%expect {| cut=1 head={0,3} tail={1,2} |}]
+
+let%expect_test "Pushtrap with orphan Poptrap in tail still cuts cleanly" =
+  let exn_v = fresh_var () in
+  let v = fresh_var () in
+  (* Block 0: Pushtrap body=1 handler=3
+     Block 1: Poptrap 2 — pops T (pushed by block 0)
+     Block 2: Return
+     Block 3: Return (handler)
+
+     Cut=1 puts the Poptrap in the tail helper. The helper's
+     method has no matching Pushtrap, so the [Poptrap] gets
+     rewritten to a plain [Branch] by [tail_subprogram]. Head
+     keeps the Pushtrap + handler; T's exception-table range
+     in head covers the [Invoke_tail] site, which is where JVM
+     propagation delivers any tail-thrown exception. *)
+  let prog =
+    build_program
+      ~start:0
+      [ 0, block (C.Pushtrap ((1, []), exn_v, (3, [])))
+      ; 1, block (C.Poptrap (2, []))
+      ; 2, block ~body:[| C.Let (v, C.Constant (C.Int 0)) |] (C.Return v)
+      ; 3, block ~body:[| C.Let (v, C.Constant (C.Int 0)) |] (C.Return v)
+      ]
+  in
+  print_cut (Split.find_cut prog);
+  [%expect {| cut=1 head={0,3} tail={1,2} |}]
 
 let%expect_test "single-block program: no cut" =
   let v = fresh_var () in
