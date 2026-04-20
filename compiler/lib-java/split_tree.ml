@@ -123,8 +123,7 @@ let postorder_numbers (prog : program) =
   dfs prog.start;
   nums
 
-let compute_idoms (prog : program) ~rpo ~preds =
-  let po = postorder_numbers prog in
+let compute_idoms_with_po (prog : program) ~rpo ~preds ~po =
   let idom : (Addr.t, Addr.t) Hashtbl.t = Hashtbl.create 16 in
   Hashtbl.add idom prog.start prog.start;
   let po_of a = try Hashtbl.find po a with Not_found -> -1 in
@@ -225,6 +224,10 @@ type ctx =
   { prog : program
   ; preds : (Addr.t, Addr.t list) Hashtbl.t
   ; idom : (Addr.t, Addr.t) Hashtbl.t
+  ; po : (Addr.t, int) Hashtbl.t
+        (** Postorder numbers: deep leaves near 0, [prog.start] gets the
+            highest number. Used by [find_if_join] to pick the
+            innermost reconvergence. *)
   ; contexts : (Addr.t, Addr.t list) Hashtbl.t
   ; poptraps_of : (Addr.t, Addr.Set.t) Hashtbl.t
   ; visited : (Addr.t, unit) Hashtbl.t
@@ -278,8 +281,8 @@ let rec build ctx addr ~stop ~active_trap =
           Leaf this_leaf
         | Branch (target, _) ->
           extend_with_successor ctx this_leaf target ~stop ~active_trap
-        | Cond (v, (t, _), (f, _)) ->
-          build_if ctx this_leaf v t f ~stop ~active_trap
+        | Cond (_v, (t, _), (f, _)) ->
+          build_if ctx this_leaf t f ~stop ~active_trap
         | Switch (v, ints, tags) ->
           build_switch ctx this_leaf v ints tags ~stop ~active_trap
         | Pushtrap ((body_addr, _), exn_var, (handler_addr, _)) ->
@@ -308,14 +311,18 @@ and extend_with_successor ctx this_leaf target ~stop ~active_trap =
     | Flat [] -> Leaf this_leaf
     | _ -> Seq [ Leaf this_leaf; rest ]
 
-and build_if ctx cond_leaf _v t_addr f_addr ~stop ~active_trap =
+and build_if ctx cond_leaf t_addr f_addr ~stop ~active_trap =
   (* Find join: the nearest block dominated by cond_leaf that's
-     reached via both branches. If we can't find a clean join we
-     fall back to Flat. *)
+     reached via both branches and isn't already owned by an
+     enclosing region ([stop]). If we can't find a clean join we
+     emit [If] with [join=None] — both branches are self-contained
+     as far as the splitter can see (or the true join lives in
+     [stop] and is owned by an outer node). *)
   let cond_addr = cond_leaf.entry_addr in
   let join_opt =
-    find_if_join ctx ~cond:cond_addr ~t_addr ~f_addr
+    find_if_join ctx ~cond:cond_addr ~t_addr ~f_addr ~stop
   in
+  let cond_leaf = { cond_leaf with entry_addr = cond_leaf.entry_addr } in
   let branch_stop =
     match join_opt with
     | Some j -> Addr.Set.add j stop
@@ -376,11 +383,20 @@ and build_subtree ctx addr ~stop ~active_trap =
     | None -> Flat []
     | Some _ -> build ctx addr ~stop ~active_trap
 
-(* Simple if-join detection: walk reachable sets from [t_addr] and
-   [f_addr] (without revisiting) and pick the lowest-postorder block
-   common to both that's dominated by [cond]. Returns [None] if no
-   such block (branches don't reconverge). *)
-and find_if_join ctx ~cond ~t_addr ~f_addr =
+(* If-join detection: walk reachable sets from [t_addr] and [f_addr]
+   and pick the "innermost" block common to both that [cond]
+   dominates and that isn't already owned by an enclosing region.
+   Innermost = highest postorder number (closest to [cond] in DFS
+   from [prog.start], deepest in its dominator subtree).
+
+   Filters:
+   - reachable from both [t_addr] and [f_addr]
+   - dominated by [cond] (so it genuinely sits under the diamond)
+   - not [cond] itself
+   - not in [stop] (owned by an outer region)
+   - not dominated by [t_addr] or [f_addr] (otherwise it's inside
+     one branch, not at the reconvergence) *)
+and find_if_join ctx ~cond ~t_addr ~f_addr ~stop =
   let reach start =
     let seen = Hashtbl.create 8 in
     let rec dfs a =
@@ -400,57 +416,71 @@ and find_if_join ctx ~cond ~t_addr ~f_addr =
   in
   let rt = reach t_addr in
   let rf = reach f_addr in
+  let po_of a =
+    try Hashtbl.find ctx.po a with Not_found -> min_int
+  in
+  let better a b =
+    let pa = po_of a in
+    let pb = po_of b in
+    if pa <> pb then pa > pb else a < b
+  in
   let candidates = ref [] in
   Hashtbl.iter
     (fun a () ->
-      if Hashtbl.mem rf a && dominates ctx.idom cond a && a <> cond
+      if Hashtbl.mem rf a
+         && dominates ctx.idom cond a
+         && a <> cond
+         && (not (Addr.Set.mem a stop))
+         && (not (dominates ctx.idom t_addr a))
+         && not (dominates ctx.idom f_addr a)
       then candidates := a :: !candidates)
     rt;
-  (* Pick the candidate that every other candidate reaches — the
-     earliest post-dominator from the cond's perspective. Simple
-     heuristic: pick the one with FEWEST predecessors among the set,
-     breaking ties by addr (for determinism). *)
   match !candidates with
   | [] -> None
-  | xs ->
+  | x :: xs ->
     Some
-      (List.fold_left
-         (fun best a ->
-           if num_preds ctx a < num_preds ctx best
-              || (num_preds ctx a = num_preds ctx best && a < best)
-           then a
-           else best)
-         (List.hd xs)
-         (List.tl xs))
+      (List.fold_left (fun best a -> if better a best then a else best) x xs)
 
 let of_program (prog : program) : t =
   let contexts = Code.compute_trap_contexts prog in
   let preds = compute_predecessors prog in
   let rpo = reverse_postorder prog in
-  let idom = compute_idoms prog ~rpo ~preds in
+  let po = postorder_numbers prog in
+  let idom = compute_idoms_with_po prog ~rpo ~preds ~po in
   let poptraps_of = poptraps_per_trap contexts prog in
   let by_innermost = group_by_innermost contexts prog in
   let visited = Hashtbl.create 16 in
-  let ctx = { prog; preds; idom; contexts; poptraps_of; visited } in
+  let ctx = { prog; preds; idom; po; contexts; poptraps_of; visited } in
   (* Build from start; then sweep any unvisited blocks (dead code,
      handlers that weren't stitched) into a top-level Flat. *)
   let main = build ctx prog.start ~stop:Addr.Set.empty ~active_trap:None in
-  let stragglers =
+  (* Any blocks the main walk didn't reach (because join detection or
+     back-edges cut a branch off) get rebuilt here via [build]. This
+     recovers structural nodes — crucially [Try_region] for
+     Pushtrap-terminated blocks — that a naive "unvisited ⇒ Leaf"
+     sweep would flatten into bare leaves. Each call extends
+     [visited], so the iteration naturally converges. *)
+  let stragglers = ref [] in
+  let remaining () =
     Addr.Map.fold
-      (fun a b acc ->
-        if Hashtbl.mem visited a
-        then acc
-        else (
-          Hashtbl.add visited a ();
-          Leaf (leaf_of_block a b) :: acc))
+      (fun a _ acc -> if Hashtbl.mem visited a then acc else a :: acc)
       prog.blocks
       []
   in
+  let rec sweep () =
+    match remaining () with
+    | [] -> ()
+    | a :: _ ->
+      let sub = build ctx a ~stop:Addr.Set.empty ~active_trap:None in
+      stragglers := sub :: !stragglers;
+      sweep ()
+  in
+  sweep ();
   let _ = by_innermost in
   let root =
-    match stragglers with
+    match !stragglers with
     | [] -> main
-    | _ -> Flat (main :: stragglers)
+    | ss -> Flat (main :: List.rev ss)
   in
   { start = prog.start; free_pc = prog.free_pc; root }
 
@@ -553,6 +583,93 @@ let summarise (t : t) : kind_counts =
    | _ -> ());
   walk t.root;
   !c
+
+let print fmt (t : t) =
+  let pad depth =
+    for _ = 1 to depth do
+      Format.pp_print_string fmt "  "
+    done
+  in
+  let rec walk depth node =
+    pad depth;
+    match node with
+    | Leaf l ->
+      Format.fprintf
+        fmt
+        "Leaf(%d) body=%d@."
+        l.entry_addr
+        (Array.length l.body)
+    | Flat ns ->
+      Format.fprintf fmt "Flat[%d]@." (List.length ns);
+      List.iter (walk (depth + 1)) ns
+    | Seq ns ->
+      Format.fprintf fmt "Seq[%d]@." (List.length ns);
+      List.iter (walk (depth + 1)) ns
+    | If { cond_leaf; t_branch; f_branch; join } ->
+      Format.fprintf fmt "If cond=%d@." cond_leaf.entry_addr;
+      pad (depth + 1);
+      Format.fprintf fmt "t:@.";
+      walk (depth + 2) t_branch;
+      pad (depth + 1);
+      Format.fprintf fmt "f:@.";
+      walk (depth + 2) f_branch;
+      (match join with
+       | None ->
+         pad (depth + 1);
+         Format.fprintf fmt "join=<none>@."
+       | Some j ->
+         pad (depth + 1);
+         Format.fprintf fmt "join:@.";
+         walk (depth + 2) j)
+    | Switch { scrut_leaf; int_cases; tag_cases; join } ->
+      Format.fprintf
+        fmt
+        "Switch scrut=%d int_cases=%d tag_cases=%d@."
+        scrut_leaf.entry_addr
+        (Array.length int_cases)
+        (Array.length tag_cases);
+      Array.iteri
+        (fun i c ->
+          pad (depth + 1);
+          Format.fprintf fmt "int_case[%d]:@." i;
+          walk (depth + 2) c)
+        int_cases;
+      Array.iteri
+        (fun i c ->
+          pad (depth + 1);
+          Format.fprintf fmt "tag_case[%d]:@." i;
+          walk (depth + 2) c)
+        tag_cases;
+      (match join with
+       | None ->
+         pad (depth + 1);
+         Format.fprintf fmt "join=<none>@."
+       | Some j ->
+         pad (depth + 1);
+         Format.fprintf fmt "join:@.";
+         walk (depth + 2) j)
+    | Loop { header_leaf; body } ->
+      Format.fprintf fmt "Loop header=%d@." header_leaf.entry_addr;
+      walk (depth + 1) body
+    | Try_region { pushtrap; exn_var = _; handler_addr; poptraps; protected }
+      ->
+      Format.fprintf
+        fmt
+        "Try push=%d handler=%d poptraps={%s}@."
+        pushtrap.entry_addr
+        handler_addr
+        (String.concat ","
+           (List.map string_of_int (Addr.Set.elements poptraps)));
+      pad (depth + 1);
+      Format.fprintf fmt "protected:@.";
+      walk (depth + 2) protected
+  in
+  Format.fprintf
+    fmt
+    "Split_tree start=%d free_pc=%d@."
+    t.start
+    t.free_pc;
+  walk 0 t.root
 
 let trap_regions (t : t) =
   let acc = ref [] in

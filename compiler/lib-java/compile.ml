@@ -625,6 +625,7 @@ let emit_globals_init globals ~main_code =
 let compile_t
       ?(print_functions = [])
       ?(print_ir = [])
+      ?(print_tree = [])
       ~parsed
       ~out_dir
       () =
@@ -809,6 +810,29 @@ let compile_t
      List.iter
        (fun pc ->
          Print_ir.print
+           Format.err_formatter
+           ~arr
+           ~fn_info_of_body
+           ~main_start_pc
+           ~pc)
+       pcs);
+  (match print_tree with
+   | [] -> ()
+   | pcs ->
+     let fn_info_of_body =
+       let by_body = Hashtbl.create 64 in
+       List.iter
+         (fun (fi : function_info) ->
+           Hashtbl.replace by_body fi.body_pc fi)
+         !func_list;
+       fun pc -> Hashtbl.find_opt by_body pc
+     in
+     let main_start_pc =
+       if Array.length arr = 0 then 0 else arr.(0).pc
+     in
+     List.iter
+       (fun pc ->
+         Print_tree.print
            Format.err_formatter
            ~arr
            ~fn_info_of_body
@@ -1672,6 +1696,7 @@ let compile_t
 let compile
       ?(print_functions = [])
       ?(print_ir = [])
+      ?(print_tree = [])
       ~bcs
       ~out_dir
       () =
@@ -1697,7 +1722,7 @@ let compile
         Linker.link units)
   in
   oversized_stubs := [];
-  compile_t ~print_functions ~print_ir ~parsed ~out_dir ();
+  compile_t ~print_functions ~print_ir ~print_tree ~parsed ~out_dir ();
   report_oversized_stubs_and_maybe_fail ()
 
 (* Share the "read bcs into a [Bytecode.t]" part of [compile] so the

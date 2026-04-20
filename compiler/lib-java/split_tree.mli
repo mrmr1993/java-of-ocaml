@@ -101,3 +101,11 @@ val summarise : t -> kind_counts
     split_tree_stats] to get visibility into how much structure the
     builder recovered vs. how much fell through to [Flat] / top-level
     stragglers. *)
+
+val print : Format.formatter -> t -> unit
+(** Pretty-print the tree structure. Shows one node per line, indented
+    by depth. Leaves print their [entry_addr] and body length;
+    structural nodes name themselves and show key addresses (cond
+    block for [If], pushtrap for [Try_region], etc.). Designed for
+    reading into the shape of a function we're failing to split, not
+    as a verbose block-body dump. *)

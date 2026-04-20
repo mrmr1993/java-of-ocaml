@@ -3,7 +3,14 @@
 
 open Cmdliner
 
-let run inputs output_dir debug_flags print_functions print_ir list_missing =
+let run
+    inputs
+    output_dir
+    debug_flags
+    print_functions
+    print_ir
+    print_tree
+    list_missing =
   List.iter Java_of_ocaml_compiler.Debug.enable debug_flags;
   match inputs, output_dir, list_missing with
   | [], _, _ -> `Error (true, "missing input file(s)")
@@ -30,6 +37,7 @@ let run inputs output_dir debug_flags print_functions print_ir list_missing =
        Java_of_ocaml_compiler.Compile.compile
          ~print_functions
          ~print_ir
+         ~print_tree
          ~bcs
          ~out_dir
          ();
@@ -86,6 +94,19 @@ let print_ir_arg =
     & opt_all int []
     & info [ "print-ir" ] ~docv:"PC" ~doc)
 
+let print_tree_arg =
+  let doc =
+    "Dump the [Split_tree] structure produced from the IR for the \
+     function body starting at $(b,PC). Shows Seq chains, If / \
+     Switch / Loop / Try_region structural nodes, and leaves with \
+     their body sizes — intended for investigating why a function \
+     is failing to split. Pass $(b,0) for the main init code."
+  in
+  Arg.(
+    value
+    & opt_all int []
+    & info [ "print-tree" ] ~docv:"PC" ~doc)
+
 let list_missing_arg =
   let doc =
     "Don't compile; instead list every C primitive that the input \
@@ -105,6 +126,7 @@ let term =
        $ debug_arg
        $ print_function_arg
        $ print_ir_arg
+       $ print_tree_arg
        $ list_missing_arg))
 
 let info =
