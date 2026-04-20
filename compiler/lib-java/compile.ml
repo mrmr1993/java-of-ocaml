@@ -155,7 +155,12 @@ let optimize ~what prog =
      before [Method_split] sees them. Shrinks the intra-block
      chunker's live-at-cut sets on large-scale inputs, which in turn
      narrows the helper method arities downstream. *)
-  Spill_long_lived.f prog
+  let prog = Spill_long_lived.f prog in
+  (* Collapse cross-block forwarding chains into one threaded
+     carrier — attacks the inter-block equivalent of the same
+     pathology, so [Method_split]'s cut-augmented helpers stop
+     carrying hundreds of pass-through params each. *)
+  Cross_block_spill.f prog
 
 
 (* Attempt to lower a function body (or the main init range) to the new
