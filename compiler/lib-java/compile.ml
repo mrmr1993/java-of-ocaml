@@ -150,7 +150,12 @@ let run_block_prealloc ~what prog =
 let optimize ~what prog =
   let prog = run_block_prealloc ~what prog in
   let prog = run_eval ~what prog in
-  run_deadcode ~what prog
+  let prog = run_deadcode ~what prog in
+  (* Spill long-lived few-use vars through a shared Block carrier
+     before [Method_split] sees them. Shrinks the intra-block
+     chunker's live-at-cut sets on large-scale inputs, which in turn
+     narrows the helper method arities downstream. *)
+  Spill_long_lived.f prog
 
 
 (* Attempt to lower a function body (or the main init range) to the new
