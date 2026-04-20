@@ -526,6 +526,11 @@ let debug_strict_traps = Debug.find "strict_traps"
    identity; this gates the later steps that replace logic. *)
 let debug_split_structured = Debug.find "split_structured"
 
+(* Print Split_tree node-kind counts on every cache rebuild — useful
+   for checking how much structure the builder recovered vs. how
+   much fell through to [Flat] / top-level stragglers. *)
+let debug_split_tree_stats = Debug.find "split_tree_stats"
+
 let cut_respects_trap_regions_fast ~reachable ~tail_tbl regions =
   let in_tail a = Hashtbl.mem tail_tbl a in
   let in_head a = Addr.Set.mem a reachable && not (in_tail a) in
@@ -727,6 +732,21 @@ type split_cache =
 
 let build_split_cache (prog : program) =
   let tree = Split_tree.of_program prog in
+  if debug_split_tree_stats ()
+  then (
+    let s = Split_tree.summarise tree in
+    Printf.eprintf
+      "[split_tree] blocks=%d leaves=%d flats=%d seqs=%d ifs=%d \
+       switches=%d loops=%d trys=%d stragglers=%d\n%!"
+      (Addr.Map.cardinal prog.blocks)
+      s.leaves
+      s.flats
+      s.seqs
+      s.ifs
+      s.switches
+      s.loops
+      s.trys
+      s.stragglers);
   { cache_block_cost = precompute_block_costs prog
   ; cache_regions = Split_tree.trap_regions tree
   ; cache_predecessors = compute_predecessors prog
@@ -1560,6 +1580,22 @@ let split ~limit ~class_name ~is_static ~return_kind ?env_var prog =
     then Split_tree.to_program (Split_tree.of_program prog)
     else prog
   in
+  if debug_split_tree_stats ()
+  then (
+    let tree = Split_tree.of_program prog in
+    let s = Split_tree.summarise tree in
+    Printf.eprintf
+      "[split_tree] blocks=%d leaves=%d flats=%d seqs=%d ifs=%d \
+       switches=%d loops=%d trys=%d stragglers=%d\n%!"
+      (Addr.Map.cardinal prog.blocks)
+      s.leaves
+      s.flats
+      s.seqs
+      s.ifs
+      s.switches
+      s.loops
+      s.trys
+      s.stragglers);
   (* Two-tier early return for the common case (tiny closure that
      already fits):
      1. Array-length upper bound — no per-instr walk, just sums

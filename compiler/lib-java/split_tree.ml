@@ -492,6 +492,68 @@ let leaf_addrs (t : t) : Addr.Set.t =
   iter_leaves t.root (fun l -> acc := Addr.Set.add l.entry_addr !acc);
   !acc
 
+type kind_counts =
+  { leaves : int
+  ; flats : int
+  ; seqs : int
+  ; ifs : int
+  ; switches : int
+  ; loops : int
+  ; trys : int
+  ; stragglers : int
+  }
+
+let summarise (t : t) : kind_counts =
+  let c =
+    { leaves = 0
+    ; flats = 0
+    ; seqs = 0
+    ; ifs = 0
+    ; switches = 0
+    ; loops = 0
+    ; trys = 0
+    ; stragglers = 0
+    }
+  in
+  let c = ref c in
+  let bump_leaves () = c := { !c with leaves = (!c).leaves + 1 } in
+  let rec walk = function
+    | Leaf _ -> bump_leaves ()
+    | Flat ns ->
+      c := { !c with flats = (!c).flats + 1 };
+      List.iter walk ns
+    | Seq ns ->
+      c := { !c with seqs = (!c).seqs + 1 };
+      List.iter walk ns
+    | If { cond_leaf = _; t_branch; f_branch; join } ->
+      c := { !c with ifs = (!c).ifs + 1 };
+      bump_leaves ();
+      walk t_branch;
+      walk f_branch;
+      Option.iter walk join
+    | Switch { scrut_leaf = _; int_cases; tag_cases; join } ->
+      c := { !c with switches = (!c).switches + 1 };
+      bump_leaves ();
+      Array.iter walk int_cases;
+      Array.iter walk tag_cases;
+      Option.iter walk join
+    | Loop { header_leaf = _; body } ->
+      c := { !c with loops = (!c).loops + 1 };
+      bump_leaves ();
+      walk body
+    | Try_region { pushtrap = _; protected; _ } ->
+      c := { !c with trys = (!c).trys + 1 };
+      bump_leaves ();
+      walk protected
+  in
+  (* Count top-level Flat children past the first as stragglers. *)
+  (match t.root with
+   | Flat (_ :: rest) ->
+     c := { !c with stragglers = List.length rest }
+   | _ -> ());
+  walk t.root;
+  !c
+
 let trap_regions (t : t) =
   let acc = ref [] in
   let rec walk = function

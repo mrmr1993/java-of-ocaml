@@ -82,3 +82,22 @@ val leaf_addrs : t -> Code.Addr.Set.t
 val trap_regions
   :  t
   -> (Code.Addr.t * Code.Addr.t * Code.Addr.Set.t * Code.Addr.Set.t) list
+
+type kind_counts =
+  { leaves : int
+  ; flats : int
+  ; seqs : int
+  ; ifs : int
+  ; switches : int
+  ; loops : int
+  ; trys : int
+  ; stragglers : int
+        (** Top-level Flat children past the main subtree — blocks the
+            structural walker couldn't stitch cleanly. *)
+  }
+
+val summarise : t -> kind_counts
+(** Counts of each node kind in the tree. Used by [JAVA_OF_OCAML_DEBUG=
+    split_tree_stats] to get visibility into how much structure the
+    builder recovered vs. how much fell through to [Flat] / top-level
+    stragglers. *)
