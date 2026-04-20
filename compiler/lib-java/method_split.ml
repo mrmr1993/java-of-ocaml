@@ -349,7 +349,34 @@ let cut_respects_trap_regions_fast ~reachable ~tail_tbl regions =
    Returns [None] / [Some (cut_addr, tail_tbl)] rather than a
    [cut] record so callers can decide when to pay the set-build.
    The final [cut] is assembled only for the one chosen winner. *)
-let try_cut_fast ~reachable ~predecessors prog regions ~cut_addr =
+(* Reusable BFS scratch. The caller allocates once per [find_end_cut]
+   (~hundreds of candidates per call) and passes it here; each call
+   clears and reuses both the [Hashtbl] and the [Stack]. Without
+   this we were paying Hashtbl allocation + amortized resize on
+   every candidate — ~80k allocations per run. *)
+type bfs_scratch =
+  { tail_tbl : (Addr.t, unit) Hashtbl.t
+  ; stack : Addr.t Stack.t
+  ; mutable tail_cost : int
+      (** Sum of block costs accumulated during BFS. Only populated
+          when the caller passes [~block_cost]; else left at 0. *)
+  }
+
+let make_bfs_scratch () =
+  { tail_tbl = Hashtbl.create 64
+  ; stack = Stack.create ()
+  ; tail_cost = 0
+  }
+
+let try_cut_fast
+    ?cost_cap
+    ?(block_cost : (Addr.t, int) Hashtbl.t option)
+    ~scratch
+    ~reachable
+    ~predecessors
+    prog
+    regions
+    ~cut_addr =
   if cut_addr = prog.start
   then None
   else if not (Addr.Map.mem cut_addr prog.blocks)
@@ -357,20 +384,33 @@ let try_cut_fast ~reachable ~predecessors prog regions ~cut_addr =
   else if not (Addr.Set.mem cut_addr reachable)
   then None
   else (
-    let tail_tbl = Hashtbl.create 32 in
-    let stack = Stack.create () in
-    Hashtbl.add tail_tbl cut_addr ();
-    Stack.push cut_addr stack;
-    while not (Stack.is_empty stack) do
+    let tail_tbl = scratch.tail_tbl in
+    let stack = scratch.stack in
+    Hashtbl.clear tail_tbl;
+    Stack.clear stack;
+    scratch.tail_cost <- 0;
+    let over_cap = ref false in
+    let add_to_tail a =
+      Hashtbl.add tail_tbl a ();
+      Stack.push a stack;
+      (match cost_cap, block_cost with
+       | Some cap, Some costs ->
+         scratch.tail_cost
+           <- scratch.tail_cost
+              + (try Hashtbl.find costs a with Not_found -> 0);
+         if scratch.tail_cost > cap then over_cap := true
+       | _ -> ())
+    in
+    add_to_tail cut_addr;
+    while (not !over_cap) && not (Stack.is_empty stack) do
       let a = Stack.pop stack in
       List.iter
-        (fun s ->
-          if not (Hashtbl.mem tail_tbl s)
-          then (
-            Hashtbl.add tail_tbl s ();
-            Stack.push s stack))
+        (fun s -> if not (Hashtbl.mem tail_tbl s) then add_to_tail s)
         (successors prog a)
     done;
+    if !over_cap
+    then None
+    else
     let exception Invalid in
     match
       try
@@ -415,8 +455,10 @@ let try_cut_fast ~reachable ~predecessors prog regions ~cut_addr =
    outside the hot inner loop of [find_end_cut] use this because
    they need to plug the cut straight into [head_subprogram] /
    [tail_subprogram] / [augment_cut_params]. *)
-let try_cut ~reachable ~predecessors prog regions ~cut_addr =
-  match try_cut_fast ~reachable ~predecessors prog regions ~cut_addr with
+let try_cut ~scratch ~reachable ~predecessors prog regions ~cut_addr =
+  match
+    try_cut_fast ~scratch ~reachable ~predecessors prog regions ~cut_addr
+  with
   | None -> None
   | Some (cut_addr, tail_tbl) ->
     let tail =
@@ -471,11 +513,13 @@ let build_split_cache (prog : program) =
 
 let find_cut_toward ?env_var ~cache prog ~target =
   let reachable = reachable_from prog ~start:prog.start in
+  let scratch = make_bfs_scratch () in
   let best = ref None in
   Addr.Set.iter
     (fun a ->
       match
         try_cut
+          ~scratch
           ~reachable
           ~predecessors:cache.cache_predecessors
           prog
@@ -575,6 +619,7 @@ let find_end_cut ~cache prog ~limit =
   let candidates, subtree_cost =
     postorder_with_subtree_cost ~cache prog ~start:prog.start
   in
+  let scratch = make_bfs_scratch () in
   let best = ref None in
   let predecessors = cache.cache_predecessors in
   List.iter
@@ -593,6 +638,9 @@ let find_end_cut ~cache prog ~limit =
         else (
           match
             try_cut_fast
+              ~cost_cap:limit
+              ~block_cost:cache.cache_block_cost
+              ~scratch
               ~reachable
               ~predecessors
               prog
@@ -601,31 +649,30 @@ let find_end_cut ~cache prog ~limit =
           with
           | None -> ()
           | Some (_, tail_tbl) ->
-            let tail_cost =
-              Hashtbl.fold
-                (fun a () acc ->
-                  acc
-                  + (try Hashtbl.find cache.cache_block_cost a
-                     with Not_found -> 0))
-                tail_tbl
-                0
-            in
+            let tail_cost = scratch.tail_cost in
             if tail_cost > 0 && tail_cost <= limit
             then
-              match !best with
-              | None -> best := Some (tail_cost, a, tail_tbl)
-              | Some (c, _, _) when tail_cost > c ->
-                best := Some (tail_cost, a, tail_tbl)
-              | _ -> ()))
+              let better =
+                match !best with
+                | None -> true
+                | Some (c, _, _) -> tail_cost > c
+              in
+              if better
+              then (
+                (* [tail_tbl] is [scratch]'s, about to be clobbered
+                   by the next candidate. Snapshot the tail as an
+                   [Addr.Set.t] now. *)
+                let tail =
+                  Hashtbl.fold
+                    (fun a () acc -> Addr.Set.add a acc)
+                    tail_tbl
+                    Addr.Set.empty
+                in
+                best := Some (tail_cost, a, tail))))
     candidates;
   match !best with
   | None -> None
-  | Some (_, cut_addr, tail_tbl) ->
-    (* Now materialize the [Addr.Set.t] head/tail for the one
-       winning candidate. *)
-    let tail =
-      Hashtbl.fold (fun a () acc -> Addr.Set.add a acc) tail_tbl Addr.Set.empty
-    in
+  | Some (_, cut_addr, tail) ->
     let head = Addr.Set.diff reachable tail in
     Some { cut_addr; head; tail }
 
@@ -1030,13 +1077,22 @@ let drive_intrasplit ~limit prog =
    addresses no longer in the program (already swallowed by an
    earlier cut's tail) are skipped. *)
 let pop_known_cut ~reachable ~predecessors prog regions queue =
+  let scratch = make_bfs_scratch () in
   let rec drop = function
     | [] -> None, []
     | addr :: rest ->
       if not (Addr.Map.mem addr prog.blocks)
       then drop rest
       else (
-        match try_cut ~reachable ~predecessors prog regions ~cut_addr:addr with
+        match
+          try_cut
+            ~scratch
+            ~reachable
+            ~predecessors
+            prog
+            regions
+            ~cut_addr:addr
+        with
         | Some cut -> Some cut, rest
         | None -> drop rest)
   in
