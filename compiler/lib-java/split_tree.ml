@@ -224,10 +224,6 @@ type ctx =
   { prog : program
   ; preds : (Addr.t, Addr.t list) Hashtbl.t
   ; idom : (Addr.t, Addr.t) Hashtbl.t
-  ; po : (Addr.t, int) Hashtbl.t
-        (** Postorder numbers: deep leaves near 0, [prog.start] gets the
-            highest number. Used by [find_if_join] to pick the
-            innermost reconvergence. *)
   ; contexts : (Addr.t, Addr.t list) Hashtbl.t
   ; poptraps_of : (Addr.t, Addr.Set.t) Hashtbl.t
   ; visited : (Addr.t, unit) Hashtbl.t
@@ -383,63 +379,60 @@ and build_subtree ctx addr ~stop ~active_trap =
     | None -> Flat []
     | Some _ -> build ctx addr ~stop ~active_trap
 
-(* If-join detection: walk reachable sets from [t_addr] and [f_addr]
-   and pick the "innermost" block common to both that [cond]
-   dominates and that isn't already owned by an enclosing region.
-   Innermost = highest postorder number (closest to [cond] in DFS
-   from [prog.start], deepest in its dominator subtree).
+(* If-join detection. Walks successor-chains from [t_addr] and
+   [f_addr] until it finds a block that's a valid reconvergence
+   point: dominated by [cond], not in [stop], not a descendant of
+   [t_addr] or [f_addr]. No full reach() DFS per branch — that was
+   O(blocks²) on big programs.
 
-   Filters:
-   - reachable from both [t_addr] and [f_addr]
-   - dominated by [cond] (so it genuinely sits under the diamond)
-   - not [cond] itself
-   - not in [stop] (owned by an outer region)
-   - not dominated by [t_addr] or [f_addr] (otherwise it's inside
-     one branch, not at the reconvergence) *)
+   Approximation: walk each branch's [Branch]-chain (single-
+   successor path) until we hit a multi-predecessor block or a
+   terminator. If both chains land at the same block and it passes
+   the dominance filters, that's the join. Doesn't handle every
+   shape (e.g. one branch with a nested If first, then reconverge),
+   but cheap and covers the common [let x = if c then a else b in
+   ...] shape that matters for cut-candidate enumeration. Shapes we
+   miss fall through to the [stragglers] sweep as structural
+   leaves. *)
 and find_if_join ctx ~cond ~t_addr ~f_addr ~stop =
-  let reach start =
-    let seen = Hashtbl.create 8 in
-    let rec dfs a =
-      if not (Hashtbl.mem seen a)
-      then (
-        Hashtbl.add seen a ();
-        match Addr.Map.find_opt a ctx.prog.blocks with
-        | None -> ()
-        | Some b ->
-          List.iter
-            (fun s ->
-              if Addr.Map.mem s ctx.prog.blocks then dfs s)
-            (successors_of b))
-    in
-    dfs start;
-    seen
+  let rec chain_end addr visited =
+    if Hashtbl.mem visited addr
+    then None
+    else (
+      Hashtbl.add visited addr ();
+      match Addr.Map.find_opt addr ctx.prog.blocks with
+      | None -> None
+      | Some b ->
+        (match b.branch with
+         | Branch (next, _) when num_preds ctx next = 1 ->
+           chain_end next visited
+         | _ -> Some addr))
   in
-  let rt = reach t_addr in
-  let rf = reach f_addr in
-  let po_of a =
-    try Hashtbl.find ctx.po a with Not_found -> min_int
+  let t_end = chain_end t_addr (Hashtbl.create 4) in
+  let f_end = chain_end f_addr (Hashtbl.create 4) in
+  let single_succ a =
+    match Addr.Map.find_opt a ctx.prog.blocks with
+    | Some { branch = Branch (s, _); _ } -> Some s
+    | _ -> None
   in
-  let better a b =
-    let pa = po_of a in
-    let pb = po_of b in
-    if pa <> pb then pa > pb else a < b
+  let candidate =
+    match t_end, f_end with
+    | Some te, Some fe -> (
+      match single_succ te, single_succ fe with
+      | Some j1, Some j2 when j1 = j2 -> Some j1
+      | _ -> None)
+    | _ -> None
   in
-  let candidates = ref [] in
-  Hashtbl.iter
-    (fun a () ->
-      if Hashtbl.mem rf a
-         && dominates ctx.idom cond a
-         && a <> cond
-         && (not (Addr.Set.mem a stop))
-         && (not (dominates ctx.idom t_addr a))
-         && not (dominates ctx.idom f_addr a)
-      then candidates := a :: !candidates)
-    rt;
-  match !candidates with
-  | [] -> None
-  | x :: xs ->
-    Some
-      (List.fold_left (fun best a -> if better a best then a else best) x xs)
+  match candidate with
+  | None -> None
+  | Some j ->
+    if dominates ctx.idom cond j
+       && j <> cond
+       && (not (Addr.Set.mem j stop))
+       && (not (dominates ctx.idom t_addr j))
+       && not (dominates ctx.idom f_addr j)
+    then Some j
+    else None
 
 let of_program (prog : program) : t =
   let contexts = Code.compute_trap_contexts prog in
@@ -450,7 +443,7 @@ let of_program (prog : program) : t =
   let poptraps_of = poptraps_per_trap contexts prog in
   let by_innermost = group_by_innermost contexts prog in
   let visited = Hashtbl.create 16 in
-  let ctx = { prog; preds; idom; po; contexts; poptraps_of; visited } in
+  let ctx = { prog; preds; idom; contexts; poptraps_of; visited } in
   (* Build from start; then sweep any unvisited blocks (dead code,
      handlers that weren't stitched) into a top-level Flat. *)
   let main = build ctx prog.start ~stop:Addr.Set.empty ~active_trap:None in

@@ -731,7 +731,15 @@ type split_cache =
   }
 
 let build_split_cache (prog : program) =
+  let t0 = Sys.time () in
   let tree = Split_tree.of_program prog in
+  let tree_ms = (Sys.time () -. t0) *. 1000. in
+  if tree_ms > 100.
+  then
+    Printf.eprintf
+      "[split_tree] of_program took %.0fms on %d blocks\n%!"
+      tree_ms
+      (Addr.Map.cardinal prog.blocks);
   (* One-shot safety: the tree's leaf-addr set must match reachability
      from [prog.start]. Divergence here means either [Split_tree]
      dropped a block during construction or [prog] contains

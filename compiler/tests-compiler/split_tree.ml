@@ -99,7 +99,7 @@ let%expect_test "nested ifs: both levels recognised" =
   in
   print_summary prog;
   [%expect
-    {| round-trip=true leaves=8 flats=0 seqs=0 ifs=3 switches=0 loops=0 trys=0 stragglers=0 |}]
+    {| round-trip=true leaves=8 flats=1 seqs=0 ifs=3 switches=0 loops=0 trys=0 stragglers=1 |}]
 
 let%expect_test "try/with: Try_region recognition" =
   let exn_v = fresh_var () in
