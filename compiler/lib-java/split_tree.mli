@@ -53,6 +53,10 @@ val to_program : t -> Code.program
 
 val iter_leaves : node -> (leaf -> unit) -> unit
 
+val leaf_addrs : t -> Code.Addr.Set.t
+(** Entry addresses of every leaf in the tree. Equals the block-addr
+    set of the underlying program (every block is a leaf). *)
+
 val trap_regions
   :  t
   -> (Code.Addr.t * Code.Addr.t * Code.Addr.Set.t * Code.Addr.Set.t) list

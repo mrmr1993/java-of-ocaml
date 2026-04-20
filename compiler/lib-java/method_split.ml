@@ -179,69 +179,6 @@ let reachable_avoiding prog ~start ~avoid =
 let reachable_from prog ~start =
   reachable_avoiding prog ~start ~avoid:None
 
-(* Trap region derived from the per-block trap contexts: a block [B]
-   is in trap [P]'s region exactly when [P] appears in [B]'s entry
-   context. Replaces an ad-hoc forward walk that got nested traps
-   wrong (inner handlers and post-inner-Poptrap continuations both
-   escaped the outer region). *)
-let pushtrap_regions (prog : program) =
-  let contexts = Code.compute_trap_contexts prog in
-  let by_trap : (Addr.t, Addr.Set.t ref) Hashtbl.t = Hashtbl.create 8 in
-  Hashtbl.iter
-    (fun addr ctx ->
-      List.iter
-        (fun trap_addr ->
-          let s =
-            match Hashtbl.find_opt by_trap trap_addr with
-            | Some s -> s
-            | None ->
-              let s = ref Addr.Set.empty in
-              Hashtbl.add by_trap trap_addr s;
-              s
-          in
-          s := Addr.Set.add addr !s)
-        ctx)
-    contexts;
-  (* Per-trap Poptrap set: a Poptrap at block B pops the top of B's
-     trap-context stack. Collect the Poptraps that pop each trap so
-     the cut validator can keep them co-sided with the pushtrap
-     (and thus with the exception table and handler-label that
-     reference them in the emitted method). *)
-  let poptraps_by_trap : (Addr.t, Addr.Set.t ref) Hashtbl.t =
-    Hashtbl.create 8
-  in
-  Addr.Map.iter
-    (fun addr (b : block) ->
-      match b.branch with
-      | Poptrap _ ->
-        (match Hashtbl.find_opt contexts addr with
-         | Some (top :: _) ->
-           let s =
-             match Hashtbl.find_opt poptraps_by_trap top with
-             | Some s -> s
-             | None ->
-               let s = ref Addr.Set.empty in
-               Hashtbl.add poptraps_by_trap top s;
-               s
-           in
-           s := Addr.Set.add addr !s
-         | _ -> ())
-      | _ -> ())
-    prog.blocks;
-  Hashtbl.fold
-    (fun trap_addr protected acc ->
-      match Addr.Map.find_opt trap_addr prog.blocks with
-      | Some { branch = Pushtrap (_, _, (handler_addr, _)); _ } ->
-        let poptraps =
-          match Hashtbl.find_opt poptraps_by_trap trap_addr with
-          | Some s -> !s
-          | None -> Addr.Set.empty
-        in
-        (trap_addr, handler_addr, poptraps, !protected) :: acc
-      | _ -> acc)
-    by_trap
-    []
-
 (* [cut_respects_trap_regions] and [cut_is_self_contained] used to
    be the set-based trap + disjointness checks inside [try_cut].
    [try_cut_fast]'s predecessor-based validation plus
@@ -782,70 +719,39 @@ type split_cache =
   { cache_block_cost : (Addr.t, int) Hashtbl.t
   ; cache_regions : (Addr.t * Addr.t * Addr.Set.t * Addr.Set.t) list
   ; cache_predecessors : (Addr.t, Addr.t list) Hashtbl.t
+  ; cache_tree : Split_tree.t [@warning "-69"]
+        (** Structural view of [prog]; built once per cache rebuild so
+            later steps of the splitter migration can query the tree
+            without recomputing it per candidate. *)
   }
 
-(* Canonicalise a list of trap-region tuples as a sorted list so two
-   computed-independently results can be compared for equality. Used
-   only in [compare_trap_regions] to verify that the tree-based
-   construction in [Split_tree] matches the flat [pushtrap_regions]
-   dataflow. *)
-let canonicalise_regions
-    (rs : (Addr.t * Addr.t * Addr.Set.t * Addr.Set.t) list) =
-  List.sort
-    (fun (a, _, _, _) (b, _, _, _) -> compare a b)
-    rs
-
-let regions_equal a b =
-  List.length a = List.length b
-  && List.for_all2
-       (fun (p1, h1, pt1, pr1) (p2, h2, pt2, pr2) ->
-         p1 = p2
-         && h1 = h2
-         && Addr.Set.equal pt1 pt2
-         && Addr.Set.equal pr1 pr2)
-       a
-       b
-
-let compare_trap_regions prog =
-  let flat = canonicalise_regions (pushtrap_regions prog) in
-  let tree =
-    canonicalise_regions
-      (Split_tree.trap_regions (Split_tree.of_program prog))
-  in
-  if not (regions_equal flat tree)
-  then (
-    let pp_region fmt (p, h, pts, prot) =
-      Format.fprintf
-        fmt
-        "push=%d handler=%d poptraps={%s} protected={%s}"
-        p
-        h
-        (String.concat ","
-           (List.map string_of_int (Addr.Set.elements pts)))
-        (String.concat ","
-           (List.map string_of_int (Addr.Set.elements prot)))
-    in
-    prerr_endline "[split_structured] trap-region mismatch:";
-    prerr_endline "  pushtrap_regions (flat):";
-    List.iter
-      (fun r -> prerr_endline ("    " ^ Format.asprintf "%a" pp_region r))
-      flat;
-    prerr_endline "  Split_tree.trap_regions:";
-    List.iter
-      (fun r -> prerr_endline ("    " ^ Format.asprintf "%a" pp_region r))
-      tree;
-    failwith
-      "Split_tree.trap_regions disagrees with pushtrap_regions")
-
 let build_split_cache (prog : program) =
-  if debug_split_structured () then compare_trap_regions prog;
+  let tree = Split_tree.of_program prog in
   { cache_block_cost = precompute_block_costs prog
-  ; cache_regions = pushtrap_regions prog
+  ; cache_regions = Split_tree.trap_regions tree
   ; cache_predecessors = compute_predecessors prog
+  ; cache_tree = tree
   }
 
 let find_cut_toward ?env_var ~cache prog ~target =
   let reachable = reachable_from prog ~start:prog.start in
+  (* Under [split_structured], assert the tree's leaf-addr set matches
+     reachability — if so, iterating tree leaves is equivalent to
+     iterating [reachable], and later steps can drop [reachable_from]
+     in favour of the cached tree. *)
+  if debug_split_structured ()
+  then (
+    let tree_addrs = Split_tree.leaf_addrs cache.cache_tree in
+    if not (Addr.Set.equal tree_addrs reachable)
+    then (
+      let only_tree = Addr.Set.diff tree_addrs reachable in
+      let only_reach = Addr.Set.diff reachable tree_addrs in
+      Printf.eprintf
+        "[split_structured] leaf/reachable mismatch: \
+         tree-only=%d reach-only=%d\n"
+        (Addr.Set.cardinal only_tree)
+        (Addr.Set.cardinal only_reach);
+      failwith "Split_tree.leaf_addrs != reachable_from"));
   let scratch = make_bfs_scratch () in
   let best = ref None in
   Addr.Set.iter

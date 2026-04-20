@@ -165,6 +165,11 @@ let to_program (t : t) : program =
         !blocks);
   { start = t.start; free_pc = t.free_pc; blocks = !blocks }
 
+let leaf_addrs (t : t) : Addr.Set.t =
+  let acc = ref Addr.Set.empty in
+  iter_leaves t.root (fun l -> acc := Addr.Set.add l.entry_addr !acc);
+  !acc
+
 let trap_regions (t : t) =
   let acc = ref [] in
   let rec walk = function
