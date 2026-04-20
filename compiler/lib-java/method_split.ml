@@ -1122,7 +1122,13 @@ let split ~limit ~class_name ~is_static ~return_kind ?env_var prog =
      depth ≤ 256; 1024 gives a 4× safety margin without costing
      anything extra (recursion only runs as deep as needed). *)
   let max_depth = 1024 in
-  let rec go depth queue prog =
+  (* [blocks_clean] tracks whether every block in [prog] already fits
+     under [limit]. Once [drive_intrasplit] runs it's true, and since
+     structural cuts only partition blocks (never grow any), it stays
+     true for head/tail sub-programs. [drive_intrasplit] is the
+     [heaviest_block] walk plus optional splitting; skipping it on a
+     known-clean program elides the O(|blocks|) scan entirely. *)
+  let rec go depth ~blocks_clean queue prog =
     if depth >= max_depth
     then prog
     else (
@@ -1130,7 +1136,9 @@ let split ~limit ~class_name ~is_static ~return_kind ?env_var prog =
          intra-block splitting. The fresh chunk addresses go onto
          [queue] as known-clean cut points so Phase 2 can adopt them
          directly without re-deriving them via [find_end_cut]. *)
-      let prog, new_addrs = drive_intrasplit ~limit prog in
+      let prog, new_addrs =
+        if blocks_clean then prog, [] else drive_intrasplit ~limit prog
+      in
       let queue = new_addrs @ queue in
       (* Phase 2: structural cut. Cache is rebuilt per recursion
          level because Phase 1 may have added blocks; the cache only
@@ -1180,7 +1188,7 @@ let split ~limit ~class_name ~is_static ~return_kind ?env_var prog =
           let tail_params = cut_block.params in
           let tail = Stat.track "tail_subprogram" (fun () ->
             tail_subprogram prog cut) in
-          let tail_split = go (depth + 1) [] tail in
+          let tail_split = go (depth + 1) ~blocks_clean:true [] tail in
           let descriptor = descriptor_for_params tail_params ~return_kind in
           let method_name = fresh_helper_name () in
           helpers_rev :=
@@ -1198,10 +1206,10 @@ let split ~limit ~class_name ~is_static ~return_kind ?env_var prog =
                 ~descriptor
                 head)
           in
-          go (depth + 1) queue head
+          go (depth + 1) ~blocks_clean:true queue head
         | None ->
           trace "depth=%d: no structural cut, giving up" depth;
           prog))
   in
-  let head = go 0 [] prog in
+  let head = go 0 ~blocks_clean:false [] prog in
   { head; helpers = List.rev !helpers_rev }
