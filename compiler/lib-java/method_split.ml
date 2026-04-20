@@ -230,6 +230,7 @@ let precompute_block_costs (prog : program) =
 
 let debug_split = Debug.find "split"
 let debug_split_times = Debug.find "split_times"
+let debug_split_args = Debug.find "split_args"
 
 (* Per-phase wall-clock counters inside [split], printed at process
    exit when [JAVA_OF_OCAML_DEBUG=split_times]. The structural-cut
@@ -715,6 +716,177 @@ let descriptor_for_params (params : Var.t list) ~return_kind =
    | Return_void -> Buffer.add_char b 'V');
   Buffer.contents b
 
+(* --- Per-helper arg statistics -------------------------------------- *)
+
+(* Classify each helper's params as "locally used" vs "only forwarded".
+   A param is locally used if it appears in any body instruction's free
+   vars, or as a terminator value that isn't a continuation arg
+   (Return / Raise scrutinee, Cond / Switch discriminator). Anything
+   else — continuation args, Invoke_tail args — is forwarding: the
+   helper is just threading the value through to the next cut.
+
+   Forwarding params are the ones a smarter cut placement (or a
+   spill-through-object-array escape hatch) could remove without
+   changing semantics. This split is the thing to measure before
+   designing a fix for the JVM 255-arg limit. *)
+let locally_used_vars (prog : program) =
+  let used = ref Var.Set.empty in
+  Addr.Map.iter
+    (fun _ b ->
+      Array.iter (fun i -> used := Var.Set.union !used (fv_instr i)) b.body;
+      match b.branch with
+      | Return v | Raise v -> used := Var.Set.add v !used
+      | Cond (v, _, _) -> used := Var.Set.add v !used
+      | Switch (v, _, _) -> used := Var.Set.add v !used
+      | Stop | Branch _ | Pushtrap _ | Poptrap _ | Invoke_tail _ -> ())
+    prog.blocks;
+  !used
+
+(* Cross-invocation totals so a single at-exit summary captures the
+   whole compile run, not just each split call in isolation. *)
+let stats_totals =
+  let z () = Array.make 8 0 in
+  object
+    val mutable helpers = 0
+    val mutable total_params = 0
+    val mutable buckets = z ()
+    val mutable affected = 0
+    val mutable affected_intra = 0
+    val mutable affected_structural = 0
+    val mutable affected_used = 0
+    val mutable affected_forwarded = 0
+    method add ~h ~tp ~bk ~aff ~ai ~as_ ~au ~af =
+      helpers <- helpers + h;
+      total_params <- total_params + tp;
+      for i = 0 to 7 do buckets.(i) <- buckets.(i) + bk.(i) done;
+      affected <- affected + aff;
+      affected_intra <- affected_intra + ai;
+      affected_structural <- affected_structural + as_;
+      affected_used <- affected_used + au;
+      affected_forwarded <- affected_forwarded + af
+    method read =
+      helpers, total_params, buckets,
+      affected, affected_intra, affected_structural,
+      affected_used, affected_forwarded
+  end
+
+let () =
+  at_exit (fun () ->
+    if debug_split_args () then
+      let h, tp, bk, aff, ai, as_, au, af = stats_totals#read in
+      if h > 0 then (
+        let labels =
+          [| "  0..7 "; "  8..15"; " 16..31"; " 32..63"; " 64..127"
+           ; "128..199"; "200..254"; "  255+ " |]
+        in
+        Format.eprintf "[split_args:TOTAL] helpers=%d total_params=%d@." h tp;
+        Format.eprintf "[split_args:TOTAL] histogram:@.";
+        Array.iteri (fun i c ->
+          if c > 0 then Format.eprintf "[split_args:TOTAL]   %s : %d@." labels.(i) c)
+          bk;
+        if aff > 0 then (
+          Format.eprintf
+            "[split_args:TOTAL] >=100 params: %d helpers (%d intra, %d structural)@."
+            aff ai as_;
+          Format.eprintf
+            "[split_args:TOTAL]   %d used, %d forwarded (%.1f%% forwarded)@."
+            au af
+            (100.0 *. float_of_int af /. float_of_int (max 1 (au + af))))))
+
+let report_helper_arg_stats helpers origins =
+  let bucket_of n =
+    if n <= 7 then 0
+    else if n <= 15 then 1
+    else if n <= 31 then 2
+    else if n <= 63 then 3
+    else if n <= 127 then 4
+    else if n <= 199 then 5
+    else if n <= 254 then 6
+    else 7
+  in
+  let bucket_labels =
+    [| "  0..7 "; "  8..15"; " 16..31"; " 32..63"; " 64..127"
+     ; "128..199"; "200..254"; "  255+ " |]
+  in
+  let buckets = Array.make 8 0 in
+  let total = ref 0 in
+  let total_params = ref 0 in
+  let affected = ref [] in
+  let sum_used = ref 0 in
+  let sum_passthrough = ref 0 in
+  let intra_affected = ref 0 in
+  let structural_affected = ref 0 in
+  let affected_threshold = 100 in
+  List.iter2
+    (fun (h : helper) origin ->
+      let n = List.length h.params in
+      buckets.(bucket_of n) <- buckets.(bucket_of n) + 1;
+      incr total;
+      total_params := !total_params + n;
+      if n >= affected_threshold
+      then (
+        let used_set = locally_used_vars h.prog in
+        let used, pt =
+          List.fold_left
+            (fun (u, p) v ->
+              if Var.Set.mem v used_set then u + 1, p else u, p + 1)
+            (0, 0) h.params
+        in
+        sum_used := !sum_used + used;
+        sum_passthrough := !sum_passthrough + pt;
+        (match origin with
+         | `Intra_chunk -> incr intra_affected
+         | `Structural -> incr structural_affected);
+        affected := (h.method_name, n, used, pt, origin) :: !affected))
+    helpers origins;
+  stats_totals#add
+    ~h:!total ~tp:!total_params ~bk:buckets
+    ~aff:(List.length !affected)
+    ~ai:!intra_affected ~as_:!structural_affected
+    ~au:!sum_used ~af:!sum_passthrough;
+  (* Per-call report is noisy for tiny closures — skip anything that
+     wouldn't show structure. *)
+  let n_affected = List.length !affected in
+  if !total < 20 then () else (
+  Format.eprintf "[split_args] helpers=%d total_params=%d@."
+    !total !total_params;
+  Format.eprintf "[split_args] histogram (params per helper):@.";
+  Array.iteri
+    (fun i c ->
+      if c > 0
+      then Format.eprintf "[split_args]   %s : %d@." bucket_labels.(i) c)
+    buckets;
+  if n_affected > 0
+  then (
+    Format.eprintf
+      "[split_args] with >=%d params: %d helpers (%d intra-chunk, %d structural)@."
+      affected_threshold
+      n_affected
+      !intra_affected
+      !structural_affected;
+    Format.eprintf
+      "[split_args]   aggregate: %d used, %d forwarded (%.1f%% forwarded)@."
+      !sum_used
+      !sum_passthrough
+      (100.0 *. float_of_int !sum_passthrough
+       /. float_of_int (max 1 (!sum_used + !sum_passthrough)));
+    let worst =
+      List.sort (fun (_, a, _, _, _) (_, b, _, _, _) -> compare b a) !affected
+    in
+    let show = 10 in
+    Format.eprintf "[split_args]   top %d by param count:@." show;
+    List.iteri
+      (fun i (name, n, used, pt, origin) ->
+        if i < show
+        then
+          Format.eprintf
+            "[split_args]     %-14s n=%-4d used=%-4d forwarded=%-4d (%s)@."
+            name n used pt
+            (match origin with
+             | `Intra_chunk -> "intra"
+             | `Structural -> "struct"))
+      worst))
+
 (* --- Head rewrite: branches to cut_addr → [Invoke_tail] -------------- *)
 
 let rewrite_head_cut
@@ -1125,6 +1297,12 @@ let split ~limit ~class_name ~is_static ~return_kind ?env_var prog =
   then { head = prog; helpers = [] }
   else
   let helpers_rev = ref [] in
+  (* Parallel list — origin of each helper's cut. [Intra_chunk] means
+     the cut_addr was introduced by Phase-1 intra-block chunking and
+     adopted straight off the known-clean queue; [Structural] means
+     the cut was found by [find_end_cut] or [find_cut_toward] over
+     the CFG. Only read when [split_args] is enabled. *)
+  let helper_origins_rev : [ `Intra_chunk | `Structural ] list ref = ref [] in
   let fresh_helper_name () =
     Printf.sprintf "split_%d" (List.length !helpers_rev)
   in
@@ -1181,16 +1359,19 @@ let split ~limit ~class_name ~is_static ~return_kind ?env_var prog =
               cache.cache_regions
               queue)
         in
-        let cut_opt =
+        let cut_opt, cut_origin =
           match cut_opt with
-          | Some _ as r -> r
+          | Some _ as r -> r, `Intra_chunk
           | None ->
-            (match Stat.track "find_end_cut" (fun () ->
-               find_end_cut ~cache prog ~limit) with
-             | Some _ as r -> r
-             | None ->
-               Stat.track "find_cut_toward" (fun () ->
-                 find_cut_toward ?env_var ~cache prog ~target:(limit / 2)))
+            let r =
+              match Stat.track "find_end_cut" (fun () ->
+                find_end_cut ~cache prog ~limit) with
+              | Some _ as r -> r
+              | None ->
+                Stat.track "find_cut_toward" (fun () ->
+                  find_cut_toward ?env_var ~cache prog ~target:(limit / 2))
+            in
+            r, `Structural
         in
         match cut_opt with
         | Some cut ->
@@ -1208,6 +1389,7 @@ let split ~limit ~class_name ~is_static ~return_kind ?env_var prog =
           helpers_rev :=
             { method_name; params = tail_params; prog = tail_split; descriptor }
             :: !helpers_rev;
+          helper_origins_rev := cut_origin :: !helper_origins_rev;
           let head = Stat.track "head_subprogram" (fun () ->
             head_subprogram prog cut) in
           let head =
@@ -1226,4 +1408,7 @@ let split ~limit ~class_name ~is_static ~return_kind ?env_var prog =
           prog))
   in
   let head = go 0 ~blocks_clean:false [] prog in
-  { head; helpers = List.rev !helpers_rev }
+  let helpers = List.rev !helpers_rev in
+  let origins = List.rev !helper_origins_rev in
+  if debug_split_args () then report_helper_arg_stats helpers origins;
+  { head; helpers }
