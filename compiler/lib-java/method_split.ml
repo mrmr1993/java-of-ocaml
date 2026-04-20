@@ -581,6 +581,14 @@ let compute_predecessors (prog : program) =
      stub's trap context correctly), so T's handler catches. *)
 let debug_strict_traps = Debug.find "strict_traps"
 
+(* Step 1 of the structural-split migration (see the plan at
+   [~/.claude/plans/it-seems-like-it-adaptive-duckling.md]): when
+   [split_structured] is on, round-trip every input through
+   [Split_tree] before the existing splitter runs. The bootstrap
+   encoding is a bag of leaves so the round-trip is provably
+   identity; this gates the later steps that replace logic. *)
+let debug_split_structured = Debug.find "split_structured"
+
 let cut_respects_trap_regions_fast ~reachable ~tail_tbl regions =
   let in_tail a = Hashtbl.mem tail_tbl a in
   let in_head a = Addr.Set.mem a reachable && not (in_tail a) in
@@ -776,7 +784,61 @@ type split_cache =
   ; cache_predecessors : (Addr.t, Addr.t list) Hashtbl.t
   }
 
+(* Canonicalise a list of trap-region tuples as a sorted list so two
+   computed-independently results can be compared for equality. Used
+   only in [compare_trap_regions] to verify that the tree-based
+   construction in [Split_tree] matches the flat [pushtrap_regions]
+   dataflow. *)
+let canonicalise_regions
+    (rs : (Addr.t * Addr.t * Addr.Set.t * Addr.Set.t) list) =
+  List.sort
+    (fun (a, _, _, _) (b, _, _, _) -> compare a b)
+    rs
+
+let regions_equal a b =
+  List.length a = List.length b
+  && List.for_all2
+       (fun (p1, h1, pt1, pr1) (p2, h2, pt2, pr2) ->
+         p1 = p2
+         && h1 = h2
+         && Addr.Set.equal pt1 pt2
+         && Addr.Set.equal pr1 pr2)
+       a
+       b
+
+let compare_trap_regions prog =
+  let flat = canonicalise_regions (pushtrap_regions prog) in
+  let tree =
+    canonicalise_regions
+      (Split_tree.trap_regions (Split_tree.of_program prog))
+  in
+  if not (regions_equal flat tree)
+  then (
+    let pp_region fmt (p, h, pts, prot) =
+      Format.fprintf
+        fmt
+        "push=%d handler=%d poptraps={%s} protected={%s}"
+        p
+        h
+        (String.concat ","
+           (List.map string_of_int (Addr.Set.elements pts)))
+        (String.concat ","
+           (List.map string_of_int (Addr.Set.elements prot)))
+    in
+    prerr_endline "[split_structured] trap-region mismatch:";
+    prerr_endline "  pushtrap_regions (flat):";
+    List.iter
+      (fun r -> prerr_endline ("    " ^ Format.asprintf "%a" pp_region r))
+      flat;
+    prerr_endline "  Split_tree.trap_regions:";
+    List.iter
+      (fun r -> prerr_endline ("    " ^ Format.asprintf "%a" pp_region r))
+      tree;
+    failwith
+      "Split_tree.trap_regions disagrees with pushtrap_regions")
+
 let build_split_cache (prog : program) =
+  if debug_split_structured () then compare_trap_regions prog;
   { cache_block_cost = precompute_block_costs prog
   ; cache_regions = pushtrap_regions prog
   ; cache_predecessors = compute_predecessors prog
@@ -1587,6 +1649,11 @@ let pop_known_cut ~reachable ~predecessors prog regions queue =
   drop queue
 
 let split ~limit ~class_name ~is_static ~return_kind ?env_var prog =
+  let prog =
+    if debug_split_structured ()
+    then Split_tree.to_program (Split_tree.of_program prog)
+    else prog
+  in
   (* Two-tier early return for the common case (tiny closure that
      already fits):
      1. Array-length upper bound — no per-instr walk, just sums
