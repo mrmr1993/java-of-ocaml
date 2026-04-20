@@ -132,7 +132,23 @@ let run_deadcode ~what prog =
       (if deleted_instrs = 1 then "" else "s");
   prog
 
+let run_block_prealloc ~what prog =
+  let prog, { Block_preallocation.blocks_rewritten; fields_streamed } =
+    Block_preallocation.run prog
+  in
+  if debug_eval ()
+  then
+    Format.eprintf
+      "[block_prealloc] %s: rewrote %d block%s, streamed %d field%s@."
+      what
+      blocks_rewritten
+      (if blocks_rewritten = 1 then "" else "s")
+      fields_streamed
+      (if fields_streamed = 1 then "" else "s");
+  prog
+
 let optimize ~what prog =
+  let prog = run_block_prealloc ~what prog in
   let prog = run_eval ~what prog in
   run_deadcode ~what prog
 

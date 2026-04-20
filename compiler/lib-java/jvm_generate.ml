@@ -4576,6 +4576,23 @@ let emit_prim ctx (p : Code.prim) (args : Code.prim_arg list) : Kind.kind =
        consumers that expect one. Use aconst_null as placeholder. *)
     Jvm.Code.aconst_null ctx.code;
     K_obj
+  | Extern "alloc_block", [ Pc (Int tag); Pc (Int n) ] ->
+    (* Allocate a [Block] of the given tag and size with every
+       field initialised to [null]. [Block_preallocation] emits
+       this in place of a wide [Block (tag, fs)] expression and
+       threads per-field [Set_field] writes at each field-Var's
+       definition site, so no reader ever sees a [null] slot. *)
+    Jvm.Code.new_ ctx.code "Block";
+    Jvm.Code.dup ctx.code;
+    Jvm.Code.ldc_int ctx.code tag;
+    Jvm.Code.ldc_int ctx.code n;
+    Jvm.Code.anewarray ctx.code "java/lang/Object";
+    Jvm.Code.invokespecial
+      ctx.code
+      ~class_:"Block"
+      ~method_:"<init>"
+      ~descriptor:"(I[Ljava/lang/Object;)V";
+    Kind.K_obj
   | Extern "get_global", [ Pc (Int idx) ] ->
     Jvm.Code.getstatic
       ctx.code

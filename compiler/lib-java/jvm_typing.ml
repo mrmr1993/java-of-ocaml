@@ -37,6 +37,11 @@ let kind_of_expr (e : Code.expr) : Kind.kind =
        jvm_generate resolve when needed. *)
     K_closure { name = string_of_int body_pc; captures = [] }
   | Constant c -> kind_of_constant c
+  | Prim (Extern "alloc_block", [ Pc (Int _); Pc (Int n) ]) ->
+    (* Matches what [Block (_, fs)] would have produced before
+       [Block_preallocation] rewrote it, so downstream passes that
+       key off [K_block] keep the field-count info. *)
+    K_block (List.init n (fun _ -> Kind.K_obj))
   | Prim (p, _) -> kind_of_prim p
 
 let rec join (a : Kind.kind) (b : Kind.kind) : Kind.kind =
