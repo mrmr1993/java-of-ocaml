@@ -153,12 +153,28 @@ let assemble_class
   let class_attrs_count = if source_file_attr = None then 0 else 1 in
   let this_class = Cp.class_ cp class_name in
   let super_class = Cp.class_ cp super_name in
+  (* The class-file [constant_pool_count] is a u2: the pool can
+     hold at most 65534 usable entries (indices 1..65534; index 0
+     is reserved). If we overflow, [add_u2] silently truncates and
+     the resulting class file is malformed — the JVM rejects it
+     with a cryptic "Invalid this class index N" from whatever
+     garbage ends up at the header position. Surface this as a
+     clear compiler error instead. *)
+  let cp_entries = Cp.count cp in
+  if cp_entries + 1 > 0xFFFF
+  then
+    failwith
+      (Printf.sprintf
+         "jvm: class %s constant pool has %d entries, exceeds u2 \
+          limit (65534). Class needs to be split."
+         class_name
+         cp_entries);
   let out = Buffer.create 512 in
   add_u4 out 0xCAFEBABE;
   add_u2 out 0;
   add_u2 out 49 (* major_version = Java 5. Old-style type-inference
                    verification, so no StackMapTable needed. *);
-  add_u2 out (Cp.count cp + 1);
+  add_u2 out (cp_entries + 1);
   Buffer.add_string out (Cp.contents cp);
   add_u2 out access_flags;
   add_u2 out this_class;
