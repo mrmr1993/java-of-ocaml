@@ -960,6 +960,20 @@ let compile_t
                         programs that path is never exercised. *)
                      let helper_cp, helper_code =
                        let size = Jvm.Code.resolved_size helper_code in
+                       (match Sys.getenv_opt "JAVA_OF_OCAML_DEBUG" with
+                        | Some s
+                          when List.mem "cost_vs_emit"
+                                 (String.split_on_char ',' s) ->
+                          let est = Code_cost.program h_prog in
+                          Format.eprintf
+                            "[cost_vs_emit] %s: estimate=%d actual=%d \
+                             ratio=%.2f blocks=%d@."
+                            h.method_name
+                            est
+                            size
+                            (float_of_int size /. float_of_int (max 1 est))
+                            (Code.Addr.Map.cardinal h_prog.blocks)
+                        | _ -> ());
                        if size <= 65535
                        then helper_cp, helper_code
                        else (

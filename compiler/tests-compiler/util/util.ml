@@ -1,3 +1,90 @@
+module Jooc = Java_of_ocaml_compiler
+
+(* Build a minimal [Code.program] that calls one extern primitive
+   and returns the result, emit it via [Jvm_generate], and return
+   either [Ok (estimate, actual)] or [Error msg] if the emitter
+   bailed. The per-primitive cost test uses this to cross-check
+   [Code_cost.extern_cost] against what [Jvm_generate] actually
+   emits.
+
+   [emit_prim] dispatches C primitives through an [Extern
+   "ccall_<idx>"] indirection; the real name is resolved via the
+   [prim_name] callback (populated from the bytecode's PRIM
+   section in a real compile). We fake that: primitives whose name
+   matches a direct-dispatch [emit_prim] case (e.g. [alloc_block],
+   [get_global]) keep their literal name; everything else comes in
+   as [ccall_0] with [prim_name 0] returning the real name. *)
+let direct_extern_names =
+  [ "alloc_block"
+  ; "get_global"
+  ; "get_global_field"
+  ; "set_global"
+  ]
+
+let measure_extern_cost
+      ?(prefix_extras = [])
+      ?(extras = [])
+      ~nargs
+      name
+  =
+  let open Jooc.Code in
+  let args = List.init nargs (fun _ -> Var.fresh ()) in
+  let pa_args = List.map (fun v -> Pv v) args in
+  let all_args = prefix_extras @ pa_args @ extras in
+  let result = Var.fresh () in
+  let is_direct = List.mem name direct_extern_names in
+  let ir_name = if is_direct then name else "ccall_0" in
+  let body = [| Let (result, Prim (Extern ir_name, all_args)) |] in
+  let block = { params = args; body; branch = Return result } in
+  let prog =
+    { start = 0
+    ; blocks = Addr.Map.add 0 block Addr.Map.empty
+    ; free_pc = 1
+    }
+  in
+  let cp = Jooc.Jvm.Cp.create () in
+  let code = Jooc.Jvm.Code.create cp in
+  Jooc.Jvm.Code.set_min_locals code (List.length args + 1);
+  let typing = Jooc.Jvm_typing.infer prog in
+  try
+    Jooc.Jvm_generate.emit_program
+      ~code
+      ~typing
+      ~name_of_body:(fun _ -> raise Not_found)
+      ~fn_info_of_body:(fun _ -> None)
+      ~prim_name:(fun i -> if i = 0 then name else raise Not_found)
+      ~arg_vars:args
+      ~is_static:true
+      prog;
+    let actual = Jooc.Jvm.Code.resolved_size code in
+    (* Ideal estimate: what [Code_cost.program] would return if
+       [extern_cost] for this name were applied end-to-end. The
+       arithmetic mirrors what [Code_cost.program] actually computes
+       for a 1-block / 1-instr / Return program: entry_overhead +
+       Let instr (6 + prim_cost + per-arg cost) + Return (8). *)
+    let per_arg_cost pa =
+      match pa with
+      | Pv _ -> 2
+      | Pc (Int n) ->
+        if n >= -1 && n <= 5 then 1
+        else if n >= -128 && n <= 127 then 2
+        else 3
+      | Pc _ -> 5
+    in
+    let arg_bytes =
+      List.fold_left (fun a pa -> a + per_arg_cost pa) 0 all_args
+    in
+    let entry_overhead = 2 * nargs in
+    let ideal =
+      entry_overhead
+      + (3 + Jooc.Code_cost.extern_cost name + arg_bytes)
+      + 3
+    in
+    Ok (ideal, actual)
+  with
+  | Jooc.Jvm_generate.Unsupported msg -> Error ("Unsupported: " ^ msg)
+  | Failure msg -> Error ("Failure: " ^ msg)
+
 let exe =
   match Sys.os_type with
   | "Cygwin" | "Win32" -> fun x -> x ^ ".exe"

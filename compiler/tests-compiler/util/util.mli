@@ -1,3 +1,17 @@
+val measure_extern_cost :
+     ?prefix_extras:Java_of_ocaml_compiler.Code.prim_arg list
+  -> ?extras:Java_of_ocaml_compiler.Code.prim_arg list
+  -> nargs:int
+  -> string
+  -> (int * int, string) result
+(** [measure_extern_cost ~nargs name] builds a minimal
+    [Code.program] that invokes the extern [name] with [nargs]
+    [Pv] args (plus any [Pc] [prefix_extras] before and [extras]
+    after), emits it via [Jvm_generate], and returns [Ok (ideal,
+    actual)] where [ideal] is what [Code_cost.program] would
+    produce if the table were applied end-to-end and [actual] is
+    the emitted byte count. [Error msg] if the emitter bails. *)
+
 module Filetype : Filetype_intf.S
 
 (** Absolute path to the repo's [_build/default] root — used by tests

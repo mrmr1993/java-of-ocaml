@@ -9,6 +9,12 @@
     Used by [Method_split] both to decide whether a split is needed
     and, when it is, to score candidate cuts by head byte count. *)
 
+val extern_cost : string -> int
+(** Body-byte cost of a specific extern primitive — the [Extern name]
+    arm of [prim_cost]. Exposed so the per-primitive test can walk
+    a curated list and assert this table stays in sync with what
+    [Jvm_generate] actually emits. *)
+
 val instr : Code.instr -> int
 (** Byte estimate for a single instruction. Exposed so the intra-block
     splitter in [Method_split] can walk a [body : instr array] and
