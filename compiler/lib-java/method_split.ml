@@ -232,12 +232,6 @@ let debug_split = Debug.find "split"
 let debug_split_times = Debug.find "split_times"
 let debug_split_args = Debug.find "split_args"
 
-(* Experimental: pick cuts by minimising helper arity (natural block
-   params + forwarded vars), with tail size as the tiebreaker. A
-   minimum tail-cost floor prevents pathological micro-cuts. Off by
-   default; enable with [JAVA_OF_OCAML_DEBUG=split_minfwd]. *)
-let split_minfwd = Debug.find "split_minfwd"
-
 (* Per-phase wall-clock counters inside [split], printed at process
    exit when [JAVA_OF_OCAML_DEBUG=split_times]. The structural-cut
    path and the intra-block path each touch many independent helpers
@@ -680,68 +674,6 @@ let find_end_cut ~cache prog ~limit =
   | Some (_, cut_addr, tail) ->
     let head = Addr.Set.diff reachable tail in
     Some { cut_addr; head; tail }
-
-(* Experimental cut picker: primary metric is the helper's arity
-   at the cut (natural block params + live-through forwarded vars);
-   secondary is tail-cost proximity to [limit]. A floor keeps us
-   from picking pathologically tiny tails that would re-split on
-   the next iteration. Returns [None] when no candidate has
-   tail_cost within [floor..limit] — the caller falls back to the
-   size-primary finders, which always find something if one exists. *)
-let find_min_arity_cut ?env_var ~cache prog ~limit ~floor =
-  let reachable = reachable_from prog ~start:prog.start in
-  let scratch = make_bfs_scratch () in
-  let predecessors = cache.cache_predecessors in
-  let best = ref None in
-  Addr.Set.iter
-    (fun a ->
-      if a = prog.start
-      then ()
-      else
-        match
-          try_cut_fast
-            ~cost_cap:limit
-            ~block_cost:cache.cache_block_cost
-            ~scratch
-            ~reachable
-            ~predecessors
-            prog
-            cache.cache_regions
-            ~cut_addr:a
-        with
-        | None -> ()
-        | Some (_, tail_tbl) ->
-          let tail_cost = scratch.tail_cost in
-          if tail_cost < floor || tail_cost > limit
-          then ()
-          else (
-            let tail =
-              Hashtbl.fold
-                (fun a () acc -> Addr.Set.add a acc)
-                tail_tbl
-                Addr.Set.empty
-            in
-            let head = Addr.Set.diff reachable tail in
-            let cut = { cut_addr = a; head; tail } in
-            let forward =
-              Var.Set.cardinal (cut_forwarded_vars ~env_var prog cut)
-            in
-            let natural =
-              match Addr.Map.find_opt a prog.blocks with
-              | Some b -> List.length b.params
-              | None -> 0
-            in
-            let arity = natural + forward in
-            (* Tiebreak: prefer the larger tail (fewer total cuts). *)
-            let key = arity, -tail_cost in
-            match !best with
-            | None -> best := Some (key, cut)
-            | Some (k, _) when key < k -> best := Some (key, cut)
-            | _ -> ()))
-    reachable;
-  match !best with
-  | None -> None
-  | Some (_, cut) -> Some cut
 
 let program_cost ~cache (prog : program) =
   Addr.Map.fold
@@ -1431,32 +1363,13 @@ let split ~limit ~class_name ~is_static ~return_kind ?env_var prog =
           match cut_opt with
           | Some _ as r -> r, `Intra_chunk
           | None ->
-            let minfwd =
-              if split_minfwd ()
-              then
-                Stat.track "find_min_arity_cut" (fun () ->
-                  find_min_arity_cut
-                    ?env_var
-                    ~cache
-                    prog
-                    ~limit
-                    ~floor:(limit / 8))
-              else None
-            in
             let r =
-              match minfwd with
+              match Stat.track "find_end_cut" (fun () ->
+                find_end_cut ~cache prog ~limit) with
               | Some _ as r -> r
               | None ->
-                (match Stat.track "find_end_cut" (fun () ->
-                   find_end_cut ~cache prog ~limit) with
-                 | Some _ as r -> r
-                 | None ->
-                   Stat.track "find_cut_toward" (fun () ->
-                     find_cut_toward
-                       ?env_var
-                       ~cache
-                       prog
-                       ~target:(limit / 2)))
+                Stat.track "find_cut_toward" (fun () ->
+                  find_cut_toward ?env_var ~cache prog ~target:(limit / 2))
             in
             r, `Structural
         in
