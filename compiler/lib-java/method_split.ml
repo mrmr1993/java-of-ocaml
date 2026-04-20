@@ -471,20 +471,6 @@ let find_cut_toward ~cache prog ~target =
    walks this order it finds a cut whose tail-cost fits under the
    limit early — no need to score every candidate against a balance
    target. *)
-let reverse_postorder prog ~start =
-  let visited = ref Addr.Set.empty in
-  let order = ref [] in
-  let rec visit addr =
-    if Addr.Set.mem addr !visited
-    then ()
-    else (
-      visited := Addr.Set.add addr !visited;
-      List.iter visit (successors prog addr);
-      order := addr :: !order)
-  in
-  visit start;
-  !order
-
 let sum_cost ~cache set =
   Addr.Set.fold
     (fun a acc ->
@@ -492,26 +478,68 @@ let sum_cost ~cache set =
     set
     0
 
+(* DFS-subtree cost per block: [subtree_cost.(a) = block_cost.(a) +
+   sum(subtree_cost of DFS children of a)]. Computed alongside a
+   reverse post-order. Reachable-from a block is always a superset
+   of its DFS subtree, so [subtree_cost] is a lower bound on
+   [tail_cost] — if subtree_cost > limit, the candidate is
+   guaranteed out of budget and the expensive [try_cut] can be
+   skipped. *)
+let postorder_with_subtree_cost ~cache (prog : program) ~start =
+  let visited = ref Addr.Set.empty in
+  let subtree_cost = Hashtbl.create 64 in
+  let order_rev = ref [] in  (* reverse post-order: start first, exits last *)
+  let rec visit addr =
+    if Addr.Set.mem addr !visited
+    then ()
+    else (
+      visited := Addr.Set.add addr !visited;
+      let own =
+        try Hashtbl.find cache.cache_block_cost addr with Not_found -> 0
+      in
+      let children = successors prog addr in
+      let child_cost =
+        List.fold_left
+          (fun acc c ->
+            visit c;
+            acc
+            + (try Hashtbl.find subtree_cost c with Not_found -> 0))
+          0
+          children
+      in
+      Hashtbl.replace subtree_cost addr (own + child_cost);
+      order_rev := addr :: !order_rev)
+  in
+  visit start;
+  !order_rev, subtree_cost
+
 (* Suffix-chop cut selection: walk candidates in reverse post-order
-   (deepest-first) and return the first valid cut whose tail fits
-   within [limit]. This is the primary strategy — exits "from the
-   end" to produce a helper-sized chunk without recomputing
-   anything per-candidate beyond the [try_cut] structural checks.
-   Returns [None] if no valid tail-under-limit cut exists. *)
+   (start first, exits last) and return the first valid cut whose
+   tail fits within [limit]. Uses [subtree_cost] as a cheap lower
+   bound on tail cost to skip candidates whose tail is definitely
+   too big without paying the [try_cut] reachability BFSs. *)
 let find_end_cut ~cache prog ~limit =
   let reachable = reachable_from prog ~start:prog.start in
-  let candidates = reverse_postorder prog ~start:prog.start in
+  let candidates, subtree_cost =
+    postorder_with_subtree_cost ~cache prog ~start:prog.start
+  in
   let rec find = function
     | [] -> None
     | a :: rest when a = prog.start -> find rest
     | a :: rest ->
-      (match try_cut ~reachable prog cache.cache_regions ~cut_addr:a with
-       | None -> find rest
-       | Some cut ->
-         let tail_cost = sum_cost ~cache cut.tail in
-         if tail_cost > 0 && tail_cost <= limit
-         then Some cut
-         else find rest)
+      let lower =
+        try Hashtbl.find subtree_cost a with Not_found -> 0
+      in
+      if lower > limit
+      then find rest
+      else
+        (match try_cut ~reachable prog cache.cache_regions ~cut_addr:a with
+         | None -> find rest
+         | Some cut ->
+           let tail_cost = sum_cost ~cache cut.tail in
+           if tail_cost > 0 && tail_cost <= limit
+           then Some cut
+           else find rest)
   in
   find candidates
 
