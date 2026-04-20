@@ -231,6 +231,146 @@ let precompute_block_costs (prog : program) =
 let debug_split = Debug.find "split"
 let debug_split_times = Debug.find "split_times"
 let debug_split_args = Debug.find "split_args"
+let debug_split_lifetimes = Debug.find "split_lifetimes"
+
+(* Per-block variable-lifetime analysis. Hypothesis under test: the
+   200+-live-var blocks that force the arity cap down are dominated
+   by an ML pattern where many [let a = e1 in let b = e2 in ... in
+   big_expr_using_everything] bindings stack up before a final
+   expression that uses them all, so their live ranges overlap
+   completely. If so, the fix is to rewrite those blocks (or their
+   corresponding parsed bytecode) rather than to keep trying cuts
+   that can't reduce the simultaneously-live set.
+
+   For each block, compute each [Var]'s def-position (-1 for params
+   and pre-bound cut-augmented vars) and last-use position. Report
+   blocks with high simultaneous liveness and the span distribution
+   of their defs. *)
+let analyze_block_lifetimes (b : block) =
+  let n = Array.length b.body in
+  (* def_pos: where each var is defined. Params get -1. Body Let
+     bindings get their index. Vars defined elsewhere don't appear
+     in this table. *)
+  let def_pos : (Var.t, int) Hashtbl.t = Hashtbl.create 64 in
+  List.iter (fun v -> Hashtbl.replace def_pos v (-1)) b.params;
+  Array.iteri
+    (fun k i ->
+      Var.Set.iter (fun v -> Hashtbl.replace def_pos v k) (defs_of_instr i))
+    b.body;
+  (* last_use: last body index at which each var was referenced.
+     Branch uses count as index n. *)
+  let last_use : (Var.t, int) Hashtbl.t = Hashtbl.create 64 in
+  Array.iteri
+    (fun k i ->
+      Var.Set.iter (fun v -> Hashtbl.replace last_use v k) (fv_instr i))
+    b.body;
+  Var.Set.iter
+    (fun v -> Hashtbl.replace last_use v n)
+    (fv_last b.branch);
+  (* Per-k live count: standard backward scan. *)
+  let live_count = Array.make (n + 1) 0 in
+  let live = ref (fv_last b.branch) in
+  live_count.(n) <- Var.Set.cardinal !live;
+  for k = n - 1 downto 0 do
+    let i = b.body.(k) in
+    live := Var.Set.diff !live (defs_of_instr i);
+    live := Var.Set.union !live (fv_instr i);
+    live_count.(k) <- Var.Set.cardinal !live
+  done;
+  let max_live =
+    Array.fold_left max 0 live_count
+  in
+  (* Span per defined var, expressed as body-index distance. Params
+     count from -1 so their span is last_use + 1. *)
+  let spans = ref [] in
+  Hashtbl.iter
+    (fun v dp ->
+      match Hashtbl.find_opt last_use v with
+      | None -> ()
+      | Some lu -> spans := (v, dp, lu, lu - dp) :: !spans)
+    def_pos;
+  !spans, max_live, n
+
+let report_lifetimes_if_requested prog =
+  if not (debug_split_lifetimes ())
+  then ()
+  else
+    let threshold = 100 in
+    let rows =
+      Addr.Map.fold
+        (fun addr (blk : block) acc ->
+          let spans, max_live, n = analyze_block_lifetimes blk in
+          if max_live >= threshold
+          then (addr, blk, spans, max_live, n) :: acc
+          else acc)
+        prog.blocks
+        []
+      |> List.sort (fun (_, _, _, a, _) (_, _, _, b, _) -> compare b a)
+    in
+    if rows = []
+    then ()
+    else (
+      Format.eprintf
+        "[lifetimes] blocks with max_live >= %d: %d@."
+        threshold
+        (List.length rows);
+      let show = 10 in
+      List.iteri
+        (fun i (addr, (blk : block), spans, max_live, n) ->
+          if i >= show
+          then ()
+          else (
+            let k = List.length spans in
+            let nparams = List.length blk.params in
+            let long_threshold = max 1 (n * 8 / 10) in
+            let long_lived =
+              List.fold_left
+                (fun acc (_, _, _, span) ->
+                  if span >= long_threshold then acc + 1 else acc)
+                0
+                spans
+            in
+            let short_lived =
+              List.fold_left
+                (fun acc (_, _, _, span) ->
+                  if span <= 5 then acc + 1 else acc)
+                0
+                spans
+            in
+            let sorted =
+              List.sort
+                (fun (_, _, _, a) (_, _, _, b) -> compare a b)
+                spans
+            in
+            let arr = Array.of_list sorted in
+            let pct p =
+              if Array.length arr = 0
+              then 0
+              else
+                let idx =
+                  min (Array.length arr - 1)
+                    (Array.length arr * p / 100)
+                in
+                let _, _, _, s = arr.(idx) in
+                s
+            in
+            Format.eprintf
+              "[lifetimes]   addr=%d body=%d params=%d max_live=%d \
+               vars_tracked=%d long(>=%d%%)=%d short(<=5)=%d \
+               span_p25=%d p50=%d p75=%d p90=%d@."
+              addr
+              n
+              nparams
+              max_live
+              k
+              80
+              long_lived
+              short_lived
+              (pct 25)
+              (pct 50)
+              (pct 75)
+              (pct 90)))
+        rows)
 
 (* Per-phase wall-clock counters inside [split], printed at process
    exit when [JAVA_OF_OCAML_DEBUG=split_times]. The structural-cut
@@ -1296,6 +1436,7 @@ let split ~limit ~class_name ~is_static ~return_kind ?env_var prog =
      || Code_cost.program prog <= limit
   then { head = prog; helpers = [] }
   else
+  let () = report_lifetimes_if_requested prog in
   let helpers_rev = ref [] in
   (* Parallel list — origin of each helper's cut. [Intra_chunk] means
      the cut_addr was introduced by Phase-1 intra-block chunking and
