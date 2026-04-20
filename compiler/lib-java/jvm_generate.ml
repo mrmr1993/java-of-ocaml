@@ -2226,6 +2226,21 @@ and emit_ccall_named ctx name args =
          ctx.code ~class_:"CondVar" ~method_:"cbroadcast" ~descriptor:"()I";
        Kind.K_int
      | _ -> raise (Unsupported "caml_ml_condition_broadcast arity"))
+  | "time_now_nanoseconds_since_unix_epoch_or_zero" ->
+    (* Core's [Time_ns.now] — wall-clock nanoseconds since Unix
+       epoch, returned as an Int63/Int64 packed into an Object. *)
+    (match args with
+     | [ _ ] ->
+       Jvm.Code.invokestatic
+         ctx.code
+         ~class_:"java/lang/System"
+         ~method_:"currentTimeMillis"
+         ~descriptor:"()J";
+       Jvm.Code.ldc_long ctx.code 1_000_000L;
+       Jvm.Code.lmul ctx.code;
+       Kind.emit_box_long ctx.code;
+       Kind.K_obj
+     | _ -> raise (Unsupported (name ^ " arity")))
   | "caml_sys_time" | "caml_sys_time_include_children" ->
     (* Seconds since an arbitrary epoch as an OCaml float.
        [System.nanoTime()] gives relative nanos; scale to seconds. *)
