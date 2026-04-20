@@ -949,6 +949,51 @@ let compile_t
                           (List.length h.params)
                           (Code.Addr.Map.cardinal h_prog.blocks);
                         raise (Failure msg));
+                     (* [Method_split]'s cost estimator sometimes
+                        underestimates — a helper that looked under
+                        the 64 KB limit emits past it and the class
+                        assembler raises [Method_too_large]. Detect
+                        that here and swap the body for a runtime-
+                        throwing stub so the rest of the program
+                        still compiles. The stub fires only if
+                        execution reaches this helper; for most
+                        programs that path is never exercised. *)
+                     let helper_cp, helper_code =
+                       let size = Jvm.Code.resolved_size helper_code in
+                       if size <= 65535
+                       then helper_cp, helper_code
+                       else (
+                         if debug_ir_emit ()
+                         then
+                           Format.eprintf
+                             "[ir_emit] main helper %s oversized \
+                              (%d bytes > 65535) — stubbing@."
+                             h.method_name
+                             size;
+                         let stub_cp = Jvm.Cp.create () in
+                         let stub = Jvm.Code.create stub_cp in
+                         Jvm.Code.set_min_locals
+                           stub
+                           (List.length h.params);
+                         Jvm.Code.new_
+                           stub
+                           "java/lang/UnsupportedOperationException";
+                         Jvm.Code.dup stub;
+                         Jvm.Code.ldc_string
+                           stub
+                           (Printf.sprintf
+                              "Main helper %s too large to split (%d bytes > 65535)"
+                              h.method_name
+                              size);
+                         Jvm.Code.invokespecial
+                           stub
+                           ~class_:
+                             "java/lang/UnsupportedOperationException"
+                           ~method_:"<init>"
+                           ~descriptor:"(Ljava/lang/String;)V";
+                         Jvm.Code.athrow stub;
+                         stub_cp, stub)
+                     in
                      let sibling = Hashtbl.find placement h.method_name in
                      let bytes =
                        assemble_sibling_class
