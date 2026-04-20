@@ -234,6 +234,14 @@ val resolved_size : t -> int
     Used to probe for the 65535-byte JVM [Code] attribute limit before
     committing to a method. *)
 
+val current_size : t -> int
+(** Cheap, branch-resolution-free byte count of the unresolved buffer.
+    Underestimates by the (typically small) post-widening delta from
+    short→long branches. Intended for callers emitting straight-line
+    code (no forward branches) that need a running size to decide
+    chunk boundaries — calling [resolved_size] in a loop would be
+    quadratic. *)
+
 val max_stack : t -> int
 
 val max_locals : t -> int

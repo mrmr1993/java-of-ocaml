@@ -1045,6 +1045,15 @@ let pop_known_cut ~reachable prog regions queue =
   drop queue
 
 let split ~limit ~class_name ~is_static ~return_kind ?env_var prog =
+  (* Cheap up-front check for the common case: the program already
+     fits, no splitting needed. This dominates on emit-closures
+     where ~all 100k+ closures are tiny and the cache+drive pipeline
+     would be pure overhead per call. On a single-call site like
+     emit-main the savings vanished into noise; here it's the
+     bottleneck. *)
+  if Code_cost.program prog <= limit
+  then { head = prog; helpers = [] }
+  else
   let helpers_rev = ref [] in
   let fresh_helper_name () =
     Printf.sprintf "split_%d" (List.length !helpers_rev)

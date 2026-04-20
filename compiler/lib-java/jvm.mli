@@ -301,6 +301,9 @@ module Code : sig
       body. Used to probe for the 65535-byte JVM [Code] attribute limit
       before committing to a method; the driver stubs out oversized
       bodies instead of producing a class file the JVM will reject. *)
+
+  val current_size : t -> int
+  (** Cheap unresolved byte count — see [Jvm_code.current_size]. *)
 end
 
 (** A method definition: its name, JVM descriptor, access flags, and body. *)

@@ -232,7 +232,12 @@ let emit_local_op t ~short_opcode ~indexed_opcode n =
     add_u1 t.buf 0xC4;
     add_u1 t.buf indexed_opcode;
     add_u2 t.buf n)
-  else failwith (Printf.sprintf "jvm: local index %d exceeds 2-byte range" n)
+  else
+    failwith
+      (Printf.sprintf
+         "jvm: local index %d exceeds 2-byte range (high_water=%d)"
+         n
+         t.max_locals)
 
 let istore t n =
   emit_local_op t ~short_opcode:0x3B ~indexed_opcode:0x36 n;
@@ -921,6 +926,12 @@ let contents t =
 let resolved_size t =
   resolve t;
   Buffer.length t.buf
+
+(* Cheap byte count of the unresolved buffer — pre-widening, so this
+   underestimates by the (usually small) widening delta. Use this
+   when you're emitting linear code with no forward branches and want
+   a running size for chunk-boundary decisions. *)
+let current_size t = Buffer.length t.buf
 
 let max_stack t = t.max_stack
 

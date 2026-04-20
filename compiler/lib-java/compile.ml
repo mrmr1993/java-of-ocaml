@@ -63,10 +63,9 @@ module Timer_bucket = struct
       e.total <- e.total +. elapsed;
       e.count <- e.count + 1;
       r
-  let print fmt ~label (t : t) =
+  let snapshot fmt ~label (t : t) =
     if debug_times_detail ()
     then (
-      t.printed <- true;
       let entries =
         Hashtbl.fold (fun k v acc -> (k, v) :: acc) t.table []
         |> List.sort (fun (_, a) (_, b) -> compare b.total a.total)
@@ -81,6 +80,11 @@ module Timer_bucket = struct
             k e.total e.count
             (1000.0 *. e.total /. float_of_int (max 1 e.count)))
         entries)
+  let print fmt ~label (t : t) =
+    if debug_times_detail ()
+    then (
+      t.printed <- true;
+      snapshot fmt ~label t)
 end
 
 (* Method-body size limit, normally the JVM's 65535-byte [Code]-attribute
@@ -330,15 +334,26 @@ let emit_runtime_init_after_globals main_code =
     ~descriptor:"Ljava/lang/Object;"
 
 (* [emit_globals_init cp globals ~main_code] allocates the [GLOBALS]
-   array in [main_code] and then populates it. For small programs the
-   population is inlined directly into [main_code]; for large programs
-   it's split into static helper methods (returned as [method_desc]s
-   so the caller can attach them to [Main]) so [main_code] doesn't
-   blow through the 65535-byte [Code]-attribute limit. Each global
-   entry costs roughly 15–30 bytes depending on its kind, so we
-   chunk at [globals_chunk_size] entries ≈ 20 KB worth of bytecode
-   per helper — well under the limit. *)
-let globals_chunk_size = 1000
+   array in [main_code] and then populates it. Entries flow into
+   [main_code] until it approaches the 65535-byte [Code]-attribute
+   limit, then spill into static helper methods (returned as
+   [method_desc]s so the caller can attach them to [Main]). Each
+   helper closes when its own buffer crosses the same threshold.
+
+   Chunk boundary is decided from the actual emitted byte count
+   ([Jvm.Code.current_size]), not a fixed entry count: globals span a
+   wide size range (a small int constant compiles to a few bytes; a
+   large block-shaped global with nested constants can run into the
+   hundreds), and a fixed-N rule has to either be very conservative
+   to be safe or risk overflow on data-heavy inputs.
+
+   Margin: [chunk_byte_limit] sits ~5 KB under the JVM cap so the
+   next entry plus the closing [return_void] / [invokestatic]
+   sequence can't push past the boundary. A single global entry
+   that is itself > 5 KB (e.g. a giant inline data table) would
+   still overflow — that's a separate problem requiring per-entry
+   splitting and isn't observed on the inputs we currently run. *)
+let chunk_byte_limit = 60000
 
 let emit_globals_init cp globals ~main_code =
   let n = Array.length globals in
@@ -349,44 +364,50 @@ let emit_globals_init cp globals ~main_code =
     ~class_:"Main"
     ~field:"GLOBALS"
     ~descriptor:"[Ljava/lang/Object;";
-  if n <= globals_chunk_size
-  then (
-    for i = 0 to n - 1 do
-      emit_globals_entry main_code i (Global_view.inspect_global globals i)
-    done;
-    [])
-  else (
-    let helpers = ref [] in
-    let chunk_start = ref 0 in
-    let chunk_idx = ref 0 in
-    while !chunk_start < n do
-      let chunk_end = min n (!chunk_start + globals_chunk_size) in
-      let helper_code = Jvm.Code.create cp in
-      Jvm.Code.set_min_locals helper_code 0;
-      for i = !chunk_start to chunk_end - 1 do
-        emit_globals_entry
-          helper_code
-          i
-          (Global_view.inspect_global globals i)
-      done;
-      Jvm.Code.return_void helper_code;
-      let name = Printf.sprintf "init_globals_%d" !chunk_idx in
-      helpers
-        := { Jvm.name
-           ; descriptor = "()V"
-           ; access_flags = 0x0009 (* ACC_PUBLIC | ACC_STATIC *)
-           ; code = helper_code
-           }
-           :: !helpers;
-      Jvm.Code.invokestatic
-        main_code
-        ~class_:"Main"
-        ~method_:name
-        ~descriptor:"()V";
-      incr chunk_idx;
-      chunk_start := chunk_end
-    done;
-    List.rev !helpers)
+  let helpers = ref [] in
+  let chunk_idx = ref 0 in
+  let current = ref None in
+  let finalize_helper code =
+    Jvm.Code.return_void code;
+    let name = Printf.sprintf "init_globals_%d" !chunk_idx in
+    helpers
+      := { Jvm.name
+         ; descriptor = "()V"
+         ; access_flags = 0x0009 (* ACC_PUBLIC | ACC_STATIC *)
+         ; code
+         }
+         :: !helpers;
+    Jvm.Code.invokestatic
+      main_code
+      ~class_:"Main"
+      ~method_:name
+      ~descriptor:"()V";
+    incr chunk_idx
+  in
+  for i = 0 to n - 1 do
+    let target =
+      match !current with
+      | Some c -> c
+      | None ->
+        if Jvm.Code.current_size main_code > chunk_byte_limit
+        then (
+          let c = Jvm.Code.create cp in
+          Jvm.Code.set_min_locals c 0;
+          current := Some c;
+          c)
+        else main_code
+    in
+    emit_globals_entry target i (Global_view.inspect_global globals i);
+    match !current with
+    | Some c when Jvm.Code.current_size c > chunk_byte_limit ->
+      finalize_helper c;
+      current := None
+    | _ -> ()
+  done;
+  (match !current with
+   | Some c -> finalize_helper c
+   | None -> ());
+  List.rev !helpers
 
 let compile_t
       ?(print_functions = [])
@@ -667,19 +688,37 @@ let compile_t
   (* Resolve a [SourceFile] class attribute from the debug table:
      the file of the lowest-pc event at or after [from_pc]. Returns
      [None] when [-g] wasn't used (debug table empty). *)
+  (* [source_file_from] needs the file of the smallest pc >=
+     [pc_range_start] in the debug map. The original implementation
+     did [Hashtbl.iter] per call, which was quadratic across
+     ~111k closures × full-debug-map scan (≈88s on the test input).
+     Precompute a sorted (pc, file) array once and binary-search per
+     query: O(n log n) build + O(log n) per call. *)
+  let debug_pc_sorted =
+    let arr =
+      Hashtbl.fold
+        (fun pc (d : Bytecode.debug_loc) acc ->
+          if d.file = "" then acc else (pc, d.file) :: acc)
+        parsed.debug
+        []
+      |> Array.of_list
+    in
+    Array.sort (fun (a, _) (b, _) -> compare a b) arr;
+    arr
+  in
   let source_file_from pc_range_start =
-    let best = ref None in
-    Hashtbl.iter
-      (fun pc (d : Bytecode.debug_loc) ->
-        if pc >= pc_range_start && d.file <> ""
-        then
-          match !best with
-          | Some (prev_pc, _) when prev_pc <= pc -> ()
-          | _ -> best := Some (pc, d.file))
-      parsed.debug;
-    match !best with
-    | Some (_, f) -> Some (Filename.basename f)
-    | None -> None
+    let n = Array.length debug_pc_sorted in
+    let lo = ref 0 and hi = ref n in
+    while !lo < !hi do
+      let m = (!lo + !hi) / 2 in
+      let pc, _ = debug_pc_sorted.(m) in
+      if pc < pc_range_start then lo := m + 1 else hi := m
+    done;
+    if !lo >= n
+    then None
+    else
+      let _, f = debug_pc_sorted.(!lo) in
+      Some (Filename.basename f)
   in
   (* Pick a source file for the Main class. Heuristic: the file of
      the highest-pc event before Std_exit whose module isn't in the
@@ -776,17 +815,27 @@ let compile_t
                      Jvm.Code.set_min_locals
                        helper_code
                        (List.length h.params);
-                     Jvm_generate.emit_program
-                       ~code:helper_code
-                       ~typing
-                       ~name_of_body
-                       ~fn_info_of_body
-                       ~prim_name
-                       ~arg_vars:h.params
-                       ~line_of_pc
-                       ~unbox_args:true
-                       ~is_static:true
-                       h.prog;
+                     (try
+                        Jvm_generate.emit_program
+                          ~code:helper_code
+                          ~typing
+                          ~name_of_body
+                          ~fn_info_of_body
+                          ~prim_name
+                          ~arg_vars:h.params
+                          ~line_of_pc
+                          ~unbox_args:true
+                          ~is_static:true
+                          h.prog
+                      with Failure msg ->
+                        Format.eprintf
+                          "[ir_emit] main helper %s: %s (params=%d, \
+                           blocks=%d)@."
+                          h.method_name
+                          msg
+                          (List.length h.params)
+                          (Code.Addr.Map.cardinal h.prog.blocks);
+                        raise (Failure msg));
                      { Jvm.name = h.method_name
                      ; descriptor = h.descriptor
                      ; access_flags = 0x0009 (* ACC_PUBLIC | ACC_STATIC *)
@@ -817,14 +866,21 @@ let compile_t
        emit_runtime_init_after_globals main_code;
        main_split_helpers := helpers @ globals_helpers;
        Timer_bucket.track main_tb "emit_head" (fun () ->
-         Jvm_generate.emit_program
-           ~code:main_code
-           ~typing
-           ~name_of_body
-           ~fn_info_of_body
-           ~prim_name
-           ~line_of_pc
-           head);
+         try
+           Jvm_generate.emit_program
+             ~code:main_code
+             ~typing
+             ~name_of_body
+             ~fn_info_of_body
+             ~prim_name
+             ~line_of_pc
+             head
+         with Failure msg ->
+           Format.eprintf
+             "[ir_emit] main head: %s (blocks=%d)@."
+             msg
+             (Code.Addr.Map.cardinal head.blocks);
+           raise (Failure msg));
        let size =
          Timer_bucket.track main_tb "resolved_size" (fun () ->
            Jvm.Code.resolved_size main_code)
@@ -948,30 +1004,53 @@ let compile_t
   let closure_tb = Timer_bucket.make "emit-closures" in
   let closure_class_files = time_phase "emit-closures" (fun () ->
     let r =
+    let fn_count = List.length !func_list in
+    let fn_progress = ref 0 in
+    let fn_progress_start = Sys.time () in
+    let progress_step = max 1 (fn_count / 20) in
     List.map
       (fun (fn_info : function_info) ->
-        let cap_kinds = !(fn_info.capture_kinds) in
-        let ncaps = List.length cap_kinds in
-        let fn_cp = Jvm.Cp.create () in
-        let ctor_code = Jvm.Code.create fn_cp in
-        Jvm.Code.set_min_locals ctor_code (1 + ncaps);
-        Jvm.Code.aload ctor_code 0;
-        Jvm.Code.invokespecial
-          ctor_code
-          ~class_:"Closure"
-          ~method_:"<init>"
-          ~descriptor:"()V";
-        List.iteri
-          (fun i k ->
+        incr fn_progress;
+        if debug_times () && !fn_progress mod progress_step = 0
+        then (
+          Format.eprintf
+            "[times] emit-closures: %d/%d (%.1f s elapsed)@."
+            !fn_progress
+            fn_count
+            (Sys.time () -. fn_progress_start);
+          if debug_times_detail ()
+          then
+            Timer_bucket.snapshot
+              Format.err_formatter
+              ~label:"emit-closures (running)"
+              closure_tb);
+        Timer_bucket.track closure_tb "fn_total" (fun () ->
+        let cap_kinds, ncaps, fn_cp, ctor_code =
+          Timer_bucket.track closure_tb "ctor_emit" (fun () ->
+            let cap_kinds = !(fn_info.capture_kinds) in
+            let ncaps = List.length cap_kinds in
+            let fn_cp = Jvm.Cp.create () in
+            let ctor_code = Jvm.Code.create fn_cp in
+            Jvm.Code.set_min_locals ctor_code (1 + ncaps);
             Jvm.Code.aload ctor_code 0;
-            emit_load_for_kind ctor_code (i + 1) k;
-            Jvm.Code.putfield
+            Jvm.Code.invokespecial
               ctor_code
-              ~class_:fn_info.name
-              ~field:(Printf.sprintf "cap%d" i)
-              ~descriptor:(jvm_type_of_kind k))
-          cap_kinds;
-        Jvm.Code.return_void ctor_code;
+              ~class_:"Closure"
+              ~method_:"<init>"
+              ~descriptor:"()V";
+            List.iteri
+              (fun i k ->
+                Jvm.Code.aload ctor_code 0;
+                emit_load_for_kind ctor_code (i + 1) k;
+                Jvm.Code.putfield
+                  ctor_code
+                  ~class_:fn_info.name
+                  ~field:(Printf.sprintf "cap%d" i)
+                  ~descriptor:(jvm_type_of_kind k))
+              cap_kinds;
+            Jvm.Code.return_void ctor_code;
+            cap_kinds, ncaps, fn_cp, ctor_code)
+        in
         let apply_code = Jvm.Code.create fn_cp in
         Jvm.Code.set_min_locals apply_code (1 + fn_info.nargs);
         (* Emit the apply body from the IR. On IR failure, write a
@@ -1135,6 +1214,7 @@ let compile_t
             Jvm.Code.athrow apply_code;
             apply_code, []
         in
+        Timer_bucket.track closure_tb "fn_finalize" (fun () ->
         let cap_fields =
           List.mapi
             (fun i k ->
@@ -1195,19 +1275,23 @@ let compile_t
           ; code = arity_code
           }
         in
-        let fn_source_file = source_file_from fn_info.body_pc in
-        let bytes =
-          Jvm.assemble_class
-            ?source_file:fn_source_file
-            ~class_name:fn_info.name
-            ~super_name:"Closure"
-            ~cp:fn_cp
-            ~fields
-            ~methods:([ ctor; arity_method; apply_method ] @ split_helpers)
-            ~access_flags:0x0031
-            ()
+        let fn_source_file =
+          Timer_bucket.track closure_tb "source_file_from" (fun () ->
+            source_file_from fn_info.body_pc)
         in
-        fn_info.name, bytes)
+        let bytes =
+          Timer_bucket.track closure_tb "assemble_class" (fun () ->
+            Jvm.assemble_class
+              ?source_file:fn_source_file
+              ~class_name:fn_info.name
+              ~super_name:"Closure"
+              ~cp:fn_cp
+              ~fields
+              ~methods:([ ctor; arity_method; apply_method ] @ split_helpers)
+              ~access_flags:0x0031
+              ())
+        in
+        fn_info.name, bytes)))
       !func_list
     in
     Timer_bucket.print Format.err_formatter ~label:"emit-closures" closure_tb;
