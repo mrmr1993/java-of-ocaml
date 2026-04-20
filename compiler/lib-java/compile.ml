@@ -765,7 +765,7 @@ let compile_t
     then None
     else
       let _, f = debug_pc_sorted.(!lo) in
-      Some (Filename.basename f)
+      Some f
   in
   (* Pick a source file for the Main class. Heuristic: the file of
      the highest-pc event before Std_exit whose module isn't in the
@@ -795,8 +795,14 @@ let compile_t
           | Some (p, _) when p >= pc -> ()
           | _ -> best := Some (pc, d.file))
       parsed.debug;
+    (* Preserve the full relative path (typically repo-root-relative,
+       e.g. [])
+       so stack traces pinpoint the source file without ambiguity.
+       JVMS 4.7.10 reserves [SourceFile] for a bare name, but real
+       JVMs treat it as opaque and print whatever is there — which is
+       what stack-trace consumers need. *)
     match !best with
-    | Some (_, f) -> Some (Filename.basename f)
+    | Some (_, f) -> Some f
     | None -> source_file_from 0
   in
   let main_tb = Timer_bucket.make "emit-main" in
