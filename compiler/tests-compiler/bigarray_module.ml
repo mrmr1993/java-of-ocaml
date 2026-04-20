@@ -14,8 +14,12 @@ let%expect_test "Bigarray.Array1 Int64 round-trip" =
          print_newline ();
          Printf.printf "dim=%d\n" (Bigarray.Array1.dim ba) |};
   [%expect {|
+    [warning] <closure> ocaml_fn_719 oversized after split (88223 bytes > 65535) — body replaced with a runtime-throwing stub
+    [warning] 1 method stubbed after exceeding the JVM 64 KB [Code]-attribute limit; affected call paths fail at runtime.
+    [warning]   <closure>  ocaml_fn_719 (88223 bytes)
     0 1 4 9 16
-    dim=5 |}]
+    dim=5
+    |}]
 
 let%expect_test "Filename.temp_file reaches Random.State + Digest + LXM" =
   (* End-to-end path that was blocked until Bigarray / MD5 / LXM /
@@ -32,4 +36,9 @@ let%expect_test "Filename.temp_file reaches Random.State + Digest + LXM" =
          print_endline (input_line ic);
          close_in ic;
          Sys.remove p |};
-  [%expect {| hi |}]
+  [%expect {|
+    [warning] <closure> ocaml_fn_918 oversized after split (88230 bytes > 65535) — body replaced with a runtime-throwing stub
+    [warning] 1 method stubbed after exceeding the JVM 64 KB [Code]-attribute limit; affected call paths fail at runtime.
+    [warning]   <closure>  ocaml_fn_918 (88230 bytes)
+    hi
+    |}]

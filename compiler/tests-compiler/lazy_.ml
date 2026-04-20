@@ -14,6 +14,9 @@ let%expect_test "Lazy.force computes once and caches the result" =
        let () = Printf.printf "%d\n" (Lazy.force x)
        let () = Printf.printf "%d\n" (Lazy.force x) |};
   [%expect {|
+    [warning] <closure> ocaml_fn_650 oversized after split (88230 bytes > 65535) — body replaced with a runtime-throwing stub
+    [warning] 1 method stubbed after exceeding the JVM 64 KB [Code]-attribute limit; affected call paths fail at runtime.
+    [warning]   <closure>  ocaml_fn_650 (88230 bytes)
     computed
     42
     42
@@ -38,4 +41,9 @@ let%expect_test "lazy cascading / chained forces" =
        let b = lazy (Lazy.force a + 5)
        let c = lazy (Lazy.force b * 2)
        let () = Printf.printf "%d\n" (Lazy.force c) |};
-  [%expect {| 30 |}]
+  [%expect {|
+    [warning] <closure> ocaml_fn_650 oversized after split (88230 bytes > 65535) — body replaced with a runtime-throwing stub
+    [warning] 1 method stubbed after exceeding the JVM 64 KB [Code]-attribute limit; affected call paths fail at runtime.
+    [warning]   <closure>  ocaml_fn_650 (88230 bytes)
+    30
+    |}]

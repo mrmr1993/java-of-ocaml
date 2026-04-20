@@ -16,10 +16,14 @@ let%expect_test "Int64 literals preserve full 64-bit value" =
        let () = Printf.printf "%Ld\n" Int64.max_int
        let () = Printf.printf "%Ld\n" Int64.min_int |};
   [%expect {|
+    [warning] <closure> ocaml_fn_667 oversized after split (88231 bytes > 65535) — body replaced with a runtime-throwing stub
+    [warning] 1 method stubbed after exceeding the JVM 64 KB [Code]-attribute limit; affected call paths fail at runtime.
+    [warning]   <closure>  ocaml_fn_667 (88231 bytes)
     1
     1099511627776
     9223372036854775807
-    -9223372036854775808 |}]
+    -9223372036854775808
+    |}]
 
 let%expect_test "Int64 arithmetic" =
   compile_and_run
@@ -30,12 +34,16 @@ let%expect_test "Int64 arithmetic" =
        let () = Printf.printf "%Ld\n" (Int64.rem 100L 7L)
        let () = Printf.printf "%Ld\n" (Int64.neg 42L) |};
   [%expect {|
+    [warning] <closure> ocaml_fn_650 oversized after split (88230 bytes > 65535) — body replaced with a runtime-throwing stub
+    [warning] 1 method stubbed after exceeding the JVM 64 KB [Code]-attribute limit; affected call paths fail at runtime.
+    [warning]   <closure>  ocaml_fn_650 (88230 bytes)
     43
     93
     1000000000000
     14
     2
-    -42 |}]
+    -42
+    |}]
 
 let%expect_test "Int64 bitwise ops" =
   compile_and_run
@@ -46,12 +54,16 @@ let%expect_test "Int64 bitwise ops" =
        let () = Printf.printf "%Ld\n" (Int64.shift_right (-1L) 1)
        let () = Printf.printf "%Ld\n" (Int64.shift_right_logical (-1L) 1) |};
   [%expect {|
+    [warning] <closure> ocaml_fn_650 oversized after split (88230 bytes > 65535) — body replaced with a runtime-throwing stub
+    [warning] 1 method stubbed after exceeding the JVM 64 KB [Code]-attribute limit; affected call paths fail at runtime.
+    [warning]   <closure>  ocaml_fn_650 (88230 bytes)
     255
     65535
     65280
     1099511627776
     -1
-    9223372036854775807 |}]
+    9223372036854775807
+    |}]
 
 let%expect_test "Int64 conversions int/float round-trip" =
   compile_and_run
@@ -60,10 +72,14 @@ let%expect_test "Int64 conversions int/float round-trip" =
        let () = Printf.printf "%f\n" (Int64.to_float 1L)
        let () = Printf.printf "%Ld\n" (Int64.of_float 42.9) |};
   [%expect {|
+    [warning] <closure> ocaml_fn_667 oversized after split (88231 bytes > 65535) — body replaced with a runtime-throwing stub
+    [warning] 1 method stubbed after exceeding the JVM 64 KB [Code]-attribute limit; affected call paths fail at runtime.
+    [warning]   <closure>  ocaml_fn_667 (88231 bytes)
     42
     42
     1.000000
-    42 |}]
+    42
+    |}]
 
 let%expect_test "Stdlib float constants from Int64 bit patterns" =
   compile_and_run
@@ -71,9 +87,13 @@ let%expect_test "Stdlib float constants from Int64 bit patterns" =
        let () = Printf.printf "neg_inf=%f\n" neg_infinity
        let () = Printf.printf "max_float=%e\n" max_float |};
   [%expect {|
+    [warning] <closure> ocaml_fn_650 oversized after split (88230 bytes > 65535) — body replaced with a runtime-throwing stub
+    [warning] 1 method stubbed after exceeding the JVM 64 KB [Code]-attribute limit; affected call paths fail at runtime.
+    [warning]   <closure>  ocaml_fn_650 (88230 bytes)
     inf=Infinity
     neg_inf=-Infinity
-    max_float=1.797693e+308 |}]
+    max_float=1.797693e+308
+    |}]
 
 let%expect_test "Int64.equal on equal values compares by content" =
   (* Regression: [Compare.equal] didn't dispatch [Long], so boxed

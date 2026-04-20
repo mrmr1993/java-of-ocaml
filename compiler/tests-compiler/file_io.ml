@@ -58,5 +58,9 @@ let%expect_test "input reads up to N bytes into a buffer" =
          close_in ic;
          Sys.remove path |};
   [%expect {|
+    [warning] <closure> ocaml_fn_650 oversized after split (88230 bytes > 65535) — body replaced with a runtime-throwing stub
+    [warning] 1 method stubbed after exceeding the JVM 64 KB [Code]-attribute limit; affected call paths fail at runtime.
+    [warning]   <closure>  ocaml_fn_650 (88230 bytes)
     read 4: 0123
-    read 4: 4567 |}]
+    read 4: 4567
+    |}]

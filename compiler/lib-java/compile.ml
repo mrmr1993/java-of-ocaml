@@ -9,6 +9,60 @@ let debug_primitives = Debug.find "primitives"
 let debug_functions = Debug.find "functions"
 let debug_ir_emit = Debug.find "ir_emit"
 
+(* Per-compile tally of methods that hit the 64 KB [Code]-attribute
+   ceiling AFTER [Method_split] ran. Every entry is a correctness
+   concession: the body was replaced with a runtime-throwing stub,
+   so any path that reaches it at runtime fails. Tracked and
+   reported at end-of-compile (and crashes the build when
+   [JAVA_OF_OCAML_STRICT_SIZE] is set, so production builds can't
+   silently ship stubbed methods). *)
+type oversized_stub =
+  { owner : string       (* "<main>", "<helper>", "<closure>" *)
+  ; name : string
+  ; size : int
+  }
+
+let oversized_stubs : oversized_stub list ref = ref []
+
+let note_oversized_stub ~owner ~name ~size =
+  oversized_stubs := { owner; name; size } :: !oversized_stubs;
+  Format.eprintf
+    "[warning] %s %s oversized after split (%d bytes > 65535) — \
+     body replaced with a runtime-throwing stub@."
+    owner
+    name
+    size
+
+let strict_size_mode () =
+  match Sys.getenv_opt "JAVA_OF_OCAML_STRICT_SIZE" with
+  | Some ("1" | "true" | "yes") -> true
+  | _ -> false
+
+let report_oversized_stubs_and_maybe_fail () =
+  match !oversized_stubs with
+  | [] -> ()
+  | stubs ->
+    let n = List.length stubs in
+    Format.eprintf
+      "[warning] %d method%s stubbed after exceeding the JVM 64 KB \
+       [Code]-attribute limit; affected call paths fail at runtime.@."
+      n
+      (if n = 1 then "" else "s");
+    List.iter
+      (fun { owner; name; size } ->
+        Format.eprintf "[warning]   %-10s %s (%d bytes)@." owner name size)
+      (List.rev stubs);
+    if strict_size_mode ()
+    then
+      failwith
+        (Printf.sprintf
+           "refusing to emit %d oversized stub%s \
+            (JAVA_OF_OCAML_STRICT_SIZE=1). Run without the flag to \
+            get the class files with stubs in place, or fix \
+            [Method_split] to not give up on these programs."
+           n
+           (if n = 1 then "" else "s"))
+
 (* Accumulating bucketed timer. [times_detail] aggregates per-step
    cost across a loop (per-function work inside emit-closures,
    per-helper work inside main's split-and-emit path) and prints
@@ -977,13 +1031,10 @@ let compile_t
                        if size <= 65535
                        then helper_cp, helper_code
                        else (
-                         if debug_ir_emit ()
-                         then
-                           Format.eprintf
-                             "[ir_emit] main helper %s oversized \
-                              (%d bytes > 65535) — stubbing@."
-                             h.method_name
-                             size;
+                         note_oversized_stub
+                           ~owner:"<helper>"
+                           ~name:h.method_name
+                           ~size;
                          let stub_cp = Jvm.Cp.create () in
                          let stub = Jvm.Code.create stub_cp in
                          Jvm.Code.set_min_locals
@@ -1067,12 +1118,7 @@ let compile_t
        in
        if size > 65535
        then (
-         if debug_ir_emit ()
-         then
-           Format.eprintf
-             "[ir_emit] <main>: post-split still oversized (size=%d) \
-              — stubbing@."
-             size;
+         note_oversized_stub ~owner:"<main>" ~name:"main" ~size;
          main_split_helpers := [];
          main_sibling_classes := [];
          (* Build a fresh stub into a new [Code.t]; the emitter
@@ -1330,11 +1376,17 @@ let compile_t
               let too_big size = size > 65535 in
               if too_big head_size || List.exists too_big helper_sizes
               then (
+                let worst =
+                  List.fold_left max head_size helper_sizes
+                in
+                note_oversized_stub
+                  ~owner:"<closure>"
+                  ~name:fn_info.name
+                  ~size:worst;
                 if debug_ir_emit ()
                 then
                   Format.eprintf
-                    "[ir_emit] %s: post-split still oversized \
-                     (head=%d helpers=[%s])@."
+                    "[ir_emit]   detail: %s head=%d helpers=[%s]@."
                     fn_info.name
                     head_size
                     (String.concat
@@ -1543,7 +1595,9 @@ let compile
         in
         Linker.link units)
   in
-  compile_t ~print_functions ~print_ir ~parsed ~out_dir ()
+  oversized_stubs := [];
+  compile_t ~print_functions ~print_ir ~parsed ~out_dir ();
+  report_oversized_stubs_and_maybe_fail ()
 
 (* Share the "read bcs into a [Bytecode.t]" part of [compile] so the
    primitive-coverage check can reuse it without duplicating the
