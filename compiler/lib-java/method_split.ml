@@ -720,6 +720,43 @@ let score_cut
    this directly instead of allocating and cardinalling a set per
    candidate. The actual [Var.Set.t] of forwarded vars is cheap to
    compute on demand at the one cut we commit to. *)
+(* Structurally-preferred cut addresses derived from the tree. Cuts
+   here align with a region boundary so scoring gives them a credit:
+
+   - [Try_region.pushtrap.entry_addr] — cutting here moves the whole
+     trap (pushtrap + body + handler) into the tail; trap cohesion
+     is preserved trivially.
+
+   - The body-edge target of the [Pushtrap] branch — cutting here
+     moves just the protected body into the tail, under the relaxed
+     trap rule (pushtrap + handler stay in head, JVM propagation
+     delivers any tail-thrown exception through the [Invoke_tail]
+     site to the head's handler). *)
+let preferred_cut_addrs (tree : Split_tree.t) =
+  let acc = ref Addr.Set.empty in
+  let rec walk = function
+    | Split_tree.Leaf _ -> ()
+    | Flat ns | Seq ns -> List.iter walk ns
+    | If { t_branch; f_branch; join; _ } ->
+      walk t_branch;
+      walk f_branch;
+      Option.iter walk join
+    | Switch { int_cases; tag_cases; join; _ } ->
+      Array.iter walk int_cases;
+      Array.iter walk tag_cases;
+      Option.iter walk join
+    | Loop { body; _ } -> walk body
+    | Try_region { pushtrap; protected; _ } ->
+      acc := Addr.Set.add pushtrap.entry_addr !acc;
+      (match pushtrap.branch with
+       | Pushtrap ((body_addr, _), _, _) ->
+         acc := Addr.Set.add body_addr !acc
+       | _ -> ());
+      walk protected
+  in
+  walk tree.Split_tree.root;
+  !acc
+
 type split_cache =
   { cache_block_cost : (Addr.t, int) Hashtbl.t
   ; cache_regions : (Addr.t * Addr.t * Addr.Set.t * Addr.Set.t) list
@@ -728,6 +765,10 @@ type split_cache =
         (** Structural view of [prog]; built once per cache rebuild.
             [find_cut_toward] enumerates candidate cut addresses via
             the tree, and [trap_regions] is derived from it. *)
+  ; cache_preferred : Addr.Set.t
+        (** Structurally-preferred cut addresses (Try_region pushtrap
+            addrs + protected-body entries). Cached so per-iteration
+            cut finders don't re-walk the tree. *)
   }
 
 let build_split_cache (prog : program) =
@@ -775,45 +816,8 @@ let build_split_cache (prog : program) =
   ; cache_regions = Split_tree.trap_regions tree
   ; cache_predecessors = compute_predecessors prog
   ; cache_tree = tree
+  ; cache_preferred = preferred_cut_addrs tree
   }
-
-(* Structurally-preferred cut addresses derived from the tree. Cuts
-   here align with a region boundary so scoring gives them a flat
-   credit:
-
-   - [Try_region.pushtrap.entry_addr] — cutting here moves the whole
-     trap (pushtrap + body + handler) into the tail; trap cohesion
-     is preserved trivially.
-
-   - The body-edge target of the [Pushtrap] branch — cutting here
-     moves just the protected body into the tail, under the relaxed
-     trap rule (pushtrap + handler stay in head, JVM propagation
-     delivers any tail-thrown exception through the [Invoke_tail]
-     site to the head's handler). *)
-let preferred_cut_addrs (tree : Split_tree.t) =
-  let acc = ref Addr.Set.empty in
-  let rec walk = function
-    | Split_tree.Leaf _ -> ()
-    | Flat ns | Seq ns -> List.iter walk ns
-    | If { t_branch; f_branch; join; _ } ->
-      walk t_branch;
-      walk f_branch;
-      Option.iter walk join
-    | Switch { int_cases; tag_cases; join; _ } ->
-      Array.iter walk int_cases;
-      Array.iter walk tag_cases;
-      Option.iter walk join
-    | Loop { body; _ } -> walk body
-    | Try_region { pushtrap; protected; _ } ->
-      acc := Addr.Set.add pushtrap.entry_addr !acc;
-      (match pushtrap.branch with
-       | Pushtrap ((body_addr, _), _, _) ->
-         acc := Addr.Set.add body_addr !acc
-       | _ -> ());
-      walk protected
-  in
-  walk tree.Split_tree.root;
-  !acc
 
 (* Magic-number bonus applied by [score_cut] when a candidate matches
    a structurally-preferred addr. Calibrated to roughly 4 forwarded
@@ -829,7 +833,7 @@ let find_cut_toward ?env_var ~cache prog ~target =
      [reachable_from prog] on every rebuild, so candidate iteration
      is equivalent to the legacy [Addr.Set.iter reachable]. *)
   let candidates = Split_tree.leaf_addrs cache.cache_tree in
-  let preferred = preferred_cut_addrs cache.cache_tree in
+  let preferred = cache.cache_preferred in
   let scratch = make_bfs_scratch () in
   let best = ref None in
   Addr.Set.iter
@@ -937,11 +941,20 @@ let postorder_with_subtree_cost ~cache (prog : program) ~start =
    candidate with subtree_cost > limit along a DFS path, we can
    stop considering it for now — deeper candidates on that path
    have already been checked. *)
+(* Bytes added to a structural candidate's effective [tail_cost] in
+   [find_end_cut]'s greedy selection. At ~5000 bytes, a
+   Try_region-aligned candidate beats a non-structural one that's up
+   to 5 KB larger — big enough to actually flip choices on typical
+   trap-heavy functions, small enough to not override a cut that's
+   way better on pure size. *)
+let find_end_cut_structural_bonus = 5000
+
 let find_end_cut ~cache prog ~limit =
   let reachable = reachable_from prog ~start:prog.start in
   let candidates, subtree_cost =
     postorder_with_subtree_cost ~cache prog ~start:prog.start
   in
+  let preferred = cache.cache_preferred in
   let scratch = make_bfs_scratch () in
   let best = ref None in
   let predecessors = cache.cache_predecessors in
@@ -975,10 +988,15 @@ let find_end_cut ~cache prog ~limit =
             let tail_cost = scratch.tail_cost in
             if tail_cost > 0 && tail_cost <= limit
             then
+              let effective =
+                if Addr.Set.mem a preferred
+                then tail_cost + find_end_cut_structural_bonus
+                else tail_cost
+              in
               let better =
                 match !best with
                 | None -> true
-                | Some (c, _, _) -> tail_cost > c
+                | Some (c, _, _) -> effective > c
               in
               if better
               then (
@@ -991,7 +1009,7 @@ let find_end_cut ~cache prog ~limit =
                     tail_tbl
                     Addr.Set.empty
                 in
-                best := Some (tail_cost, a, tail))))
+                best := Some (effective, a, tail))))
     candidates;
   match !best with
   | None -> None
