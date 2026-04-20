@@ -219,100 +219,6 @@ let pushtrap_regions (prog : program) =
    [cut_respects_trap_regions_fast] subsume them. Removed. *)
 
 
-(* Backward-dataflow [live_in] for every reachable block. One
-   iteration in reverse post-order suffices for acyclic graphs;
-   loops converge in a few extra passes. Returns a hashtable
-   [addr -> Var.Set.t] where each entry is the set of vars needed
-   at the block's entry but not supplied via its params.
-
-   [cut_forwarded_vars] at a candidate cut equals [live_in] at
-   that block (minus [env_var]), so precomputing this once per
-   [find_cut_toward] replaces an O(|tail|) per-candidate scan with
-   an O(1) lookup — the main driver of the [find_cut_toward]'s
-   O(n²) cost on large [main] bodies like the stdlib+Base link.
-
-   Block params are treated as "defined at entry": the caller
-   hands values to them via branch args, so they aren't live-in.
-   Per-block [use] and [def] sets are computed once upfront. *)
-let precompute_live_in (prog : program) =
-  let use_def =
-    Addr.Map.mapi
-      (fun _ (b : block) ->
-        let defs = List.fold_left
-          (fun s v -> Var.Set.add v s)
-          Var.Set.empty
-          b.params
-        in
-        let body_defs =
-          Array.fold_left
-            (fun s i -> Var.Set.union s (defs_of_instr i))
-            Var.Set.empty
-            b.body
-        in
-        let defs = Var.Set.union defs body_defs in
-        let uses =
-          let body_uses =
-            Array.fold_left
-              (fun s i -> Var.Set.union s (fv_instr i))
-              Var.Set.empty
-              b.body
-          in
-          Var.Set.union body_uses (fv_last b.branch)
-        in
-        (* [use_b] is the block's "gen" set: used in the block
-           before any local def. Under strict SSA with defs
-           preceding uses inside a block, this is just uses minus
-           defs. *)
-        Var.Set.diff uses defs, defs)
-      prog.blocks
-  in
-  let live = Hashtbl.create (Addr.Map.cardinal prog.blocks) in
-  Addr.Map.iter (fun a _ -> Hashtbl.replace live a Var.Set.empty) prog.blocks;
-  let changed = ref true in
-  while !changed do
-    changed := false;
-    Addr.Map.iter
-      (fun a (b : block) ->
-        let _use, def = Addr.Map.find a use_def in
-        let live_out =
-          List.fold_left
-            (fun acc succ ->
-              let succ_params =
-                match Addr.Map.find_opt succ prog.blocks with
-                | Some sb -> fv_set_of_list sb.params
-                | None -> Var.Set.empty
-              in
-              let s =
-                try Hashtbl.find live succ with Not_found -> Var.Set.empty
-              in
-              Var.Set.union acc (Var.Set.diff s succ_params))
-            Var.Set.empty
-            (let acc = ref [] in
-             let step (s, _) =
-               if Addr.Map.mem s prog.blocks then acc := s :: !acc
-             in
-             (match b.branch with
-              | Return _ | Raise _ | Stop | Invoke_tail _ -> ()
-              | Branch c -> step c
-              | Cond (_, c1, c2) -> step c1; step c2
-              | Switch (_, ints, tags) ->
-                Array.iter step ints;
-                Array.iter step tags
-              | Pushtrap (body, _, handler) -> step body; step handler
-              | Poptrap c -> step c);
-             !acc)
-        in
-        let use, _ = Addr.Map.find a use_def in
-        let new_in = Var.Set.union use (Var.Set.diff live_out def) in
-        let prev = Hashtbl.find live a in
-        if not (Var.Set.equal prev new_in)
-        then (
-          Hashtbl.replace live a new_in;
-          changed := true))
-      prog.blocks
-  done;
-  live
-
 (* Cache per-block cost for the duration of one [find_cut_toward]
    call. Used both for scoring (needs head cost, which is the
    program total minus the tail's accumulated cost) and to avoid
@@ -554,39 +460,16 @@ let score_cut ~block_cost ~forward_size ~target (cut : cut) =
 type split_cache =
   { cache_block_cost : (Addr.t, int) Hashtbl.t
   ; cache_regions : (Addr.t * Addr.t * Addr.Set.t) list
-  ; cache_forward_size : (Addr.t, int) Hashtbl.t Lazy.t
   ; cache_predecessors : (Addr.t, Addr.t list) Hashtbl.t
   }
 
-(* [forward_size] — the live-in cardinality per block, used by
-   [find_cut_toward]'s balanced-score heuristic — costs a whole-
-   program backward dataflow fixpoint. The common path
-   ([find_end_cut] + [pop_known_cut]) never reads it, so deferring
-   the computation to the one place it's used ([find_cut_toward])
-   cuts the [build_split_cache] bill on the vast majority of calls. *)
-let build_split_cache ?env_var (prog : program) =
-  let forward_size =
-    lazy
-      (let live_in = precompute_live_in prog in
-       let forward_size = Hashtbl.create (Hashtbl.length live_in) in
-       Hashtbl.iter
-         (fun addr live ->
-           let size =
-             match env_var with
-             | Some e when Var.Set.mem e live -> Var.Set.cardinal live - 1
-             | _ -> Var.Set.cardinal live
-           in
-           Hashtbl.replace forward_size addr size)
-         live_in;
-       forward_size)
-  in
+let build_split_cache (prog : program) =
   { cache_block_cost = precompute_block_costs prog
   ; cache_regions = pushtrap_regions prog
-  ; cache_forward_size = forward_size
   ; cache_predecessors = compute_predecessors prog
   }
 
-let find_cut_toward ~cache prog ~target =
+let find_cut_toward ?env_var ~cache prog ~target =
   let reachable = reachable_from prog ~start:prog.start in
   let best = ref None in
   Addr.Set.iter
@@ -602,8 +485,7 @@ let find_cut_toward ~cache prog ~target =
       | None -> ()
       | Some cut ->
         let forward_size =
-          try Hashtbl.find (Lazy.force cache.cache_forward_size) cut.cut_addr
-          with Not_found -> 0
+          Var.Set.cardinal (cut_forwarded_vars ~env_var prog cut)
         in
         let score =
           score_cut
@@ -1198,7 +1080,7 @@ let split ~limit ~class_name ~is_static ~return_kind ?env_var prog =
          level because Phase 1 may have added blocks; the cache only
          supports subsetting, not extension. *)
       let cache = Stat.track "build_split_cache" (fun () ->
-        build_split_cache ?env_var prog) in
+        build_split_cache prog) in
       let cost = Stat.track "program_cost" (fun () ->
         program_cost ~cache prog) in
       if cost <= limit
@@ -1230,7 +1112,7 @@ let split ~limit ~class_name ~is_static ~return_kind ?env_var prog =
              | Some _ as r -> r
              | None ->
                Stat.track "find_cut_toward" (fun () ->
-                 find_cut_toward ~cache prog ~target:(limit / 2)))
+                 find_cut_toward ?env_var ~cache prog ~target:(limit / 2)))
         in
         match cut_opt with
         | Some cut ->
