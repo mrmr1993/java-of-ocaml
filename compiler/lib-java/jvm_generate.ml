@@ -1482,7 +1482,15 @@ and emit_ccall_named ctx name args =
      sockets. Returning null keeps init flowing; an actual socket
      call later would NPE at the use site. *)
   | "caml_unix_inet_addr_of_string"
-  | "caml_unix_string_of_inet_addr" ->
+  | "caml_unix_string_of_inet_addr"
+  (* Core-level unbound-prefix variants of the same Unix helpers.
+     Jane Street's core_unix registers its C stubs under names that
+     drop the OCaml-runtime [caml_] prefix, so [Unix.inet_addr_of_string]
+     in a core_unix-linked program resolves to [unix_inet_addr_of_string]
+     rather than [caml_unix_inet_addr_of_string]. Same init-time-only
+     treatment — null is OK until an actual socket path runs. *)
+  | "unix_inet_addr_of_string"
+  | "unix_string_of_inet_addr" ->
     Jvm.Code.aconst_null ctx.code;
     Kind.K_obj
   | "caml_ml_open_descriptor_in" ->
@@ -1817,6 +1825,85 @@ and emit_ccall_named ctx name args =
          ~descriptor:"(Ljava/lang/Object;)I";
        Kind.K_int
      | _ -> raise (Unsupported "caml_ba_fill arity"))
+  (* Bin_prot byte-addressed multi-byte accessors on a uint8 / char
+     Bigarray. Little-endian, matching the OCaml C stubs. *)
+  | "caml_ba_uint8_set16" | "caml_bigstring_set16" ->
+    (match args with
+     | [ Pv ba; Pv pos; Pv v ] ->
+       emit_load ctx ba;
+       Jvm.Code.checkcast ctx.code "BigArray";
+       as_int pos;
+       as_int v;
+       Jvm.Code.invokestatic
+         ctx.code ~class_:"BigArray" ~method_:"setU16"
+         ~descriptor:"(LBigArray;II)I";
+       Kind.K_int
+     | _ -> raise (Unsupported "caml_ba_uint8_set16 arity"))
+  | "caml_ba_uint8_set32" | "caml_bigstring_set32" ->
+    (match args with
+     | [ Pv ba; Pv pos; Pv v ] ->
+       emit_load ctx ba;
+       Jvm.Code.checkcast ctx.code "BigArray";
+       as_int pos;
+       as_int v;
+       Jvm.Code.invokestatic
+         ctx.code ~class_:"BigArray" ~method_:"setU32"
+         ~descriptor:"(LBigArray;II)I";
+       Kind.K_int
+     | _ -> raise (Unsupported "caml_ba_uint8_set32 arity"))
+  | "caml_ba_uint8_set64" | "caml_bigstring_set64" ->
+    (match args with
+     | [ Pv ba; Pv pos; Pv v ] ->
+       emit_load ctx ba;
+       Jvm.Code.checkcast ctx.code "BigArray";
+       as_int pos;
+       emit_load ctx v;
+       (* [v] is an Int64 — already boxed [Long] or primitive [long].
+          Route through [Block.asLong] so either carrier works. *)
+       (match kind_of ctx v with
+        | _ ->
+          Jvm.Code.invokestatic
+            ctx.code ~class_:"Block" ~method_:"asLong"
+            ~descriptor:"(Ljava/lang/Object;)J");
+       Jvm.Code.invokestatic
+         ctx.code ~class_:"BigArray" ~method_:"setU64"
+         ~descriptor:"(LBigArray;IJ)I";
+       Kind.K_int
+     | _ -> raise (Unsupported "caml_ba_uint8_set64 arity"))
+  | "caml_ba_uint8_get16" | "caml_bigstring_get16" ->
+    (match args with
+     | [ Pv ba; Pv pos ] ->
+       emit_load ctx ba;
+       Jvm.Code.checkcast ctx.code "BigArray";
+       as_int pos;
+       Jvm.Code.invokestatic
+         ctx.code ~class_:"BigArray" ~method_:"getU16"
+         ~descriptor:"(LBigArray;I)I";
+       Kind.K_int
+     | _ -> raise (Unsupported "caml_ba_uint8_get16 arity"))
+  | "caml_ba_uint8_get32" | "caml_bigstring_get32" ->
+    (match args with
+     | [ Pv ba; Pv pos ] ->
+       emit_load ctx ba;
+       Jvm.Code.checkcast ctx.code "BigArray";
+       as_int pos;
+       Jvm.Code.invokestatic
+         ctx.code ~class_:"BigArray" ~method_:"getU32"
+         ~descriptor:"(LBigArray;I)I";
+       Kind.K_int
+     | _ -> raise (Unsupported "caml_ba_uint8_get32 arity"))
+  | "caml_ba_uint8_get64" | "caml_bigstring_get64" ->
+    (match args with
+     | [ Pv ba; Pv pos ] ->
+       emit_load ctx ba;
+       Jvm.Code.checkcast ctx.code "BigArray";
+       as_int pos;
+       Jvm.Code.invokestatic
+         ctx.code ~class_:"BigArray" ~method_:"getU64"
+         ~descriptor:"(LBigArray;I)J";
+       Kind.emit_box_long ctx.code;
+       Kind.K_obj
+     | _ -> raise (Unsupported "caml_ba_uint8_get64 arity"))
   | "caml_ba_blit" ->
     (match args with
      | [ Pv src; Pv dst ] ->
