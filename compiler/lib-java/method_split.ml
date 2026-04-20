@@ -1049,7 +1049,14 @@ let split ~limit ~class_name ~is_static ~return_kind ?env_var prog =
   let fresh_helper_name () =
     Printf.sprintf "split_%d" (List.length !helpers_rev)
   in
-  let max_depth = 128 in
+  (* Recursion depth = longest root-to-leaf path in the head/tail
+     split tree, NOT the helper count. With intra-first chunking the
+     recursion converges naturally when the program is fully cut up;
+     the cap is a runaway safety, not a feature bound. The deepest
+     real case we've measured (250 MB main, 465 cuts) needed
+     depth ≤ 256; 1024 gives a 4× safety margin without costing
+     anything extra (recursion only runs as deep as needed). *)
+  let max_depth = 1024 in
   let rec go depth queue prog =
     if depth >= max_depth
     then prog
