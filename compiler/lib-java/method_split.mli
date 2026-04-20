@@ -13,10 +13,12 @@
        [Pushtrap] region spanning the cut. The tail becomes a helper
        whose entry params are [cut_addr]'s block params.
     2. **Intra-block split** — when no structural cut exists, pick the
-       heaviest block and slice its body in half, introducing a fresh
-       block joined by a [Branch] with the live-out vars threaded as
-       block params. The structural step then has the joining branch
-       as a natural cut candidate.
+       heaviest block and slice its body into a chain of smaller
+       blocks joined by [Branch] terminators with live-out vars
+       threaded as block params. A greedy backward sweep keyed on
+       precomputed cost-from-end and live-count arrays picks each cut
+       under a rolling byte budget. The structural step then has the
+       joining branches as natural cut candidates.
 
     Each level's excess is split recursively, bottom-up, so helper
     numbering is stable and helpers never contain oversized code.

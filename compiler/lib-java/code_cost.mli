@@ -14,6 +14,11 @@ val instr : Code.instr -> int
     splitter in [Method_split] can walk a [body : instr list] and
     pick the cost-midpoint index without duplicating the table. *)
 
+val last : Code.last -> int
+(** Byte estimate for a block terminator. Exposed for the same reason
+    as [instr]: the intra-block splitter sums per-position
+    cost-from-end including the terminator. *)
+
 val block : Code.block -> int
 (** Byte estimate for a single block, summed over its body instructions
     and terminator. *)

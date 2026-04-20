@@ -348,6 +348,54 @@ let precompute_block_costs (prog : program) =
   tbl
 
 let debug_split = Debug.find "split"
+let debug_split_times = Debug.find "split_times"
+
+(* Per-phase wall-clock counters inside [split], printed at process
+   exit when [JAVA_OF_OCAML_DEBUG=split_times]. The structural-cut
+   path and the intra-block path each touch many independent helpers
+   ([find_end_cut], [find_cut_toward], [intra_split_block_at],
+   [build_split_cache], [augment_cut_params], [rewrite_head_cut],
+   etc.); knowing which one dominates a given run is what makes a
+   fix-iteration loop tractable. *)
+module Stat = struct
+  let table : (string, float * int) Hashtbl.t = Hashtbl.create 16
+  let printed = ref false
+  let track name f =
+    if not (debug_split_times ())
+    then f ()
+    else (
+      let start = Sys.time () in
+      let r = f () in
+      let elapsed = Sys.time () -. start in
+      let t, c =
+        match Hashtbl.find_opt table name with
+        | Some p -> p
+        | None -> 0.0, 0
+      in
+      Hashtbl.replace table name (t +. elapsed, c + 1);
+      r)
+  let () =
+    at_exit (fun () ->
+      if debug_split_times () && not !printed
+      then (
+        printed := true;
+        let entries =
+          Hashtbl.fold (fun k (t, c) acc -> (k, t, c) :: acc) table []
+          |> List.sort (fun (_, a, _) (_, b, _) -> compare b a)
+        in
+        let total =
+          List.fold_left (fun acc (_, t, _) -> acc +. t) 0.0 entries
+        in
+        Format.eprintf "[split_times] total=%.2fs@." total;
+        List.iter
+          (fun (k, t, c) ->
+            Format.eprintf
+              "[split_times]   %-26s %6.2fs (%d calls)@."
+              k
+              t
+              c)
+          entries))
+end
 
 let try_cut ~reachable prog regions ~cut_addr =
   if cut_addr = prog.start
@@ -480,15 +528,23 @@ let sum_cost ~cache set =
 
 (* DFS-subtree cost per block: [subtree_cost.(a) = block_cost.(a) +
    sum(subtree_cost of DFS children of a)]. Computed alongside a
-   reverse post-order. Reachable-from a block is always a superset
+   post-order traversal. Reachable-from a block is always a superset
    of its DFS subtree, so [subtree_cost] is a lower bound on
    [tail_cost] — if subtree_cost > limit, the candidate is
    guaranteed out of budget and the expensive [try_cut] can be
-   skipped. *)
+   skipped.
+
+   The returned list is in post-order: a block's DFS descendants
+   appear before it, so we visit leaves first and the program's
+   start node last. That ordering matters for the suffix-chop
+   below: leaves have the smallest tails and are the easiest valid
+   cuts; we want to find a candidate whose tail cost is close to
+   (but ≤) the limit, which lives somewhere between the leaves
+   and the start. *)
 let postorder_with_subtree_cost ~cache (prog : program) ~start =
   let visited = ref Addr.Set.empty in
   let subtree_cost = Hashtbl.create 64 in
-  let order_rev = ref [] in  (* reverse post-order: start first, exits last *)
+  let order = ref [] in
   let rec visit addr =
     if Addr.Set.mem addr !visited
     then ()
@@ -508,40 +564,60 @@ let postorder_with_subtree_cost ~cache (prog : program) ~start =
           children
       in
       Hashtbl.replace subtree_cost addr (own + child_cost);
-      order_rev := addr :: !order_rev)
+      (* Post-visit append: start ends up at the tail, leaves at the
+         head. List.rev at the end gives start-first (not what we
+         want); iterate as-is to walk leaves-first. *)
+      order := addr :: !order)
   in
   visit start;
-  !order_rev, subtree_cost
+  List.rev !order, subtree_cost
 
-(* Suffix-chop cut selection: walk candidates in reverse post-order
-   (start first, exits last) and return the first valid cut whose
-   tail fits within [limit]. Uses [subtree_cost] as a cheap lower
-   bound on tail cost to skip candidates whose tail is definitely
-   too big without paying the [try_cut] reachability BFSs. *)
+(* Pick a cut at "the end" of the program: among candidates whose
+   DFS subtree cost fits under [limit] (cheap lower bound on tail
+   cost), return the one whose actual tail_cost under [try_cut] is
+   the largest but still ≤ limit. This produces helper-sized
+   chunks (close to [limit] bytes each) without ever paying the
+   per-candidate balanced-score walk. Candidates with subtree_cost
+   > limit are skipped without running try_cut.
+
+   Iteration direction: post-order (leaves first). [subtree_cost]
+   grows monotonically as we move toward [start], so once we see a
+   candidate with subtree_cost > limit along a DFS path, we can
+   stop considering it for now — deeper candidates on that path
+   have already been checked. *)
 let find_end_cut ~cache prog ~limit =
   let reachable = reachable_from prog ~start:prog.start in
   let candidates, subtree_cost =
     postorder_with_subtree_cost ~cache prog ~start:prog.start
   in
-  let rec find = function
-    | [] -> None
-    | a :: rest when a = prog.start -> find rest
-    | a :: rest ->
-      let lower =
-        try Hashtbl.find subtree_cost a with Not_found -> 0
-      in
-      if lower > limit
-      then find rest
+  let best = ref None in
+  List.iter
+    (fun a ->
+      if a = prog.start
+      then ()
       else
-        (match try_cut ~reachable prog cache.cache_regions ~cut_addr:a with
-         | None -> find rest
-         | Some cut ->
-           let tail_cost = sum_cost ~cache cut.tail in
-           if tail_cost > 0 && tail_cost <= limit
-           then Some cut
-           else find rest)
-  in
-  find candidates
+        let lower =
+          try Hashtbl.find subtree_cost a with Not_found -> 0
+        in
+        (* Cheap filter: a's subtree is a subset of its reachable-
+           from set, so tail_cost ≥ subtree_cost. If the lower
+           bound already exceeds the limit, skip without try_cut. *)
+        if lower > limit
+        then ()
+        else (
+          match try_cut ~reachable prog cache.cache_regions ~cut_addr:a with
+          | None -> ()
+          | Some cut ->
+            let tail_cost = sum_cost ~cache cut.tail in
+            if tail_cost > 0 && tail_cost <= limit
+            then
+              match !best with
+              | None -> best := Some (tail_cost, cut)
+              | Some (c, _) when tail_cost > c ->
+                best := Some (tail_cost, cut)
+              | _ -> ()))
+    candidates;
+  Option.map snd !best
 
 let program_cost ~cache (prog : program) =
   Addr.Map.fold
@@ -718,12 +794,146 @@ let split_block_at prog ~addr ~target =
          |> Addr.Map.add addr new_first_block
          |> Addr.Map.add fresh_addr suffix_block
        in
-       Some { prog with blocks; free_pc = fresh_addr + 1 })
+       Some ({ prog with blocks; free_pc = fresh_addr + 1 }, [ fresh_addr ]))
 
-let try_intrasplit ~limit prog =
-  match Code_cost.heaviest_block prog with
+(* Multi-chunk intra-block splitter.
+
+   Walks [addr]'s body once to build three arrays indexed by gap
+   positions [0..n]:
+   - [cost_from_end.(k)] = cost of body[k..n-1] + original terminator
+   - [live_count.(k)]    = number of vars live across gap k
+                           (i.e. live-in to body[k..])
+
+   Then a greedy backward sweep picks cut positions by repeatedly
+   selecting the gap with the largest [cost_from_end.(k)] satisfying
+   [cost_from_end.(k) + 50 * live_count.(k) <= B], where [B] starts
+   at [limit] and is updated after each cut so the precomputed
+   [cost_from_end] entries stay directly comparable:
+
+     B := B + cost_from_end.(bk) - 50 * live_count.(bk)
+
+   The first term cancels the double-counted tail-cost component now
+   sitting in helper land; the second discounts the per-var cost the
+   head must pay to forward [live_count.(bk)] vars at the new edge.
+   This avoids any per-step subtraction over [cost_from_end].
+
+   Live [Var.Set.t] values at the chosen cut positions are
+   reconstructed in one extra backward pass, not stored during the
+   scan.
+
+   Returns [None] when the block is too small to split or when no
+   gap satisfies the budget. *)
+let intra_split_block_at ~limit prog ~addr =
+  match Addr.Map.find_opt addr prog.blocks with
   | None -> None
-  | Some (addr, _) -> split_block_at prog ~addr ~target:(limit / 2)
+  | Some b ->
+    let body_arr = Array.of_list b.body in
+    let n = Array.length body_arr in
+    if n < 2
+    then None
+    else (
+      let term_cost = Code_cost.last b.branch in
+      let cost_from_end = Array.make (n + 1) 0 in
+      cost_from_end.(n) <- term_cost;
+      for k = n - 1 downto 0 do
+        cost_from_end.(k) <-
+          Code_cost.instr body_arr.(k) + cost_from_end.(k + 1)
+      done;
+      let live_count = Array.make (n + 1) 0 in
+      let live = ref (fv_last b.branch) in
+      live_count.(n) <- Var.Set.cardinal !live;
+      for k = n - 1 downto 0 do
+        let i = body_arr.(k) in
+        live := Var.Set.diff !live (defs_of_instr i);
+        live := Var.Set.union !live (fv_instr i);
+        live_count.(k) <- Var.Set.cardinal !live
+      done;
+      let b_eff = ref limit in
+      let cut_pos = ref n in
+      let cuts = ref [] in
+      let keep_going = ref true in
+      while !keep_going do
+        let best = ref None in
+        let k = ref (!cut_pos - 1) in
+        let stop = ref false in
+        while not !stop && !k >= 1 do
+          if cost_from_end.(!k) > !b_eff
+          then stop := true
+          else (
+            if cost_from_end.(!k) + (50 * live_count.(!k)) <= !b_eff
+            then (
+              match !best with
+              | None -> best := Some !k
+              | Some b' ->
+                if cost_from_end.(!k) > cost_from_end.(b')
+                then best := Some !k);
+            decr k)
+        done;
+        match !best with
+        | None -> keep_going := false
+        | Some bk ->
+          cuts := bk :: !cuts;
+          b_eff := !b_eff + cost_from_end.(bk) - (50 * live_count.(bk));
+          cut_pos := bk
+      done;
+      let cuts_arr = Array.of_list !cuts in
+      let m = Array.length cuts_arr in
+      if m = 0
+      then None
+      else (
+        let live_at = Array.make m Var.Set.empty in
+        let live = ref (fv_last b.branch) in
+        let next_idx = ref (m - 1) in
+        for k = n - 1 downto 0 do
+          let i = body_arr.(k) in
+          live := Var.Set.diff !live (defs_of_instr i);
+          live := Var.Set.union !live (fv_instr i);
+          if !next_idx >= 0 && cuts_arr.(!next_idx) = k
+          then (
+            live_at.(!next_idx) <- !live;
+            decr next_idx)
+        done;
+        let live_lists = Array.map Var.Set.elements live_at in
+        let fresh_addrs = Array.init m (fun i -> prog.free_pc + i) in
+        let slice lo hi =
+          let rec loop k acc =
+            if k < lo then acc else loop (k - 1) (body_arr.(k) :: acc)
+          in
+          loop (hi - 1) []
+        in
+        let chunk_body i =
+          let lo = if i = 0 then 0 else cuts_arr.(i - 1) in
+          let hi = if i = m then n else cuts_arr.(i) in
+          slice lo hi
+        in
+        let chunk_params i =
+          if i = 0 then b.params else live_lists.(i - 1)
+        in
+        let chunk_branch i =
+          if i = m then b.branch else Branch (fresh_addrs.(i), live_lists.(i))
+        in
+        let blocks = ref prog.blocks in
+        blocks :=
+          Addr.Map.add
+            addr
+            { params = chunk_params 0
+            ; body = chunk_body 0
+            ; branch = chunk_branch 0
+            }
+            !blocks;
+        for i = 1 to m do
+          blocks :=
+            Addr.Map.add
+              fresh_addrs.(i - 1)
+              { params = chunk_params i
+              ; body = chunk_body i
+              ; branch = chunk_branch i
+              }
+              !blocks
+        done;
+        Some
+          ( { prog with blocks = !blocks; free_pc = prog.free_pc + m }
+          , Array.to_list fresh_addrs )))
 
 (* --- Top-level split pipeline --------------------------------------- *)
 
@@ -772,67 +982,153 @@ let trace fmt =
   then Format.kasprintf (fun s -> prerr_endline ("[split] " ^ s)) fmt
   else Format.ikfprintf (fun _ -> ()) Format.std_formatter fmt
 
+(* Drive the multi-chunk intra-block splitter until no single block
+   exceeds [limit]. Structural cuts can only redistribute whole
+   blocks, so they cannot fix an oversized block — running them
+   first wastes the per-iteration [find_end_cut] CFG walk. Doing
+   intra-splitting up front means the structural pass that follows
+   sees only block-sized helpers and can cut between them at will.
+
+   Falls back to the single-midpoint [split_block_at] when the
+   multi-chunk variant finds no productive cut (e.g. a single
+   pathologically large instruction). When neither makes progress,
+   stops to avoid an infinite loop; the structural pass then
+   shoulders whatever it can. *)
+let drive_intrasplit ~limit prog =
+  let acc_addrs = ref [] in
+  let rec loop p =
+    match Code_cost.heaviest_block p with
+    | Some (addr, c) when c > limit ->
+      let n_before = Addr.Map.cardinal p.blocks in
+      let p' =
+        match Stat.track "intra_split_block_at" (fun () ->
+          intra_split_block_at ~limit p ~addr) with
+        | Some (p', addrs) ->
+          acc_addrs := List.rev_append addrs !acc_addrs;
+          p'
+        | None ->
+          (match Stat.track "split_block_at" (fun () ->
+            split_block_at p ~addr ~target:(limit / 2)) with
+           | Some (p', addrs) ->
+             acc_addrs := List.rev_append addrs !acc_addrs;
+             p'
+           | None -> p)
+      in
+      if Addr.Map.cardinal p'.blocks > n_before then loop p' else p'
+    | _ -> p
+  in
+  let prog' = Stat.track "drive_intrasplit" (fun () -> loop prog) in
+  (* [acc_addrs] is reverse-of-creation order; later (deeper) chunks
+     come first, which is exactly the order we want to peel them as
+     helper tails — smallest tail off the end first. *)
+  prog', !acc_addrs
+
+(* Consume the next valid known cut from [queue] (deepest-first). A
+   known cut is an address that intra-splitting created as a fresh
+   chain link: by construction it has exactly one predecessor (the
+   prior chunk's [Branch]), so the head/tail partition is trivially
+   disjoint and self-contained — [try_cut] only re-checks
+   trap-region coherence. The first one that passes is returned;
+   addresses no longer in the program (already swallowed by an
+   earlier cut's tail) are skipped. *)
+let pop_known_cut ~reachable prog regions queue =
+  let rec drop = function
+    | [] -> None, []
+    | addr :: rest ->
+      if not (Addr.Map.mem addr prog.blocks)
+      then drop rest
+      else (
+        match try_cut ~reachable prog regions ~cut_addr:addr with
+        | Some cut -> Some cut, rest
+        | None -> drop rest)
+  in
+  drop queue
+
 let split ~limit ~class_name ~is_static ~return_kind ?env_var prog =
-  let cache = build_split_cache ?env_var prog in
   let helpers_rev = ref [] in
   let fresh_helper_name () =
     Printf.sprintf "split_%d" (List.length !helpers_rev)
   in
   let max_depth = 128 in
-  let rec go depth prog =
-    let cost = program_cost ~cache prog in
-    if cost <= limit
-    then prog
-    else if depth >= max_depth
+  let rec go depth queue prog =
+    if depth >= max_depth
     then prog
     else (
-      trace
-        "depth=%d cost=%d limit=%d blocks=%d"
-        depth
-        cost
-        limit
-        (Addr.Map.cardinal prog.blocks);
-      (* Prefer the suffix-chop strategy: take a tail of size ≤
-         limit off the end. Falls back to the balanced-cut search
-         when no valid end-cut exists (pathological CFG shapes
-         where every tail is either too big or rejected by
-         try_cut). *)
-      let cut_opt =
-        match find_end_cut ~cache prog ~limit with
-        | Some _ as r -> r
-        | None -> find_cut_toward ~cache prog ~target:(limit / 2)
-      in
-      match cut_opt with
-      | Some cut ->
-        let forwarded = cut_forwarded_vars ~env_var prog cut in
-        let prog = augment_cut_params prog cut forwarded in
-        let cut_block = Addr.Map.find cut.cut_addr prog.blocks in
-        let tail_params = cut_block.params in
-        let tail = tail_subprogram prog cut in
-        let tail_split = go (depth + 1) tail in
-        let descriptor = descriptor_for_params tail_params ~return_kind in
-        let method_name = fresh_helper_name () in
-        helpers_rev :=
-          { method_name; params = tail_params; prog = tail_split; descriptor }
-          :: !helpers_rev;
-        let head = head_subprogram prog cut in
-        let head =
-          rewrite_head_cut
-            ~class_name
-            ~is_static
-            ~cut_addr:cut.cut_addr
-            ~helper_name:method_name
-            ~descriptor
-            head
+      (* Phase 1: shrink any individually-oversized block via
+         intra-block splitting. The fresh chunk addresses go onto
+         [queue] as known-clean cut points so Phase 2 can adopt them
+         directly without re-deriving them via [find_end_cut]. *)
+      let prog, new_addrs = drive_intrasplit ~limit prog in
+      let queue = new_addrs @ queue in
+      (* Phase 2: structural cut. Cache is rebuilt per recursion
+         level because Phase 1 may have added blocks; the cache only
+         supports subsetting, not extension. *)
+      let cache = Stat.track "build_split_cache" (fun () ->
+        build_split_cache ?env_var prog) in
+      let cost = Stat.track "program_cost" (fun () ->
+        program_cost ~cache prog) in
+      if cost <= limit
+      then prog
+      else (
+        trace
+          "depth=%d cost=%d limit=%d blocks=%d queue=%d"
+          depth
+          cost
+          limit
+          (Addr.Map.cardinal prog.blocks)
+          (List.length queue);
+        let reachable_lazy = lazy (reachable_from prog ~start:prog.start) in
+        let cut_opt, queue =
+          Stat.track "pop_known_cut" (fun () ->
+            pop_known_cut
+              ~reachable:(Lazy.force reachable_lazy)
+              prog
+              cache.cache_regions
+              queue)
         in
-        go (depth + 1) head
-      | None ->
-        trace "depth=%d: no valid cut, attempting intrasplit" depth;
-        (match try_intrasplit ~limit prog with
-         | Some prog' -> go (depth + 1) prog'
-         | None ->
-           trace "depth=%d: intrasplit also failed, giving up" depth;
-           prog))
+        let cut_opt =
+          match cut_opt with
+          | Some _ as r -> r
+          | None ->
+            (match Stat.track "find_end_cut" (fun () ->
+               find_end_cut ~cache prog ~limit) with
+             | Some _ as r -> r
+             | None ->
+               Stat.track "find_cut_toward" (fun () ->
+                 find_cut_toward ~cache prog ~target:(limit / 2)))
+        in
+        match cut_opt with
+        | Some cut ->
+          let forwarded = Stat.track "cut_forwarded_vars" (fun () ->
+            cut_forwarded_vars ~env_var prog cut) in
+          let prog = Stat.track "augment_cut_params" (fun () ->
+            augment_cut_params prog cut forwarded) in
+          let cut_block = Addr.Map.find cut.cut_addr prog.blocks in
+          let tail_params = cut_block.params in
+          let tail = Stat.track "tail_subprogram" (fun () ->
+            tail_subprogram prog cut) in
+          let tail_split = go (depth + 1) [] tail in
+          let descriptor = descriptor_for_params tail_params ~return_kind in
+          let method_name = fresh_helper_name () in
+          helpers_rev :=
+            { method_name; params = tail_params; prog = tail_split; descriptor }
+            :: !helpers_rev;
+          let head = Stat.track "head_subprogram" (fun () ->
+            head_subprogram prog cut) in
+          let head =
+            Stat.track "rewrite_head_cut" (fun () ->
+              rewrite_head_cut
+                ~class_name
+                ~is_static
+                ~cut_addr:cut.cut_addr
+                ~helper_name:method_name
+                ~descriptor
+                head)
+          in
+          go (depth + 1) queue head
+        | None ->
+          trace "depth=%d: no structural cut, giving up" depth;
+          prog))
   in
-  let head = go 0 prog in
+  let head = go 0 [] prog in
   { head; helpers = List.rev !helpers_rev }
