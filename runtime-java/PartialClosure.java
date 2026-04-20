@@ -22,29 +22,51 @@ public final class PartialClosure extends Closure {
 
     // Called once [captured] has been topped up to [targetArity].
     // Dispatches through a caller's concrete applyN override.
-    public Object dispatchSaturated(Object[] combined) {
-        switch (combined.length) {
-            case 1:
-                return target.apply1(combined[0]);
-            case 2:
-                return target.apply2(combined[0], combined[1]);
-            case 3:
-                return target.apply3(combined[0], combined[1], combined[2]);
-            case 4:
-                return target.apply4(combined[0], combined[1], combined[2],
-                                     combined[3]);
-            case 5:
-                return target.apply5(combined[0], combined[1], combined[2],
-                                     combined[3], combined[4]);
-            case 6:
-                return target.apply6(combined[0], combined[1], combined[2],
-                                     combined[3], combined[4], combined[5]);
+    public Object dispatchSaturated(Object[] c) {
+        switch (c.length) {
+            case 1: return target.apply1(c[0]);
+            case 2: return target.apply2(c[0], c[1]);
+            case 3: return target.apply3(c[0], c[1], c[2]);
+            case 4: return target.apply4(c[0], c[1], c[2], c[3]);
+            case 5: return target.apply5(c[0], c[1], c[2], c[3], c[4]);
+            case 6: return target.apply6(c[0], c[1], c[2], c[3], c[4], c[5]);
             case 7:
-                return target.apply7(combined[0], combined[1], combined[2],
-                                     combined[3], combined[4], combined[5],
-                                     combined[6]);
+                return target.apply7(c[0], c[1], c[2], c[3], c[4], c[5],
+                                     c[6]);
+            case 8:
+                return target.apply8(c[0], c[1], c[2], c[3], c[4], c[5],
+                                     c[6], c[7]);
+            case 9:
+                return target.apply9(c[0], c[1], c[2], c[3], c[4], c[5],
+                                     c[6], c[7], c[8]);
+            case 10:
+                return target.apply10(c[0], c[1], c[2], c[3], c[4], c[5],
+                                      c[6], c[7], c[8], c[9]);
+            case 11:
+                return target.apply11(c[0], c[1], c[2], c[3], c[4], c[5],
+                                      c[6], c[7], c[8], c[9], c[10]);
+            case 12:
+                return target.apply12(c[0], c[1], c[2], c[3], c[4], c[5],
+                                      c[6], c[7], c[8], c[9], c[10], c[11]);
+            case 13:
+                return target.apply13(c[0], c[1], c[2], c[3], c[4], c[5],
+                                      c[6], c[7], c[8], c[9], c[10], c[11],
+                                      c[12]);
+            case 14:
+                return target.apply14(c[0], c[1], c[2], c[3], c[4], c[5],
+                                      c[6], c[7], c[8], c[9], c[10], c[11],
+                                      c[12], c[13]);
+            case 15:
+                return target.apply15(c[0], c[1], c[2], c[3], c[4], c[5],
+                                      c[6], c[7], c[8], c[9], c[10], c[11],
+                                      c[12], c[13], c[14]);
+            case 16:
+                return target.apply16(c[0], c[1], c[2], c[3], c[4], c[5],
+                                      c[6], c[7], c[8], c[9], c[10], c[11],
+                                      c[12], c[13], c[14], c[15]);
             default:
-                throw new RuntimeException("unsupported partial-closure arity");
+                throw new RuntimeException(
+                    "unsupported partial-closure arity " + c.length);
         }
     }
 
@@ -101,5 +123,89 @@ public final class PartialClosure extends Closure {
                          Object a5, Object a6, Object a7) {
         return applyCombined(
             combine(new Object[] { a1, a2, a3, a4, a5, a6, a7 }));
+    }
+
+    @Override
+    public Object apply8(Object a1, Object a2, Object a3, Object a4,
+                         Object a5, Object a6, Object a7, Object a8) {
+        return applyCombined(
+            combine(new Object[] { a1, a2, a3, a4, a5, a6, a7, a8 }));
+    }
+
+    @Override
+    public Object apply9(Object a1, Object a2, Object a3, Object a4,
+                         Object a5, Object a6, Object a7, Object a8,
+                         Object a9) {
+        return applyCombined(combine(new Object[] {
+            a1, a2, a3, a4, a5, a6, a7, a8, a9
+        }));
+    }
+
+    @Override
+    public Object apply10(Object a1, Object a2, Object a3, Object a4,
+                          Object a5, Object a6, Object a7, Object a8,
+                          Object a9, Object a10) {
+        return applyCombined(combine(new Object[] {
+            a1, a2, a3, a4, a5, a6, a7, a8, a9, a10
+        }));
+    }
+
+    @Override
+    public Object apply11(Object a1, Object a2, Object a3, Object a4,
+                          Object a5, Object a6, Object a7, Object a8,
+                          Object a9, Object a10, Object a11) {
+        return applyCombined(combine(new Object[] {
+            a1, a2, a3, a4, a5, a6, a7, a8, a9, a10, a11
+        }));
+    }
+
+    @Override
+    public Object apply12(Object a1, Object a2, Object a3, Object a4,
+                          Object a5, Object a6, Object a7, Object a8,
+                          Object a9, Object a10, Object a11, Object a12) {
+        return applyCombined(combine(new Object[] {
+            a1, a2, a3, a4, a5, a6, a7, a8, a9, a10, a11, a12
+        }));
+    }
+
+    @Override
+    public Object apply13(Object a1, Object a2, Object a3, Object a4,
+                          Object a5, Object a6, Object a7, Object a8,
+                          Object a9, Object a10, Object a11, Object a12,
+                          Object a13) {
+        return applyCombined(combine(new Object[] {
+            a1, a2, a3, a4, a5, a6, a7, a8, a9, a10, a11, a12, a13
+        }));
+    }
+
+    @Override
+    public Object apply14(Object a1, Object a2, Object a3, Object a4,
+                          Object a5, Object a6, Object a7, Object a8,
+                          Object a9, Object a10, Object a11, Object a12,
+                          Object a13, Object a14) {
+        return applyCombined(combine(new Object[] {
+            a1, a2, a3, a4, a5, a6, a7, a8, a9, a10, a11, a12, a13, a14
+        }));
+    }
+
+    @Override
+    public Object apply15(Object a1, Object a2, Object a3, Object a4,
+                          Object a5, Object a6, Object a7, Object a8,
+                          Object a9, Object a10, Object a11, Object a12,
+                          Object a13, Object a14, Object a15) {
+        return applyCombined(combine(new Object[] {
+            a1, a2, a3, a4, a5, a6, a7, a8, a9, a10, a11, a12, a13, a14, a15
+        }));
+    }
+
+    @Override
+    public Object apply16(Object a1, Object a2, Object a3, Object a4,
+                          Object a5, Object a6, Object a7, Object a8,
+                          Object a9, Object a10, Object a11, Object a12,
+                          Object a13, Object a14, Object a15, Object a16) {
+        return applyCombined(combine(new Object[] {
+            a1, a2, a3, a4, a5, a6, a7, a8, a9, a10, a11, a12, a13, a14,
+            a15, a16
+        }));
     }
 }

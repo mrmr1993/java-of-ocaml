@@ -58,6 +58,89 @@ public class Closure {
         return under(7, args);
     }
 
+    public Object apply8(Object a1, Object a2, Object a3, Object a4,
+                         Object a5, Object a6, Object a7, Object a8) {
+        Object[] args = new Object[] { a1, a2, a3, a4, a5, a6, a7, a8 };
+        return under(8, args);
+    }
+
+    public Object apply9(Object a1, Object a2, Object a3, Object a4,
+                         Object a5, Object a6, Object a7, Object a8,
+                         Object a9) {
+        Object[] args = new Object[] {
+            a1, a2, a3, a4, a5, a6, a7, a8, a9
+        };
+        return under(9, args);
+    }
+
+    public Object apply10(Object a1, Object a2, Object a3, Object a4,
+                          Object a5, Object a6, Object a7, Object a8,
+                          Object a9, Object a10) {
+        Object[] args = new Object[] {
+            a1, a2, a3, a4, a5, a6, a7, a8, a9, a10
+        };
+        return under(10, args);
+    }
+
+    public Object apply11(Object a1, Object a2, Object a3, Object a4,
+                          Object a5, Object a6, Object a7, Object a8,
+                          Object a9, Object a10, Object a11) {
+        Object[] args = new Object[] {
+            a1, a2, a3, a4, a5, a6, a7, a8, a9, a10, a11
+        };
+        return under(11, args);
+    }
+
+    public Object apply12(Object a1, Object a2, Object a3, Object a4,
+                          Object a5, Object a6, Object a7, Object a8,
+                          Object a9, Object a10, Object a11, Object a12) {
+        Object[] args = new Object[] {
+            a1, a2, a3, a4, a5, a6, a7, a8, a9, a10, a11, a12
+        };
+        return under(12, args);
+    }
+
+    public Object apply13(Object a1, Object a2, Object a3, Object a4,
+                          Object a5, Object a6, Object a7, Object a8,
+                          Object a9, Object a10, Object a11, Object a12,
+                          Object a13) {
+        Object[] args = new Object[] {
+            a1, a2, a3, a4, a5, a6, a7, a8, a9, a10, a11, a12, a13
+        };
+        return under(13, args);
+    }
+
+    public Object apply14(Object a1, Object a2, Object a3, Object a4,
+                          Object a5, Object a6, Object a7, Object a8,
+                          Object a9, Object a10, Object a11, Object a12,
+                          Object a13, Object a14) {
+        Object[] args = new Object[] {
+            a1, a2, a3, a4, a5, a6, a7, a8, a9, a10, a11, a12, a13, a14
+        };
+        return under(14, args);
+    }
+
+    public Object apply15(Object a1, Object a2, Object a3, Object a4,
+                          Object a5, Object a6, Object a7, Object a8,
+                          Object a9, Object a10, Object a11, Object a12,
+                          Object a13, Object a14, Object a15) {
+        Object[] args = new Object[] {
+            a1, a2, a3, a4, a5, a6, a7, a8, a9, a10, a11, a12, a13, a14, a15
+        };
+        return under(15, args);
+    }
+
+    public Object apply16(Object a1, Object a2, Object a3, Object a4,
+                          Object a5, Object a6, Object a7, Object a8,
+                          Object a9, Object a10, Object a11, Object a12,
+                          Object a13, Object a14, Object a15, Object a16) {
+        Object[] args = new Object[] {
+            a1, a2, a3, a4, a5, a6, a7, a8, a9, a10, a11, a12, a13, a14,
+            a15, a16
+        };
+        return under(16, args);
+    }
+
     // Fallback when applyN is invoked on a closure whose arity is
     // different from N:
     //   a > n (undersupply) — package the supplied args into a
@@ -96,6 +179,36 @@ public class Closure {
             case 5: return c.apply5(s[0], s[1], s[2], s[3], s[4]);
             case 6: return c.apply6(s[0], s[1], s[2], s[3], s[4], s[5]);
             case 7: return c.apply7(s[0], s[1], s[2], s[3], s[4], s[5], s[6]);
+            case 8:
+                return c.apply8(s[0], s[1], s[2], s[3], s[4], s[5], s[6],
+                                s[7]);
+            case 9:
+                return c.apply9(s[0], s[1], s[2], s[3], s[4], s[5], s[6],
+                                s[7], s[8]);
+            case 10:
+                return c.apply10(s[0], s[1], s[2], s[3], s[4], s[5], s[6],
+                                 s[7], s[8], s[9]);
+            case 11:
+                return c.apply11(s[0], s[1], s[2], s[3], s[4], s[5], s[6],
+                                 s[7], s[8], s[9], s[10]);
+            case 12:
+                return c.apply12(s[0], s[1], s[2], s[3], s[4], s[5], s[6],
+                                 s[7], s[8], s[9], s[10], s[11]);
+            case 13:
+                return c.apply13(s[0], s[1], s[2], s[3], s[4], s[5], s[6],
+                                 s[7], s[8], s[9], s[10], s[11], s[12]);
+            case 14:
+                return c.apply14(s[0], s[1], s[2], s[3], s[4], s[5], s[6],
+                                 s[7], s[8], s[9], s[10], s[11], s[12],
+                                 s[13]);
+            case 15:
+                return c.apply15(s[0], s[1], s[2], s[3], s[4], s[5], s[6],
+                                 s[7], s[8], s[9], s[10], s[11], s[12],
+                                 s[13], s[14]);
+            case 16:
+                return c.apply16(s[0], s[1], s[2], s[3], s[4], s[5], s[6],
+                                 s[7], s[8], s[9], s[10], s[11], s[12],
+                                 s[13], s[14], s[15]);
             default:
                 throw new RuntimeException(
                     "closure oversupply split: k=" + k + " out of supported range");
