@@ -518,14 +518,6 @@ let compute_predecessors (prog : program) =
      stub's trap context correctly), so T's handler catches. *)
 let debug_strict_traps = Debug.find "strict_traps"
 
-(* Step 1 of the structural-split migration (see the plan at
-   [~/.claude/plans/it-seems-like-it-adaptive-duckling.md]): when
-   [split_structured] is on, round-trip every input through
-   [Split_tree] before the existing splitter runs. The bootstrap
-   encoding is a bag of leaves so the round-trip is provably
-   identity; this gates the later steps that replace logic. *)
-let debug_split_structured = Debug.find "split_structured"
-
 (* Print Split_tree node-kind counts on every cache rebuild — useful
    for checking how much structure the builder recovered vs. how
    much fell through to [Flat] / top-level stragglers. *)
@@ -732,6 +724,22 @@ type split_cache =
 
 let build_split_cache (prog : program) =
   let tree = Split_tree.of_program prog in
+  (* One-shot safety: the tree's leaf-addr set must match reachability
+     from [prog.start]. Divergence here means either [Split_tree]
+     dropped a block during construction or [prog] contains
+     unreachable blocks — both of which would cause cut enumeration
+     to produce wrong results downstream. *)
+  let tree_addrs = Split_tree.leaf_addrs tree in
+  let reachable = reachable_from prog ~start:prog.start in
+  if not (Addr.Set.equal tree_addrs reachable)
+  then (
+    let only_tree = Addr.Set.diff tree_addrs reachable in
+    let only_reach = Addr.Set.diff reachable tree_addrs in
+    Printf.eprintf
+      "[split_tree] leaf/reachable mismatch: tree-only=%d reach-only=%d\n"
+      (Addr.Set.cardinal only_tree)
+      (Addr.Set.cardinal only_reach);
+    failwith "Split_tree.leaf_addrs != reachable_from");
   if debug_split_tree_stats ()
   then (
     let s = Split_tree.summarise tree in
@@ -755,23 +763,11 @@ let build_split_cache (prog : program) =
 
 let find_cut_toward ?env_var ~cache prog ~target =
   let reachable = reachable_from prog ~start:prog.start in
-  (* Enumerate candidates via the structural tree. Every block is a
-     leaf, so the tree's leaf-addr set is a superset of reachability
-     (equal when there's no dead code, which the split_structured
-     flag asserts). Iteration order is [Addr.Set.iter]'s sorted order
-     either way, so cut selection is deterministic. *)
+  (* Iterate candidates via the structural tree. The tree's leaf set
+     is [prog.blocks]'s keys; [build_split_cache] asserts it matches
+     [reachable_from prog] on every rebuild, so candidate iteration
+     is equivalent to the legacy [Addr.Set.iter reachable]. *)
   let candidates = Split_tree.leaf_addrs cache.cache_tree in
-  if debug_split_structured ()
-     && not (Addr.Set.equal candidates reachable)
-  then (
-    let only_tree = Addr.Set.diff candidates reachable in
-    let only_reach = Addr.Set.diff reachable candidates in
-    Printf.eprintf
-      "[split_structured] leaf/reachable mismatch: \
-       tree-only=%d reach-only=%d\n"
-      (Addr.Set.cardinal only_tree)
-      (Addr.Set.cardinal only_reach);
-    failwith "Split_tree.leaf_addrs != reachable_from");
   let scratch = make_bfs_scratch () in
   let best = ref None in
   Addr.Set.iter
@@ -1575,11 +1571,6 @@ let pop_known_cut ~reachable ~predecessors prog regions queue =
   drop queue
 
 let split ~limit ~class_name ~is_static ~return_kind ?env_var prog =
-  let prog =
-    if debug_split_structured ()
-    then Split_tree.to_program (Split_tree.of_program prog)
-    else prog
-  in
   if debug_split_tree_stats ()
   then (
     let tree = Split_tree.of_program prog in
