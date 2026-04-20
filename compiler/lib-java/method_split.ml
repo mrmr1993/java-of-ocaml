@@ -683,8 +683,16 @@ let try_cut ~scratch ~reachable ~predecessors prog regions ~cut_addr =
 (* Score a cut: primary term balances head cost against [target]
    (halve toward the limit); secondary term penalises the number
    of vars that must be forwarded, since each adds to helper
-   descriptor length, call-site byte count, and stack pressure. *)
-let score_cut ~block_cost ~forward_size ~target (cut : cut) =
+   descriptor length, call-site byte count, and stack pressure.
+   [structural_bonus] subtracts a flat credit when the cut aligns
+   with a [Split_tree] region boundary — those cuts have clean
+   forwarded-var profiles and predictable trap-cohesion. *)
+let score_cut
+    ~block_cost
+    ~forward_size
+    ~target
+    ~structural_bonus
+    (cut : cut) =
   let head_cost =
     Addr.Set.fold
       (fun a acc ->
@@ -694,7 +702,7 @@ let score_cut ~block_cost ~forward_size ~target (cut : cut) =
   in
   let balance_cost = abs (head_cost - target) in
   let forward_penalty = forward_size * 50 in
-  balance_cost + forward_penalty
+  balance_cost + forward_penalty - structural_bonus
 
 (* Precomputed tables that stay valid across the split recursion.
    [block_cost], [pushtrap_regions], and [forward_size] are
@@ -761,6 +769,51 @@ let build_split_cache (prog : program) =
   ; cache_tree = tree
   }
 
+(* Structurally-preferred cut addresses derived from the tree. Cuts
+   here align with a region boundary so scoring gives them a flat
+   credit:
+
+   - [Try_region.pushtrap.entry_addr] — cutting here moves the whole
+     trap (pushtrap + body + handler) into the tail; trap cohesion
+     is preserved trivially.
+
+   - The body-edge target of the [Pushtrap] branch — cutting here
+     moves just the protected body into the tail, under the relaxed
+     trap rule (pushtrap + handler stay in head, JVM propagation
+     delivers any tail-thrown exception through the [Invoke_tail]
+     site to the head's handler). *)
+let preferred_cut_addrs (tree : Split_tree.t) =
+  let acc = ref Addr.Set.empty in
+  let rec walk = function
+    | Split_tree.Leaf _ -> ()
+    | Flat ns | Seq ns -> List.iter walk ns
+    | If { t_branch; f_branch; join; _ } ->
+      walk t_branch;
+      walk f_branch;
+      Option.iter walk join
+    | Switch { int_cases; tag_cases; join; _ } ->
+      Array.iter walk int_cases;
+      Array.iter walk tag_cases;
+      Option.iter walk join
+    | Loop { body; _ } -> walk body
+    | Try_region { pushtrap; protected; _ } ->
+      acc := Addr.Set.add pushtrap.entry_addr !acc;
+      (match pushtrap.branch with
+       | Pushtrap ((body_addr, _), _, _) ->
+         acc := Addr.Set.add body_addr !acc
+       | _ -> ());
+      walk protected
+  in
+  walk tree.Split_tree.root;
+  !acc
+
+(* Magic-number bonus applied by [score_cut] when a candidate matches
+   a structurally-preferred addr. Calibrated to roughly 4 forwarded
+   vars' worth of penalty (4 * 50) — enough to prefer an aligned cut
+   when the raw scores are close, not enough to override a
+   meaningfully better cut elsewhere in the CFG. *)
+let structural_bonus_value = 200
+
 let find_cut_toward ?env_var ~cache prog ~target =
   let reachable = reachable_from prog ~start:prog.start in
   (* Iterate candidates via the structural tree. The tree's leaf set
@@ -768,6 +821,7 @@ let find_cut_toward ?env_var ~cache prog ~target =
      [reachable_from prog] on every rebuild, so candidate iteration
      is equivalent to the legacy [Addr.Set.iter reachable]. *)
   let candidates = Split_tree.leaf_addrs cache.cache_tree in
+  let preferred = preferred_cut_addrs cache.cache_tree in
   let scratch = make_bfs_scratch () in
   let best = ref None in
   Addr.Set.iter
@@ -786,11 +840,17 @@ let find_cut_toward ?env_var ~cache prog ~target =
         let forward_size =
           Var.Set.cardinal (cut_forwarded_vars ~env_var prog cut)
         in
+        let structural_bonus =
+          if Addr.Set.mem a preferred
+          then structural_bonus_value
+          else 0
+        in
         let score =
           score_cut
             ~block_cost:cache.cache_block_cost
             ~forward_size
             ~target
+            ~structural_bonus
             cut
         in
         (match !best with
