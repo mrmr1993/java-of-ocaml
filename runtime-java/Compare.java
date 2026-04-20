@@ -26,6 +26,9 @@ public final class Compare {
         if (a instanceof Integer && b instanceof Integer) {
             return Integer.compare((Integer) a, (Integer) b);
         }
+        if (a instanceof Long && b instanceof Long) {
+            return Long.compare((Long) a, (Long) b);
+        }
         if (a instanceof Double && b instanceof Double) {
             return Double.compare((Double) a, (Double) b);
         }
@@ -52,7 +55,14 @@ public final class Compare {
     }
 
     private static int typeRank(Object o) {
-        if (o instanceof Integer) return 0;
+        // Integer and Long both carry integral values in our runtime
+        // (plain OCaml [int] is boxed [Integer]; [Int64]/[Nativeint]
+        // are boxed [Long]). They sort together under OCaml's
+        // ordering: a comparison between, say, an [int] and an
+        // [Int64] via polymorphic [compare] is a type error in
+        // well-typed OCaml, so ordering them consistently here is
+        // fine as long as equal values compare equal.
+        if (o instanceof Integer || o instanceof Long) return 0;
         if (o instanceof Double) return 1;
         if (o instanceof String) return 2;
         if (o instanceof Block) return 3;
@@ -64,6 +74,9 @@ public final class Compare {
         if (a == b) return 1;
         if (a == null || b == null) return 0;
         if (a instanceof Integer && b instanceof Integer) {
+            return a.equals(b) ? 1 : 0;
+        }
+        if (a instanceof Long && b instanceof Long) {
             return a.equals(b) ? 1 : 0;
         }
         if (a instanceof Double && b instanceof Double) {

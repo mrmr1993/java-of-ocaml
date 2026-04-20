@@ -74,3 +74,28 @@ let%expect_test "Stdlib float constants from Int64 bit patterns" =
     inf=Infinity
     neg_inf=-Infinity
     max_float=1.797693e+308 |}]
+
+let%expect_test "Int64.equal on equal values compares by content" =
+  (* Regression: [Compare.equal] didn't dispatch [Long], so boxed
+     [Int64] values — including [Int64.bits_of_float] output — used
+     the [return 0] fallthrough and always compared unequal. Base's
+     float0.ml's [is_x_minus_one_exact] depended on it and tripped
+     an assert during Stdlib init, blocking large-program bytecode tests. *)
+  compile_and_run
+    {| external caml_java_print_int : int -> unit = "caml_java_print_int"
+       let () =
+         let a = Int64.bits_of_float 123.456 in
+         let b = Int64.bits_of_float 123.456 in
+         caml_java_print_int (if Int64.equal a b then 1 else 0);
+         let c = Int64.bits_of_float (-. (2. ** 62.)) in
+         let d = Int64.bits_of_float ((-. (2. ** 62.)) -. 1.) in
+         caml_java_print_int (if Int64.equal c d then 1 else 0);
+         let e = 4000000000L in
+         let f = 4000000000L in
+         caml_java_print_int (if Int64.equal e f then 1 else 0);
+         caml_java_print_int (if Int64.compare e f = 0 then 1 else 0) |};
+  [%expect {|
+    1
+    1
+    1
+    1 |}]
