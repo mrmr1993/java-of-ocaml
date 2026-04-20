@@ -719,10 +719,10 @@ type split_cache =
   { cache_block_cost : (Addr.t, int) Hashtbl.t
   ; cache_regions : (Addr.t * Addr.t * Addr.Set.t * Addr.Set.t) list
   ; cache_predecessors : (Addr.t, Addr.t list) Hashtbl.t
-  ; cache_tree : Split_tree.t [@warning "-69"]
-        (** Structural view of [prog]; built once per cache rebuild so
-            later steps of the splitter migration can query the tree
-            without recomputing it per candidate. *)
+  ; cache_tree : Split_tree.t
+        (** Structural view of [prog]; built once per cache rebuild.
+            [find_cut_toward] enumerates candidate cut addresses via
+            the tree, and [trap_regions] is derived from it. *)
   }
 
 let build_split_cache (prog : program) =
@@ -735,23 +735,23 @@ let build_split_cache (prog : program) =
 
 let find_cut_toward ?env_var ~cache prog ~target =
   let reachable = reachable_from prog ~start:prog.start in
-  (* Under [split_structured], assert the tree's leaf-addr set matches
-     reachability — if so, iterating tree leaves is equivalent to
-     iterating [reachable], and later steps can drop [reachable_from]
-     in favour of the cached tree. *)
+  (* Enumerate candidates via the structural tree. Every block is a
+     leaf, so the tree's leaf-addr set is a superset of reachability
+     (equal when there's no dead code, which the split_structured
+     flag asserts). Iteration order is [Addr.Set.iter]'s sorted order
+     either way, so cut selection is deterministic. *)
+  let candidates = Split_tree.leaf_addrs cache.cache_tree in
   if debug_split_structured ()
+     && not (Addr.Set.equal candidates reachable)
   then (
-    let tree_addrs = Split_tree.leaf_addrs cache.cache_tree in
-    if not (Addr.Set.equal tree_addrs reachable)
-    then (
-      let only_tree = Addr.Set.diff tree_addrs reachable in
-      let only_reach = Addr.Set.diff reachable tree_addrs in
-      Printf.eprintf
-        "[split_structured] leaf/reachable mismatch: \
-         tree-only=%d reach-only=%d\n"
-        (Addr.Set.cardinal only_tree)
-        (Addr.Set.cardinal only_reach);
-      failwith "Split_tree.leaf_addrs != reachable_from"));
+    let only_tree = Addr.Set.diff candidates reachable in
+    let only_reach = Addr.Set.diff reachable candidates in
+    Printf.eprintf
+      "[split_structured] leaf/reachable mismatch: \
+       tree-only=%d reach-only=%d\n"
+      (Addr.Set.cardinal only_tree)
+      (Addr.Set.cardinal only_reach);
+    failwith "Split_tree.leaf_addrs != reachable_from");
   let scratch = make_bfs_scratch () in
   let best = ref None in
   Addr.Set.iter
@@ -781,7 +781,7 @@ let find_cut_toward ?env_var ~cache prog ~target =
          | None -> best := Some (score, cut)
          | Some (s, _) when score < s -> best := Some (score, cut)
          | _ -> ()))
-    reachable;
+    candidates;
   match !best with
   | None -> None
   | Some (_, cut) -> Some cut
