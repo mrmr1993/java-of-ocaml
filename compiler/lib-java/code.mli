@@ -157,3 +157,21 @@ end
 
 val fold_children : program -> Addr.t -> (Addr.t -> 'a -> 'a) -> 'a -> 'a
 (** Fold over the immediate successors of the block at [addr]. *)
+
+val compute_trap_contexts : program -> (Addr.t, Addr.t list) Hashtbl.t
+(** For each reachable block, the stack of active [Pushtrap] blocks
+    at its entry, innermost (topmost on the runtime trap stack) at
+    the head of the list. A block [B] is in trap [P]'s protected
+    region iff [P] appears in [B]'s context.
+
+    Propagation along CFG edges:
+    - [Branch]/[Cond]/[Switch] — context unchanged.
+    - [Pushtrap] at block [P] — body successor pushes [P]; handler
+      successor keeps the enclosing context (the just-pushed trap
+      was unwound by the raise that entered the handler).
+    - [Poptrap] — pops the topmost trap; fails if the context is
+      empty.
+
+    Raises [Failure _] if two paths reach the same block with
+    differing contexts (unstructured IR we don't expect from OCaml
+    bytecode) or if a [Poptrap] fires with an empty trap stack. *)

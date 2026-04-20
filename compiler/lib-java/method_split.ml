@@ -179,46 +179,37 @@ let reachable_avoiding prog ~start ~avoid =
 let reachable_from prog ~start =
   reachable_avoiding prog ~start ~avoid:None
 
+(* Trap region derived from the per-block trap contexts: a block [B]
+   is in trap [P]'s region exactly when [P] appears in [B]'s entry
+   context. Replaces an ad-hoc forward walk that got nested traps
+   wrong (inner handlers and post-inner-Poptrap continuations both
+   escaped the outer region). *)
 let pushtrap_regions (prog : program) =
-  let regions = ref [] in
-  Addr.Map.iter
-    (fun pushtrap_addr (b : block) ->
-      match b.branch with
-      | Pushtrap ((body_addr, _), _, (handler_addr, _)) ->
-        let protected = ref Addr.Set.empty in
-        let rec collect addr =
-          if Addr.Set.mem addr !protected
-          then ()
-          else (
-            protected := Addr.Set.add addr !protected;
-            match Addr.Map.find_opt addr prog.blocks with
-            | None -> ()
-            | Some b ->
-              let step (a, _) = collect a in
-              (match b.branch with
-               | Return _ | Raise _ | Stop | Poptrap _ | Invoke_tail _ ->
-                 ()
-               | Branch c -> step c
-               | Cond (_, c1, c2) ->
-                 step c1;
-                 step c2
-               | Switch (_, ints, tags) ->
-                 Array.iter step ints;
-                 Array.iter step tags
-               (* A nested [Pushtrap]'s handler runs with only the
-                  outer trap on the runtime stack (the inner trap was
-                  popped by the raise that entered the handler). So
-                  any exception raised inside that handler, and any
-                  [Poptrap] it executes, is scoped to the outer trap
-                  — the handler's blocks are part of the outer's
-                  protected region. *)
-               | Pushtrap (b_c, _, h_c) -> step b_c; step h_c))
-        in
-        collect body_addr;
-        regions := (pushtrap_addr, handler_addr, !protected) :: !regions
-      | _ -> ())
-    prog.blocks;
-  !regions
+  let contexts = Code.compute_trap_contexts prog in
+  let by_trap : (Addr.t, Addr.Set.t ref) Hashtbl.t = Hashtbl.create 8 in
+  Hashtbl.iter
+    (fun addr ctx ->
+      List.iter
+        (fun trap_addr ->
+          let s =
+            match Hashtbl.find_opt by_trap trap_addr with
+            | Some s -> s
+            | None ->
+              let s = ref Addr.Set.empty in
+              Hashtbl.add by_trap trap_addr s;
+              s
+          in
+          s := Addr.Set.add addr !s)
+        ctx)
+    contexts;
+  Hashtbl.fold
+    (fun trap_addr protected acc ->
+      match Addr.Map.find_opt trap_addr prog.blocks with
+      | Some { branch = Pushtrap (_, _, (handler_addr, _)); _ } ->
+        (trap_addr, handler_addr, !protected) :: acc
+      | _ -> acc)
+    by_trap
+    []
 
 (* [cut_respects_trap_regions] and [cut_is_self_contained] used to
    be the set-based trap + disjointness checks inside [try_cut].

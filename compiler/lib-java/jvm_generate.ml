@@ -36,6 +36,14 @@ type ctx =
         (* End-of-block label allocated on first need (Pushtrap
            processing) and marked by emit_block at that block's
            final instruction position. *)
+  ; trap_regions : (Code.Addr.t, Code.Addr.Set.t) Hashtbl.t
+        (* Pushtrap block addr → set of blocks in its protected
+           region, precomputed from [Code.compute_trap_contexts] so
+           every consumer sees the same stack-relative semantics. *)
+  ; mutable current_block_addr : Code.Addr.t
+        (* Address of the block currently being emitted. Used by
+           [emit_last]'s [Pushtrap] case to key into [trap_regions]
+           (the trap's identity is its Pushtrap block's address). *)
   ; mutable pending_handlers : pending_handler list
   }
 
@@ -4996,50 +5004,27 @@ let emit_last ctx prog (l : Code.last) =
         Jvm.Code.mark_label ctx.code tag_labels.(i);
         emit_cont ctx prog c)
       tag_cases
-  | Pushtrap ((body_addr, _) as body_c, exn_var, handler_c) ->
+  | Pushtrap (body_c, exn_var, handler_c) ->
     let handler_lbl = Jvm.Code.fresh_label ctx.code in
-    (* Walk the IR forward from body_addr to collect every block in
-       the try region. The region ends at a Poptrap (which transfers
-       out of the region) or a Raise (which never falls through
-       here). Nested Pushtraps are part of the enclosing region too. *)
-    let protected = ref Code.Addr.Set.empty in
-    let rec collect addr =
-      if Code.Addr.Set.mem addr !protected
-      then ()
-      else (
-        protected := Code.Addr.Set.add addr !protected;
-        match Code.Addr.Map.find_opt addr prog.blocks with
-        | None -> ()
-        | Some b ->
-          let step (a, _args) = collect a in
-          (match b.branch with
-           | Return _ | Raise _ | Stop | Invoke_tail _ -> ()
-           | Poptrap _ ->
-             (* A Poptrap exits the region; don't follow. *)
-             ()
-           | Branch c -> step c
-           | Cond (_, c1, c2) -> step c1; step c2
-           | Switch (_, ints, tags) ->
-             Array.iter step ints;
-             Array.iter step tags
-           | Pushtrap (b_c, _, _) ->
-             (* Nested try: its body is also covered by our
-                exception handler. The nested handler_c is NOT
-                part of our region (it's only reached when the
-                nested exception fires). *)
-             step b_c))
+    (* Trap identity = the Pushtrap block's address. [trap_regions]
+       is precomputed from [Code.compute_trap_contexts], so the set
+       includes every block where this trap is live on the runtime
+       stack (inner handlers under it, code after nested Poptraps,
+       etc. — the stack-relative walk that an ad-hoc scope walk
+       gets wrong). *)
+    let protected =
+      match Hashtbl.find_opt ctx.trap_regions ctx.current_block_addr with
+      | Some s -> s
+      | None -> Code.Addr.Set.empty
     in
-    collect body_addr;
-    (* Pre-allocate end labels for every protected block so emit_block
-       can mark them when it reaches the end of each body. *)
     Code.Addr.Set.iter
       (fun addr ->
         if not (Hashtbl.mem ctx.block_end addr)
         then
           Hashtbl.add ctx.block_end addr (Jvm.Code.fresh_label ctx.code))
-      !protected;
+      protected;
     ctx.pending_handlers <-
-      { protected = !protected; handler_lbl } :: ctx.pending_handlers;
+      { protected; handler_lbl } :: ctx.pending_handlers;
     emit_cont ctx prog body_c;
     (* Handler prelude: unwrap CamlException → exn value, store into
        exn_var's local, then move to handler cont. *)
@@ -5087,6 +5072,7 @@ let emit_block ctx prog addr (b : Code.block) =
    | None -> ());
   Hashtbl.replace ctx.block_start addr start_lbl;
   Array.iter (fun i -> emit_instr ctx i) b.body;
+  ctx.current_block_addr <- addr;
   emit_last ctx prog b.branch;
   (* Mark the end-of-block label if anyone (a Pushtrap deferred
      handler install) asked for one. *)
@@ -5108,6 +5094,30 @@ let emit_program
     ?(unbox_args = false)
     (prog : Code.program)
   =
+  let trap_regions =
+    (* Stack-relative trap regions via [Code.compute_trap_contexts].
+       Inverts the block→context map into trap→blocks. *)
+    let contexts = Code.compute_trap_contexts prog in
+    let regions = Hashtbl.create 8 in
+    Hashtbl.iter
+      (fun addr ctx ->
+        List.iter
+          (fun trap_addr ->
+            let s =
+              match Hashtbl.find_opt regions trap_addr with
+              | Some s -> s
+              | None ->
+                let s = ref Code.Addr.Set.empty in
+                Hashtbl.add regions trap_addr s;
+                s
+            in
+            s := Code.Addr.Set.add addr !s)
+          ctx)
+      contexts;
+    let out = Hashtbl.create (Hashtbl.length regions) in
+    Hashtbl.iter (fun k s -> Hashtbl.add out k !s) regions;
+    out
+  in
   let ctx =
     { code
     ; typing
@@ -5123,6 +5133,8 @@ let emit_program
     ; line_of_pc
     ; block_start = Hashtbl.create 32
     ; block_end = Hashtbl.create 32
+    ; trap_regions
+    ; current_block_addr = -1
     ; pending_handlers = []
     }
   in

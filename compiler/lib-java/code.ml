@@ -290,3 +290,72 @@ let fold_children p addr f init =
     Array.fold_left (fun acc c -> step c acc) after_ints tags
   | Pushtrap (body, _, handler) -> init |> step body |> step handler
   | Poptrap c -> step c init
+
+(* Stack-relative trap tracking. At any reachable block, the active
+   trap stack is fully determined by the path from [prog.start]:
+
+   - [Branch]/[Cond]/[Switch] propagate the context unchanged;
+   - [Pushtrap] at block [P] pushes [P] onto the successor's context
+     along the body edge; the handler edge keeps the enclosing
+     context (the trap just pushed is unwound by the raise that
+     entered the handler);
+   - [Poptrap] pops the topmost trap.
+
+   Traps are identified by the address of the [Pushtrap] block that
+   created them. The returned table maps each reachable block to
+   its entry context, innermost trap at the head of the list.
+
+   Well-formed OCaml bytecode guarantees a unique context at every
+   block. If two paths reach the same block with different contexts
+   (unstructured IR), [failwith]s to surface the mismatch rather
+   than silently under- or over-including the block in trap regions. *)
+let compute_trap_contexts (prog : program) =
+  let contexts = Hashtbl.create (Addr.Map.cardinal prog.blocks) in
+  let stack = Stack.create () in
+  Stack.push (prog.start, []) stack;
+  while not (Stack.is_empty stack) do
+    let addr, ctx = Stack.pop stack in
+    match Hashtbl.find_opt contexts addr with
+    | Some prev when prev = ctx -> ()
+    | Some prev ->
+      let show xs =
+        "[" ^ String.concat "; " (List.map Addr.to_string xs) ^ "]"
+      in
+      failwith
+        (Printf.sprintf
+           "Code.compute_trap_contexts: block %s reached with different \
+            trap contexts: %s vs %s"
+           (Addr.to_string addr)
+           (show prev)
+           (show ctx))
+    | None ->
+      Hashtbl.add contexts addr ctx;
+      (match Addr.Map.find_opt addr prog.blocks with
+       | None -> ()
+       | Some b ->
+         let step (a, _) c =
+           if Addr.Map.mem a prog.blocks then Stack.push (a, c) stack
+         in
+         (match b.branch with
+          | Return _ | Raise _ | Stop | Invoke_tail _ -> ()
+          | Branch c -> step c ctx
+          | Cond (_, c1, c2) ->
+            step c1 ctx;
+            step c2 ctx
+          | Switch (_, ints, tags) ->
+            Array.iter (fun c -> step c ctx) ints;
+            Array.iter (fun c -> step c ctx) tags
+          | Pushtrap (body, _, handler) ->
+            step body (addr :: ctx);
+            step handler ctx
+          | Poptrap c ->
+            (match ctx with
+             | _ :: rest -> step c rest
+             | [] ->
+               failwith
+                 (Printf.sprintf
+                    "Code.compute_trap_contexts: Poptrap at block %s \
+                     with empty trap stack"
+                    (Addr.to_string addr)))))
+  done;
+  contexts
