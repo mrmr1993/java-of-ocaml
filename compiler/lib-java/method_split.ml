@@ -963,6 +963,102 @@ let find_end_cut ~cache prog ~limit =
     let head = Addr.Set.diff reachable tail in
     Some { cut_addr; head; tail }
 
+(* --- find_dup_cut: dominator cut + block duplication --------------- *)
+
+(* Standard Cooper-Harvey-Kennedy dominators on the reachable
+   subgraph of [prog]. Returns [(idom, dom_children, dom_subtree_cost,
+   reachable)]. Pulled out because two finders need it (the prior
+   [find_dominator_cut] attempt — now removed — and this one). *)
+let compute_dominator_data (prog : program) ~preds ~block_cost =
+  let reachable = reachable_from prog ~start:prog.start in
+  let rpo =
+    let visited = Hashtbl.create 16 in
+    let acc = ref [] in
+    let rec dfs a =
+      if not (Hashtbl.mem visited a)
+      then (
+        Hashtbl.add visited a ();
+        List.iter
+          (fun s -> if Addr.Set.mem s reachable then dfs s)
+          (successors prog a);
+        acc := a :: !acc)
+    in
+    dfs prog.start;
+    !acc
+  in
+  let postorder_num = Hashtbl.create 16 in
+  let n = List.length rpo in
+  List.iteri
+    (fun i a -> Hashtbl.replace postorder_num a (n - 1 - i))
+    rpo;
+  let po_of a =
+    try Hashtbl.find postorder_num a with Not_found -> -1
+  in
+  let idom : (Addr.t, Addr.t) Hashtbl.t = Hashtbl.create 16 in
+  Hashtbl.add idom prog.start prog.start;
+  let rec intersect b1 b2 =
+    if b1 = b2
+    then b1
+    else if po_of b1 < po_of b2
+    then intersect (Hashtbl.find idom b1) b2
+    else intersect b1 (Hashtbl.find idom b2)
+  in
+  let changed = ref true in
+  while !changed do
+    changed := false;
+    List.iter
+      (fun b ->
+        if b <> prog.start
+        then (
+          let ps = try Hashtbl.find preds b with Not_found -> [] in
+          let ps_with_idom =
+            List.filter (fun p -> Hashtbl.mem idom p) ps
+          in
+          match ps_with_idom with
+          | [] -> ()
+          | p0 :: rest ->
+            let new_idom = List.fold_left intersect p0 rest in
+            let prev =
+              try Some (Hashtbl.find idom b) with Not_found -> None
+            in
+            if prev <> Some new_idom
+            then (
+              Hashtbl.replace idom b new_idom;
+              changed := true)))
+      rpo
+  done;
+  let dom_children : (Addr.t, Addr.t list) Hashtbl.t =
+    Hashtbl.create 16
+  in
+  Hashtbl.iter
+    (fun y x ->
+      if y <> x
+      then (
+        let cur =
+          try Hashtbl.find dom_children x with Not_found -> []
+        in
+        Hashtbl.replace dom_children x (y :: cur)))
+    idom;
+  let dom_subtree_cost = Hashtbl.create 16 in
+  let rec dom_cost x =
+    match Hashtbl.find_opt dom_subtree_cost x with
+    | Some c -> c
+    | None ->
+      let own =
+        try Hashtbl.find block_cost x with Not_found -> 0
+      in
+      let kids =
+        try Hashtbl.find dom_children x with Not_found -> []
+      in
+      let c =
+        own + List.fold_left (fun acc k -> acc + dom_cost k) 0 kids
+      in
+      Hashtbl.add dom_subtree_cost x c;
+      c
+  in
+  let _ = dom_cost prog.start in
+  idom, dom_children, dom_subtree_cost, reachable
+
 let program_cost ~cache (prog : program) =
   Addr.Map.fold
     (fun a _ acc ->
@@ -975,6 +1071,180 @@ let find_cut prog =
   let cache = build_split_cache prog in
   let target = max 1 (program_cost ~cache prog / 2) in
   find_cut_toward ~cache prog ~target
+
+(* Cap on cross-arm joins per duplication candidate. Beyond this the
+   helper grows large from clone overhead and the per-candidate
+   feasibility check gets expensive (exponential clone-cascade). *)
+let dup_max_clones = 8
+
+(* Find a dominator-subtree cut where the tail's "leaks" — successor
+   blocks of dom_tail that aren't in dom_tail itself — can be cleaned
+   up by cloning. Returns a (modified prog, cut record): the prog has
+   the clones spliced in and dom_tail's branches rewritten to point at
+   them, so the standard [augment_cut_params] / [tail_subprogram] /
+   [head_subprogram] / [rewrite_head_cut] pipeline applies unchanged. *)
+let find_dup_cut ~cache prog ~limit =
+  let _, dom_children, dom_subtree_cost, reachable =
+    compute_dominator_data
+      prog
+      ~preds:cache.cache_predecessors
+      ~block_cost:cache.cache_block_cost
+  in
+  if Addr.Set.cardinal reachable < 3
+  then None
+  else (
+    let dom_subtree x =
+      let s = ref Addr.Set.empty in
+      let rec walk a =
+        if not (Addr.Set.mem a !s)
+        then (
+          s := Addr.Set.add a !s;
+          let kids =
+            try Hashtbl.find dom_children a with Not_found -> []
+          in
+          List.iter walk kids)
+      in
+      walk x;
+      !s
+    in
+    (* For a candidate [x], walk dom_tail's outgoing edges to find
+       cross-arm joins — successor blocks not in dom_tail. Then
+       transitively walk those joins' successors (still excluding
+       dom_tail), accumulating the full clone set. Reject when the
+       set exceeds [dup_max_clones] or contains any [Pushtrap] /
+       [Poptrap] (trap-region semantics get tangled with the
+       duplicates). *)
+    let compute_clone_set ~dom_tail x =
+      let _ = x in
+      let to_clone = ref Addr.Set.empty in
+      let queue = Queue.create () in
+      let push a =
+        if (not (Addr.Set.mem a dom_tail))
+           && not (Addr.Set.mem a !to_clone)
+        then
+          match Addr.Map.find_opt a prog.blocks with
+          | None -> ()
+          | Some _ ->
+            to_clone := Addr.Set.add a !to_clone;
+            Queue.add a queue
+      in
+      Addr.Set.iter
+        (fun a ->
+          if Addr.Map.mem a prog.blocks
+          then List.iter push (successors prog a))
+        dom_tail;
+      let trap_blocked = ref false in
+      let too_many = ref false in
+      while
+        (not (Queue.is_empty queue))
+        && (not !trap_blocked)
+        && not !too_many
+      do
+        let a = Queue.pop queue in
+        if Addr.Set.cardinal !to_clone > dup_max_clones
+        then too_many := true
+        else
+          match Addr.Map.find_opt a prog.blocks with
+          | None -> ()
+          | Some b ->
+            (match b.branch with
+             | Pushtrap _ | Poptrap _ -> trap_blocked := true
+             | _ -> ());
+            List.iter push (successors prog a)
+      done;
+      if !trap_blocked || !too_many then None else Some !to_clone
+    in
+    let block_cost_of a =
+      try Hashtbl.find cache.cache_block_cost a with Not_found -> 0
+    in
+    (* Iterate dominator-subtree candidates: every reachable block X
+       (excluding [prog.start]) with at least one dom-child. Score by
+       (dom_subtree_cost + clone_cost) ≤ limit; pick largest. *)
+    let best = ref None in
+    Hashtbl.iter
+      (fun x own_cost ->
+        if x <> prog.start
+           && Hashtbl.mem dom_children x
+           && own_cost > 0
+           && own_cost <= limit
+        then (
+          let dom_tail = dom_subtree x in
+          match compute_clone_set ~dom_tail x with
+          | None -> ()
+          | Some clone_set ->
+            let clone_cost =
+              Addr.Set.fold (fun a acc -> acc + block_cost_of a) clone_set 0
+            in
+            let total = own_cost + clone_cost in
+            if total > 0 && total <= limit
+            then
+              let better =
+                match !best with
+                | None -> true
+                | Some (bt, _, _, _) -> total > bt
+              in
+              if better
+              then best := Some (total, x, dom_tail, clone_set)))
+      dom_subtree_cost;
+    match !best with
+    | None -> None
+    | Some (_, cut_addr, dom_tail, clone_set) ->
+      (* Splice the clones into [prog] and rewrite dom_tail's
+         branches into clone_set to target the clones instead. *)
+      let dup =
+        Block_dup.duplicate_subgraph
+          prog
+          ~roots:(Addr.Set.elements clone_set)
+          ~stop:dom_tail
+          ~free_pc:prog.free_pc
+      in
+      let rewrite_cont (a, args) =
+        match Hashtbl.find_opt dup.addr_subst a with
+        | Some a' -> a', args
+        | None -> a, args
+      in
+      let rewrite_branch = function
+        | Branch c -> Branch (rewrite_cont c)
+        | Cond (v, c1, c2) -> Cond (v, rewrite_cont c1, rewrite_cont c2)
+        | Switch (v, ints, tags) ->
+          Switch
+            ( v
+            , Array.map rewrite_cont ints
+            , Array.map rewrite_cont tags )
+        | Pushtrap (b, x, h) ->
+          Pushtrap (rewrite_cont b, x, rewrite_cont h)
+        | Poptrap c -> Poptrap (rewrite_cont c)
+        | (Return _ | Raise _ | Stop | Invoke_tail _) as b -> b
+      in
+      let blocks =
+        Addr.Map.mapi
+          (fun a b ->
+            if Addr.Set.mem a dom_tail
+            then { b with branch = rewrite_branch b.branch }
+            else b)
+          prog.blocks
+      in
+      let blocks =
+        Addr.Map.fold Addr.Map.add dup.new_blocks blocks
+      in
+      let prog' = { prog with blocks; free_pc = dup.free_pc } in
+      (* The cut: tail = dom_tail ∪ clones (clones now in prog').
+         [reachable] for prog' includes the clones, but the cut
+         record uses the new tail set explicitly. *)
+      let clone_addrs =
+        Hashtbl.fold
+          (fun _ new_addr acc -> Addr.Set.add new_addr acc)
+          dup.addr_subst
+          Addr.Set.empty
+      in
+      let tail = Addr.Set.union dom_tail clone_addrs in
+      let head =
+        Addr.Map.fold
+          (fun a _ acc -> if Addr.Set.mem a tail then acc else Addr.Set.add a acc)
+          prog'.blocks
+          Addr.Set.empty
+      in
+      Some (prog', { cut_addr; head; tail }))
 
 (* --- Sub-program construction -------------------------------------- *)
 
@@ -1693,6 +1963,21 @@ let split ~limit ~class_name ~is_static ~return_kind ?env_var prog =
               prog
               cache.cache_regions
               queue)
+        in
+        (* Block-duplication cut returns (modified prog with clones
+           spliced + cut record), so [prog] gets bound to the
+           modified version before the rest of the pipeline runs. *)
+        let cut_opt, prog =
+          match cut_opt with
+          | Some c -> Some c, prog
+          | None when Debug.find "dup_cut" () ->
+            (match
+               Stat.track "find_dup_cut" (fun () ->
+                 find_dup_cut ~cache prog ~limit)
+             with
+             | Some (prog', cut) -> Some cut, prog'
+             | None -> None, prog)
+          | None -> None, prog
         in
         let cut_opt, cut_origin =
           match cut_opt with
