@@ -272,7 +272,7 @@ let last = function
        cases (24 + 10*N), missing the args entirely — caused a large test binary
        stub [ocaml_fn_33445] to be under-estimated by ~3x because
        its 134 switches average 7 args/case and 11 cases each. *)
-    24 + (8 * n) + (4 * sum_args)
+    24 + (8 * n) + (6 * sum_args)
   | Pushtrap (_, _, _) -> 10        (* entry bookkeeping — exception
                                        entries are installed post-emit *)
   | Poptrap (_, args) -> 6 + (4 * List.length args)
