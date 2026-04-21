@@ -45,6 +45,7 @@ let count_uses_in_block (b : block) =
     | Closure { captures; _ } -> List.iter bump captures
     | Constant _ -> ()
     | Prim (_, args) -> List.iter bump_pa args
+    | Invoke_helper { args; _ } -> List.iter bump args
   in
   let bump_instr = function
     | Let (_, e) -> bump_expr e
@@ -147,6 +148,8 @@ let sub_expr subst = function
     Closure { captures = List.map (sub_var subst) captures; body }
   | Constant _ as c -> c
   | Prim (p, args) -> Prim (p, List.map (sub_prim_arg subst) args)
+  | Invoke_helper ({ args; _ } as i) ->
+    Invoke_helper { i with args = List.map (sub_var subst) args }
 
 let sub_instr subst = function
   | Let (x, e) -> Let (x, sub_expr subst e)

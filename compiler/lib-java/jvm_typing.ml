@@ -43,6 +43,10 @@ let kind_of_expr (e : Code.expr) : Kind.kind =
        key off [K_block] keep the field-count info. *)
     K_block (List.init n (fun _ -> Kind.K_obj))
   | Prim (p, _) -> kind_of_prim p
+  | Invoke_helper _ ->
+    (* [Invoke_helper] always returns [Ljava/lang/Object;];
+       kind-coercion at the [Let] site unboxes as needed. *)
+    K_obj
 
 let rec join (a : Kind.kind) (b : Kind.kind) : Kind.kind =
   match a, b with

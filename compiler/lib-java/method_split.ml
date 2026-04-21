@@ -184,6 +184,7 @@ let count_uses_in_block (b : block) =
     | Closure { captures; _ } -> List.iter bump captures
     | Constant _ -> ()
     | Prim (_, args) -> List.iter bump_prim_arg args
+    | Invoke_helper { args; _ } -> List.iter bump args
   in
   let bump_instr = function
     | Let (_, e) -> bump_expr e

@@ -18,6 +18,7 @@ let fv_expr = function
       (fun acc a -> Var.Set.union acc (fv_prim_arg a))
       Var.Set.empty
       args
+  | Invoke_helper { args; _ } -> fv_set_of_list args
 
 let fv_instr = function
   | Let (_, e) -> fv_expr e

@@ -62,6 +62,11 @@ let pure_expr pure_funs = function
        (* May raise [Invalid_argument] out of bounds. *)
        false
      | Extern name -> is_pure_extern name)
+  | Invoke_helper _ ->
+    (* Helper methods extracted by [Method_split]'s Let_in cut can
+       have arbitrary side-effects (they might raise, perform I/O,
+       etc.). Not pure. *)
+    false
 
 let pure_instr pure_funs = function
   | Let (_, e) -> pure_expr pure_funs e

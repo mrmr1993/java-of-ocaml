@@ -231,6 +231,13 @@ let expr = function
   | Constant c -> constant c
   | Prim (p, args) ->
     prim_cost p + List.fold_left (fun acc a -> acc + prim_arg_cost a) 0 args
+  | Invoke_helper { args; is_static; _ } ->
+    (* Same shape as [Invoke_tail]'s emission: optional aload-0 for
+       receiver, aload per arg, invokestatic/invokevirtual. No
+       [areturn] here — the result stays on the operand stack and the
+       enclosing [Let]'s astore (3 bytes) captures it. *)
+    let this_cost = if is_static then 0 else 1 in
+    this_cost + (3 * List.length args) + 3
 
 let instr = function
   | Let (_, e) -> 3 + expr e            (* astore to local (1-3 bytes) *)

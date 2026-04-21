@@ -4899,6 +4899,18 @@ let emit_expr ctx (e : Code.expr) : Kind.kind =
       ~method_:"<init>"
       ~descriptor:(Printf.sprintf "(%s)V" cap_desc);
     K_closure { name = class_name; captures = [] }
+  | Invoke_helper { class_; method_; descriptor; args; is_static } ->
+    (* Non-tail equivalent of [Invoke_tail]: load receiver (if
+       virtual) + args, invoke, leave the result on the operand
+       stack for the enclosing [Let]'s [emit_store] to capture.
+       Descriptor is expected to end in [)Ljava/lang/Object;] —
+       the splitter builds helpers with [Return_object]. *)
+    if not is_static then Jvm.Code.aload ctx.code 0;
+    List.iter (fun a -> emit_load_as_obj ctx a) args;
+    if is_static
+    then Jvm.Code.invokestatic ctx.code ~class_ ~method_ ~descriptor
+    else Jvm.Code.invokevirtual ctx.code ~class_ ~method_ ~descriptor;
+    Kind.K_obj
 
 let emit_instr ctx (i : Code.instr) =
   match i with
