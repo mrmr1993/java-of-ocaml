@@ -470,6 +470,11 @@ let debug_strict_traps = Debug.find "strict_traps"
    much fell through to [Flat] / top-level stragglers. *)
 let debug_split_tree_stats = Debug.find "split_tree_stats"
 
+(* Print [Let_in_cut] candidate counts per [split] entry. Useful for
+   gauging how much of a lever the Let_in extraction will be before
+   wiring it into the splitter's cut pipeline. *)
+let debug_let_in_stats = Debug.find "let_in_stats"
+
 let cut_respects_trap_regions_fast ~reachable ~tail_tbl regions =
   let in_tail a = Hashtbl.mem tail_tbl a in
   let in_head a = Addr.Set.mem a reachable && not (in_tail a) in
@@ -1620,6 +1625,26 @@ let split ~limit ~class_name ~is_static ~return_kind ?env_var prog =
       s.loops
       s.trys
       s.stragglers);
+  if debug_let_in_stats ()
+  then (
+    let cs = Let_in_cut.enumerate prog in
+    let under_limit =
+      List.filter
+        (fun (c : Let_in_cut.candidate) -> c.cost <= limit)
+        cs
+    in
+    let max_cost =
+      List.fold_left
+        (fun acc (c : Let_in_cut.candidate) -> max acc c.cost)
+        0
+        cs
+    in
+    Printf.eprintf
+      "[let_in] blocks=%d candidates=%d under_limit=%d max_cost=%d\n%!"
+      (Addr.Map.cardinal prog.blocks)
+      (List.length cs)
+      (List.length under_limit)
+      max_cost);
   (* Two-tier early return for the common case (tiny closure that
      already fits):
      1. Array-length upper bound — no per-instr walk, just sums
