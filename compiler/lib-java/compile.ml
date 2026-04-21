@@ -991,8 +991,7 @@ let compile_t
           | Some (p, _) when p >= pc -> ()
           | _ -> best := Some (pc, d.file))
       parsed.debug;
-    (* Preserve the full relative path (typically repo-root-relative,
-       e.g. [])
+    (* Preserve the full relative path (typically repo-root-relative)
        so stack traces pinpoint the source file without ambiguity.
        JVMS 4.7.10 reserves [SourceFile] for a bare name, but real
        JVMs treat it as opaque and print whatever is there — which is
