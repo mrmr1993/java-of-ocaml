@@ -1188,7 +1188,16 @@ let find_dup_cut ~cache prog ~limit =
       dom_subtree_cost;
     match !best with
     | None -> None
-    | Some (_, cut_addr, dom_tail, clone_set) ->
+    | Some (total, cut_addr, dom_tail, clone_set) ->
+      if debug_split ()
+      then
+        Format.eprintf
+          "[split] dup_cut pick: cut_addr=%d dom_tail=%d clones=%d total=%d prog_blocks=%d@."
+          cut_addr
+          (Addr.Set.cardinal dom_tail)
+          (Addr.Set.cardinal clone_set)
+          total
+          (Addr.Map.cardinal prog.blocks);
       (* Splice the clones into [prog] and rewrite dom_tail's
          branches into clone_set to target the clones instead. *)
       let dup =
@@ -1244,7 +1253,7 @@ let find_dup_cut ~cache prog ~limit =
           prog'.blocks
           Addr.Set.empty
       in
-      Some (prog', { cut_addr; head; tail }))
+      Some (prog', { cut_addr; head; tail }, total))
 
 (* --- Sub-program construction -------------------------------------- *)
 
@@ -1964,34 +1973,66 @@ let split ~limit ~class_name ~is_static ~return_kind ?env_var prog =
               cache.cache_regions
               queue)
         in
-        (* Block-duplication cut returns (modified prog with clones
-           spliced + cut record), so [prog] gets bound to the
-           modified version before the rest of the pipeline runs. *)
-        let cut_opt, prog =
-          match cut_opt with
-          | Some c -> Some c, prog
-          | None when Debug.find "dup_cut" () ->
-            (match
-               Stat.track "find_dup_cut" (fun () ->
-                 find_dup_cut ~cache prog ~limit)
-             with
-             | Some (prog', cut) -> Some cut, prog'
-             | None -> None, prog)
-          | None -> None, prog
+        let block_cost_of_set s =
+          Addr.Set.fold
+            (fun a acc ->
+              acc
+              + (try Hashtbl.find cache.cache_block_cost a
+                 with Not_found -> 0))
+            s
+            0
         in
-        let cut_opt, cut_origin =
+        let cut_opt, cut_origin, prog =
           match cut_opt with
-          | Some _ as r -> r, `Intra_chunk
+          | Some c -> Some c, `Intra_chunk, prog
           | None ->
-            let r =
-              match Stat.track "find_end_cut" (fun () ->
-                find_end_cut ~cache prog ~limit) with
-              | Some _ as r -> r
-              | None ->
-                Stat.track "find_cut_toward" (fun () ->
-                  find_cut_toward ?env_var ~cache prog ~target:(limit / 2))
+            let end_pick =
+              Stat.track "find_end_cut" (fun () ->
+                find_end_cut ~cache prog ~limit)
             in
-            r, `Structural
+            (* Fire dup_cut as a fallback when [find_end_cut]
+               would only get a tiny-tail cut (pattern-B dense
+               decision tree signature: every iteration extracts
+               1 block worth ~11 bytes, never converges before
+               max_depth). Otherwise [find_end_cut] is competitive
+               and dup_cut's smaller bites can starve later levels
+               (the 36286 regression). *)
+            let end_tail_size =
+              match end_pick with
+              | Some c -> Addr.Set.cardinal c.tail
+              | None -> 0
+            in
+            let try_dup =
+              (* No flag — on by default. Fires only when
+                 [find_end_cut] would otherwise pick a tiny tail
+                 (1–2 blocks), which is the pattern-B dense-
+                 decision-tree signature where every iteration
+                 only extracts ~11 bytes. Flag [no_dup_cut]
+                 disables for A/B comparison. *)
+              (not (Debug.find "no_dup_cut" ()))
+              && (end_pick = None || end_tail_size <= 2)
+            in
+            let dup_pick =
+              if try_dup
+              then
+                Stat.track "find_dup_cut" (fun () ->
+                  find_dup_cut ~cache prog ~limit)
+              else None
+            in
+            (match dup_pick, end_pick with
+             | Some (prog', dup_cut, dup_size), Some end_cut ->
+               let end_size = block_cost_of_set end_cut.tail in
+               if dup_size > end_size
+               then Some dup_cut, `Structural, prog'
+               else Some end_cut, `Structural, prog
+             | Some (prog', dup_cut, _), None ->
+               Some dup_cut, `Structural, prog'
+             | None, (Some _ as r) -> r, `Structural, prog
+             | None, None ->
+               ( Stat.track "find_cut_toward" (fun () ->
+                   find_cut_toward ?env_var ~cache prog ~target:(limit / 2))
+               , `Structural
+               , prog ))
         in
         match cut_opt with
         | Some cut ->
