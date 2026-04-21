@@ -358,8 +358,6 @@ let sub_expr subst = function
     Closure { captures = List.map (sub_var subst) captures; body }
   | Constant _ as c -> c
   | Prim (p, args) -> Prim (p, List.map (sub_prim_arg subst) args)
-  | Invoke_helper ({ args; _ } as i) ->
-    Invoke_helper { i with args = List.map (sub_var subst) args }
 
 let sub_instr subst = function
   | Let (x, e) -> Let (x, sub_expr subst e)

@@ -72,7 +72,6 @@ let count_uses (prog : program) : int VarTbl.t =
       List.iter (bump uses) args
     | Constant _ -> ()
     | Prim (_, args) -> List.iter (bump_prim_arg uses) args
-    | Invoke_helper { args; _ } -> List.iter (bump uses) args
   in
   let instr_uses = function
     | Let (_, e) -> expr_uses e

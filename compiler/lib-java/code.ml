@@ -82,13 +82,6 @@ type expr =
   | Closure of { captures : Var.t list; body : cont }
   | Constant of constant
   | Prim of prim * prim_arg list
-  | Invoke_helper of
-      { class_ : string
-      ; method_ : string
-      ; descriptor : string
-      ; args : Var.t list
-      ; is_static : bool
-      }
 
 type instr =
   | Let of Var.t * expr
@@ -219,16 +212,6 @@ module Print = struct
           prim_arg fmt a)
         args;
       Format.fprintf fmt ")"
-    | Invoke_helper { class_; method_; descriptor; args; is_static } ->
-      Format.fprintf
-        fmt
-        "invoke_helper %s%s.%s%s(%a)"
-        (if is_static then "static " else "")
-        class_
-        method_
-        descriptor
-        var_list
-        args
 
   let instr fmt = function
     | Let (x, e) -> Format.fprintf fmt "let %a = %a" Var.print x expr e
