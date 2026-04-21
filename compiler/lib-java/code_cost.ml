@@ -233,7 +233,11 @@ let expr = function
     prim_cost p + List.fold_left (fun acc a -> acc + prim_arg_cost a) 0 args
 
 let instr = function
-  | Let (_, e) -> 3 + expr e            (* astore to local (1-3 bytes) *)
+  | Let (_, e) -> 5 + expr e
+      (* astore (2 bytes) + ~3 bytes typical kind coercion at the
+         store boundary (Integer.valueOf for K_int → K_obj is the
+         common case in OCaml-on-JVM since most Lets bind a
+         primitive that gets passed onward as Object). *)
   | Set_field _ -> 14
   | Offset_ref _ -> 14
   | Array_set _ -> 18
@@ -245,8 +249,14 @@ let last = function
   | Stop -> 2
   | Branch (_, args) -> 8 + (4 * List.length args)
   | Cond (_, (_, a1), (_, a2)) ->
-    (* Test + conditional branch + two edge sequences + goto. *)
-    30 + (4 * (List.length a1 + List.length a2))
+    (* Test + conditional branch + two edge sequences + goto. The
+       per-arg coefficient is 6 (was 4): each parallel-rename arg
+       averages aload + box/unbox + astore = ~6 bytes once kind
+       coercions are included. The 30 base captures the common
+       K_int test (load + ifeq + goto); K_obj scrutinees emit
+       another ~15 bytes (instanceof + checkcast + intValue) but
+       are rarer so we don't differentiate. *)
+    30 + (6 * (List.length a1 + List.length a2))
   | Switch (_, ints, tags) ->
     let n = Array.length ints + Array.length tags in
     let sum_args =
