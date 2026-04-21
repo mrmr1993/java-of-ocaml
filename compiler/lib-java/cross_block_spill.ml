@@ -44,38 +44,17 @@ let uf_union parent a b =
   let rb = uf_find parent b in
   if not (Var.equal ra rb) then Hashtbl.replace parent ra rb
 
-(* --- Free-var / def helpers, tailored to spill analysis --------- *)
+(* --- Free-var / def helpers ------------------------------------- *)
 
-let fv_prim_arg = function
-  | Pv v -> Var.Set.singleton v
-  | Pc _ -> Var.Set.empty
+(* Cross_block_spill uses generic [fv_*] from [Var_refs] plus a
+   local [fv_last_scrutinee] — the latter is deliberately narrower
+   than [Var_refs.fv_last] (only scrutinee uses, not edge-arg
+   positions) since edge-args are coalesced through union-find
+   instead of counted as true uses. *)
 
-let fv_expr = function
-  | Apply { f; args; _ } ->
-    List.fold_left (fun s v -> Var.Set.add v s) (Var.Set.singleton f) args
-  | Block (_, fs) ->
-    Array.fold_left (fun s v -> Var.Set.add v s) Var.Set.empty fs
-  | Field (v, _) -> Var.Set.singleton v
-  | Closure { captures; _ } ->
-    List.fold_left (fun s v -> Var.Set.add v s) Var.Set.empty captures
-  | Constant _ -> Var.Set.empty
-  | Prim (_, args) ->
-    List.fold_left
-      (fun s pa -> Var.Set.union s (fv_prim_arg pa))
-      Var.Set.empty
-      args
+let fv_instr = Var_refs.fv_instr
+let defs_of_instr = Var_refs.defs_of_instr
 
-let fv_instr = function
-  | Let (_, e) -> fv_expr e
-  | Set_field (x, _, y) -> Var.Set.add x (Var.Set.singleton y)
-  | Offset_ref (x, _) -> Var.Set.singleton x
-  | Array_set (a, i, v) ->
-    Var.Set.add a (Var.Set.add i (Var.Set.singleton v))
-  | Source_pc _ -> Var.Set.empty
-
-(* "True" uses of vars in a terminator: Return / Raise /
-   Cond-scrutinee / Switch-scrutinee. Edge-arg positions are NOT
-   counted here — they're tracked separately. *)
 let fv_last_scrutinee = function
   | Return v | Raise v -> Var.Set.singleton v
   | Cond (v, _, _) -> Var.Set.singleton v
@@ -99,11 +78,6 @@ let iter_edges f last =
   | Pushtrap (body, _, handler) -> walk_cont body; walk_cont handler
   | Poptrap c -> walk_cont c
   | Return _ | Raise _ | Stop | Invoke_tail _ -> ()
-
-let defs_of_instr = function
-  | Let (v, _) -> Var.Set.singleton v
-  | Set_field _ | Offset_ref _ | Array_set _ | Source_pc _ ->
-    Var.Set.empty
 
 (* --- Phase 1: build union-find over edges ----------------------- *)
 
