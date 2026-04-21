@@ -11,4 +11,37 @@ public final class CamlException extends RuntimeException {
         super();
         this.value = value;
     }
+
+    @Override
+    public String getMessage() {
+        return describe(value);
+    }
+
+    private static String describe(Object v) {
+        if (v == null) return "null";
+        if (v instanceof Block) {
+            Block b = (Block) v;
+            StringBuilder sb = new StringBuilder();
+            String ctor = null;
+            if (b.fields != null && b.fields.length > 0 && b.fields[0] instanceof Block) {
+                Block hdr = (Block) b.fields[0];
+                if (hdr.fields != null && hdr.fields.length > 0
+                    && hdr.fields[0] instanceof String) {
+                    ctor = (String) hdr.fields[0];
+                }
+            }
+            sb.append(ctor == null ? ("Block(tag=" + b.tag + ")") : ctor);
+            if (b.fields != null && b.fields.length > 1) {
+                sb.append("(");
+                for (int i = 1; i < b.fields.length; i++) {
+                    if (i > 1) sb.append(", ");
+                    Object f = b.fields[i];
+                    sb.append(f == null ? "null" : f.toString());
+                }
+                sb.append(")");
+            }
+            return sb.toString();
+        }
+        return v.toString();
+    }
 }

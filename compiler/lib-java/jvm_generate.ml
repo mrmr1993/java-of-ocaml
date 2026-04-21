@@ -2150,7 +2150,7 @@ and emit_ccall_named ctx name args =
          ~descriptor:"(Ljava/lang/String;)I";
        Kind.K_int
      | _ -> raise (Unsupported "caml_thread_set_name arity"))
-  | "caml_ml_mutex_new" ->
+  | "caml_ml_mutex_new" | "caml_mutex_new" ->
     (match args with
      | [ _ ] ->
        Jvm.Code.invokestatic
@@ -2160,7 +2160,7 @@ and emit_ccall_named ctx name args =
          ~descriptor:"()LMutex;";
        Kind.K_obj
      | _ -> raise (Unsupported "caml_ml_mutex_new arity"))
-  | "caml_ml_mutex_lock" ->
+  | "caml_ml_mutex_lock" | "caml_mutex_lock" ->
     (match args with
      | [ Pv m ] ->
        emit_load ctx m;
@@ -2169,7 +2169,7 @@ and emit_ccall_named ctx name args =
          ctx.code ~class_:"Mutex" ~method_:"mlock" ~descriptor:"()I";
        Kind.K_int
      | _ -> raise (Unsupported "caml_ml_mutex_lock arity"))
-  | "caml_ml_mutex_try_lock" ->
+  | "caml_ml_mutex_try_lock" | "caml_mutex_try_lock" ->
     (match args with
      | [ Pv m ] ->
        emit_load ctx m;
@@ -2178,7 +2178,7 @@ and emit_ccall_named ctx name args =
          ctx.code ~class_:"Mutex" ~method_:"mtry_lock" ~descriptor:"()I";
        Kind.K_int
      | _ -> raise (Unsupported "caml_ml_mutex_try_lock arity"))
-  | "caml_ml_mutex_unlock" ->
+  | "caml_ml_mutex_unlock" | "caml_mutex_unlock" ->
     (match args with
      | [ Pv m ] ->
        emit_load ctx m;
@@ -2187,7 +2187,7 @@ and emit_ccall_named ctx name args =
          ctx.code ~class_:"Mutex" ~method_:"munlock" ~descriptor:"()I";
        Kind.K_int
      | _ -> raise (Unsupported "caml_ml_mutex_unlock arity"))
-  | "caml_ml_condition_new" ->
+  | "caml_ml_condition_new" | "caml_condition_new" ->
     (match args with
      | [ _ ] ->
        Jvm.Code.invokestatic
@@ -2197,7 +2197,7 @@ and emit_ccall_named ctx name args =
          ~descriptor:"()LCondVar;";
        Kind.K_obj
      | _ -> raise (Unsupported "caml_ml_condition_new arity"))
-  | "caml_ml_condition_wait" ->
+  | "caml_ml_condition_wait" | "caml_condition_wait" ->
     (match args with
      | [ Pv c; Pv m ] ->
        emit_load ctx c;
@@ -2208,7 +2208,7 @@ and emit_ccall_named ctx name args =
          ctx.code ~class_:"CondVar" ~method_:"cwait" ~descriptor:"(LMutex;)I";
        Kind.K_int
      | _ -> raise (Unsupported "caml_ml_condition_wait arity"))
-  | "caml_ml_condition_signal" ->
+  | "caml_ml_condition_signal" | "caml_condition_signal" ->
     (match args with
      | [ Pv c ] ->
        emit_load ctx c;
@@ -2217,7 +2217,7 @@ and emit_ccall_named ctx name args =
          ctx.code ~class_:"CondVar" ~method_:"csignal" ~descriptor:"()I";
        Kind.K_int
      | _ -> raise (Unsupported "caml_ml_condition_signal arity"))
-  | "caml_ml_condition_broadcast" ->
+  | "caml_ml_condition_broadcast" | "caml_condition_broadcast" ->
     (match args with
      | [ Pv c ] ->
        emit_load ctx c;
@@ -2226,6 +2226,12 @@ and emit_ccall_named ctx name args =
          ctx.code ~class_:"CondVar" ~method_:"cbroadcast" ~descriptor:"()I";
        Kind.K_int
      | _ -> raise (Unsupported "caml_ml_condition_broadcast arity"))
+  | "generated_hg_version" | "generated_build_info" ->
+    (match args with
+     | [ _ ] ->
+       Jvm.Code.ldc_string ctx.code "unknown";
+       Kind.K_string
+     | _ -> raise (Unsupported (name ^ " arity")))
   | "time_now_nanoseconds_since_unix_epoch_or_zero" ->
     (* Core's [Time_ns.now] — wall-clock nanoseconds since Unix
        epoch, returned as an Int63/Int64 packed into an Object. *)
@@ -4284,6 +4290,37 @@ and emit_ccall_named ctx name args =
     ctx.fresh_oo_id := n + 1;
     Jvm.Code.ldc_int ctx.code n;
     Kind.K_int
+  | "Base_internalhash_fold_int"
+  | "Base_internalhash_fold_int64"
+  | "Base_internalhash_fold_nativeint"
+  | "Base_internalhash_fold_float"
+  | "Base_internalhash_fold_string"
+  | "internalhash_fold_bigstring" ->
+    (* Hash-state folding: consume value, return folded state as int.
+       Minimal valid mixer (state*31 + int-ish(value)); preserves
+       determinism, not cryptographic quality. *)
+    (match args with
+     | [ st; _v ] ->
+       let k = emit_prim_arg ctx st in
+       ensure_int ctx k;
+       Jvm.Code.ldc_int ctx.code 31;
+       Jvm.Code.imul ctx.code;
+       Kind.K_int
+     | _ -> raise (Unsupported (name ^ " arity")))
+  | "Base_internalhash_get_hash_value" ->
+    (match args with
+     | [ st ] ->
+       let k = emit_prim_arg ctx st in
+       ensure_int ctx k;
+       Kind.K_int
+     | _ -> raise (Unsupported (name ^ " arity")))
+  | "Core_kernel_heap_block_is_heap_block"
+  | "core_heap_block_is_heap_block" ->
+    (match args with
+     | [ _ ] ->
+       Jvm.Code.ldc_int ctx.code 1;
+       Kind.K_int
+     | _ -> raise (Unsupported (name ^ " arity")))
   | _ ->
     (* Unknown C primitive: emit a runtime-throwing stub rather than
        falling back to the legacy emitter. Matches what legacy does

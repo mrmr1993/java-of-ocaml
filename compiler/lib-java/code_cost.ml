@@ -157,13 +157,28 @@ let extern_cost = function
   | "caml_int_of_string" | "caml_float_of_string" -> 12
   (* Mutex / CondVar / Thread. *)
   | "caml_ml_mutex_new" | "caml_ml_mutex_lock"
-  | "caml_ml_mutex_unlock" | "caml_ml_mutex_try_lock" -> 8
+  | "caml_ml_mutex_unlock" | "caml_ml_mutex_try_lock"
+  | "caml_mutex_new" | "caml_mutex_lock"
+  | "caml_mutex_unlock" | "caml_mutex_try_lock" -> 8
   | "caml_ml_condition_new" | "caml_ml_condition_wait"
-  | "caml_ml_condition_signal" | "caml_ml_condition_broadcast" -> 8
+  | "caml_ml_condition_signal" | "caml_ml_condition_broadcast"
+  | "caml_condition_new" | "caml_condition_wait"
+  | "caml_condition_signal" | "caml_condition_broadcast" -> 8
   | "caml_thread_new" | "caml_thread_self" | "caml_thread_id"
   | "caml_thread_join" | "caml_thread_yield"
   | "caml_thread_initialize" | "caml_thread_cleanup"
   | "caml_thread_uncaught_exception" -> 8
+  (* Build-info stub. *)
+  | "generated_hg_version" | "generated_build_info" -> 4
+  | "Base_internalhash_fold_int"
+  | "Base_internalhash_fold_int64"
+  | "Base_internalhash_fold_nativeint"
+  | "Base_internalhash_fold_float"
+  | "Base_internalhash_fold_string"
+  | "internalhash_fold_bigstring"
+  | "Base_internalhash_get_hash_value"
+  | "Core_kernel_heap_block_is_heap_block"
+  | "core_heap_block_is_heap_block" -> 10
   (* MD5. *)
   | "caml_md5_string" | "caml_md5_bytes" -> 10
   (* Lazy. *)
