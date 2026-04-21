@@ -475,6 +475,14 @@ let debug_split_tree_stats = Debug.find "split_tree_stats"
    wiring it into the splitter's cut pipeline. *)
 let debug_let_in_stats = Debug.find "let_in_stats"
 
+(* Enable [Let_in_cut] extraction in the [split] pipeline. Off by
+   default pending a large test binary verification; flip on with
+   [JAVA_OF_OCAML_DEBUG=let_in]. *)
+let debug_let_in = Debug.find "let_in"
+
+(* [try_apply_let_in_cut] is defined later — it depends on
+   [descriptor_for_params] and [Return_object]. *)
+
 let cut_respects_trap_regions_fast ~reachable ~tail_tbl regions =
   let in_tail a = Hashtbl.mem tail_tbl a in
   let in_head a = Addr.Set.mem a reachable && not (in_tail a) in
@@ -740,15 +748,19 @@ let build_split_cache (prog : program) =
      to produce wrong results downstream. *)
   let tree_addrs = Split_tree.leaf_addrs tree in
   let reachable = reachable_from prog ~start:prog.start in
-  if not (Addr.Set.equal tree_addrs reachable)
+  (* tree_addrs is [prog.blocks]'s key set; reachable_from is a
+     subset (prog can have dead blocks left over from intra-split,
+     deadcode quirks, etc.). Only fail if a reachable block is
+     *missing* from the tree — that would be a real construction
+     bug. Extra (unreachable) tree leaves are harmless: cut
+     enumerators iterate them, [try_cut] rejects, no harm done. *)
+  let only_reach = Addr.Set.diff reachable tree_addrs in
+  if not (Addr.Set.is_empty only_reach)
   then (
-    let only_tree = Addr.Set.diff tree_addrs reachable in
-    let only_reach = Addr.Set.diff reachable tree_addrs in
     Printf.eprintf
-      "[split_tree] leaf/reachable mismatch: tree-only=%d reach-only=%d\n"
-      (Addr.Set.cardinal only_tree)
-      (Addr.Set.cardinal only_reach);
-    failwith "Split_tree.leaf_addrs != reachable_from");
+      "[split_tree] reachable block missing from tree: %s\n"
+      (String.concat "," (List.map string_of_int (Addr.Set.elements only_reach)));
+    failwith "Split_tree.leaf_addrs missing reachable block");
   if debug_split_tree_stats ()
   then (
     let s = Split_tree.summarise tree in
@@ -1039,6 +1051,88 @@ let descriptor_for_params (params : Var.t list) ~return_kind =
    | Return_object -> Buffer.add_string b "Ljava/lang/Object;"
    | Return_void -> Buffer.add_char b 'V');
   Buffer.contents b
+
+(* --- Let_in cut integration ---------------------------------------- *)
+
+(* Max number of helper-method args the Let_in cut may produce.
+   The JVM hard limit is 255 slots; reserve headroom for receiver
+   + locals so helpers don't blow it. *)
+let let_in_max_args = 200
+
+(* Pick the best applicable [Let_in_cut] candidate, apply it, and
+   return the pieces [split]'s driver needs. [None] if no candidate
+   fits the budget. Selection: largest cost that (a) fits under
+   [limit] and (b) has [≤ let_in_max_args] forwarded args. *)
+let try_apply_let_in_cut ~limit ~class_name ~is_static prog =
+  let cs = Let_in_cut.enumerate prog in
+  let fit =
+    List.filter
+      (fun (c : Let_in_cut.candidate) ->
+        c.cost > 0 && c.cost <= limit)
+      cs
+  in
+  let rec pick_best = function
+    | [] -> None
+    | [ c ] -> Some c
+    | (c : Let_in_cut.candidate) :: rest ->
+      (match pick_best rest with
+       | None -> Some c
+       | Some (best : Let_in_cut.candidate)
+         when c.cost > best.cost -> Some c
+       | r -> r)
+  in
+  match pick_best fit with
+  | None -> None
+  | Some c ->
+    let entry_block = Addr.Map.find c.body_entry prog.blocks in
+    (* Mirror [Let_in_cut.apply]'s live-in computation so we can
+       reject over-arity candidates before committing. *)
+    let live_in =
+      let used = ref Var.Set.empty in
+      let defined =
+        ref
+          (List.fold_left
+             (fun s v -> Var.Set.add v s)
+             Var.Set.empty
+             entry_block.params)
+      in
+      Addr.Set.iter
+        (fun a ->
+          match Addr.Map.find_opt a prog.blocks with
+          | None -> ()
+          | Some (b : block) ->
+            List.iter (fun v -> defined := Var.Set.add v !defined) b.params;
+            Array.iter
+              (fun i ->
+                used := Var.Set.union !used (fv_instr i);
+                defined := Var.Set.union !defined (defs_of_instr i))
+              b.body;
+            used := Var.Set.union !used (fv_last b.branch))
+        c.body_blocks;
+      Var.Set.diff !used !defined
+    in
+    let n_args =
+      List.length entry_block.params + Var.Set.cardinal live_in
+    in
+    if n_args > let_in_max_args
+    then None
+    else (
+      let method_ = Printf.sprintf "let_in_%d" (Var.count ()) in
+      let descriptor =
+        descriptor_for_params
+          (List.init n_args (fun _ -> Var.fresh ()))
+          ~return_kind:Return_object
+      in
+      let applied =
+        Let_in_cut.apply
+          prog
+          c
+          ~class_:class_name
+          ~method_
+          ~descriptor
+          ~is_static
+      in
+      Some (applied, method_, descriptor))
 
 (* --- Per-helper arg statistics -------------------------------------- *)
 
@@ -1720,6 +1814,43 @@ let split ~limit ~class_name ~is_static ~return_kind ?env_var prog =
               cache.cache_regions
               queue)
         in
+        (* Let_in_cut (SESE extraction via [Invoke_helper]) is tried
+           before the tail-only cuts. When it fires it produces a
+           different shape (asymmetric head/helper), so it takes its
+           own recursion branch and skips the existing
+           augment_cut_params / tail_subprogram / rewrite_head_cut
+           pipeline. *)
+        let let_in =
+          if cut_opt <> None || not (debug_let_in ())
+          then None
+          else
+            Stat.track "let_in" (fun () ->
+              try_apply_let_in_cut ~limit ~class_name ~is_static prog)
+        in
+        (match let_in with
+         | Some (applied, method_name, descriptor) ->
+           trace
+             "depth=%d let_in: body=%d forwarded=%d"
+             depth
+             (List.length applied.Let_in_cut.helper_entry_params)
+             (List.length applied.forwarded_args);
+           let helper_split =
+             go (depth + 1) ~blocks_clean:false [] applied.helper_prog
+           in
+           helpers_rev :=
+             { method_name
+             ; params = applied.helper_entry_params
+             ; prog = helper_split
+             ; descriptor
+             }
+             :: !helpers_rev;
+           helper_origins_rev := `Structural :: !helper_origins_rev;
+           go
+             (depth + 1)
+             ~blocks_clean:false
+             queue
+             applied.head_prog
+         | None ->
         let cut_opt, cut_origin =
           match cut_opt with
           | Some _ as r -> r, `Intra_chunk
@@ -1766,7 +1897,7 @@ let split ~limit ~class_name ~is_static ~return_kind ?env_var prog =
           go (depth + 1) ~blocks_clean:true queue head
         | None ->
           trace "depth=%d: no structural cut, giving up" depth;
-          prog))
+          prog)))
   in
   let head = go 0 ~blocks_clean:false [] prog in
   let helpers = List.rev !helpers_rev in

@@ -131,10 +131,12 @@ let dominates idom a b =
   then true
   else
     let rec walk c =
-      let parent = Hashtbl.find idom c in
-      if parent = c then false
-      else if parent = a then true
-      else walk parent
+      match Hashtbl.find_opt idom c with
+      | None -> false  (* [c] unreachable from start: doesn't appear in idom *)
+      | Some parent ->
+        if parent = c then false
+        else if parent = a then true
+        else walk parent
     in
     walk b
 
@@ -197,10 +199,81 @@ let nearest_common_dominator idom = function
       - body_blocks is non-empty.
 *)
 
-let candidates_for_join prog ~preds ~idom ~join_addr (j : block) =
+(* [body_has_function_exit]: true if any block in [body_blocks] has
+   a terminator that exits the outer function (Return / Raise /
+   Stop / Invoke_tail). Those are inadmissible in a Let_in body —
+   the helper would consume the exit and never return to the
+   caller, changing semantics. *)
+let body_has_function_exit prog body_blocks =
+  Addr.Set.exists
+    (fun a ->
+      match Addr.Map.find_opt a prog.blocks with
+      | None -> false
+      | Some b ->
+        (match b.branch with
+         | Return _ | Raise _ | Stop | Invoke_tail _ -> true
+         | _ -> false))
+    body_blocks
+
+(* Reject bodies whose [Pushtrap] handler edge or [Poptrap] target
+   leaves the body via [join_block]. Rewriting such an edge to a
+   [Return] stub doesn't preserve the exception-table semantics
+   (the handler entry needs to absorb the operand-stack exception
+   into [exn_var], not return it). Pushtraps fully internal to the
+   body are fine — they emit their own exception table inside the
+   helper. *)
+let body_trap_to_join_unsafe prog body_blocks ~join_block =
+  Addr.Set.exists
+    (fun a ->
+      match Addr.Map.find_opt a prog.blocks with
+      | None -> false
+      | Some b ->
+        (match b.branch with
+         | Pushtrap ((bt, _), _, (ht, _)) ->
+           bt = join_block || ht = join_block
+         | Poptrap (t, _) -> t = join_block
+         | _ -> false))
+    body_blocks
+
+(* [body_trap_self_contained]: any [Pushtrap] / [Poptrap] inside
+   [body_blocks] must pair with a counterpart also inside body.
+   Checked via the per-block trap-context map: a block's context
+   is the stack of active Pushtraps at its entry. [body_entry]'s
+   context is what the body inherits from the caller. Any block
+   inside body must have a context that *extends* body_entry's —
+   if a body block's context is shorter than body_entry's, then
+   some Poptrap between them popped a trap pushed outside body
+   (leaks out), and emitting the helper would orphan that
+   Pushtrap. Symmetrically a body block whose context is missing
+   any trap from body_entry's prefix is also a leak. *)
+let body_trap_self_contained contexts body_entry body_blocks =
+  let entry_ctx =
+    match Hashtbl.find_opt contexts body_entry with
+    | Some c -> c
+    | None -> []
+  in
+  let entry_depth = List.length entry_ctx in
+  Addr.Set.for_all
+    (fun a ->
+      match Hashtbl.find_opt contexts a with
+      | None -> true
+      | Some ctx ->
+        let depth = List.length ctx in
+        if depth < entry_depth
+        then false  (* popped something we didn't push *)
+        else (
+          (* Suffix of [ctx] of length [entry_depth] must equal
+             [entry_ctx] — body must keep all inherited traps
+             active. *)
+          let rec drop n l =
+            if n = 0 then l else drop (n - 1) (List.tl l)
+          in
+          drop (depth - entry_depth) ctx = entry_ctx))
+    body_blocks
+
+let candidates_for_join prog ~preds ~idom ~contexts ~join_addr (j : block) =
   match j.params with
-  | [] -> []
-  | result_param :: _ ->
+  | [ result_param ] ->
     let j_preds =
       try Hashtbl.find preds join_addr with Not_found -> []
     in
@@ -244,6 +317,21 @@ let candidates_for_join prog ~preds ~idom ~join_addr (j : block) =
             in
             match external_entry_preds with
             | [ caller ] ->
+              (* Apply currently only handles [Branch] callers —
+                 the head rewrite splices [Let (v', Invoke_helper
+                 ...)] + [Branch (join, [v'])] in place of the
+                 original branch. Cond / Switch callers would need
+                 a stub block on the matching arm to keep the
+                 other arms unchanged; not implemented yet. *)
+              let caller_ok =
+                match Addr.Map.find_opt caller prog.blocks with
+                | None -> false
+                | Some cb ->
+                  (match cb.branch with
+                   | Branch (t, _) -> t = body_entry
+                   | _ -> false)
+              in
+              if not caller_ok then [] else
               (* Validate: every block in body_blocks has all
                  successors in (body_blocks ∪ {join_addr}). *)
               let ok =
@@ -273,7 +361,18 @@ let candidates_for_join prog ~preds ~idom ~join_addr (j : block) =
                         (successors_of b))
                   prog.blocks
               in
-              if ok && no_external_entry
+              let no_function_exit =
+                not (body_has_function_exit prog !body_blocks)
+              in
+              let trap_ok =
+                body_trap_self_contained contexts body_entry !body_blocks
+                && not
+                     (body_trap_to_join_unsafe
+                        prog
+                        !body_blocks
+                        ~join_block:join_addr)
+              in
+              if ok && no_external_entry && no_function_exit && trap_ok
               then (
                 let cost =
                   Addr.Set.fold
@@ -294,13 +393,242 @@ let candidates_for_join prog ~preds ~idom ~join_addr (j : block) =
                 ])
               else []
             | _ -> [])))
+  | _ ->
+    (* Require exactly one param — single-result join. Multi-param
+       joins (e.g. match arms carrying several values at once) are
+       out of scope for the first pass; extraction requires
+       rewriting terminators to return one value. *)
+    []
 
 let enumerate (prog : program) : candidate list =
   let preds = compute_predecessors prog in
   let rpo = reverse_postorder prog in
   let idom = compute_idoms prog ~rpo ~preds in
+  let contexts = Code.compute_trap_contexts prog in
   Addr.Map.fold
     (fun addr b acc ->
-      candidates_for_join prog ~preds ~idom ~join_addr:addr b @ acc)
+      candidates_for_join
+        prog
+        ~preds
+        ~idom
+        ~contexts
+        ~join_addr:addr
+        b
+      @ acc)
     prog.blocks
     []
+
+(* --- Cut application --------------------------------------------- *)
+
+type applied =
+  { helper_entry_params : Var.t list
+  ; helper_prog : program
+  ; head_prog : program
+  ; forwarded_args : Var.t list
+  }
+
+(* Live-in at [body_entry]: vars referenced inside [body_blocks] but
+   not defined there. Excludes [body_entry]'s own params (those are
+   supplied by the caller's original branch to body_entry) and
+   keeps only vars that will actually cross the extraction
+   boundary. *)
+let live_in_at_body ~body_blocks ~body_entry_params prog =
+  let used = ref Var.Set.empty in
+  let defined =
+    List.fold_left
+      (fun s v -> Var.Set.add v s)
+      Var.Set.empty
+      body_entry_params
+  in
+  let defined = ref defined in
+  Addr.Set.iter
+    (fun a ->
+      match Addr.Map.find_opt a prog.blocks with
+      | None -> ()
+      | Some (b : block) ->
+        List.iter (fun v -> defined := Var.Set.add v !defined) b.params;
+        Array.iter
+          (fun i ->
+            used := Var.Set.union !used (Var_refs.fv_instr i);
+            defined :=
+              Var.Set.union !defined (Var_refs.defs_of_instr i))
+          b.body;
+        used := Var.Set.union !used (Var_refs.fv_last b.branch))
+    body_blocks;
+  Var.Set.diff !used !defined
+
+(* Build the helper program from [body_blocks] with edges to
+   [join_block] rewritten to [Return] of the single result arg. *)
+let build_helper_prog
+    (prog : program)
+    (c : candidate)
+    ~forwarded_args
+    ~free_pc_start =
+  let free_pc = ref free_pc_start in
+  let fresh_return_stub result_arg =
+    let addr = !free_pc in
+    incr free_pc;
+    addr,
+    { params = []
+    ; body = [||]
+    ; branch = Return result_arg
+    }
+  in
+  let extra_blocks = ref [] in
+  let rewrite_cont ((target, args) as c') =
+    if target <> c.join_block then c'
+    else (
+      match args with
+      | [ result_arg ] ->
+        let addr, blk = fresh_return_stub result_arg in
+        extra_blocks := (addr, blk) :: !extra_blocks;
+        (addr, [])
+      | _ ->
+        (* enumeration validated [result_param] as the single param,
+           and every edge must supply it. *)
+        failwith "Let_in_cut.apply: join edge has !=1 args")
+  in
+  let rewrite_last = function
+    | Return _ | Raise _ | Stop | Invoke_tail _ ->
+      (* Should not occur — enumerator rejects bodies with these. *)
+      failwith "Let_in_cut.apply: body has function-exit terminator"
+    | Branch (target, args) when target = c.join_block ->
+      (match args with
+       | [ result_arg ] -> Return result_arg
+       | _ ->
+         failwith "Let_in_cut.apply: direct branch to join with !=1 args")
+    | Branch cont -> Branch cont
+    | Cond (v, c1, c2) -> Cond (v, rewrite_cont c1, rewrite_cont c2)
+    | Switch (v, ints, tags) ->
+      Switch
+        ( v
+        , Array.map rewrite_cont ints
+        , Array.map rewrite_cont tags )
+    | Pushtrap (body, exn_var, handler) ->
+      Pushtrap (rewrite_cont body, exn_var, rewrite_cont handler)
+    | Poptrap cont -> Poptrap (rewrite_cont cont)
+  in
+  let entry_block =
+    match Addr.Map.find_opt c.body_entry prog.blocks with
+    | Some b -> b
+    | None ->
+      failwith "Let_in_cut.apply: body_entry not in program"
+  in
+  let helper_entry_params =
+    entry_block.params @ forwarded_args
+  in
+  let rewritten =
+    Addr.Set.fold
+      (fun a acc ->
+        match Addr.Map.find_opt a prog.blocks with
+        | None -> acc
+        | Some b ->
+          let b' =
+            if a = c.body_entry
+            then
+              { b with
+                params = helper_entry_params
+              ; branch = rewrite_last b.branch
+              }
+            else { b with branch = rewrite_last b.branch }
+          in
+          Addr.Map.add a b' acc)
+      c.body_blocks
+      Addr.Map.empty
+  in
+  let blocks =
+    List.fold_left
+      (fun m (a, b) -> Addr.Map.add a b m)
+      rewritten
+      !extra_blocks
+  in
+  { start = c.body_entry
+  ; blocks
+  ; free_pc = !free_pc
+  }
+
+(* Build the head program: remove [body_blocks], rewrite caller's
+   terminator, leave [join_block] otherwise alone (its params
+   remain — the new Branch from the caller supplies the result). *)
+let build_head_prog
+    (prog : program)
+    (c : candidate)
+    ~forwarded_args
+    ~class_
+    ~method_
+    ~descriptor
+    ~is_static =
+  (* Caller's original branch is Branch(body_entry, entry_args).
+     We need entry_args (matching body_entry's param list) to pass
+     to the helper call. *)
+  let caller_block =
+    match Addr.Map.find_opt c.caller prog.blocks with
+    | Some b -> b
+    | None -> failwith "Let_in_cut.apply: caller not in program"
+  in
+  let entry_args =
+    match caller_block.branch with
+    | Branch (target, args) when target = c.body_entry -> args
+    | _ ->
+      failwith
+        "Let_in_cut.apply: caller terminator must be Branch (filter \
+         in [enumerate] should reject otherwise)"
+  in
+  let v' = Var.fresh_n "let_in_result" in
+  let helper_args = entry_args @ forwarded_args in
+  let new_instr =
+    Let
+      ( v'
+      , Invoke_helper
+          { class_; method_; descriptor; args = helper_args; is_static }
+      )
+  in
+  let new_caller_block =
+    { caller_block with
+      body = Array.append caller_block.body [| new_instr |]
+    ; branch = Branch (c.join_block, [ v' ])
+    }
+  in
+  let blocks =
+    prog.blocks
+    |> Addr.Set.fold Addr.Map.remove c.body_blocks
+    |> Addr.Map.add c.caller new_caller_block
+  in
+  { prog with blocks }
+
+let apply prog (c : candidate) ~class_ ~method_ ~descriptor ~is_static =
+  let entry_block =
+    match Addr.Map.find_opt c.body_entry prog.blocks with
+    | Some b -> b
+    | None -> failwith "Let_in_cut.apply: body_entry not in program"
+  in
+  let live_in =
+    live_in_at_body
+      ~body_blocks:c.body_blocks
+      ~body_entry_params:entry_block.params
+      prog
+  in
+  let forwarded_args = Var.Set.elements live_in in
+  let helper_prog =
+    build_helper_prog prog c ~forwarded_args ~free_pc_start:prog.free_pc
+  in
+  let head_prog =
+    build_head_prog
+      prog
+      c
+      ~forwarded_args
+      ~class_
+      ~method_
+      ~descriptor
+      ~is_static
+  in
+  let head_prog =
+    { head_prog with free_pc = max head_prog.free_pc helper_prog.free_pc }
+  in
+  let helper_entry_params = entry_block.params @ forwarded_args in
+  { helper_entry_params
+  ; helper_prog
+  ; head_prog
+  ; forwarded_args
+  }
+
