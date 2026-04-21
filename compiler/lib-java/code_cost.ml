@@ -247,7 +247,9 @@ let last = function
   | Return _ -> 3                        (* aload + areturn *)
   | Raise _ -> 14                        (* new + dup + load + ctor + athrow *)
   | Stop -> 2
-  | Branch (_, args) -> 8 + (4 * List.length args)
+  | Branch (_, args) -> 8 + (6 * List.length args)
+      (* Per-arg coefficient bumped 4 → 6 to match the parallel-
+         rename + box/unbox coercion cost as for [Cond]. *)
   | Cond (_, (_, a1), (_, a2)) ->
     (* Test + conditional branch + two edge sequences + goto. The
        per-arg coefficient is 6 (was 4): each parallel-rename arg
