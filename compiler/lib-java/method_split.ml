@@ -1819,9 +1819,18 @@ let split ~limit ~class_name ~is_static ~return_kind ?env_var prog =
            different shape (asymmetric head/helper), so it takes its
            own recursion branch and skips the existing
            augment_cut_params / tail_subprogram / rewrite_head_cut
-           pipeline. *)
+           pipeline.
+
+           Enumerate is O(N²) in [prog.blocks] (per join, dominator
+           subtree intersection); running it at every recursion
+           level on a multi-thousand-block main blows the budget.
+           Cap to depth ≤ 4 — the first few levels see the biggest
+           heads where Let_in is worth most, and deeper helpers are
+           usually small enough that tail-cut alone copes. *)
         let let_in =
-          if cut_opt <> None || not (debug_let_in ())
+          if cut_opt <> None
+             || not (debug_let_in ())
+             || depth > 4
           then None
           else
             Stat.track "let_in" (fun () ->

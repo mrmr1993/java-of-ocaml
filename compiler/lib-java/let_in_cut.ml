@@ -2,7 +2,7 @@ open Code
 
 type candidate =
   { join_block : Addr.t
-  ; result_param : Var.t
+  ; result_params : Var.t list
   ; body_entry : Addr.t
   ; body_blocks : Addr.Set.t
   ; caller : Addr.t
@@ -273,7 +273,8 @@ let body_trap_self_contained contexts body_entry body_blocks =
 
 let candidates_for_join prog ~preds ~idom ~contexts ~join_addr (j : block) =
   match j.params with
-  | [ result_param ] ->
+  | [] -> []
+  | result_params ->
     let j_preds =
       try Hashtbl.find preds join_addr with Not_found -> []
     in
@@ -384,7 +385,7 @@ let candidates_for_join prog ~preds ~idom ~contexts ~join_addr (j : block) =
                     0
                 in
                 [ { join_block = join_addr
-                  ; result_param
+                  ; result_params
                   ; body_entry
                   ; body_blocks = !body_blocks
                   ; caller
@@ -393,12 +394,6 @@ let candidates_for_join prog ~preds ~idom ~contexts ~join_addr (j : block) =
                 ])
               else []
             | _ -> [])))
-  | _ ->
-    (* Require exactly one param — single-result join. Multi-param
-       joins (e.g. match arms carrying several values at once) are
-       out of scope for the first pass; extraction requires
-       rewriting terminators to return one value. *)
-    []
 
 let enumerate (prog : program) : candidate list =
   let preds = compute_predecessors prog in
@@ -458,45 +453,60 @@ let live_in_at_body ~body_blocks ~body_entry_params prog =
   Var.Set.diff !used !defined
 
 (* Build the helper program from [body_blocks] with edges to
-   [join_block] rewritten to [Return] of the single result arg. *)
+   [join_block] rewritten to [Return] of a freshly-allocated
+   [Block 0] tuple holding the join args (one slot per [result_param]).
+
+   For a single-result join the tuple is a 1-field block — adds 15-ish
+   bytes per exit point but keeps the code path uniform. The caller
+   unpacks via [Field]. *)
 let build_helper_prog
     (prog : program)
     (c : candidate)
     ~forwarded_args
     ~free_pc_start =
   let free_pc = ref free_pc_start in
-  let fresh_return_stub result_arg =
+  let n_results = List.length c.result_params in
+  let fresh_return_stub args =
+    if List.length args <> n_results
+    then
+      failwith
+        (Printf.sprintf
+           "Let_in_cut.apply: join edge has %d args (expected %d)"
+           (List.length args)
+           n_results);
     let addr = !free_pc in
     incr free_pc;
+    let tuple = Var.fresh_n "let_in_pack" in
+    let body =
+      [| Let (tuple, Block (0, Array.of_list args)) |]
+    in
     addr,
     { params = []
-    ; body = [||]
-    ; branch = Return result_arg
+    ; body
+    ; branch = Return tuple
     }
   in
   let extra_blocks = ref [] in
   let rewrite_cont ((target, args) as c') =
     if target <> c.join_block then c'
     else (
-      match args with
-      | [ result_arg ] ->
-        let addr, blk = fresh_return_stub result_arg in
-        extra_blocks := (addr, blk) :: !extra_blocks;
-        (addr, [])
-      | _ ->
-        (* enumeration validated [result_param] as the single param,
-           and every edge must supply it. *)
-        failwith "Let_in_cut.apply: join edge has !=1 args")
+      let addr, blk = fresh_return_stub args in
+      extra_blocks := (addr, blk) :: !extra_blocks;
+      (addr, []))
   in
   let rewrite_last = function
     | Return _ | Raise _ | Stop | Invoke_tail _ ->
-      (* Should not occur — enumerator rejects bodies with these. *)
       failwith "Let_in_cut.apply: body has function-exit terminator"
     | Branch (target, args) when target = c.join_block ->
-      (match args with
-       | [ result_arg ] -> Return result_arg
-       | _ ->
-         failwith "Let_in_cut.apply: direct branch to join with !=1 args")
+      let tuple = Var.fresh_n "let_in_pack" in
+      (* Inline the pack into the existing block's body. To keep
+         the IR uniform we still synthesise the [Let] + [Return]
+         here — caller of this function expects a [last] back, so
+         we can't add to body. Push to a fresh stub instead. *)
+      let addr, blk = fresh_return_stub args in
+      ignore tuple;
+      extra_blocks := (addr, blk) :: !extra_blocks;
+      Branch (addr, [])
     | Branch cont -> Branch cont
     | Cond (v, c1, c2) -> Cond (v, rewrite_cont c1, rewrite_cont c2)
     | Switch (v, ints, tags) ->
@@ -548,8 +558,8 @@ let build_helper_prog
   }
 
 (* Build the head program: remove [body_blocks], rewrite caller's
-   terminator, leave [join_block] otherwise alone (its params
-   remain — the new Branch from the caller supplies the result). *)
+   terminator to call the helper and unpack its [Block 0] tuple
+   into the [join_block]'s args. *)
 let build_head_prog
     (prog : program)
     (c : candidate)
@@ -558,9 +568,6 @@ let build_head_prog
     ~method_
     ~descriptor
     ~is_static =
-  (* Caller's original branch is Branch(body_entry, entry_args).
-     We need entry_args (matching body_entry's param list) to pass
-     to the helper call. *)
   let caller_block =
     match Addr.Map.find_opt c.caller prog.blocks with
     | Some b -> b
@@ -574,19 +581,36 @@ let build_head_prog
         "Let_in_cut.apply: caller terminator must be Branch (filter \
          in [enumerate] should reject otherwise)"
   in
-  let v' = Var.fresh_n "let_in_result" in
+  let pack = Var.fresh_n "let_in_unpack" in
   let helper_args = entry_args @ forwarded_args in
-  let new_instr =
+  let call_instr =
     Let
-      ( v'
+      ( pack
       , Invoke_helper
           { class_; method_; descriptor; args = helper_args; is_static }
       )
   in
+  (* One [Field (pack, i)] per result param. Their fresh Vars become
+     the args to the new [Branch (join_block, ...)]. *)
+  let unpack_instrs, branch_args =
+    List.mapi
+      (fun i _ ->
+        let u = Var.fresh_n (Printf.sprintf "let_in_field_%d" i) in
+        Let (u, Field (pack, i)), u)
+      c.result_params
+    |> List.split
+  in
+  let new_caller_body =
+    Array.concat
+      [ caller_block.body
+      ; [| call_instr |]
+      ; Array.of_list unpack_instrs
+      ]
+  in
   let new_caller_block =
     { caller_block with
-      body = Array.append caller_block.body [| new_instr |]
-    ; branch = Branch (c.join_block, [ v' ])
+      body = new_caller_body
+    ; branch = Branch (c.join_block, branch_args)
     }
   in
   let blocks =

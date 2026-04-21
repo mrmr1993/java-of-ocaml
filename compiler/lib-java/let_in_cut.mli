@@ -13,12 +13,15 @@
 
 type candidate =
   { join_block : Code.Addr.t
-        (** The block receiving the body's result via its first
-            block-param. All exits from [body_blocks] to outside the
+        (** The block receiving the body's results via its block
+            params. All exits from [body_blocks] to outside the
             subgraph target this block. *)
-  ; result_param : Code.Var.t
-        (** [join_block.params.(0)] — the result of the extracted
-            subgraph, bound at the join. *)
+  ; result_params : Code.Var.t list
+        (** [join_block.params] — the params bound by the join,
+            each receiving a value from every body-edge to the
+            join. The helper packs them into a [Block 0 (Object
+            array)] return value; the caller unpacks via [Field]
+            before branching to [join_block]. *)
   ; body_entry : Code.Addr.t
         (** Dominator root of the body — single block that every
             edge into [body_blocks] targets. *)
