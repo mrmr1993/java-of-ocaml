@@ -1496,6 +1496,34 @@ let compile_t
                       Jvm.Code.resolved_size m.code)
                     split_helpers)
               in
+              (match Sys.getenv_opt "JAVA_OF_OCAML_DEBUG" with
+               | Some s
+                 when List.mem "cost_vs_emit"
+                        (String.split_on_char ',' s) ->
+                 let est = Code_cost.program split_result.head in
+                 Format.eprintf
+                   "[cost_vs_emit] %s head: estimate=%d actual=%d \
+                    ratio=%.2f blocks=%d@."
+                   fn_info.name
+                   est
+                   head_size
+                   (float_of_int head_size /. float_of_int (max 1 est))
+                   (Code.Addr.Map.cardinal split_result.head.blocks);
+                 List.iter2
+                   (fun (h : Method_split.helper) actual ->
+                     let est = Code_cost.program h.prog in
+                     Format.eprintf
+                       "[cost_vs_emit] %s/%s: estimate=%d actual=%d \
+                        ratio=%.2f blocks=%d@."
+                       fn_info.name
+                       h.method_name
+                       est
+                       actual
+                       (float_of_int actual /. float_of_int (max 1 est))
+                       (Code.Addr.Map.cardinal h.prog.blocks))
+                   split_result.helpers
+                   helper_sizes
+               | _ -> ());
               let too_big size = size > 65535 in
               if too_big head_size || List.exists too_big helper_sizes
               then (

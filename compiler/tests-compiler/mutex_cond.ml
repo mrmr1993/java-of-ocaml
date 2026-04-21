@@ -29,12 +29,7 @@ let%expect_test "Mutex.try_lock returns true when uncontended" =
        let () =
          Printf.printf "%B\n" (Mutex.try_lock m);
          Mutex.unlock m |};
-  [%expect {|
-    [warning] <closure> ocaml_fn_655 oversized after split (88231 bytes > 65535) — body replaced with a runtime-throwing stub
-    [warning] 1 method stubbed after exceeding the JVM 64 KB [Code]-attribute limit; affected call paths fail at runtime.
-    [warning]   <closure>  ocaml_fn_655 (88231 bytes)
-    true
-    |}]
+  [%expect {| true |}]
 
 let%expect_test "Condition.signal / broadcast are no-ops when no one waits" =
   compile_and_run

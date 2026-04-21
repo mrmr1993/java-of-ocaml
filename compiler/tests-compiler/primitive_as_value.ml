@@ -20,12 +20,7 @@ let%expect_test "primitive as first-class value: let-bound + called" =
        let () =
          let f = my_add in
          Printf.printf "direct=%d\n" (f 5 7) |};
-  [%expect {|
-    [warning] <closure> ocaml_fn_650 oversized after split (88230 bytes > 65535) — body replaced with a runtime-throwing stub
-    [warning] 1 method stubbed after exceeding the JVM 64 KB [Code]-attribute limit; affected call paths fail at runtime.
-    [warning]   <closure>  ocaml_fn_650 (88230 bytes)
-    direct=12
-    |}]
+  [%expect {| direct=12 |}]
 
 let%expect_test "inlined-primitive partial application via HOF" =
   compile_and_run
@@ -34,12 +29,7 @@ let%expect_test "inlined-primitive partial application via HOF" =
          let xs = List.map (my_add 10) [1; 2; 3] in
          List.iter (Printf.printf "%d ") xs;
          print_newline () |};
-  [%expect {|
-    [warning] <closure> ocaml_fn_753 oversized after split (88184 bytes > 65535) — body replaced with a runtime-throwing stub
-    [warning] 1 method stubbed after exceeding the JVM 64 KB [Code]-attribute limit; affected call paths fail at runtime.
-    [warning]   <closure>  ocaml_fn_753 (88184 bytes)
-    11 12 13
-    |}]
+  [%expect {| 11 12 13 |}]
 
 let%expect_test "real C primitive (Int64.add) as first-class value" =
   compile_and_run
@@ -50,9 +40,6 @@ let%expect_test "real C primitive (Int64.add) as first-class value" =
          List.iter (Printf.printf "%Ld ") xs;
          print_newline () |};
   [%expect {|
-    [warning] <closure> ocaml_fn_753 oversized after split (88184 bytes > 65535) — body replaced with a runtime-throwing stub
-    [warning] 1 method stubbed after exceeding the JVM 64 KB [Code]-attribute limit; affected call paths fail at runtime.
-    [warning]   <closure>  ocaml_fn_753 (88184 bytes)
     direct=300
     1001 1002 1003
     |}]
@@ -70,9 +57,6 @@ let%expect_test "compose + curry a primitive across modules" =
          let sum = List.fold_left (+) 0 [1; 2; 3; 4; 5] in
          Printf.printf "sum=%d\n" sum |};
   [%expect {|
-    [warning] <closure> ocaml_fn_753 oversized after split (88184 bytes > 65535) — body replaced with a runtime-throwing stub
-    [warning] 1 method stubbed after exceeding the JVM 64 KB [Code]-attribute limit; affected call paths fail at runtime.
-    [warning]   <closure>  ocaml_fn_753 (88184 bytes)
     f(5)=11
     sum=15
     |}]
@@ -99,9 +83,6 @@ let%expect_test "5-ary C primitive through PartialClosure chain" =
          List.iter (fun off -> blit3 off 3) [0; 5; 10];
          Printf.printf "multi: %s\n" (Bytes.unsafe_to_string buf2) |};
   [%expect {|
-    [warning] <closure> ocaml_fn_753 oversized after split (88184 bytes > 65535) — body replaced with a runtime-throwing stub
-    [warning] 1 method stubbed after exceeding the JVM 64 KB [Code]-attribute limit; affected call paths fail at runtime.
-    [warning]   <closure>  ocaml_fn_753 (88184 bytes)
     blit: hello.....
     multi: abc..abc..abc.......
     |}]
@@ -112,9 +93,4 @@ let%expect_test "polymorphic compare as first-class" =
          let xs = List.sort compare [3; 1; 4; 1; 5; 9; 2; 6] in
          List.iter (Printf.printf "%d ") xs;
          print_newline () |};
-  [%expect {|
-    [warning] <closure> ocaml_fn_753 oversized after split (88184 bytes > 65535) — body replaced with a runtime-throwing stub
-    [warning] 1 method stubbed after exceeding the JVM 64 KB [Code]-attribute limit; affected call paths fail at runtime.
-    [warning]   <closure>  ocaml_fn_753 (88184 bytes)
-    1 1 2 3 4 5 6 9
-    |}]
+  [%expect {| 1 1 2 3 4 5 6 9 |}]

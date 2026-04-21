@@ -8,12 +8,7 @@ open Util
 let%expect_test "Sys.getcwd returns a non-empty string" =
   compile_and_run
     {| let () = Printf.printf "%B\n" (String.length (Sys.getcwd ()) > 0) |};
-  [%expect {|
-    [warning] <closure> ocaml_fn_650 oversized after split (88230 bytes > 65535) — body replaced with a runtime-throwing stub
-    [warning] 1 method stubbed after exceeding the JVM 64 KB [Code]-attribute limit; affected call paths fail at runtime.
-    [warning]   <closure>  ocaml_fn_650 (88230 bytes)
-    true
-    |}]
+  [%expect {| true |}]
 
 let%expect_test "Sys.is_directory / is_regular_file via java.io.File" =
   compile_and_run
@@ -22,9 +17,6 @@ let%expect_test "Sys.is_directory / is_regular_file via java.io.File" =
          Printf.printf "is_reg(/etc/hostname)=%B\n"
            (Sys.is_regular_file "/etc/hostname") |};
   [%expect {|
-    [warning] <closure> ocaml_fn_650 oversized after split (88230 bytes > 65535) — body replaced with a runtime-throwing stub
-    [warning] 1 method stubbed after exceeding the JVM 64 KB [Code]-attribute limit; affected call paths fail at runtime.
-    [warning]   <closure>  ocaml_fn_650 (88230 bytes)
     is_dir(/tmp)=true
     is_reg(/etc/hostname)=true
     |}]
@@ -32,9 +24,4 @@ let%expect_test "Sys.is_directory / is_regular_file via java.io.File" =
 let%expect_test "Sys.time returns a non-negative float" =
   compile_and_run
     {| let () = Printf.printf "%B\n" (Sys.time () >= 0.0) |};
-  [%expect {|
-    [warning] <closure> ocaml_fn_650 oversized after split (88230 bytes > 65535) — body replaced with a runtime-throwing stub
-    [warning] 1 method stubbed after exceeding the JVM 64 KB [Code]-attribute limit; affected call paths fail at runtime.
-    [warning]   <closure>  ocaml_fn_650 (88230 bytes)
-    true
-    |}]
+  [%expect {| true |}]
