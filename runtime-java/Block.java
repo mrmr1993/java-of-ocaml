@@ -95,6 +95,13 @@ public class Block {
     // Shallow copy: fresh Block with the same tag and a copy of the
     // fields array. Used by caml_obj_dup / caml_array_dup /
     // caml_update_dummy patterns.
+    public static Block asBlock(Object o) {
+        if (o == null || o instanceof Block) return (Block) o;
+        System.err.println("[asBlock] got " + o.getClass().getName() + " value=" + o);
+        new Throwable("asBlock cast").printStackTrace(System.err);
+        throw new ClassCastException(o.getClass().getName());
+    }
+
     public Block dup() {
         Object[] copy = new Object[this.fields.length];
         System.arraycopy(this.fields, 0, copy, 0, this.fields.length);

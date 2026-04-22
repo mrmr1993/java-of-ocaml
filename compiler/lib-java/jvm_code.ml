@@ -316,9 +316,22 @@ let aastore t =
   pop t 3
 
 let checkcast t class_name =
-  let idx = Cp.class_ t.cp class_name in
-  add_u1 t.buf 0xC0;
-  add_u2 t.buf idx
+  if class_name = "Block"
+     && (try Sys.getenv "JAVA_OF_OCAML_DEBUG_CAST" <> "" with Not_found -> false)
+  then (
+    let m_idx =
+      Cp.methodref
+        t.cp
+        ~class_:"Block"
+        ~method_:"asBlock"
+        ~descriptor:"(Ljava/lang/Object;)LBlock;"
+    in
+    add_u1 t.buf 0xB8;
+    add_u2 t.buf m_idx)
+  else (
+    let idx = Cp.class_ t.cp class_name in
+    add_u1 t.buf 0xC0;
+    add_u2 t.buf idx)
 
 let new_ t class_name =
   let idx = Cp.class_ t.cp class_name in
