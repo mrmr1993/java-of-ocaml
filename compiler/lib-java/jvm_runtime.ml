@@ -29,6 +29,7 @@ let builtin_stub_classes () =
   ; "IntegersStubs", R.integers_stubs
   ; "CtypesStubs", R.ctypes_stubs
   ; "ZeroStubs", R.zero_stubs
+  ; "RegexStubs", R.regex_stubs
   ]
 
 let builtin_stubs_json () = R.stubs_json

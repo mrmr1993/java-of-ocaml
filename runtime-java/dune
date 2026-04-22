@@ -24,7 +24,8 @@
   ConstantStubs.class
   IntegersStubs.class
   CtypesStubs.class
-  ZeroStubs.class)
+  ZeroStubs.class
+  RegexStubs.class)
  (deps
   Block.java
   Closure.java
@@ -46,7 +47,8 @@
   stubs/ConstantStubs.java
   stubs/IntegersStubs.java
   stubs/CtypesStubs.java
-  stubs/ZeroStubs.java)
+  stubs/ZeroStubs.java
+  stubs/RegexStubs.java)
  (action
   (run javac -d . %{deps})))
 
@@ -75,6 +77,7 @@
    IntegersStubs.class
    CtypesStubs.class
    ZeroStubs.class
+   RegexStubs.class
    stubs/stubs.json))
  (action
   (with-stdout-to

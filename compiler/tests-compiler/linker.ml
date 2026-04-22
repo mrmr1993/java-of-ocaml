@@ -125,6 +125,7 @@ let%expect_test "compile accepts a .cmo and emits class files" =
     Mutex.class
     Ocaml.class
     PartialClosure.class
+    RegexStubs.class
     ThreadPrim.class
     ZeroStubs.class
     |}]

@@ -296,6 +296,12 @@
   "core_unix_code_of_error":           { "target": "CoreUnixStubs.code_of_error",    "descriptor": "(Ljava/lang/Object;)J" },
   "bigstring_alloc":                   { "target": "CoreUnixStubs.bigstring_alloc",  "descriptor": "(Ljava/lang/Object;J)Ljava/lang/Object;" },
 
+  "re_string_match":   { "target": "RegexStubs.whole_match", "descriptor": "(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)LBlock;" },
+  "re_partial_match":  { "target": "RegexStubs.whole_match", "descriptor": "(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)LBlock;" },
+  "re_search_forward": { "target": "RegexStubs.whole_match", "descriptor": "(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)LBlock;" },
+  "re_search_backward":{ "target": "RegexStubs.whole_match", "descriptor": "(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)LBlock;" },
+  "re_replacement_text": { "target": "RegexStubs.empty_replacement", "descriptor": "(Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/String;" },
+
   "bigstring_blit_bigstring_bytes_stub": "ZeroStubs.zero",
   "bigstring_blit_bytes_bigstring_stub": "ZeroStubs.zero",
   "bigstring_blit_string_bigstring_stub": "ZeroStubs.zero",

@@ -2370,25 +2370,9 @@ and emit_ccall_named ctx name args =
   (* integers_uint*_max/min/size, integers_*_size,
      ctypes_typeof_* / alignmentof_* / sizeof_* — migrated to
      [runtime-java/stubs/ConstantStubs.java]. *)
-  | "re_string_match" | "re_partial_match"
-  | "re_search_forward" | "re_search_backward" ->
-    (* Pretend the whole string always matches at pos=0. Returns
-       [Block(0, [Long 0; Long (length s)])] — enough for [Str]'s
-       [string_match] to return true and [matched_string] to yield
-       the input. Used by [ctypes_path.path_of_string] at init. *)
-    (match args with
-     | [ _; s; _ ] ->
-       let _ = emit_prim_arg ctx s in
-       Jvm.Code.invokestatic
-         ctx.code ~class_:"BigArray"
-         ~method_:"strWholeMatch"
-         ~descriptor:"(Ljava/lang/Object;)LBlock;";
-       Kind.K_obj
-     | _ -> raise (Unsupported (name ^ " arity")))
-  | "re_replacement_text" ->
-    (* Return empty string. *)
-    Jvm.Code.ldc_string ctx.code "";
-    Kind.K_string
+  (* [re_string_match] / [re_partial_match] / [re_search_*] /
+     [re_replacement_text] — migrated to
+     [runtime-java/stubs/RegexStubs.java]. *)
   (* Migrated to [runtime-java/stubs/]:
      - [bigstring_alloc], [core_unix_getrlimit], [inet4] helpers,
        [error_of_code] / [code_of_error] → [CoreUnixStubs.java]
