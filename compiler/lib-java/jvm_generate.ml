@@ -3004,10 +3004,14 @@ and emit_ccall_named ctx name args =
   (* ==== Int64 / Nativeint arithmetic ==== JVM [long] semantics.
      Values flow as boxed [java.lang.Long]. *)
   | "caml_int64_of_int" | "caml_nativeint_of_int" ->
+    (* OCaml int is now JVM long; [Int64.of_int] is the identity on
+       the payload — just box. [as_int] would narrow through JVM
+       int and lose any bit 31..62 (silently returning wrong Int64
+       bounds for [max_int] / [min_int] etc.). *)
     (match args with
-     | [ Pv v ] ->
-       as_int v;
-       Jvm.Code.i2l ctx.code;
+     | [ (Pv _ as v) ] ->
+       let k = emit_prim_arg ctx v in
+       ensure_int ctx k;
        Kind.emit_box_long ctx.code;
        Kind.K_obj
      | _ -> raise (Unsupported (name ^ " arity")))
@@ -3149,7 +3153,10 @@ and emit_ccall_named ctx name args =
   | "caml_int64_of_int32" | "caml_nativeint_of_int32" ->
     (match args with
      | [ Pv v ] ->
+       (* [as_int] narrows to JVM [int]; sign-extend back to [long]
+          so the boxed [Long] has the full 64-bit payload. *)
        as_int v;
+       Jvm.Code.i2l ctx.code;
        Kind.emit_box_long ctx.code;
        Kind.K_obj
      | _ -> raise (Unsupported (name ^ " arity")))
@@ -3705,16 +3712,18 @@ and emit_ccall_named ctx name args =
        Kind.K_int
      | _ -> raise (Unsupported "Base_int_math_ctz arity"))
   | "Base_int_math_int_pow_stub" ->
-    (* Integer exponentiation by squaring. Use a small helper emit
-       pattern: no runtime dep needed, just [imul] + [iushr] in a
-       loop. Cheaper to emit as a runtime invocation via
-       [java.lang.Math.pow] on doubles; we do that here since the
-       precise overflow semantics match Base's stub. *)
+    (* Integer exponentiation by squaring. Route through
+       [java.lang.Math.pow] on doubles; the 63-bit result is a bit
+       narrow for the whole [pow] domain but matches Base's stub on
+       small-exponent cases. Keep operands as [long] then [l2d]
+       (not [as_int; l2d] — that would go through a 32-bit narrow). *)
     (match args with
-     | [ Pv b; Pv e ] ->
-       as_int b;
+     | [ (Pv _ as b); (Pv _ as e) ] ->
+       let kb = emit_prim_arg ctx b in
+       ensure_int ctx kb;
        Jvm.Code.l2d ctx.code;
-       as_int e;
+       let ke = emit_prim_arg ctx e in
+       ensure_int ctx ke;
        Jvm.Code.l2d ctx.code;
        Jvm.Code.invokestatic
          ctx.code
