@@ -92,15 +92,16 @@ let emit_store ctx v ~from:from_kind =
   (* Convert [from_kind] -> [k] at the top of stack. *)
   (match from_kind, k with
    | a, b when a = b -> ()
-   | Kind.K_int, Kind.K_obj -> Kind.emit_box_int ctx.code
+   | Kind.K_int, Kind.K_obj -> Kind.emit_box_long ctx.code
    | Kind.K_float, Kind.K_obj -> Kind.emit_box_float ctx.code
    | Kind.K_obj, Kind.K_int ->
      Jvm.Code.invokestatic
        ctx.code
        ~class_:"Block"
        ~method_:"asLong"
-       ~descriptor:"(Ljava/lang/Object;)J";
-     Jvm.Code.l2i ctx.code
+       ~descriptor:"(Ljava/lang/Object;)J"
+   | Kind.K_int, Kind.K_float -> Jvm.Code.l2d ctx.code
+   | Kind.K_float, Kind.K_int -> Jvm.Code.d2l ctx.code
    | Kind.K_obj, Kind.K_float ->
      Jvm.Code.checkcast ctx.code "java/lang/Double";
      Jvm.Code.invokevirtual
@@ -114,8 +115,15 @@ let emit_store ctx v ~from:from_kind =
   let l = local_of ctx v in
   Kind.emit_store_for_kind ctx.code l k
 
-(* Emit an [Int] constant onto the stack as a JVM [int]. *)
-let emit_int_const ctx n = Jvm.Code.ldc_int ctx.code n
+(* Emit an OCaml-int constant onto the stack as a JVM [long] (the
+   backing type of [K_int]). Uses the compact [ldc_int; i2l] for small
+   constants that fit in int32, and [ldc_long] otherwise. *)
+let emit_int_const ctx n =
+  if n >= -2147483648 && n <= 2147483647
+  then (
+    Jvm.Code.ldc_int ctx.code n;
+    Jvm.Code.i2l ctx.code)
+  else Jvm.Code.ldc_long ctx.code (Int64.of_int n)
 
 let rec emit_constant ctx (c : Code.constant) : Kind.kind =
   match c with
@@ -145,7 +153,7 @@ let rec emit_constant ctx (c : Code.constant) : Kind.kind =
         Jvm.Code.ldc_int ctx.code i;
         let k = emit_constant ctx c in
         (match k with
-         | Kind.K_int -> Kind.emit_box_int ctx.code
+         | Kind.K_int -> Kind.emit_box_long ctx.code
          | Kind.K_float -> Kind.emit_box_float ctx.code
          | _ -> ());
         Jvm.Code.aastore ctx.code)
@@ -165,9 +173,9 @@ let emit_prim_arg ctx (pa : Code.prim_arg) : Kind.kind =
     kind_of ctx v
   | Pc c -> emit_constant ctx c
 
-(* Ensure top of stack is [K_int]. Tolerant of boxed Long
-   (Int32 / Nativeint / small-Int64 globals): route through
-   [Block.asLong + l2i]. *)
+(* Ensure top of stack is a primitive JVM [long] (the backing type of
+   [K_int]). Tolerant of boxed Long / Integer globals via
+   [Block.asLong]. *)
 let ensure_int ctx k =
   match k with
   | Kind.K_int -> ()
@@ -176,8 +184,7 @@ let ensure_int ctx k =
       ctx.code
       ~class_:"Block"
       ~method_:"asLong"
-      ~descriptor:"(Ljava/lang/Object;)J";
-    Jvm.Code.l2i ctx.code
+      ~descriptor:"(Ljava/lang/Object;)J"
   | _ -> raise (Unsupported "ensure_int: unexpected kind")
 
 (* ==== Java FFI: dispatch for [java:*] primitive names ====
@@ -222,9 +229,12 @@ let parse_method_desc d =
   let ret, _ = parse_one_type d ri in
   args, ret
 
-(* Map a JVM return/field descriptor to a [Kind] for the OCaml side. *)
+(* Map a JVM return/field descriptor to a [Kind] for the OCaml side.
+   Note: [K_int] backs as JVM [long] after widening; for narrow
+   targets ([I], [Z], [B], [S], [C]) callers must [i2l] the stack top
+   before it can be stored as [K_int]. *)
 let kind_of_jvm_desc = function
-  | "I" | "Z" | "B" | "S" | "C" -> Kind.K_int
+  | "I" | "Z" | "B" | "S" | "C" | "J" -> Kind.K_int
   | "D" -> Kind.K_float
   | "Ljava/lang/String;" -> Kind.K_string
   | _ -> Kind.K_obj
@@ -247,15 +257,29 @@ let emit_arg_coerced ctx (pa : Code.prim_arg) target =
   let kind = emit_prim_arg ctx pa in
   match target with
   | "I" | "Z" | "B" | "S" | "C" ->
+    (* Java int / narrow-int target. OCaml int (K_int) is now JVM
+       long, so narrow via [l2i]. Object source unboxes through
+       [Block.asLong] then [l2i]. *)
+    (match kind with
+     | Kind.K_int -> Jvm.Code.l2i ctx.code
+     | _ ->
+       Jvm.Code.invokestatic
+         ctx.code
+         ~class_:"Block"
+         ~method_:"asLong"
+         ~descriptor:"(Ljava/lang/Object;)J";
+       Jvm.Code.l2i ctx.code)
+  | "J" ->
+    (* Java long target. OCaml int passes through; Object source
+       unboxes via [Block.asLong]. *)
     (match kind with
      | Kind.K_int -> ()
      | _ ->
-       Jvm.Code.checkcast ctx.code "java/lang/Integer";
-       Jvm.Code.invokevirtual
+       Jvm.Code.invokestatic
          ctx.code
-         ~class_:"java/lang/Integer"
-         ~method_:"intValue"
-         ~descriptor:"()I")
+         ~class_:"Block"
+         ~method_:"asLong"
+         ~descriptor:"(Ljava/lang/Object;)J")
   | "D" ->
     (match kind with
      | Kind.K_float -> ()
@@ -271,7 +295,7 @@ let emit_arg_coerced ctx (pa : Code.prim_arg) target =
      | Kind.K_string -> ()
      | Kind.K_int ->
        Kind.emit_box_int ctx.code;
-       (* Boxed Integer isn't a String — but user-written bindings
+       (* Boxed Long isn't a String — but user-written bindings
           may want to let OCaml string flow through via K_obj.
           Don't checkcast here; leave the verifier to surface a
           real mismatch. *)
@@ -297,17 +321,21 @@ let emit_arg_coerced ctx (pa : Code.prim_arg) target =
   | _ ->
     (* Reference target: box primitives to Object. *)
     (match kind with
-     | Kind.K_int -> Kind.emit_box_int ctx.code
+     | Kind.K_int -> Kind.emit_box_long ctx.code
      | Kind.K_float -> Kind.emit_box_float ctx.code
      | _ -> ())
 
 (* After an invoke*, the return descriptor says what's on the stack.
    For [V], nothing was pushed; emit a 0 so OCaml's unit-shaped caller
-   has something to consume. *)
+   has something to consume. Narrow numeric returns are widened to
+   JVM [long] here since [K_int] backs as [long]. *)
 let finish_java_return ctx ret =
   match ret with
   | "V" ->
-    Jvm.Code.ldc_int ctx.code 0;
+    emit_int_const ctx 0;
+    Kind.K_int
+  | "I" | "Z" | "B" | "S" | "C" ->
+    Jvm.Code.i2l ctx.code;
     Kind.K_int
   | _ -> kind_of_jvm_desc ret
 
@@ -376,7 +404,7 @@ let emit_java_ffi ctx name (args : Code.prim_arg list) : Kind.kind =
        emit_java_this ctx this_arg class_;
        emit_arg_coerced ctx value_arg descriptor;
        Jvm.Code.putfield ctx.code ~class_ ~field ~descriptor;
-       Jvm.Code.ldc_int ctx.code 0;
+       emit_int_const ctx 0;
        Kind.K_int
      | _ ->
        raise
@@ -392,7 +420,7 @@ let emit_java_ffi ctx name (args : Code.prim_arg list) : Kind.kind =
      | value_arg :: _ ->
        emit_arg_coerced ctx value_arg descriptor;
        Jvm.Code.putstatic ctx.code ~class_ ~field ~descriptor;
-       Jvm.Code.ldc_int ctx.code 0;
+       emit_int_const ctx 0;
        Kind.K_int
      | [] ->
        raise
@@ -403,6 +431,7 @@ let emit_java_ffi ctx name (args : Code.prim_arg list) : Kind.kind =
      | obj_arg :: _ ->
        let _ = emit_prim_arg ctx obj_arg in
        Jvm.Code.instanceof_ ctx.code class_;
+       Jvm.Code.i2l ctx.code;
        Kind.K_int
      | [] -> raise (Unsupported (Printf.sprintf "java:instanceof %s: no arg" class_)))
   | [ "java"; "checkcast"; class_ ] ->
@@ -432,7 +461,7 @@ and emit_ccall_named ctx name args =
         | Pv v ->
           emit_load ctx v;
           (match kind_of ctx v with
-           | K_int -> Kind.emit_box_int ctx.code
+           | K_int -> Kind.emit_box_long ctx.code
            | K_float -> Kind.emit_box_float ctx.code
            | _ -> ())
         | Pc c -> ignore (emit_constant ctx c))
@@ -457,15 +486,15 @@ and emit_ccall_named ctx name args =
     | _ -> Jvm.Code.checkcast ctx.code "Block"
   in
   let as_int v =
+    (* Produces a JVM [int] on the stack. Used by narrow-int callers
+       like [String.charAt], array indexing, [Integer.parseInt], and
+       the Int32 arithmetic section. OCaml [K_int] values back as JVM
+       [long], so narrow via [l2i]. [K_obj] routes through
+       [Block.asLong + l2i] — handles both Integer and Long globals. *)
     emit_load ctx v;
     match kind_of ctx v with
-    | K_int -> ()
+    | K_int -> Jvm.Code.l2i ctx.code
     | _ ->
-      (* Route through [Block.asLong + l2i]. Handles both Integer
-         (the usual OCaml-int carrier) and Long (Int32 / Nativeint /
-         Int64 globals materialised from custom-tag DATA-section
-         blocks). Without this, Int32 ops on a boxed-Long global
-         like [Nativeint.max_int] would [checkcast Integer] → CCE. *)
       Jvm.Code.invokestatic
         ctx.code
         ~class_:"Block"
@@ -483,6 +512,7 @@ and emit_ccall_named ctx name args =
          ~class_:"java/lang/String"
          ~method_:"length"
          ~descriptor:"()I";
+       Jvm.Code.i2l ctx.code;
        Kind.K_int
      | _ -> raise (Unsupported "caml_string_length arity"))
   | "caml_ml_bytes_length" | "caml_bytes_length" ->
@@ -496,6 +526,7 @@ and emit_ccall_named ctx name args =
          ~class_:"Bytes"
          ~method_:"staticLength"
          ~descriptor:"(Ljava/lang/Object;)I";
+       Jvm.Code.i2l ctx.code;
        Kind.K_int
      | _ -> raise (Unsupported "caml_bytes_length arity"))
   | "caml_string_get" ->
@@ -508,6 +539,7 @@ and emit_ccall_named ctx name args =
          ~class_:"java/lang/String"
          ~method_:"charAt"
          ~descriptor:"(I)C";
+       Jvm.Code.i2l ctx.code;
        Kind.K_int
      | _ -> raise (Unsupported "caml_string_get arity"))
   | "caml_bytes_get" ->
@@ -520,6 +552,7 @@ and emit_ccall_named ctx name args =
          ~class_:"Bytes"
          ~method_:"staticGet"
          ~descriptor:"(Ljava/lang/Object;I)I";
+       Jvm.Code.i2l ctx.code;
        Kind.K_int
      | _ -> raise (Unsupported "caml_bytes_get arity"))
   | "caml_bytes_set" ->
@@ -533,7 +566,7 @@ and emit_ccall_named ctx name args =
          ~class_:"Bytes"
          ~method_:"set"
          ~descriptor:"(II)V";
-       Jvm.Code.ldc_int ctx.code 0;
+       emit_int_const ctx 0;
        Kind.K_int
      | _ -> raise (Unsupported "caml_bytes_set arity"))
   | "caml_create_bytes" ->
@@ -559,7 +592,7 @@ and emit_ccall_named ctx name args =
          ~class_:"Channel"
          ~method_:"flush"
          ~descriptor:"()V";
-       Jvm.Code.ldc_int ctx.code 0;
+       emit_int_const ctx 0;
        Kind.K_int
      | _ -> raise (Unsupported "caml_ml_flush arity"))
   | "caml_ml_output_char" ->
@@ -573,7 +606,7 @@ and emit_ccall_named ctx name args =
          ~class_:"Channel"
          ~method_:"outputChar"
          ~descriptor:"(I)V";
-       Jvm.Code.ldc_int ctx.code 0;
+       emit_int_const ctx 0;
        Kind.K_int
      | _ -> raise (Unsupported "caml_ml_output_char arity"))
   | "caml_array_unsafe_get" | "caml_array_get" ->
@@ -601,11 +634,11 @@ and emit_ccall_named ctx name args =
        as_int i;
        emit_load ctx v;
        (match kind_of ctx v with
-        | K_int -> Kind.emit_box_int ctx.code
+        | K_int -> Kind.emit_box_long ctx.code
         | K_float -> Kind.emit_box_float ctx.code
         | _ -> ());
        Jvm.Code.aastore ctx.code;
-       Jvm.Code.ldc_int ctx.code 0;
+       emit_int_const ctx 0;
        Kind.K_int
      | _ -> raise (Unsupported "caml_array_set arity"))
   | "caml_string_of_bytes" ->
@@ -646,7 +679,7 @@ and emit_ccall_named ctx name args =
          ~class_:"Bytes"
          ~method_:"blitString"
          ~descriptor:"(Ljava/lang/String;III)V";
-       Jvm.Code.ldc_int ctx.code 0;
+       emit_int_const ctx 0;
        Kind.K_int
      | _ -> raise (Unsupported "caml_blit_string arity"))
   | "caml_fill_bytes" | "caml_fill_string" ->
@@ -661,7 +694,7 @@ and emit_ccall_named ctx name args =
          ~class_:"Bytes"
          ~method_:"fill"
          ~descriptor:"(III)V";
-       Jvm.Code.ldc_int ctx.code 0;
+       emit_int_const ctx 0;
        Kind.K_int
      | _ -> raise (Unsupported "caml_fill_bytes arity"))
   | "caml_blit_bytes" ->
@@ -677,19 +710,22 @@ and emit_ccall_named ctx name args =
          ~class_:"Bytes"
          ~method_:"blitBytes"
          ~descriptor:"(LBytes;III)V";
-       Jvm.Code.ldc_int ctx.code 0;
+       emit_int_const ctx 0;
        Kind.K_int
      | _ -> raise (Unsupported "caml_blit_bytes arity"))
   | "caml_format_int" ->
     (match args with
      | [ Pv fmt; Pv n ] ->
        as_string fmt;
-       as_int n;
+       emit_load ctx n;
+       (match kind_of ctx n with
+        | K_int -> ()
+        | _ -> Kind.emit_unbox_long ctx.code);
        Jvm.Code.invokestatic
          ctx.code
          ~class_:"Format"
          ~method_:"formatInt"
-         ~descriptor:"(Ljava/lang/String;I)Ljava/lang/String;";
+         ~descriptor:"(Ljava/lang/String;J)Ljava/lang/String;";
        Kind.K_string
      | _ -> raise (Unsupported "caml_format_int arity"))
   | "caml_string_equal" ->
@@ -702,6 +738,7 @@ and emit_ccall_named ctx name args =
          ~class_:"java/lang/String"
          ~method_:"equals"
          ~descriptor:"(Ljava/lang/Object;)Z";
+       Jvm.Code.i2l ctx.code;
        Kind.K_int
      | _ -> raise (Unsupported "caml_string_equal arity"))
   | "caml_string_notequal" ->
@@ -716,6 +753,7 @@ and emit_ccall_named ctx name args =
          ~descriptor:"(Ljava/lang/Object;)Z";
        Jvm.Code.ldc_int ctx.code 1;
        Jvm.Code.ixor ctx.code;
+       Jvm.Code.i2l ctx.code;
        Kind.K_int
      | _ -> raise (Unsupported "caml_string_notequal arity"))
   | "caml_bytes_equal" ->
@@ -728,6 +766,7 @@ and emit_ccall_named ctx name args =
          ~class_:"Bytes"
          ~method_:"contentEquals"
          ~descriptor:"(LBytes;)Z";
+       Jvm.Code.i2l ctx.code;
        Kind.K_int
      | _ -> raise (Unsupported "caml_bytes_equal arity"))
   | "caml_ml_output" ->
@@ -743,7 +782,7 @@ and emit_ccall_named ctx name args =
          ~class_:"Channel"
          ~method_:"output"
          ~descriptor:"(Ljava/lang/String;II)V";
-       Jvm.Code.ldc_int ctx.code 0;
+       emit_int_const ctx 0;
        Kind.K_int
      | _ -> raise (Unsupported "caml_ml_output arity"))
   | "caml_add_float" | "caml_sub_float" | "caml_mul_float" | "caml_div_float" ->
@@ -824,10 +863,10 @@ and emit_ccall_named ctx name args =
         | "caml_gt_float" -> Jvm.Code.ifgt ctx.code l_true
         | "caml_ge_float" -> Jvm.Code.ifge ctx.code l_true
         | _ -> assert false);
-       Jvm.Code.ldc_int ctx.code 0;
+       emit_int_const ctx 0;
        Jvm.Code.goto_w ctx.code l_end;
        Jvm.Code.mark_label ctx.code l_true;
-       Jvm.Code.ldc_int ctx.code 1;
+       emit_int_const ctx 1;
        Jvm.Code.mark_label ctx.code l_end;
        Kind.K_int
      | _ -> raise (Unsupported (name ^ " arity")))
@@ -844,14 +883,14 @@ and emit_ccall_named ctx name args =
             ~class_:"java/lang/Double"
             ~method_:"doubleValue"
             ~descriptor:"()D");
-       Jvm.Code.d2i ctx.code;
+       Jvm.Code.d2l ctx.code;
        Kind.K_int
      | _ -> raise (Unsupported "caml_int_of_float arity"))
   | "caml_float_of_int" ->
     (match args with
      | [ Pv n ] ->
        as_int n;
-       Jvm.Code.i2d ctx.code;
+       Jvm.Code.l2d ctx.code;
        Kind.K_float
      | _ -> raise (Unsupported "caml_float_of_int arity"))
   (* Float helpers not in java.lang.Math — delegate to [Format]'s
@@ -905,7 +944,6 @@ and emit_ccall_named ctx name args =
          ~descriptor:"(D)J";
        Jvm.Code.ldc_int ctx.code 63;
        Jvm.Code.lushr ctx.code;
-       Jvm.Code.l2i ctx.code;
        Kind.K_int
      | _ -> raise (Unsupported "caml_signbit_float arity"))
   | "caml_nextafter_float" ->
@@ -1205,7 +1243,7 @@ and emit_ccall_named ctx name args =
           now just return 0 (FP_normal). Lossy but structurally
           sound. *)
        Jvm.Code.pop2 ctx.code;
-       Jvm.Code.ldc_int ctx.code 0;
+       emit_int_const ctx 0;
        Kind.K_int
      | _ -> raise (Unsupported "caml_classify_float arity"))
   | "caml_java_print_int" ->
@@ -1222,7 +1260,7 @@ and emit_ccall_named ctx name args =
          ~class_:"java/io/PrintStream"
          ~method_:"println"
          ~descriptor:"(I)V";
-       Jvm.Code.ldc_int ctx.code 0;
+       emit_int_const ctx 0;
        Kind.K_int
      | _ -> raise (Unsupported "caml_java_print_int arity"))
   | "caml_java_print_endline" ->
@@ -1239,7 +1277,7 @@ and emit_ccall_named ctx name args =
          ~class_:"java/io/PrintStream"
          ~method_:"println"
          ~descriptor:"(Ljava/lang/String;)V";
-       Jvm.Code.ldc_int ctx.code 0;
+       emit_int_const ctx 0;
        Kind.K_int
      | _ -> raise (Unsupported "caml_java_print_endline arity"))
   | "caml_java_print_float" ->
@@ -1265,7 +1303,7 @@ and emit_ccall_named ctx name args =
          ~class_:"java/io/PrintStream"
          ~method_:"println"
          ~descriptor:"(D)V";
-       Jvm.Code.ldc_int ctx.code 0;
+       emit_int_const ctx 0;
        Kind.K_int
      | _ -> raise (Unsupported "caml_java_print_float arity"))
   | "caml_int_of_string" ->
@@ -1277,6 +1315,7 @@ and emit_ccall_named ctx name args =
          ~class_:"java/lang/Integer"
          ~method_:"parseInt"
          ~descriptor:"(Ljava/lang/String;)I";
+       Jvm.Code.i2l ctx.code;
        Kind.K_int
      | _ -> raise (Unsupported "caml_int_of_string arity"))
   | "caml_format_float" ->
@@ -1309,7 +1348,7 @@ and emit_ccall_named ctx name args =
          ~class_:"java/lang/System"
          ~method_:"exit"
          ~descriptor:"(I)V";
-       Jvm.Code.ldc_int ctx.code 0;
+       emit_int_const ctx 0;
        Kind.K_int
      | _ -> raise (Unsupported "caml_sys_exit arity"))
   | "caml_sys_get_config" ->
@@ -1343,7 +1382,7 @@ and emit_ccall_named ctx name args =
   | "caml_sys_const_word_size" -> Jvm.Code.ldc_int ctx.code 64; Kind.K_int
   | "caml_sys_const_big_endian"
   | "caml_sys_const_ostype_unix" ->
-    Jvm.Code.ldc_int ctx.code 0;
+    emit_int_const ctx 0;
     Kind.K_int
   | "caml_sys_const_ostype_cygwin" | "caml_sys_const_ostype_win32"
   | "caml_sys_const_backend_type"
@@ -1353,7 +1392,7 @@ and emit_ccall_named ctx name args =
        pointers optimisation those 4.x releases guarded behind it,
        but the stdlib init code path treats 0 as "no assertion
        failure"). *)
-    Jvm.Code.ldc_int ctx.code 0;
+    emit_int_const ctx 0;
     Kind.K_int
   | "caml_sys_const_max_wosize" ->
     (* Stdlib's Sys.max_string_length is computed from this as
@@ -1364,7 +1403,7 @@ and emit_ccall_named ctx name args =
        overflow our 32-bit arithmetic to a negative number,
        causing Buffer.create / Bytes.create to receive absurd
        sizes. *)
-    Jvm.Code.ldc_int ctx.code 268435455;
+    emit_int_const ctx 268435455;
     Kind.K_int
   | "caml_sys_const_min_int" -> Jvm.Code.ldc_int ctx.code min_int; Kind.K_int
   | "caml_sys_const_max_int" -> Jvm.Code.ldc_int ctx.code max_int; Kind.K_int
@@ -1389,7 +1428,7 @@ and emit_ccall_named ctx name args =
   | "caml_ml_pos_out_64"
   | "caml_ml_pos_in"
   | "caml_ml_pos_in_64" ->
-    Jvm.Code.ldc_int ctx.code 0;
+    emit_int_const ctx 0;
     Kind.K_int
   | "caml_sys_getenv" ->
     (* Look up the env var via java.lang.System.getenv; if absent,
@@ -1520,6 +1559,7 @@ and emit_ccall_named ctx name args =
          ~class_:"Channel"
          ~method_:"openFile"
          ~descriptor:"(Ljava/lang/String;Ljava/lang/Object;I)I";
+       Jvm.Code.i2l ctx.code;
        Kind.K_int
      | _ -> raise (Unsupported "caml_sys_open arity"))
   | "caml_sys_close" ->
@@ -1531,6 +1571,7 @@ and emit_ccall_named ctx name args =
          ~class_:"Channel"
          ~method_:"closeFd"
          ~descriptor:"(I)I";
+       Jvm.Code.i2l ctx.code;
        Kind.K_int
      | _ -> raise (Unsupported "caml_sys_close arity"))
   | "caml_md5_chan" ->
@@ -1571,6 +1612,7 @@ and emit_ccall_named ctx name args =
        Jvm.Code.invokestatic
          ctx.code ~class_:"Bytes" ~method_:"get16"
          ~descriptor:"(Ljava/lang/Object;I)I";
+       Jvm.Code.i2l ctx.code;
        Kind.K_int
      | _ -> raise (Unsupported (name ^ " arity")))
   | "caml_bytes_get32" | "caml_string_get32" ->
@@ -1604,6 +1646,7 @@ and emit_ccall_named ctx name args =
        Jvm.Code.invokestatic
          ctx.code ~class_:"Bytes" ~method_:"set16"
          ~descriptor:"(LBytes;II)I";
+       Jvm.Code.i2l ctx.code;
        Kind.K_int
      | _ -> raise (Unsupported "caml_bytes_set16 arity"))
   | "caml_bytes_set32" ->
@@ -1615,6 +1658,7 @@ and emit_ccall_named ctx name args =
        Jvm.Code.invokestatic
          ctx.code ~class_:"Bytes" ~method_:"set32"
          ~descriptor:"(LBytes;II)I";
+       Jvm.Code.i2l ctx.code;
        Kind.K_int
      | _ -> raise (Unsupported "caml_bytes_set32 arity"))
   | "caml_bytes_set64" ->
@@ -1627,6 +1671,7 @@ and emit_ccall_named ctx name args =
        Jvm.Code.invokestatic
          ctx.code ~class_:"Bytes" ~method_:"set64"
          ~descriptor:"(LBytes;IJ)I";
+       Jvm.Code.i2l ctx.code;
        Kind.K_int
      | _ -> raise (Unsupported "caml_bytes_set64 arity"))
   | "caml_float_compare" ->
@@ -1648,22 +1693,23 @@ and emit_ccall_named ctx name args =
          ~class_:"java/lang/Double"
          ~method_:"compare"
          ~descriptor:"(DD)I";
+       Jvm.Code.i2l ctx.code;
        Kind.K_int
      | _ -> raise (Unsupported "caml_float_compare arity"))
   | "caml_bswap16" ->
     (match args with
      | [ Pv n ] ->
        as_int n;
-       Jvm.Code.ldc_int ctx.code 0xFF;
-       Jvm.Code.iand ctx.code;
+       emit_int_const ctx 0xFF;
+       Jvm.Code.land_ ctx.code;
        Jvm.Code.ldc_int ctx.code 8;
-       Jvm.Code.ishl ctx.code;
+       Jvm.Code.lshl ctx.code;
        as_int n;
        Jvm.Code.ldc_int ctx.code 8;
-       Jvm.Code.iushr ctx.code;
-       Jvm.Code.ldc_int ctx.code 0xFF;
-       Jvm.Code.iand ctx.code;
-       Jvm.Code.ior ctx.code;
+       Jvm.Code.lushr ctx.code;
+       emit_int_const ctx 0xFF;
+       Jvm.Code.land_ ctx.code;
+       Jvm.Code.lor_ ctx.code;
        Kind.K_int
      | _ -> raise (Unsupported "caml_bswap16 arity"))
   | "caml_lxm_next" ->
@@ -1699,6 +1745,7 @@ and emit_ccall_named ctx name args =
        Jvm.Code.checkcast ctx.code "BigArray";
        Jvm.Code.invokevirtual
          ctx.code ~class_:"BigArray" ~method_:"numDims" ~descriptor:"()I";
+       Jvm.Code.i2l ctx.code;
        Kind.K_int
      | _ -> raise (Unsupported "caml_ba_num_dims arity"))
   | "caml_ba_dim" ->
@@ -1709,6 +1756,7 @@ and emit_ccall_named ctx name args =
        as_int n;
        Jvm.Code.invokevirtual
          ctx.code ~class_:"BigArray" ~method_:"dim" ~descriptor:"(I)I";
+       Jvm.Code.i2l ctx.code;
        Kind.K_int
      | _ -> raise (Unsupported "caml_ba_dim arity"))
   | "caml_ba_dim_1" ->
@@ -1718,6 +1766,7 @@ and emit_ccall_named ctx name args =
        Jvm.Code.checkcast ctx.code "BigArray";
        Jvm.Code.invokevirtual
          ctx.code ~class_:"BigArray" ~method_:"dim1" ~descriptor:"()I";
+       Jvm.Code.i2l ctx.code;
        Kind.K_int
      | _ -> raise (Unsupported "caml_ba_dim_1 arity"))
   | "caml_ba_dim_2" ->
@@ -1727,6 +1776,7 @@ and emit_ccall_named ctx name args =
        Jvm.Code.checkcast ctx.code "BigArray";
        Jvm.Code.invokevirtual
          ctx.code ~class_:"BigArray" ~method_:"dim2" ~descriptor:"()I";
+       Jvm.Code.i2l ctx.code;
        Kind.K_int
      | _ -> raise (Unsupported "caml_ba_dim_2 arity"))
   | "caml_ba_dim_3" ->
@@ -1736,6 +1786,7 @@ and emit_ccall_named ctx name args =
        Jvm.Code.checkcast ctx.code "BigArray";
        Jvm.Code.invokevirtual
          ctx.code ~class_:"BigArray" ~method_:"dim3" ~descriptor:"()I";
+       Jvm.Code.i2l ctx.code;
        Kind.K_int
      | _ -> raise (Unsupported "caml_ba_dim_3 arity"))
   | "caml_ba_kind" ->
@@ -1745,6 +1796,7 @@ and emit_ccall_named ctx name args =
        Jvm.Code.checkcast ctx.code "BigArray";
        Jvm.Code.getfield
          ctx.code ~class_:"BigArray" ~field:"kind" ~descriptor:"I";
+       Jvm.Code.i2l ctx.code;
        Kind.K_int
      | _ -> raise (Unsupported "caml_ba_kind arity"))
   | "caml_ba_layout" ->
@@ -1754,6 +1806,7 @@ and emit_ccall_named ctx name args =
        Jvm.Code.checkcast ctx.code "BigArray";
        Jvm.Code.getfield
          ctx.code ~class_:"BigArray" ~field:"layout" ~descriptor:"I";
+       Jvm.Code.i2l ctx.code;
        Kind.K_int
      | _ -> raise (Unsupported "caml_ba_layout arity"))
   | "caml_ba_get_1" ->
@@ -1775,12 +1828,13 @@ and emit_ccall_named ctx name args =
        as_int i;
        emit_load ctx v;
        (match kind_of ctx v with
-        | K_int -> Kind.emit_box_int ctx.code
+        | K_int -> Kind.emit_box_long ctx.code
         | K_float -> Kind.emit_box_float ctx.code
         | _ -> ());
        Jvm.Code.invokevirtual
          ctx.code ~class_:"BigArray" ~method_:"set1"
          ~descriptor:"(ILjava/lang/Object;)I";
+       Jvm.Code.i2l ctx.code;
        Kind.K_int
      | _ -> raise (Unsupported "caml_ba_set_1 arity"))
   | "caml_ba_get_2" ->
@@ -1802,12 +1856,13 @@ and emit_ccall_named ctx name args =
        as_int i; as_int j;
        emit_load ctx v;
        (match kind_of ctx v with
-        | K_int -> Kind.emit_box_int ctx.code
+        | K_int -> Kind.emit_box_long ctx.code
         | K_float -> Kind.emit_box_float ctx.code
         | _ -> ());
        Jvm.Code.invokevirtual
          ctx.code ~class_:"BigArray" ~method_:"set2"
          ~descriptor:"(IILjava/lang/Object;)I";
+       Jvm.Code.i2l ctx.code;
        Kind.K_int
      | _ -> raise (Unsupported "caml_ba_set_2 arity"))
   | "caml_ba_fill" ->
@@ -1817,12 +1872,13 @@ and emit_ccall_named ctx name args =
        Jvm.Code.checkcast ctx.code "BigArray";
        emit_load ctx v;
        (match kind_of ctx v with
-        | K_int -> Kind.emit_box_int ctx.code
+        | K_int -> Kind.emit_box_long ctx.code
         | K_float -> Kind.emit_box_float ctx.code
         | _ -> ());
        Jvm.Code.invokevirtual
          ctx.code ~class_:"BigArray" ~method_:"fill"
          ~descriptor:"(Ljava/lang/Object;)I";
+       Jvm.Code.i2l ctx.code;
        Kind.K_int
      | _ -> raise (Unsupported "caml_ba_fill arity"))
   (* Bin_prot byte-addressed multi-byte accessors on a uint8 / char
@@ -1837,6 +1893,7 @@ and emit_ccall_named ctx name args =
        Jvm.Code.invokestatic
          ctx.code ~class_:"BigArray" ~method_:"setU16"
          ~descriptor:"(LBigArray;II)I";
+       Jvm.Code.i2l ctx.code;
        Kind.K_int
      | _ -> raise (Unsupported "caml_ba_uint8_set16 arity"))
   | "caml_ba_uint8_set32" | "caml_bigstring_set32" ->
@@ -1849,6 +1906,7 @@ and emit_ccall_named ctx name args =
        Jvm.Code.invokestatic
          ctx.code ~class_:"BigArray" ~method_:"setU32"
          ~descriptor:"(LBigArray;II)I";
+       Jvm.Code.i2l ctx.code;
        Kind.K_int
      | _ -> raise (Unsupported "caml_ba_uint8_set32 arity"))
   | "caml_ba_uint8_set64" | "caml_bigstring_set64" ->
@@ -1868,6 +1926,7 @@ and emit_ccall_named ctx name args =
        Jvm.Code.invokestatic
          ctx.code ~class_:"BigArray" ~method_:"setU64"
          ~descriptor:"(LBigArray;IJ)I";
+       Jvm.Code.i2l ctx.code;
        Kind.K_int
      | _ -> raise (Unsupported "caml_ba_uint8_set64 arity"))
   | "caml_ba_uint8_get16" | "caml_bigstring_get16" ->
@@ -1879,6 +1938,7 @@ and emit_ccall_named ctx name args =
        Jvm.Code.invokestatic
          ctx.code ~class_:"BigArray" ~method_:"getU16"
          ~descriptor:"(LBigArray;I)I";
+       Jvm.Code.i2l ctx.code;
        Kind.K_int
      | _ -> raise (Unsupported "caml_ba_uint8_get16 arity"))
   | "caml_ba_uint8_get32" | "caml_bigstring_get32" ->
@@ -1890,6 +1950,7 @@ and emit_ccall_named ctx name args =
        Jvm.Code.invokestatic
          ctx.code ~class_:"BigArray" ~method_:"getU32"
          ~descriptor:"(LBigArray;I)I";
+       Jvm.Code.i2l ctx.code;
        Kind.K_int
      | _ -> raise (Unsupported "caml_ba_uint8_get32 arity"))
   | "caml_ba_uint8_get64" | "caml_bigstring_get64" ->
@@ -1914,6 +1975,7 @@ and emit_ccall_named ctx name args =
        Jvm.Code.invokestatic
          ctx.code ~class_:"BigArray" ~method_:"blit"
          ~descriptor:"(LBigArray;LBigArray;)I";
+       Jvm.Code.i2l ctx.code;
        Kind.K_int
      | _ -> raise (Unsupported "caml_ba_blit arity"))
   (* GC control primitives — all no-ops on our JVM runtime. Returning
@@ -1926,7 +1988,7 @@ and emit_ccall_named ctx name args =
   | "caml_register_channel_for_spacetime"
   | "caml_memprof_start" | "caml_memprof_stop" | "caml_memprof_discard"
   | "caml_set_parser_trace" | "caml_restore_raw_backtrace" ->
-    Jvm.Code.ldc_int ctx.code 0;
+    emit_int_const ctx 0;
     Kind.K_int
   | "caml_gc_minor_words" | "caml_get_minor_free"
   | "caml_gc_counters" ->
@@ -1972,6 +2034,7 @@ and emit_ccall_named ctx name args =
          ~class_:"Bytes"
          ~method_:"staticCompare"
          ~descriptor:"(Ljava/lang/Object;Ljava/lang/Object;)I";
+       Jvm.Code.i2l ctx.code;
        Kind.K_int
      | _ -> raise (Unsupported "caml_bytes_compare arity"))
   | "caml_array_concat" ->
@@ -2041,7 +2104,7 @@ and emit_ccall_named ctx name args =
         | K_float -> Kind.emit_box_float ctx.code
         | _ -> ());
        Jvm.Code.aastore ctx.code;
-       Jvm.Code.ldc_int ctx.code 0;
+       emit_int_const ctx 0;
        Kind.K_int
      | _ -> raise (Unsupported (name ^ " arity")))
   | "caml_floatarray_sub" ->
@@ -2084,6 +2147,7 @@ and emit_ccall_named ctx name args =
          ~class_:"ThreadPrim"
          ~method_:"threadId"
          ~descriptor:"(Ljava/lang/Thread;)I";
+       Jvm.Code.i2l ctx.code;
        Kind.K_int
      | _ -> raise (Unsupported "caml_thread_id arity"))
   | "caml_thread_join" ->
@@ -2096,6 +2160,7 @@ and emit_ccall_named ctx name args =
          ~class_:"ThreadPrim"
          ~method_:"threadJoin"
          ~descriptor:"(Ljava/lang/Thread;)I";
+       Jvm.Code.i2l ctx.code;
        Kind.K_int
      | _ -> raise (Unsupported "caml_thread_join arity"))
   | "caml_thread_yield" ->
@@ -2106,6 +2171,7 @@ and emit_ccall_named ctx name args =
          ~class_:"ThreadPrim"
          ~method_:"threadYield"
          ~descriptor:"()I";
+       Jvm.Code.i2l ctx.code;
        Kind.K_int
      | _ -> raise (Unsupported "caml_thread_yield arity"))
   | "caml_thread_initialize" ->
@@ -2116,6 +2182,7 @@ and emit_ccall_named ctx name args =
          ~class_:"ThreadPrim"
          ~method_:"threadInitialize"
          ~descriptor:"()I";
+       Jvm.Code.i2l ctx.code;
        Kind.K_int
      | _ -> raise (Unsupported "caml_thread_initialize arity"))
   | "caml_thread_cleanup" ->
@@ -2126,6 +2193,7 @@ and emit_ccall_named ctx name args =
          ~class_:"ThreadPrim"
          ~method_:"threadCleanup"
          ~descriptor:"()I";
+       Jvm.Code.i2l ctx.code;
        Kind.K_int
      | _ -> raise (Unsupported "caml_thread_cleanup arity"))
   | "caml_thread_uncaught_exception" ->
@@ -2137,6 +2205,7 @@ and emit_ccall_named ctx name args =
          ~class_:"ThreadPrim"
          ~method_:"threadUncaughtException"
          ~descriptor:"(Ljava/lang/Object;)I";
+       Jvm.Code.i2l ctx.code;
        Kind.K_int
      | _ -> raise (Unsupported "caml_thread_uncaught_exception arity"))
   | "caml_thread_set_name" ->
@@ -2148,6 +2217,7 @@ and emit_ccall_named ctx name args =
          ~class_:"ThreadPrim"
          ~method_:"setCurrentThreadName"
          ~descriptor:"(Ljava/lang/String;)I";
+       Jvm.Code.i2l ctx.code;
        Kind.K_int
      | _ -> raise (Unsupported "caml_thread_set_name arity"))
   | "caml_ml_mutex_new" | "caml_mutex_new" ->
@@ -2167,6 +2237,7 @@ and emit_ccall_named ctx name args =
        Jvm.Code.checkcast ctx.code "Mutex";
        Jvm.Code.invokevirtual
          ctx.code ~class_:"Mutex" ~method_:"mlock" ~descriptor:"()I";
+       Jvm.Code.i2l ctx.code;
        Kind.K_int
      | _ -> raise (Unsupported "caml_ml_mutex_lock arity"))
   | "caml_ml_mutex_try_lock" | "caml_mutex_try_lock" ->
@@ -2176,6 +2247,7 @@ and emit_ccall_named ctx name args =
        Jvm.Code.checkcast ctx.code "Mutex";
        Jvm.Code.invokevirtual
          ctx.code ~class_:"Mutex" ~method_:"mtry_lock" ~descriptor:"()I";
+       Jvm.Code.i2l ctx.code;
        Kind.K_int
      | _ -> raise (Unsupported "caml_ml_mutex_try_lock arity"))
   | "caml_ml_mutex_unlock" | "caml_mutex_unlock" ->
@@ -2185,6 +2257,7 @@ and emit_ccall_named ctx name args =
        Jvm.Code.checkcast ctx.code "Mutex";
        Jvm.Code.invokevirtual
          ctx.code ~class_:"Mutex" ~method_:"munlock" ~descriptor:"()I";
+       Jvm.Code.i2l ctx.code;
        Kind.K_int
      | _ -> raise (Unsupported "caml_ml_mutex_unlock arity"))
   | "caml_ml_condition_new" | "caml_condition_new" ->
@@ -2206,6 +2279,7 @@ and emit_ccall_named ctx name args =
        Jvm.Code.checkcast ctx.code "Mutex";
        Jvm.Code.invokevirtual
          ctx.code ~class_:"CondVar" ~method_:"cwait" ~descriptor:"(LMutex;)I";
+       Jvm.Code.i2l ctx.code;
        Kind.K_int
      | _ -> raise (Unsupported "caml_ml_condition_wait arity"))
   | "caml_ml_condition_signal" | "caml_condition_signal" ->
@@ -2215,6 +2289,7 @@ and emit_ccall_named ctx name args =
        Jvm.Code.checkcast ctx.code "CondVar";
        Jvm.Code.invokevirtual
          ctx.code ~class_:"CondVar" ~method_:"csignal" ~descriptor:"()I";
+       Jvm.Code.i2l ctx.code;
        Kind.K_int
      | _ -> raise (Unsupported "caml_ml_condition_signal arity"))
   | "caml_ml_condition_broadcast" | "caml_condition_broadcast" ->
@@ -2224,6 +2299,7 @@ and emit_ccall_named ctx name args =
        Jvm.Code.checkcast ctx.code "CondVar";
        Jvm.Code.invokevirtual
          ctx.code ~class_:"CondVar" ~method_:"cbroadcast" ~descriptor:"()I";
+       Jvm.Code.i2l ctx.code;
        Kind.K_int
      | _ -> raise (Unsupported "caml_ml_condition_broadcast arity"))
   | "generated_hg_version" | "generated_build_info" ->
@@ -2279,8 +2355,7 @@ and emit_ccall_named ctx name args =
          ~class_:"java/lang/System"
          ~method_:"nanoTime"
          ~descriptor:"()J";
-       Jvm.Code.l2i ctx.code;
-       Kind.emit_box_int ctx.code;
+       Kind.emit_box_long ctx.code;
        Jvm.Code.aastore ctx.code;
        Jvm.Code.invokespecial
          ctx.code
@@ -2316,6 +2391,7 @@ and emit_ccall_named ctx name args =
          ~class_:"java/io/File"
          ~method_:"isDirectory"
          ~descriptor:"()Z";
+       Jvm.Code.i2l ctx.code;
        Kind.K_int
      | _ -> raise (Unsupported "caml_sys_is_directory arity"))
   | "caml_sys_chdir" ->
@@ -2335,7 +2411,7 @@ and emit_ccall_named ctx name args =
          ~method_:"setProperty"
          ~descriptor:"(Ljava/lang/String;Ljava/lang/String;)Ljava/lang/String;";
        Jvm.Code.pop_top ctx.code;
-       Jvm.Code.ldc_int ctx.code 0;
+       emit_int_const ctx 0;
        Kind.K_int
      | _ -> raise (Unsupported "caml_sys_chdir arity"))
   | "caml_sys_mkdir" ->
@@ -2355,7 +2431,7 @@ and emit_ccall_named ctx name args =
          ~method_:"mkdir"
          ~descriptor:"()Z";
        Jvm.Code.pop_top ctx.code;
-       Jvm.Code.ldc_int ctx.code 0;
+       emit_int_const ctx 0;
        Kind.K_int
      | _ -> raise (Unsupported "caml_sys_mkdir arity"))
   | "caml_sys_rmdir" ->
@@ -2375,7 +2451,7 @@ and emit_ccall_named ctx name args =
          ~method_:"delete"
          ~descriptor:"()Z";
        Jvm.Code.pop_top ctx.code;
-       Jvm.Code.ldc_int ctx.code 0;
+       emit_int_const ctx 0;
        Kind.K_int
      | _ -> raise (Unsupported "caml_sys_rmdir arity"))
   | "caml_sys_rename" ->
@@ -2403,7 +2479,7 @@ and emit_ccall_named ctx name args =
          ~method_:"renameTo"
          ~descriptor:"(Ljava/io/File;)Z";
        Jvm.Code.pop_top ctx.code;
-       Jvm.Code.ldc_int ctx.code 0;
+       emit_int_const ctx 0;
        Kind.K_int
      | _ -> raise (Unsupported "caml_sys_rename arity"))
   | "caml_sys_isatty" ->
@@ -2411,19 +2487,19 @@ and emit_ccall_named ctx name args =
        the JVM can't easily distinguish. *)
     (match args with
      | [ _ ] ->
-       Jvm.Code.ldc_int ctx.code 0;
+       emit_int_const ctx 0;
        Kind.K_int
      | _ -> raise (Unsupported "caml_sys_isatty arity"))
   | "caml_ml_is_buffered" | "caml_ml_is_binary_mode" ->
     (match args with
      | [ _ ] ->
-       Jvm.Code.ldc_int ctx.code 1;
+       emit_int_const ctx 1;
        Kind.K_int
      | _ -> raise (Unsupported (name ^ " arity")))
   | "caml_ml_set_buffered" ->
     (match args with
      | [ _; _ ] ->
-       Jvm.Code.ldc_int ctx.code 0;
+       emit_int_const ctx 0;
        Kind.K_int
      | _ -> raise (Unsupported "caml_ml_set_buffered arity"))
   | "caml_sys_is_regular_file" ->
@@ -2442,6 +2518,7 @@ and emit_ccall_named ctx name args =
          ~class_:"java/io/File"
          ~method_:"isFile"
          ~descriptor:"()Z";
+       Jvm.Code.i2l ctx.code;
        Kind.K_int
      | _ -> raise (Unsupported "caml_sys_is_regular_file arity"))
   | "caml_sys_read_directory" ->
@@ -2462,7 +2539,7 @@ and emit_ccall_named ctx name args =
           file size. Return 0 as a sentinel; Stdlib paths that
           actually care (in_channel_length) will see 0 and likely
           bail or handle gracefully. *)
-       Jvm.Code.ldc_int ctx.code 0;
+       emit_int_const ctx 0;
        Kind.K_int
      | _ -> raise (Unsupported "caml_ml_channel_size arity"))
   | "caml_ml_channel_size_64" ->
@@ -2481,6 +2558,7 @@ and emit_ccall_named ctx name args =
        Jvm.Code.invokevirtual
          ctx.code ~class_:"Channel" ~method_:"inputInt"
          ~descriptor:"()I";
+       Jvm.Code.i2l ctx.code;
        Kind.K_int
      | _ -> raise (Unsupported "caml_ml_input_int arity"))
   | "caml_ml_output_int" ->
@@ -2492,6 +2570,7 @@ and emit_ccall_named ctx name args =
        Jvm.Code.invokevirtual
          ctx.code ~class_:"Channel" ~method_:"outputInt"
          ~descriptor:"(I)I";
+       Jvm.Code.i2l ctx.code;
        Kind.K_int
      | _ -> raise (Unsupported "caml_ml_output_int arity"))
   | "caml_obj_raw_field" ->
@@ -2513,11 +2592,11 @@ and emit_ccall_named ctx name args =
        as_int i;
        emit_load ctx v;
        (match kind_of ctx v with
-        | K_int -> Kind.emit_box_int ctx.code
+        | K_int -> Kind.emit_box_long ctx.code
         | K_float -> Kind.emit_box_float ctx.code
         | _ -> ());
        Jvm.Code.aastore ctx.code;
-       Jvm.Code.ldc_int ctx.code 0;
+       emit_int_const ctx 0;
        Kind.K_int
      | _ -> raise (Unsupported "caml_obj_set_raw_field arity"))
   | "caml_obj_add_offset" ->
@@ -2531,7 +2610,7 @@ and emit_ccall_named ctx name args =
     (match args with
      | [ _ ] ->
        (* JVM GC doesn't expose per-object retained set; return 0. *)
-       Jvm.Code.ldc_int ctx.code 0;
+       emit_int_const ctx 0;
        Kind.K_int
      | _ -> raise (Unsupported "caml_obj_reachable_words arity"))
   | "caml_sys_remove" ->
@@ -2552,7 +2631,7 @@ and emit_ccall_named ctx name args =
          ~descriptor:"()Z";
        (* Discard bool, return 0 (unit). *)
        Jvm.Code.pop_top ctx.code;
-       Jvm.Code.ldc_int ctx.code 0;
+       emit_int_const ctx 0;
        Kind.K_int
      | _ -> raise (Unsupported "caml_sys_remove arity"))
   | "caml_ml_close_channel" ->
@@ -2565,6 +2644,7 @@ and emit_ccall_named ctx name args =
          ~class_:"Channel"
          ~method_:"close"
          ~descriptor:"()I";
+       Jvm.Code.i2l ctx.code;
        Kind.K_int
      | _ -> raise (Unsupported "caml_ml_close_channel arity"))
   | "caml_ml_input_char" ->
@@ -2577,6 +2657,7 @@ and emit_ccall_named ctx name args =
          ~class_:"Channel"
          ~method_:"inputChar"
          ~descriptor:"()I";
+       Jvm.Code.i2l ctx.code;
        Kind.K_int
      | _ -> raise (Unsupported "caml_ml_input_char arity"))
   | "caml_ml_input_scan_line" ->
@@ -2589,6 +2670,7 @@ and emit_ccall_named ctx name args =
          ~class_:"Channel"
          ~method_:"inputScanLine"
          ~descriptor:"()I";
+       Jvm.Code.i2l ctx.code;
        Kind.K_int
      | _ -> raise (Unsupported "caml_ml_input_scan_line arity"))
   | "caml_ml_input" ->
@@ -2604,6 +2686,7 @@ and emit_ccall_named ctx name args =
          ~class_:"Channel"
          ~method_:"input"
          ~descriptor:"(LBytes;II)I";
+       Jvm.Code.i2l ctx.code;
        Kind.K_int
      | _ -> raise (Unsupported "caml_ml_input arity"))
   | "caml_int64_float_of_bits" ->
@@ -2693,7 +2776,7 @@ and emit_ccall_named ctx name args =
      | [ _; _; _; Pv v ] | [ Pv v ] | [ Pv v; _ ] ->
        emit_load ctx v;
        (match kind_of ctx v with
-        | K_int -> Kind.emit_box_int ctx.code
+        | K_int -> Kind.emit_box_long ctx.code
         | K_float -> Kind.emit_box_float ctx.code
         | _ -> ());
        Jvm.Code.invokevirtual
@@ -2704,6 +2787,7 @@ and emit_ccall_named ctx name args =
        (* OCaml hashes to a non-negative 30-bit int; mask. *)
        Jvm.Code.ldc_int ctx.code 0x3fffffff;
        Jvm.Code.iand ctx.code;
+       Jvm.Code.i2l ctx.code;
        Kind.K_int
      | _ -> raise (Unsupported "caml_hash arity"))
   | "caml_string_hash" ->
@@ -2718,6 +2802,7 @@ and emit_ccall_named ctx name args =
          ~descriptor:"()I";
        Jvm.Code.ldc_int ctx.code 0x3fffffff;
        Jvm.Code.iand ctx.code;
+       Jvm.Code.i2l ctx.code;
        Kind.K_int
      | _ -> raise (Unsupported "caml_string_hash arity"))
   (* ==== Int32 arithmetic ==== identity-on-32-bit int semantics.
@@ -2784,6 +2869,7 @@ and emit_ccall_named ctx name args =
        Jvm.Code.invokestatic
          ctx.code ~class_:"java/lang/Integer" ~method_:"compare"
          ~descriptor:"(II)I";
+       Jvm.Code.i2l ctx.code;
        Kind.K_int
      | _ -> raise (Unsupported "caml_int32_compare arity"))
   | "caml_int32_div" ->
@@ -2922,12 +3008,13 @@ and emit_ccall_named ctx name args =
        Kind.K_obj
      | _ -> raise (Unsupported (name ^ " arity")))
   | "caml_int_of_int64" | "caml_int_of_nativeint" ->
+    (* OCaml int is now 63-bit (JVM [long]); Int64 / Nativeint also
+       [long]. Conversion is identity at the JVM level. *)
     (match args with
      | [ Pv v ] ->
        emit_load ctx v;
        Kind.emit_unbox_long ctx.code;
-       Jvm.Code.l2i ctx.code;
-       Kind.emit_box_int ctx.code;
+       Kind.emit_box_long ctx.code;
        Kind.K_obj
      | _ -> raise (Unsupported (name ^ " arity")))
   | "caml_int64_add" | "caml_nativeint_add" ->
@@ -3016,12 +3103,12 @@ and emit_ccall_named ctx name args =
        Jvm.Code.lushr ctx.code; Kind.emit_box_long ctx.code; Kind.K_obj
      | _ -> raise (Unsupported (name ^ " arity")))
   | "caml_int64_to_int" | "caml_nativeint_to_int" ->
+    (* Identity under 63-bit OCaml int (both are JVM [long]). *)
     (match args with
      | [ Pv v ] ->
        emit_load ctx v;
        Kind.emit_unbox_long ctx.code;
-       Jvm.Code.l2i ctx.code;
-       Kind.emit_box_int ctx.code;
+       Kind.emit_box_long ctx.code;
        Kind.K_obj
      | _ -> raise (Unsupported (name ^ " arity")))
   | "caml_int64_of_float" ->
@@ -3052,13 +3139,13 @@ and emit_ccall_named ctx name args =
        emit_load ctx a; Kind.emit_unbox_long ctx.code;
        emit_load ctx b; Kind.emit_unbox_long ctx.code;
        Jvm.Code.lcmp ctx.code;
+       Jvm.Code.i2l ctx.code;
        Kind.K_int
      | _ -> raise (Unsupported (name ^ " arity")))
   | "caml_int64_of_int32" | "caml_nativeint_of_int32" ->
     (match args with
      | [ Pv v ] ->
        as_int v;
-       Jvm.Code.i2l ctx.code;
        Kind.emit_box_long ctx.code;
        Kind.K_obj
      | _ -> raise (Unsupported (name ^ " arity")))
@@ -3068,7 +3155,8 @@ and emit_ccall_named ctx name args =
        emit_load ctx v;
        Kind.emit_unbox_long ctx.code;
        Jvm.Code.l2i ctx.code;
-       Kind.emit_box_int ctx.code;
+       Jvm.Code.i2l ctx.code;
+       Kind.emit_box_long ctx.code;
        Kind.K_obj
      | _ -> raise (Unsupported (name ^ " arity")))
   | "caml_atomic_load" ->
@@ -3105,7 +3193,7 @@ and emit_ccall_named ctx name args =
          ~class_:"Channel"
          ~method_:"output"
          ~descriptor:"(Ljava/lang/String;II)V";
-       Jvm.Code.ldc_int ctx.code 0;
+       emit_int_const ctx 0;
        Kind.K_int
      | _ -> raise (Unsupported "caml_ml_output_bytes arity"))
   | "caml_floatarray_create" | "caml_make_float_vect" ->
@@ -3153,7 +3241,7 @@ and emit_ccall_named ctx name args =
        Jvm.Code.aload ctx.code arr_local;
        emit_load ctx init;
        (match kind_of ctx init with
-        | K_int -> Kind.emit_box_int ctx.code
+        | K_int -> Kind.emit_box_long ctx.code
         | K_float -> Kind.emit_box_float ctx.code
         | _ -> ());
        Jvm.Code.invokestatic
@@ -3198,7 +3286,7 @@ and emit_ccall_named ctx name args =
          ~method_:"arraycopy"
          ~descriptor:
            "(Ljava/lang/Object;ILjava/lang/Object;II)V";
-       Jvm.Code.ldc_int ctx.code 0;
+       emit_int_const ctx 0;
        Kind.K_int
      | _ -> raise (Unsupported "caml_array_blit arity"))
   | "caml_array_sub" ->
@@ -3251,7 +3339,7 @@ and emit_ccall_named ctx name args =
        Jvm.Code.iadd ctx.code;
        emit_load ctx v;
        (match kind_of ctx v with
-        | K_int -> Kind.emit_box_int ctx.code
+        | K_int -> Kind.emit_box_long ctx.code
         | K_float -> Kind.emit_box_float ctx.code
         | _ -> ());
        Jvm.Code.invokestatic
@@ -3260,7 +3348,7 @@ and emit_ccall_named ctx name args =
          ~method_:"fill"
          ~descriptor:
            "([Ljava/lang/Object;IILjava/lang/Object;)V";
-       Jvm.Code.ldc_int ctx.code 0;
+       emit_int_const ctx 0;
        Kind.K_int
      | _ -> raise (Unsupported "caml_array_fill arity"))
   | "caml_array_append" ->
@@ -3380,7 +3468,7 @@ and emit_ccall_named ctx name args =
        as_int i;
        emit_load ctx v;
        (match kind_of ctx v with
-        | K_int -> Kind.emit_box_int ctx.code
+        | K_int -> Kind.emit_box_long ctx.code
         | K_float -> Kind.emit_box_float ctx.code
         | _ -> ());
        Jvm.Code.invokestatic
@@ -3437,6 +3525,7 @@ and emit_ccall_named ctx name args =
          ~class_:"Ephemeron"
          ~method_:"check_key"
          ~descriptor:"(Ljava/lang/Object;I)I";
+       Jvm.Code.i2l ctx.code;
        Kind.K_int
      | _ -> raise (Unsupported "caml_ephe_check_key arity"))
   | "caml_ephe_set_data" ->
@@ -3445,7 +3534,7 @@ and emit_ccall_named ctx name args =
        emit_load ctx t;
        emit_load ctx v;
        (match kind_of ctx v with
-        | K_int -> Kind.emit_box_int ctx.code
+        | K_int -> Kind.emit_box_long ctx.code
         | K_float -> Kind.emit_box_float ctx.code
         | _ -> ());
        Jvm.Code.invokestatic
@@ -3498,6 +3587,7 @@ and emit_ccall_named ctx name args =
          ~class_:"Ephemeron"
          ~method_:"check_data"
          ~descriptor:"(Ljava/lang/Object;)I";
+       Jvm.Code.i2l ctx.code;
        Kind.K_int
      | _ -> raise (Unsupported "caml_ephe_check_data arity"))
   | "caml_ephe_blit_data" ->
@@ -3536,13 +3626,13 @@ and emit_ccall_named ctx name args =
     (* Always false — we're not running in Base's test harness.
        The arg is unused; [emit_ccall] doesn't pre-push args, so we
        just emit the constant. *)
-    Jvm.Code.ldc_int ctx.code 0;
+    emit_int_const ctx 0;
     Kind.K_int
   | "Base_clear_caml_backtrace_pos" ->
-    Jvm.Code.ldc_int ctx.code 0;
+    emit_int_const ctx 0;
     Kind.K_int
   | "Base_caml_exn_is_most_recent_exn" ->
-    Jvm.Code.ldc_int ctx.code 1;
+    emit_int_const ctx 1;
     Kind.K_int
   | "Base_int_math_int_popcount" ->
     (match args with
@@ -3553,6 +3643,7 @@ and emit_ccall_named ctx name args =
          ~class_:"java/lang/Integer"
          ~method_:"bitCount"
          ~descriptor:"(I)I";
+       Jvm.Code.i2l ctx.code;
        Kind.K_int
      | _ -> raise (Unsupported "Base_int_math_int_popcount arity"))
   | "Base_int_math_int_clz"
@@ -3566,6 +3657,7 @@ and emit_ccall_named ctx name args =
          ~class_:"java/lang/Integer"
          ~method_:"numberOfLeadingZeros"
          ~descriptor:"(I)I";
+       Jvm.Code.i2l ctx.code;
        Kind.K_int
      | _ -> raise (Unsupported "Base_int_math_clz arity"))
   | "Base_int_math_int_ctz"
@@ -3579,6 +3671,7 @@ and emit_ccall_named ctx name args =
          ~class_:"java/lang/Integer"
          ~method_:"numberOfTrailingZeros"
          ~descriptor:"(I)I";
+       Jvm.Code.i2l ctx.code;
        Kind.K_int
      | _ -> raise (Unsupported "Base_int_math_ctz arity"))
   | "Base_int_math_int_pow_stub" ->
@@ -3590,15 +3683,15 @@ and emit_ccall_named ctx name args =
     (match args with
      | [ Pv b; Pv e ] ->
        as_int b;
-       Jvm.Code.i2d ctx.code;
+       Jvm.Code.l2d ctx.code;
        as_int e;
-       Jvm.Code.i2d ctx.code;
+       Jvm.Code.l2d ctx.code;
        Jvm.Code.invokestatic
          ctx.code
          ~class_:"java/lang/Math"
          ~method_:"pow"
          ~descriptor:"(DD)D";
-       Jvm.Code.d2i ctx.code;
+       Jvm.Code.d2l ctx.code;
        Kind.K_int
      | _ -> raise (Unsupported "Base_int_math_int_pow_stub arity"))
   | "Base_unsafe_create_local_bytes" ->
@@ -3629,6 +3722,7 @@ and emit_ccall_named ctx name args =
          ~class_:"java/lang/Object"
          ~method_:"hashCode"
          ~descriptor:"()I";
+       Jvm.Code.i2l ctx.code;
        Kind.K_int
      | _ -> raise (Unsupported "Base_hash_string arity"))
   | "Base_hash_double" ->
@@ -3648,6 +3742,7 @@ and emit_ccall_named ctx name args =
          ~class_:"java/lang/Object"
          ~method_:"hashCode"
          ~descriptor:"()I";
+       Jvm.Code.i2l ctx.code;
        Kind.K_int
      | _ -> raise (Unsupported "Base_hash_double arity"))
   | "caml_dummy_obj_is_stack" ->
@@ -3691,11 +3786,11 @@ and emit_ccall_named ctx name args =
        as_int i;
        emit_load ctx v;
        (match kind_of ctx v with
-        | K_int -> Kind.emit_box_int ctx.code
+        | K_int -> Kind.emit_box_long ctx.code
         | K_float -> Kind.emit_box_float ctx.code
         | _ -> ());
        Jvm.Code.aastore ctx.code;
-       Jvm.Code.ldc_int ctx.code 0;
+       emit_int_const ctx 0;
        Kind.K_int
      | _ -> raise (Unsupported "caml_array_set_addr arity"))
   | "caml_obj_block" ->
@@ -3821,19 +3916,22 @@ and emit_ccall_named ctx name args =
          ~descriptor:
            "(Ljava/lang/Object;ILjava/lang/Object;II)V";
        Jvm.Code.mark_label ctx.code end_lbl;
-       Jvm.Code.ldc_int ctx.code 0;
+       emit_int_const ctx 0;
        Kind.K_int
      | _ -> raise (Unsupported "caml_update_dummy arity"))
   | "caml_int_compare" ->
     (match args with
-     | [ Pv a; Pv b ] ->
-       as_int a;
-       as_int b;
+     | [ (Pv _ as a); (Pv _ as b) ] ->
+       let ka = emit_prim_arg ctx a in
+       ensure_int ctx ka;
+       let kb = emit_prim_arg ctx b in
+       ensure_int ctx kb;
        Jvm.Code.invokestatic
          ctx.code
-         ~class_:"java/lang/Integer"
+         ~class_:"java/lang/Long"
          ~method_:"compare"
-         ~descriptor:"(II)I";
+         ~descriptor:"(JJ)I";
+       Jvm.Code.i2l ctx.code;
        Kind.K_int
      | _ -> raise (Unsupported "caml_int_compare arity"))
   | "caml_string_compare" ->
@@ -3846,6 +3944,7 @@ and emit_ccall_named ctx name args =
          ~class_:"java/lang/String"
          ~method_:"compareTo"
          ~descriptor:"(Ljava/lang/String;)I";
+       Jvm.Code.i2l ctx.code;
        Kind.K_int
      | _ -> raise (Unsupported "caml_string_compare arity"))
   | "caml_set_oo_id" ->
@@ -3889,15 +3988,16 @@ and emit_ccall_named ctx name args =
      | [ Pv a; Pv b ] ->
        emit_load ctx a;
        (match kind_of ctx a with
-        | K_int -> Kind.emit_box_int ctx.code
+        | K_int -> Kind.emit_box_long ctx.code
         | K_float -> Kind.emit_box_float ctx.code
         | _ -> ());
        emit_load ctx b;
        (match kind_of ctx b with
-        | K_int -> Kind.emit_box_int ctx.code
+        | K_int -> Kind.emit_box_long ctx.code
         | K_float -> Kind.emit_box_float ctx.code
         | _ -> ());
        Jvm.Code.invokestatic ctx.code ~class_:"Compare" ~method_ ~descriptor:desc;
+       Jvm.Code.i2l ctx.code;
        Kind.K_int
      | _ -> raise (Unsupported (name ^ " arity")))
   | "caml_obj_tag" ->
@@ -3915,13 +4015,13 @@ and emit_ccall_named ctx name args =
              load purely for its side effects (none, since it's
              a pure iload on an already-typed slot) and just push
              1000. *)
-          Jvm.Code.ldc_int ctx.code 1000;
+          emit_int_const ctx 1000;
           Kind.K_int
         | K_float ->
-          Jvm.Code.ldc_int ctx.code 253 (* double_tag *);
+          emit_int_const ctx 253 (* double_tag *);
           Kind.K_int
         | K_string ->
-          Jvm.Code.ldc_int ctx.code 252 (* string_tag *);
+          emit_int_const ctx 252 (* string_tag *);
           Kind.K_int
         | K_block _ ->
           emit_load ctx v;
@@ -3931,9 +4031,10 @@ and emit_ccall_named ctx name args =
             ~class_:"Block"
             ~field:"tag"
             ~descriptor:"I";
+          Jvm.Code.i2l ctx.code;
           Kind.K_int
         | K_closure _ ->
-          Jvm.Code.ldc_int ctx.code 247 (* closure_tag *);
+          emit_int_const ctx 247 (* closure_tag *);
           Kind.K_int
         | K_obj ->
           (* Runtime dispatch: if [instanceof Block], read .tag;
@@ -3976,6 +4077,7 @@ and emit_ccall_named ctx name args =
           Jvm.Code.pop_top ctx.code;
           Jvm.Code.ldc_int ctx.code 0;
           Jvm.Code.mark_label ctx.code l_end;
+          Jvm.Code.i2l ctx.code;
           Kind.K_int)
      | _ -> raise (Unsupported "caml_obj_tag arity"))
   | "caml_obj_with_tag" ->
@@ -4033,6 +4135,7 @@ and emit_ccall_named ctx name args =
        Jvm.Code.pop_top ctx.code;
        Jvm.Code.ldc_int ctx.code 1;
        Jvm.Code.mark_label ctx.code done_lbl;
+       Jvm.Code.i2l ctx.code;
        Kind.K_int
      | _ -> raise (Unsupported "caml_lazy_update_to_forcing arity"))
   | "caml_lazy_reset_to_lazy" ->
@@ -4043,7 +4146,7 @@ and emit_ccall_named ctx name args =
        Jvm.Code.checkcast ctx.code "Block";
        Jvm.Code.ldc_int ctx.code 246;
        Jvm.Code.putfield ctx.code ~class_:"Block" ~field:"tag" ~descriptor:"I";
-       Jvm.Code.ldc_int ctx.code 0;
+       emit_int_const ctx 0;
        Kind.K_int
      | _ -> raise (Unsupported "caml_lazy_reset_to_lazy arity"))
   | "caml_lazy_update_to_forward" ->
@@ -4056,7 +4159,7 @@ and emit_ccall_named ctx name args =
        Jvm.Code.checkcast ctx.code "Block";
        Jvm.Code.ldc_int ctx.code 250;
        Jvm.Code.putfield ctx.code ~class_:"Block" ~field:"tag" ~descriptor:"I";
-       Jvm.Code.ldc_int ctx.code 0;
+       emit_int_const ctx 0;
        Kind.K_int
      | _ -> raise (Unsupported "caml_lazy_update_to_forward arity"))
   | "caml_lazy_make_forward" ->
@@ -4072,7 +4175,7 @@ and emit_ccall_named ctx name args =
        Jvm.Code.ldc_int ctx.code 0;
        let k = emit_prim_arg ctx v in
        (match k with
-        | Kind.K_int -> Kind.emit_box_int ctx.code
+        | Kind.K_int -> Kind.emit_box_long ctx.code
         | Kind.K_float -> Kind.emit_box_float ctx.code
         | _ -> ());
        Jvm.Code.aastore ctx.code;
@@ -4130,7 +4233,7 @@ and emit_ccall_named ctx name args =
        Jvm.Code.ldc_int ctx.code 0;
        emit_load ctx v;
        (match kind_of ctx v with
-        | K_int -> Kind.emit_box_int ctx.code
+        | K_int -> Kind.emit_box_long ctx.code
         | K_float -> Kind.emit_box_float ctx.code
         | _ -> ());
        Jvm.Code.aastore ctx.code;
@@ -4138,13 +4241,13 @@ and emit_ccall_named ctx name args =
        Kind.K_obj
      | _ -> raise (Unsupported "caml_atomic_exchange arity"))
   | "caml_atomic_fetch_add" ->
-    (* r field 0 += delta; return old int. *)
+    (* r field 0 += delta; return old int (OCaml K_int = JVM long). *)
     (match args with
      | [ Pv r; Pv d ] ->
        let arr_local = ctx.next_local in
        ctx.next_local <- arr_local + 1;
        let old_local = ctx.next_local in
-       ctx.next_local <- old_local + 1;
+       ctx.next_local <- old_local + 2 (* K_int = 2 slots *);
        Jvm.Code.set_min_locals ctx.code ctx.next_local;
        emit_load ctx r;
        Jvm.Code.checkcast ctx.code "Block";
@@ -4156,20 +4259,19 @@ and emit_ccall_named ctx name args =
        Jvm.Code.aload ctx.code arr_local;
        Jvm.Code.ldc_int ctx.code 0;
        Jvm.Code.aaload ctx.code;
-       Jvm.Code.checkcast ctx.code "java/lang/Integer";
-       Jvm.Code.invokevirtual ctx.code
-         ~class_:"java/lang/Integer"
-         ~method_:"intValue"
-         ~descriptor:"()I";
-       Jvm.Code.istore ctx.code old_local;
+       Kind.emit_unbox_long ctx.code;
+       Jvm.Code.lstore ctx.code old_local;
        Jvm.Code.aload ctx.code arr_local;
        Jvm.Code.ldc_int ctx.code 0;
-       Jvm.Code.iload ctx.code old_local;
-       as_int d;
-       Jvm.Code.iadd ctx.code;
-       Kind.emit_box_int ctx.code;
+       Jvm.Code.lload ctx.code old_local;
+       emit_load ctx d;
+       (match kind_of ctx d with
+        | K_int -> ()
+        | _ -> Kind.emit_unbox_long ctx.code);
+       Jvm.Code.ladd ctx.code;
+       Kind.emit_box_long ctx.code;
        Jvm.Code.aastore ctx.code;
-       Jvm.Code.iload ctx.code old_local;
+       Jvm.Code.lload ctx.code old_local;
        Kind.K_int
      | _ -> raise (Unsupported "caml_atomic_fetch_add arity"))
   | "caml_atomic_cas" ->
@@ -4190,7 +4292,7 @@ and emit_ccall_named ctx name args =
        Jvm.Code.aaload ctx.code;
        emit_load ctx expected;
        (match kind_of ctx expected with
-        | K_int -> Kind.emit_box_int ctx.code
+        | K_int -> Kind.emit_box_long ctx.code
         | K_float -> Kind.emit_box_float ctx.code
         | _ -> ());
        (* Stack: fields, cur, expected *)
@@ -4198,7 +4300,7 @@ and emit_ccall_named ctx name args =
        Jvm.Code.ldc_int ctx.code 0;
        emit_load ctx new_;
        (match kind_of ctx new_ with
-        | K_int -> Kind.emit_box_int ctx.code
+        | K_int -> Kind.emit_box_long ctx.code
         | K_float -> Kind.emit_box_float ctx.code
         | _ -> ());
        Jvm.Code.aastore ctx.code;
@@ -4208,6 +4310,7 @@ and emit_ccall_named ctx name args =
        Jvm.Code.pop_top ctx.code;
        Jvm.Code.ldc_int ctx.code 0;
        Jvm.Code.mark_label ctx.code label_end;
+       Jvm.Code.i2l ctx.code;
        Kind.K_int
      | _ -> raise (Unsupported "caml_atomic_cas arity"))
   | "caml_atomic_make_contended" ->
@@ -4223,7 +4326,7 @@ and emit_ccall_named ctx name args =
        Jvm.Code.ldc_int ctx.code 0;
        emit_load ctx v;
        (match kind_of ctx v with
-        | K_int -> Kind.emit_box_int ctx.code
+        | K_int -> Kind.emit_box_long ctx.code
         | K_float -> Kind.emit_box_float ctx.code
         | _ -> ());
        Jvm.Code.aastore ctx.code;
@@ -4241,7 +4344,7 @@ and emit_ccall_named ctx name args =
          ~class_:"Main"
          ~field:"DLS_STATE"
          ~descriptor:"Ljava/lang/Object;";
-       Jvm.Code.ldc_int ctx.code 0;
+       emit_int_const ctx 0;
        Kind.K_int
      | _ -> raise (Unsupported "caml_domain_dls_set arity"))
   | "caml_domain_dls_get" ->
@@ -4274,13 +4377,13 @@ and emit_ccall_named ctx name args =
        Kind.K_int
      | _ -> raise (Unsupported "caml_domain_dls_compare_and_set arity"))
   | "caml_ml_domain_id" | "caml_ml_domain_index" ->
-    Jvm.Code.ldc_int ctx.code 0;
+    emit_int_const ctx 0;
     Kind.K_int
   | "caml_recommended_domain_count" ->
-    Jvm.Code.ldc_int ctx.code 1;
+    emit_int_const ctx 1;
     Kind.K_int
   | "caml_ml_domain_cpu_relax" ->
-    Jvm.Code.ldc_int ctx.code 0;
+    emit_int_const ctx 0;
     Kind.K_int
   | "caml_fresh_oo_id" ->
     (* Compile-time counter — stable enough because module init is
@@ -4288,7 +4391,7 @@ and emit_ccall_named ctx name args =
        legacy. *)
     let n = !(ctx.fresh_oo_id) in
     ctx.fresh_oo_id := n + 1;
-    Jvm.Code.ldc_int ctx.code n;
+    emit_int_const ctx n;
     Kind.K_int
   | "Base_internalhash_fold_int"
   | "Base_internalhash_fold_int64"
@@ -4303,8 +4406,8 @@ and emit_ccall_named ctx name args =
      | [ st; _v ] ->
        let k = emit_prim_arg ctx st in
        ensure_int ctx k;
-       Jvm.Code.ldc_int ctx.code 31;
-       Jvm.Code.imul ctx.code;
+       emit_int_const ctx 31;
+       Jvm.Code.lmul ctx.code;
        Kind.K_int
      | _ -> raise (Unsupported (name ^ " arity")))
   | "Base_internalhash_get_hash_value" ->
@@ -4318,7 +4421,7 @@ and emit_ccall_named ctx name args =
   | "core_heap_block_is_heap_block" ->
     (match args with
      | [ _ ] ->
-       Jvm.Code.ldc_int ctx.code 1;
+       emit_int_const ctx 1;
        Kind.K_int
      | _ -> raise (Unsupported (name ^ " arity")))
   | _ ->
@@ -4352,30 +4455,41 @@ let emit_int_binop ctx op a b =
   ensure_int ctx kb;
   op ctx.code
 
+(* Shift ops on JVM [long] take a JVM [int] count on top of stack; the
+   OCaml shift-count arg is a [K_int] (now backed by [long]), so narrow
+   it via [l2i] before emitting the opcode. *)
+let emit_int_shift ctx op a b =
+  let ka = emit_prim_arg ctx a in
+  ensure_int ctx ka;
+  let kb = emit_prim_arg ctx b in
+  ensure_int ctx kb;
+  Jvm.Code.l2i ctx.code;
+  op ctx.code
+
 let emit_prim ctx (p : Code.prim) (args : Code.prim_arg list) : Kind.kind =
   match p, args with
-  | Extern "add_int", [ a; b ] -> emit_int_binop ctx Jvm.Code.iadd a b; K_int
-  | Extern "sub_int", [ a; b ] -> emit_int_binop ctx Jvm.Code.isub a b; K_int
-  | Extern "mul_int", [ a; b ] -> emit_int_binop ctx Jvm.Code.imul a b; K_int
-  | Extern "div_int", [ a; b ] -> emit_int_binop ctx Jvm.Code.idiv a b; K_int
-  | Extern "mod_int", [ a; b ] -> emit_int_binop ctx Jvm.Code.irem a b; K_int
-  | Extern "and_int", [ a; b ] -> emit_int_binop ctx Jvm.Code.iand a b; K_int
-  | Extern "or_int", [ a; b ] -> emit_int_binop ctx Jvm.Code.ior a b; K_int
-  | Extern "xor_int", [ a; b ] -> emit_int_binop ctx Jvm.Code.ixor a b; K_int
-  | Extern "lsl_int", [ a; b ] -> emit_int_binop ctx Jvm.Code.ishl a b; K_int
-  | Extern "lsr_int", [ a; b ] -> emit_int_binop ctx Jvm.Code.iushr a b; K_int
-  | Extern "asr_int", [ a; b ] -> emit_int_binop ctx Jvm.Code.ishr a b; K_int
+  | Extern "add_int", [ a; b ] -> emit_int_binop ctx Jvm.Code.ladd a b; K_int
+  | Extern "sub_int", [ a; b ] -> emit_int_binop ctx Jvm.Code.lsub a b; K_int
+  | Extern "mul_int", [ a; b ] -> emit_int_binop ctx Jvm.Code.lmul a b; K_int
+  | Extern "div_int", [ a; b ] -> emit_int_binop ctx Jvm.Code.ldiv a b; K_int
+  | Extern "mod_int", [ a; b ] -> emit_int_binop ctx Jvm.Code.lrem a b; K_int
+  | Extern "and_int", [ a; b ] -> emit_int_binop ctx Jvm.Code.land_ a b; K_int
+  | Extern "or_int", [ a; b ] -> emit_int_binop ctx Jvm.Code.lor_ a b; K_int
+  | Extern "xor_int", [ a; b ] -> emit_int_binop ctx Jvm.Code.lxor_ a b; K_int
+  | Extern "lsl_int", [ a; b ] -> emit_int_shift ctx Jvm.Code.lshl a b; K_int
+  | Extern "lsr_int", [ a; b ] -> emit_int_shift ctx Jvm.Code.lushr a b; K_int
+  | Extern "asr_int", [ a; b ] -> emit_int_shift ctx Jvm.Code.lshr a b; K_int
   | Extern "neg_int", [ a ] ->
     let ka = emit_prim_arg ctx a in
     ensure_int ctx ka;
-    Jvm.Code.ineg ctx.code;
+    Jvm.Code.lneg ctx.code;
     K_int
   | Not, [ a ] ->
     (* Boolean negation: OCaml ints are 0/1 here; flip with 1 - x. *)
-    Jvm.Code.ldc_int ctx.code 1;
+    emit_int_const ctx 1;
     let ka = emit_prim_arg ctx a in
     ensure_int ctx ka;
-    Jvm.Code.isub ctx.code;
+    Jvm.Code.lsub ctx.code;
     K_int
   | (Eq | Neq | Lt | Le | Gt | Ge | Ult | Uge), [ a; b ] ->
     (* OCaml's EQ / NEQ opcodes are bitwise: int compare for
@@ -4444,7 +4558,7 @@ let emit_prim ctx (p : Code.prim) (args : Code.prim_arg list) : Kind.kind =
       let load_as_obj pa =
         let k = emit_prim_arg ctx pa in
         match k with
-        | K_int -> Kind.emit_box_int ctx.code
+        | K_int -> Kind.emit_box_long ctx.code
         | K_float -> Kind.emit_box_float ctx.code
         | _ -> ()
       in
@@ -4464,39 +4578,33 @@ let emit_prim ctx (p : Code.prim) (args : Code.prim_arg list) : Kind.kind =
       ensure_int ctx ka;
       let _ = emit_prim_arg ctx b in
       ensure_int ctx kb;
-      (* Ult / Uge need unsigned semantics; JVM's if_icmp family is
-         signed. Flip the sign bit (JVM 32-bit INT_MIN, which is
-         -2^31, NOT OCaml's 63-bit min_int) on each operand first so
-         [signed compare of (x ^ INT_MIN)] gives the unsigned
-         ordering. Operands are already on the stack at this point,
-         so we XOR each with INT_MIN in place. *)
-      let jvm_int_min = -2147483648 in
+      (* K_int is JVM [long] now. JVM has no [if_lcmp*] family:
+         [lcmp] pops two longs and pushes an int in {-1, 0, 1},
+         then single-operand branches (ifeq/ifne/iflt/ifle/ifgt/ifge)
+         compare against 0. Unsigned compare goes through
+         [Long.compareUnsigned(J, J)I]. *)
       (match p with
        | Ult | Uge ->
-         let tmp = ctx.next_local in
-         ctx.next_local <- tmp + 1;
-         Jvm.Code.set_min_locals ctx.code ctx.next_local;
-         Jvm.Code.ldc_int ctx.code jvm_int_min;
-         Jvm.Code.ixor ctx.code;
-         Jvm.Code.istore ctx.code tmp;
-         Jvm.Code.ldc_int ctx.code jvm_int_min;
-         Jvm.Code.ixor ctx.code;
-         Jvm.Code.iload ctx.code tmp
-       | _ -> ());
+         Jvm.Code.invokestatic
+           ctx.code
+           ~class_:"java/lang/Long"
+           ~method_:"compareUnsigned"
+           ~descriptor:"(JJ)I"
+       | _ -> Jvm.Code.lcmp ctx.code);
       match p with
-      | Eq -> Jvm.Code.if_icmpeq ctx.code l_true
-      | Neq -> Jvm.Code.if_icmpne ctx.code l_true
-      | Lt -> Jvm.Code.if_icmplt ctx.code l_true
-      | Ult -> Jvm.Code.if_icmplt ctx.code l_true
-      | Le -> Jvm.Code.if_icmple ctx.code l_true
-      | Gt -> Jvm.Code.if_icmpgt ctx.code l_true
-      | Ge -> Jvm.Code.if_icmpge ctx.code l_true
-      | Uge -> Jvm.Code.if_icmpge ctx.code l_true
+      | Eq -> Jvm.Code.ifeq ctx.code l_true
+      | Neq -> Jvm.Code.ifne ctx.code l_true
+      | Lt -> Jvm.Code.iflt ctx.code l_true
+      | Ult -> Jvm.Code.iflt ctx.code l_true
+      | Le -> Jvm.Code.ifle ctx.code l_true
+      | Gt -> Jvm.Code.ifgt ctx.code l_true
+      | Ge -> Jvm.Code.ifge ctx.code l_true
+      | Uge -> Jvm.Code.ifge ctx.code l_true
       | _ -> assert false);
-    Jvm.Code.ldc_int ctx.code 0;
+    emit_int_const ctx 0;
     Jvm.Code.goto_w ctx.code l_end;
     Jvm.Code.mark_label ctx.code l_true;
-    Jvm.Code.ldc_int ctx.code 1;
+    emit_int_const ctx 1;
     Jvm.Code.mark_label ctx.code l_end;
     K_int
   | Extern "set_sibling", [ Pv self; Pc (Int idx); Pv other ] ->
@@ -4525,7 +4633,7 @@ let emit_prim ctx (p : Code.prim) (args : Code.prim_arg list) : Kind.kind =
       ~class_:class_name
       ~field:(Printf.sprintf "sibling_%d" idx)
       ~descriptor:"LClosure;";
-    Jvm.Code.ldc_int ctx.code 0;
+    emit_int_const ctx 0;
     K_int
   | Extern "offsetclosure", [ Pv env_arg; Pc (Int k) ] ->
     (match ctx.enclosing with
@@ -4569,6 +4677,8 @@ let emit_prim ctx (p : Code.prim) (args : Code.prim_arg list) : Kind.kind =
       ~descriptor:"[Ljava/lang/Object;";
     let ki = emit_prim_arg ctx i in
     ensure_int ctx ki;
+    (* [aaload] wants a JVM [int] index; narrow the K_int long. *)
+    Jvm.Code.l2i ctx.code;
     Jvm.Code.aaload ctx.code;
     K_obj
   | Vectlength, [ a ] ->
@@ -4580,6 +4690,7 @@ let emit_prim ctx (p : Code.prim) (args : Code.prim_arg list) : Kind.kind =
       ~field:"fields"
       ~descriptor:"[Ljava/lang/Object;";
     Jvm.Code.arraylength ctx.code;
+    Jvm.Code.i2l ctx.code;
     K_int
   | Extern "set_byte", [ s; i; v ] ->
     (* s.set(i, v); returns unit = 0 *)
@@ -4588,14 +4699,16 @@ let emit_prim ctx (p : Code.prim) (args : Code.prim_arg list) : Kind.kind =
      | _ -> Jvm.Code.checkcast ctx.code "Bytes");
     let ki = emit_prim_arg ctx i in
     ensure_int ctx ki;
+    Jvm.Code.l2i ctx.code;
     let kv = emit_prim_arg ctx v in
     ensure_int ctx kv;
+    Jvm.Code.l2i ctx.code;
     Jvm.Code.invokevirtual
       ctx.code
       ~class_:"Bytes"
       ~method_:"set"
       ~descriptor:"(II)V";
-    Jvm.Code.ldc_int ctx.code 0;
+    emit_int_const ctx 0;
     K_int
   | Extern "get_byte", [ a; b ] ->
     (* Read a byte from a Bytes/String at an int index. OCaml
@@ -4604,11 +4717,13 @@ let emit_prim ctx (p : Code.prim) (args : Code.prim_arg list) : Kind.kind =
     let _ = emit_prim_arg ctx a in
     let kb = emit_prim_arg ctx b in
     ensure_int ctx kb;
+    Jvm.Code.l2i ctx.code;
     Jvm.Code.invokestatic
       ctx.code
       ~class_:"Bytes"
       ~method_:"staticGet"
       ~descriptor:"(Ljava/lang/Object;I)I";
+    Jvm.Code.i2l ctx.code;
     K_int
   | Extern ("getmethod" | "getpubmet" | "getdynmet"), _ ->
     (* Matches legacy: throw at runtime rather than compile-time.
@@ -4663,12 +4778,12 @@ let emit_prim ctx (p : Code.prim) (args : Code.prim_arg list) : Kind.kind =
     Jvm.Code.ldc_int ctx.code idx;
     emit_load ctx v;
     (match kind_of ctx v with
-     | K_int -> Kind.emit_box_int ctx.code
+     | K_int -> Kind.emit_box_long ctx.code
      | K_float -> Kind.emit_box_float ctx.code
      | _ -> ());
     Jvm.Code.aastore ctx.code;
     (* Return unit (represented as int 0). *)
-    Jvm.Code.ldc_int ctx.code 0;
+    emit_int_const ctx 0;
     K_int
   | Extern "get_global_field", [ Pc (Int idx); Pc (Int field) ] ->
     Jvm.Code.getstatic
@@ -4712,7 +4827,7 @@ let emit_prim ctx (p : Code.prim) (args : Code.prim_arg list) : Kind.kind =
 let emit_load_as_obj ctx v =
   emit_load ctx v;
   match kind_of ctx v with
-  | K_int -> Kind.emit_box_int ctx.code
+  | K_int -> Kind.emit_box_long ctx.code
   | K_float -> Kind.emit_box_float ctx.code
   | _ -> ()
 
@@ -4797,7 +4912,7 @@ let emit_expr ctx (e : Code.expr) : Kind.kind =
         Jvm.Code.ldc_int ctx.code i;
         emit_load ctx v;
         (match kind_of ctx v with
-         | K_int -> Kind.emit_box_int ctx.code
+         | K_int -> Kind.emit_box_long ctx.code
          | K_float -> Kind.emit_box_float ctx.code
          | _ -> ());
         Jvm.Code.aastore ctx.code)
@@ -4908,15 +5023,10 @@ let emit_expr ctx (e : Code.expr) : Kind.kind =
         let vk = kind_of ctx v in
         match (vk : Kind.kind), (target_kind : Kind.kind) with
         | a, b when a = b -> ()
-        | Kind.K_int, Kind.K_obj -> Kind.emit_box_int ctx.code
+        | Kind.K_int, Kind.K_obj -> Kind.emit_box_long ctx.code
         | Kind.K_float, Kind.K_obj -> Kind.emit_box_float ctx.code
         | Kind.K_obj, Kind.K_int ->
-          Jvm.Code.checkcast ctx.code "java/lang/Integer";
-          Jvm.Code.invokevirtual
-            ctx.code
-            ~class_:"java/lang/Integer"
-            ~method_:"intValue"
-            ~descriptor:"()I"
+          Kind.emit_unbox_long ctx.code
         | Kind.K_obj, Kind.K_float ->
           Jvm.Code.checkcast ctx.code "java/lang/Double";
           Jvm.Code.invokevirtual
@@ -4953,12 +5063,12 @@ let emit_instr ctx (i : Code.instr) =
     Jvm.Code.ldc_int ctx.code i;
     emit_load ctx y;
     (match kind_of ctx y with
-     | K_int -> Kind.emit_box_int ctx.code
+     | K_int -> Kind.emit_box_long ctx.code
      | K_float -> Kind.emit_box_float ctx.code
      | _ -> ());
     Jvm.Code.aastore ctx.code
   | Offset_ref (v, n) ->
-    (* arr = v.fields; arr[0] = Integer.valueOf(((Integer)arr[0]).intValue() + n).
+    (* arr = v.fields; arr[0] = Long.valueOf(((Long)arr[0]).longValue() + n).
        Use a fresh local to hold the array cleanly. *)
     let tmp = ctx.next_local in
     ctx.next_local <- tmp + 1;
@@ -4976,15 +5086,10 @@ let emit_instr ctx (i : Code.instr) =
     Jvm.Code.aload ctx.code tmp;
     Jvm.Code.ldc_int ctx.code 0;
     Jvm.Code.aaload ctx.code;
-    Jvm.Code.checkcast ctx.code "java/lang/Integer";
-    Jvm.Code.invokevirtual
-      ctx.code
-      ~class_:"java/lang/Integer"
-      ~method_:"intValue"
-      ~descriptor:"()I";
-    Jvm.Code.ldc_int ctx.code n;
-    Jvm.Code.iadd ctx.code;
-    Kind.emit_box_int ctx.code;
+    Kind.emit_unbox_long ctx.code;
+    emit_int_const ctx n;
+    Jvm.Code.ladd ctx.code;
+    Kind.emit_box_long ctx.code;
     Jvm.Code.aastore ctx.code
   | Array_set (a, i, v) ->
     emit_load ctx a;
@@ -4996,17 +5101,13 @@ let emit_instr ctx (i : Code.instr) =
       ~descriptor:"[Ljava/lang/Object;";
     emit_load ctx i;
     (match kind_of ctx i with
-     | K_int -> ()
+     | K_int -> Jvm.Code.l2i ctx.code
      | _ ->
-       Jvm.Code.checkcast ctx.code "java/lang/Integer";
-       Jvm.Code.invokevirtual
-         ctx.code
-         ~class_:"java/lang/Integer"
-         ~method_:"intValue"
-         ~descriptor:"()I");
+       Kind.emit_unbox_long ctx.code;
+       Jvm.Code.l2i ctx.code);
     emit_load ctx v;
     (match kind_of ctx v with
-     | K_int -> Kind.emit_box_int ctx.code
+     | K_int -> Kind.emit_box_long ctx.code
      | K_float -> Kind.emit_box_float ctx.code
      | _ -> ());
     Jvm.Code.aastore ctx.code
@@ -5069,7 +5170,7 @@ let emit_last ctx prog (l : Code.last) =
     let k = kind_of ctx v in
     emit_load ctx v;
     (match k with
-     | K_int -> Kind.emit_box_int ctx.code; Jvm.Code.areturn ctx.code
+     | K_int -> Kind.emit_box_long ctx.code; Jvm.Code.areturn ctx.code
      | K_float -> Kind.emit_box_float ctx.code; Jvm.Code.areturn ctx.code
      | _ -> Jvm.Code.areturn ctx.code)
   | Stop -> Jvm.Code.return_void ctx.code
@@ -5096,6 +5197,9 @@ let emit_last ctx prog (l : Code.last) =
     (match kind_of ctx v with
      | K_int ->
        emit_load ctx v;
+       (* K_int is JVM [long]; compare against long zero via [lcmp]. *)
+       emit_int_const ctx 0;
+       Jvm.Code.lcmp ctx.code;
        Jvm.Code.ifeq ctx.code l_else
      | K_block _ | K_closure _ | K_string ->
        (* Reference-typed values never compare zero; always truthy. *)
@@ -5111,12 +5215,9 @@ let emit_last ctx prog (l : Code.last) =
        Jvm.Code.dup ctx.code;
        Jvm.Code.instanceof_ ctx.code "Block";
        Jvm.Code.ifne ctx.code l_then;
-       Jvm.Code.checkcast ctx.code "java/lang/Integer";
-       Jvm.Code.invokevirtual
-         ctx.code
-         ~class_:"java/lang/Integer"
-         ~method_:"intValue"
-         ~descriptor:"()I";
+       Kind.emit_unbox_long ctx.code;
+       emit_int_const ctx 0;
+       Jvm.Code.lcmp ctx.code;
        Jvm.Code.ifeq ctx.code l_else;
        let l_end = Jvm.Code.fresh_label ctx.code in
        Jvm.Code.goto_w ctx.code l_end;
@@ -5180,13 +5281,11 @@ let emit_last ctx prog (l : Code.last) =
       emit_load ctx v;
       (match kv with
        | K_int -> ()
-       | _ ->
-         Jvm.Code.checkcast ctx.code "java/lang/Integer";
-         Jvm.Code.invokevirtual
-           ctx.code
-           ~class_:"java/lang/Integer"
-           ~method_:"intValue"
-           ~descriptor:"()I");
+       | _ -> Kind.emit_unbox_long ctx.code);
+      (* [tableswitch] needs a JVM [int] selector; K_int is JVM
+         [long]. Narrow here — case labels are small tag / index
+         values that always fit. *)
+      Jvm.Code.l2i ctx.code;
       emit_int_dispatch ())
     else if n_i = 0
     then (
@@ -5205,12 +5304,10 @@ let emit_last ctx prog (l : Code.last) =
       Jvm.Code.instanceof_ ctx.code "Block";
       Jvm.Code.ifne ctx.code l_block;
       emit_load ctx v;
-      Jvm.Code.checkcast ctx.code "java/lang/Integer";
-      Jvm.Code.invokevirtual
-        ctx.code
-        ~class_:"java/lang/Integer"
-        ~method_:"intValue"
-        ~descriptor:"()I";
+      (match kv with
+       | K_int -> ()
+       | _ -> Kind.emit_unbox_long ctx.code);
+      Jvm.Code.l2i ctx.code;
       emit_int_dispatch ();
       Jvm.Code.mark_label ctx.code l_block;
       emit_load ctx v;
@@ -5421,13 +5518,8 @@ let emit_program
         Jvm.Code.aload ctx.code arg_slot;
         (match k with
          | Kind.K_int ->
-           Jvm.Code.checkcast ctx.code "java/lang/Integer";
-           Jvm.Code.invokevirtual
-             ctx.code
-             ~class_:"java/lang/Integer"
-             ~method_:"intValue"
-             ~descriptor:"()I";
-           Jvm.Code.istore ctx.code new_slot
+           Kind.emit_unbox_long ctx.code;
+           Jvm.Code.lstore ctx.code new_slot
          | Kind.K_float ->
            Jvm.Code.checkcast ctx.code "java/lang/Double";
            Jvm.Code.invokevirtual

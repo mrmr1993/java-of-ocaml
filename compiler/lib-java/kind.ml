@@ -22,7 +22,7 @@ let rec kind_of_global_field = function
   | Gv_null -> K_obj
 
 let jvm_type_of_kind = function
-  | K_int -> "I"
+  | K_int -> "J"
   | K_string -> "Ljava/lang/String;"
   | K_float -> "D"
   | K_block _ -> "LBlock;"
@@ -38,33 +38,42 @@ let rec string_of_kind = function
   | K_closure { name; _ } -> Printf.sprintf "closure<%s>" name
   | K_obj -> "obj"
 
-(* [K_float] values occupy 2 JVM local slots (locals N and N+1) and 2
-   operand-stack slots. Callers storing a float to a local must
-   reserve the second slot too — see [State.allocate_local_for_kind]. *)
+(* [K_float] and [K_int] values occupy 2 JVM local slots (locals N
+   and N+1) and 2 operand-stack slots. Callers storing them to a
+   local must reserve the second slot too — see
+   [State.allocate_local_for_kind]. OCaml ints back as JVM [long]
+   for 63-bit range. *)
 let local_slots_for_kind = function
-  | K_float -> 2
-  | K_int | K_string | K_block _ | K_closure _ | K_obj -> 1
+  | K_float | K_int -> 2
+  | K_string | K_block _ | K_closure _ | K_obj -> 1
 
 let emit_store_for_kind code local kind =
   match kind with
-  | K_int -> Jvm.Code.istore code local
+  | K_int -> Jvm.Code.lstore code local
   | K_float -> Jvm.Code.dstore code local
   | K_string | K_block _ | K_closure _ | K_obj ->
     Jvm.Code.astore code local
 
 let emit_load_for_kind code local kind =
   match kind with
-  | K_int -> Jvm.Code.iload code local
+  | K_int -> Jvm.Code.lload code local
   | K_float -> Jvm.Code.dload code local
   | K_string | K_block _ | K_closure _ | K_obj ->
     Jvm.Code.aload code local
 
+(* OCaml [int] boxes as [java.lang.Long] now that its backing JVM
+   type is [long]. This helper takes a JVM [int] on the stack (the
+   historical contract — many callers push an [int] result from an
+   [invokestatic] / [arraylength] / arithmetic opcode), widens it
+   to [long], and boxes. Use [emit_box_long] if the top-of-stack is
+   already a [long]. *)
 let emit_box_int code =
+  Jvm.Code.i2l code;
   Jvm.Code.invokestatic
     code
-    ~class_:"java/lang/Integer"
+    ~class_:"java/lang/Long"
     ~method_:"valueOf"
-    ~descriptor:"(I)Ljava/lang/Integer;"
+    ~descriptor:"(J)Ljava/lang/Long;"
 
 let emit_box_float code =
   Jvm.Code.invokestatic
@@ -99,12 +108,11 @@ let emit_unbox_long code =
 let emit_unbox_to_kind code kind =
   match kind with
   | K_int ->
-    Jvm.Code.checkcast code "java/lang/Integer";
-    Jvm.Code.invokevirtual
-      code
-      ~class_:"java/lang/Integer"
-      ~method_:"intValue"
-      ~descriptor:"()I"
+    (* OCaml int unboxes as JVM long. [Block.asLong] dispatches
+       across Integer / Long / other numerics; it handles both
+       freshly-boxed Longs and legacy Integer constants from
+       module-level globals. *)
+    emit_unbox_long code
   | K_float ->
     Jvm.Code.checkcast code "java/lang/Double";
     Jvm.Code.invokevirtual

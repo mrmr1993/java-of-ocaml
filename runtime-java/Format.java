@@ -8,7 +8,7 @@
 // locale variants, the "#" alternate form, etc.) may differ from
 // OCaml's exact output but won't crash.
 public class Format {
-    public static String formatInt(String fmt, int n) {
+    public static String formatInt(String fmt, long n) {
         return String.format(normalize(fmt, false), n);
     }
 

@@ -12,16 +12,10 @@ let resolve env = function
      | Some c -> Some c
      | None -> None)
 
-(* JVM ints wrap at 32 bits — keep fold results inside that band so
-   a later emitter can always represent them with [iconst] / [bipush]
-   / [sipush] / [ldc] without needing [long]. The OCaml bytecode's
-   native int is 63-bit but our backend already truncates, so
-   matching that behaviour on the constant path is strictly safer. *)
-let wrap n =
-  let n = n land 0xffffffff in
-  if n >= 0x80000000 then n - 0x100000000 else n
-
-let i n = Some (Int (wrap n))
+(* OCaml int now backs as JVM [long], so constant folding operates on
+   63-bit values (the compile-side OCaml's native int range). Small
+   results emit as [ldc_int; i2l]; larger ones as [ldc_long]. *)
+let i n = Some (Int n)
 
 let fold_int_binop op a b =
   match op with
@@ -33,9 +27,9 @@ let fold_int_binop op a b =
   | "and_int" -> Some (a land b)
   | "or_int" -> Some (a lor b)
   | "xor_int" -> Some (a lxor b)
-  | "lsl_int" -> Some (a lsl (b land 31))
-  | "lsr_int" -> Some ((a land 0xffffffff) lsr (b land 31))
-  | "asr_int" -> Some (a asr (b land 31))
+  | "lsl_int" -> Some (a lsl (b land 63))
+  | "lsr_int" -> Some (a lsr (b land 63))
+  | "asr_int" -> Some (a asr (b land 63))
   | _ -> None
 
 let fold_prim env (p : prim) (args : prim_arg list) : constant option =
@@ -53,13 +47,9 @@ let fold_prim env (p : prim) (args : prim_arg list) : constant option =
     | Le, [ Int a; Int b ] -> i (if a <= b then 1 else 0)
     | Gt, [ Int a; Int b ] -> i (if a > b then 1 else 0)
     | Ge, [ Int a; Int b ] -> i (if a >= b then 1 else 0)
-    | Ult, [ Int a; Int b ] ->
-      (* Unsigned compare: treat as 32-bit unsigned. *)
-      let ua = a land 0xffffffff and ub = b land 0xffffffff in
-      i (if ua < ub then 1 else 0)
-    | Uge, [ Int a; Int b ] ->
-      let ua = a land 0xffffffff and ub = b land 0xffffffff in
-      i (if ua >= ub then 1 else 0)
+    (* Unsigned compares on 64-bit longs don't constant-fold cleanly
+       when the compile-side OCaml int is 63-bit; leave them for
+       runtime dispatch via [Long.compareUnsigned]. *)
     | Vectlength, [ Block (_, fs) ] -> i (Array.length fs)
     | Extern "neg_int", [ Int n ] -> i (-n)
     | Extern name, [ Int a; Int b ] ->

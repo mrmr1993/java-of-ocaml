@@ -462,14 +462,12 @@ let l2i t = add_u1 t.buf 0x88; pop t 1
 let l2d t = add_u1 t.buf 0x8A  (* 2→2, stack-neutral *)
 let d2l t = add_u1 t.buf 0x8F  (* 2→2, stack-neutral *)
 let lstore t n =
-  if n <= 3
-  then add_u1 t.buf (0x3F + n)
-  else (add_u1 t.buf 0x37; add_u1 t.buf n);
+  emit_local_op t ~short_opcode:0x3F ~indexed_opcode:0x37 n;
+  note_local t (n + 1);
   pop t 2
 let lload t n =
-  if n <= 3
-  then add_u1 t.buf (0x1E + n)
-  else (add_u1 t.buf 0x16; add_u1 t.buf n);
+  emit_local_op t ~short_opcode:0x1E ~indexed_opcode:0x16 n;
+  note_local t (n + 1);
   push t 2
 
 let emit_branch t lbl opcode ~stack_delta =

@@ -1221,6 +1221,7 @@ let compile_t
              ~name_of_body
              ~fn_info_of_body
              ~prim_name
+             ~is_static:true
              ~line_of_pc
              head
          with Failure msg ->
@@ -1380,23 +1381,34 @@ let compile_t
             let ncaps = List.length cap_kinds in
             let fn_cp = Jvm.Cp.create () in
             let ctor_code = Jvm.Code.create fn_cp in
-            Jvm.Code.set_min_locals ctor_code (1 + ncaps);
+            (* Each capture param occupies [local_slots_for_kind] slots
+               in the constructor's local frame; K_int / K_float use 2
+               slots, everything else uses 1. *)
+            let total_slots =
+              List.fold_left
+                (fun acc k -> acc + Kind.local_slots_for_kind k) 1 cap_kinds
+            in
+            Jvm.Code.set_min_locals ctor_code total_slots;
             Jvm.Code.aload ctor_code 0;
             Jvm.Code.invokespecial
               ctor_code
               ~class_:"Closure"
               ~method_:"<init>"
               ~descriptor:"()V";
-            List.iteri
-              (fun i k ->
-                Jvm.Code.aload ctor_code 0;
-                emit_load_for_kind ctor_code (i + 1) k;
-                Jvm.Code.putfield
-                  ctor_code
-                  ~class_:fn_info.name
-                  ~field:(Printf.sprintf "cap%d" i)
-                  ~descriptor:(jvm_type_of_kind k))
-              cap_kinds;
+            let _ =
+              List.fold_left
+                (fun (i, slot) k ->
+                  Jvm.Code.aload ctor_code 0;
+                  emit_load_for_kind ctor_code slot k;
+                  Jvm.Code.putfield
+                    ctor_code
+                    ~class_:fn_info.name
+                    ~field:(Printf.sprintf "cap%d" i)
+                    ~descriptor:(jvm_type_of_kind k);
+                  i + 1, slot + Kind.local_slots_for_kind k)
+                (0, 1)
+                cap_kinds
+            in
             Jvm.Code.return_void ctor_code;
             cap_kinds, ncaps, fn_cp, ctor_code)
         in

@@ -27,7 +27,8 @@ and closure_ref =
 val kind_of_global_field : Global_view.global_field_value -> kind
 
 val jvm_type_of_kind : kind -> string
-(** JVM descriptor (["I"], ["Ljava/lang/String;"], ...) for each kind. *)
+(** JVM descriptor (["J"] for OCaml int, ["Ljava/lang/String;"], ...)
+    for each kind. *)
 
 val string_of_kind : kind -> string
 (** Short, human-readable tag: ["int"] / ["string"] / ["block[…]"] /
@@ -39,12 +40,13 @@ val emit_store_for_kind : Jvm.Code.t -> int -> kind -> unit
 val emit_load_for_kind : Jvm.Code.t -> int -> kind -> unit
 
 val local_slots_for_kind : kind -> int
-(** JVM local-variable width. [K_float] takes 2 slots; every other
-    kind takes 1. Callers reserving a local for a value of unknown-
-    but-inferable kind must use this instead of hard-coding 1. *)
+(** JVM local-variable width. [K_float] and [K_int] take 2 slots;
+    every other kind takes 1. Callers reserving a local for a value
+    of unknown-but-inferable kind must use this instead of
+    hard-coding 1. *)
 
 val emit_box_int : Jvm.Code.t -> unit
-(** [Integer.valueOf(int) : Integer]. *)
+(** [Long.valueOf(long) : Long]. OCaml int backs as JVM long. *)
 
 val emit_box_float : Jvm.Code.t -> unit
 (** [Double.valueOf(double) : Double]. *)
@@ -61,6 +63,6 @@ val emit_unbox_to_kind : Jvm.Code.t -> kind -> unit
     the concrete [kind]. *)
 
 val box_if_int : Jvm.Code.t -> kind -> unit
-(** Box a primitive to its reference form: [Integer.valueOf] for
+(** Box a primitive to its reference form: [Long.valueOf] for
     [K_int], [Double.valueOf] for [K_float]. A no-op for reference
     kinds. *)
