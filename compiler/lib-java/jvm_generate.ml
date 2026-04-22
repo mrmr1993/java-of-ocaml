@@ -1378,8 +1378,8 @@ and emit_ccall_named ctx name args =
       ~method_:"<init>"
       ~descriptor:"(I[Ljava/lang/Object;)V";
     Kind.K_obj
-  | "caml_sys_const_int_size" -> Jvm.Code.ldc_int ctx.code 63; Kind.K_int
-  | "caml_sys_const_word_size" -> Jvm.Code.ldc_int ctx.code 64; Kind.K_int
+  | "caml_sys_const_int_size" -> emit_int_const ctx 63; Kind.K_int
+  | "caml_sys_const_word_size" -> emit_int_const ctx 64; Kind.K_int
   | "caml_sys_const_big_endian"
   | "caml_sys_const_ostype_unix" ->
     emit_int_const ctx 0;
@@ -1405,8 +1405,8 @@ and emit_ccall_named ctx name args =
        sizes. *)
     emit_int_const ctx 268435455;
     Kind.K_int
-  | "caml_sys_const_min_int" -> Jvm.Code.ldc_int ctx.code min_int; Kind.K_int
-  | "caml_sys_const_max_int" -> Jvm.Code.ldc_int ctx.code max_int; Kind.K_int
+  | "caml_sys_const_min_int" -> emit_int_const ctx min_int; Kind.K_int
+  | "caml_sys_const_max_int" -> emit_int_const ctx max_int; Kind.K_int
   | "caml_ensure_stack_capacity"
   | "caml_ml_set_binary_mode"
   | "caml_ml_set_channel_name"
@@ -1698,13 +1698,17 @@ and emit_ccall_named ctx name args =
      | _ -> raise (Unsupported "caml_float_compare arity"))
   | "caml_bswap16" ->
     (match args with
-     | [ Pv n ] ->
-       as_int n;
+     | [ (Pv _ as n) ] ->
+       let load_as_long () =
+         let k = emit_prim_arg ctx n in
+         ensure_int ctx k
+       in
+       load_as_long ();
        emit_int_const ctx 0xFF;
        Jvm.Code.land_ ctx.code;
        Jvm.Code.ldc_int ctx.code 8;
        Jvm.Code.lshl ctx.code;
-       as_int n;
+       load_as_long ();
        Jvm.Code.ldc_int ctx.code 8;
        Jvm.Code.lushr ctx.code;
        emit_int_const ctx 0xFF;
@@ -4805,9 +4809,14 @@ let emit_prim ctx (p : Code.prim) (args : Code.prim_arg list) : Kind.kind =
   | IsInt, [ a ] ->
     let ka = emit_prim_arg ctx a in
     (match ka with
-     | K_int -> Jvm.Code.ldc_int ctx.code 1; K_int
+     | K_int ->
+       (* Statically an int — discard the value (2 slots) and push 1. *)
+       Jvm.Code.pop2 ctx.code;
+       emit_int_const ctx 1;
+       K_int
      | _ ->
        Jvm.Code.instanceof_ ctx.code "java/lang/Integer";
+       Jvm.Code.i2l ctx.code;
        K_int)
   | p, _ ->
     let p_str =
