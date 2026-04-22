@@ -22,12 +22,12 @@ public final class Compare {
         if (a == null) return -1;
         if (b == null) return 1;
 
-        // Integer first — most common, fast path.
-        if (a instanceof Integer && b instanceof Integer) {
-            return Integer.compare((Integer) a, (Integer) b);
-        }
-        if (a instanceof Long && b instanceof Long) {
-            return Long.compare((Long) a, (Long) b);
+        // Integral: OCaml [int] is now JVM [Long]; [Integer] still
+        // appears for Int32 / small-int globals pre-widening. Compare
+        // numerically across the two.
+        if ((a instanceof Long || a instanceof Integer)
+            && (b instanceof Long || b instanceof Integer)) {
+            return Long.compare(((Number) a).longValue(), ((Number) b).longValue());
         }
         if (a instanceof Double && b instanceof Double) {
             return Double.compare((Double) a, (Double) b);
@@ -73,11 +73,9 @@ public final class Compare {
     public static int equal(Object a, Object b) {
         if (a == b) return 1;
         if (a == null || b == null) return 0;
-        if (a instanceof Integer && b instanceof Integer) {
-            return a.equals(b) ? 1 : 0;
-        }
-        if (a instanceof Long && b instanceof Long) {
-            return a.equals(b) ? 1 : 0;
+        if ((a instanceof Long || a instanceof Integer)
+            && (b instanceof Long || b instanceof Integer)) {
+            return ((Number) a).longValue() == ((Number) b).longValue() ? 1 : 0;
         }
         if (a instanceof Double && b instanceof Double) {
             return ((double) (Double) a == (double) (Double) b) ? 1 : 0;

@@ -4448,6 +4448,9 @@ and emit_ccall_named ctx name args =
           Jvm.Code.instanceof_ ctx.code "Block";
           Jvm.Code.ifne ctx.code l_block;
           Jvm.Code.dup ctx.code;
+          Jvm.Code.instanceof_ ctx.code "java/lang/Long";
+          Jvm.Code.ifne ctx.code l_int;
+          Jvm.Code.dup ctx.code;
           Jvm.Code.instanceof_ ctx.code "java/lang/Integer";
           Jvm.Code.ifne ctx.code l_int;
           Jvm.Code.dup ctx.code;
