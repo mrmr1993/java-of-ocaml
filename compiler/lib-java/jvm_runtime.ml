@@ -24,6 +24,8 @@ let thread_prim_class_bytes () = R.thread_prim
 let ocaml_class_bytes () = R.ocaml
 
 let builtin_stub_classes () =
-  [ "CoreUnixStubs", R.core_unix_stubs ]
+  [ "CoreUnixStubs", R.core_unix_stubs
+  ; "ConstantStubs", R.constant_stubs
+  ]
 
 let builtin_stubs_json () = R.stubs_json

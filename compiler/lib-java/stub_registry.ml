@@ -9,6 +9,7 @@ type stub =
   ; descriptor : string
   ; arity : int
   ; weakdef : bool
+  ; shorthand : bool
   ; source_path : string
   }
 
@@ -90,6 +91,7 @@ let parse_entry ~source_path ~prim_name ~default_arity = function
     ; descriptor
     ; arity
     ; weakdef = false
+    ; shorthand = true
     ; source_path
     }
   | `Assoc fields ->
@@ -143,6 +145,7 @@ let parse_entry ~source_path ~prim_name ~default_arity = function
     ; descriptor
     ; arity
     ; weakdef
+    ; shorthand = false
     ; source_path
     }
   | other ->

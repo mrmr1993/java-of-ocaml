@@ -463,24 +463,25 @@ let rec emit_ccall ctx name args =
     | None -> emit_ccall_named ctx name args
 
 and emit_stub_call ctx (stub : Stub_registry.stub) args =
-  let default_desc =
-    (* Shorthand form: all-Object descriptor matching the actual arg
-       count. We prefer to trust the method's reported descriptor
-       but the shorthand path has arity=0 at manifest-load time —
-       the true arity is the number of call-site args. *)
-    let n = List.length args in
-    let buf = Buffer.create (n * 18 + 18) in
-    Buffer.add_char buf '(';
-    for _ = 1 to n do Buffer.add_string buf "Ljava/lang/Object;" done;
-    Buffer.add_string buf ")Ljava/lang/Object;";
-    Buffer.contents buf
-  in
   let descriptor =
-    (* If the stub gave us a real descriptor, honour it. Otherwise
-       build an all-Object one from the call-site arity. *)
-    if stub.arity = 0 && List.length args <> 0
-    then default_desc
-    else stub.descriptor
+    if stub.shorthand
+    then (
+      (* Shorthand entry: the manifest only told us the
+         [Class.method] target. Build an all-[Object] descriptor
+         from the call-site arity — matches the Java method's
+         declared signature provided stub authors follow the
+         [Object...Object] convention. *)
+      let n = List.length args in
+      let buf = Buffer.create (n * 18 + 18) in
+      Buffer.add_char buf '(';
+      for _ = 1 to n do Buffer.add_string buf "Ljava/lang/Object;" done;
+      Buffer.add_string buf ")Ljava/lang/Object;";
+      Buffer.contents buf)
+    else
+      (* Explicit descriptor from the manifest. Trust it; if the
+         call-site arity doesn't match, the [List.length ...] check
+         below surfaces it as a clean Unsupported. *)
+      stub.descriptor
   in
   let param_types, ret_type = parse_method_desc descriptor in
   if List.length param_types <> List.length args
@@ -2360,51 +2361,9 @@ and emit_ccall_named ctx name args =
        Jvm.Code.ldc_string ctx.code "unknown";
        Kind.K_string
      | _ -> raise (Unsupported (name ^ " arity")))
-  | "unix_O_RDONLY" -> emit_int_const ctx 0; Kind.K_int
-  | "unix_O_WRONLY" -> emit_int_const ctx 1; Kind.K_int
-  | "unix_O_RDWR" -> emit_int_const ctx 2; Kind.K_int
-  | "unix_O_CREAT" -> emit_int_const ctx 0x40; Kind.K_int
-  | "unix_O_EXCL" -> emit_int_const ctx 0x80; Kind.K_int
-  | "unix_O_NOCTTY" -> emit_int_const ctx 0x100; Kind.K_int
-  | "unix_O_TRUNC" -> emit_int_const ctx 0x200; Kind.K_int
-  | "unix_O_APPEND" -> emit_int_const ctx 0x400; Kind.K_int
-  | "unix_O_NONBLOCK" -> emit_int_const ctx 0x800; Kind.K_int
-  | "unix_O_DSYNC" -> emit_int_const ctx 0x1000; Kind.K_int
-  | "unix_O_ASYNC" -> emit_int_const ctx 0x2000; Kind.K_int
-  | "unix_O_DIRECT" -> emit_int_const ctx 0x4000; Kind.K_int
-  | "unix_O_DIRECTORY" -> emit_int_const ctx 0x10000; Kind.K_int
-  | "unix_O_NOFOLLOW" -> emit_int_const ctx 0x20000; Kind.K_int
-  | "unix_O_NOATIME" -> emit_int_const ctx 0x40000; Kind.K_int
-  | "unix_O_CLOEXEC" -> emit_int_const ctx 0x80000; Kind.K_int
-  | "unix_O_SYNC" -> emit_int_const ctx 0x101000; Kind.K_int
-  | "unix_O_RSYNC" -> emit_int_const ctx 0x101000; Kind.K_int
-  (* Linux epoll / eventfd / timerfd flags. Values match the kernel
-     ABI. [Flags.Make] checks each bit-field is non-zero, so we need
-     real values rather than 0 stubs. *)
-  | "core_linux_epoll_EPOLLIN_flag" -> emit_int_const ctx 0x001; Kind.K_int
-  | "core_linux_epoll_EPOLLPRI_flag" -> emit_int_const ctx 0x002; Kind.K_int
-  | "core_linux_epoll_EPOLLOUT_flag" -> emit_int_const ctx 0x004; Kind.K_int
-  | "core_linux_epoll_EPOLLERR_flag" -> emit_int_const ctx 0x008; Kind.K_int
-  | "core_linux_epoll_EPOLLHUP_flag" -> emit_int_const ctx 0x010; Kind.K_int
-  | "core_linux_epoll_EPOLLET_flag" -> emit_int_const ctx 0x80000000; Kind.K_int
-  | "core_linux_epoll_EPOLLONESHOT_flag" -> emit_int_const ctx 0x40000000; Kind.K_int
-  | "core_linux_eventfd_EFD_CLOEXEC" -> emit_int_const ctx 0x80000; Kind.K_int
-  | "core_linux_eventfd_EFD_NONBLOCK" -> emit_int_const ctx 0x800; Kind.K_int
-  | "core_linux_eventfd_EFD_SEMAPHORE" -> emit_int_const ctx 1; Kind.K_int
-  | "core_linux_timerfd_CLOCK_MONOTONIC" -> emit_int_const ctx 1; Kind.K_int
-  | "core_linux_timerfd_CLOCK_REALTIME" -> emit_int_const ctx 0; Kind.K_int
-  | "core_linux_timerfd_TFD_CLOEXEC" -> emit_int_const ctx 0x80000; Kind.K_int
-  | "core_linux_timerfd_TFD_NONBLOCK" -> emit_int_const ctx 0x800; Kind.K_int
-  | "core_linux_xattr_XATTR_CREATE_flag" -> emit_int_const ctx 1; Kind.K_int
-  | "core_linux_xattr_XATTR_REPLACE_flag" -> emit_int_const ctx 2; Kind.K_int
-  | "core_linux_epoll_sizeof_epoll_event" -> emit_int_const ctx 12; Kind.K_int
-  | "core_linux_epoll_offsetof_readyfd" -> emit_int_const ctx 4; Kind.K_int
-  | "core_linux_epoll_offsetof_readyflags" -> emit_int_const ctx 0; Kind.K_int
-  | "unix_F_GETFD" -> emit_int_const ctx 1; Kind.K_int
-  | "unix_F_SETFD" -> emit_int_const ctx 2; Kind.K_int
-  | "unix_F_GETFL" -> emit_int_const ctx 3; Kind.K_int
-  | "unix_F_SETFL" -> emit_int_const ctx 4; Kind.K_int
-  | "unix_FD_CLOEXEC" -> emit_int_const ctx 1; Kind.K_int
+  (* unix_O_* / F_* / FD_* / core_linux_epoll_* / _eventfd_* /
+     _timerfd_* / _xattr_* flag constants — migrated to
+     [runtime-java/stubs/ConstantStubs.java]. *)
   | "ldouble_init" | "ldouble_complex_init"
   | "ctypes_ldouble_init" ->
     (match args with
@@ -2569,65 +2528,9 @@ and emit_ccall_named ctx name args =
     (match args with
      | [ _ ] -> emit_int_const ctx 0; Kind.K_int
      | _ -> raise (Unsupported (name ^ " arity")))
-  | "integers_uint8_max" -> emit_int_const ctx 0xFF; Kind.K_int
-  | "integers_uint8_min" -> emit_int_const ctx 0; Kind.K_int
-  | "integers_uint16_max" -> emit_int_const ctx 0xFFFF; Kind.K_int
-  | "integers_uint16_min" -> emit_int_const ctx 0; Kind.K_int
-  | "integers_uint32_max" ->
-    Jvm.Code.ldc_long ctx.code 0xFFFFFFFFL;
-    Kind.K_int
-  | "integers_uint32_min" -> emit_int_const ctx 0; Kind.K_int
-  | "integers_uint64_max" ->
-    Jvm.Code.ldc_long ctx.code (-1L);
-    Kind.K_int
-  | "integers_uint64_min" -> emit_int_const ctx 0; Kind.K_int
-  | "integers_size_t_size" -> emit_int_const ctx 8; Kind.K_int
-  | "integers_ushort_size" -> emit_int_const ctx 2; Kind.K_int
-  | "integers_uint_size" -> emit_int_const ctx 4; Kind.K_int
-  | "integers_ulong_size" -> emit_int_const ctx 8; Kind.K_int
-  | "integers_ulonglong_size" -> emit_int_const ctx 8; Kind.K_int
-  | "integers_intptr_t_size" | "integers_uintptr_t_size"
-  | "integers_ptrdiff_t_size" -> emit_int_const ctx 8; Kind.K_int
-  (* ctypes_typeof_* primitives return a [Ctypes_static.arithmetic]
-     variant, whose cases are: [Int8=0 | Int16=1 | Int32=2 | Int64=3 |
-     Uint8=4 | Uint16=5 | Uint32=6 | Uint64=7 | Float=8 | Double=9].
-     Using the Linux/x86_64 ABI sizes of the respective POSIX types.
-     [mkSigned] / [mkUnsigned] both [assert false] on Float/Double, so
-     picking a non-matching variant will fault at init — these values
-     match Linux/x86_64 typedefs. *)
-  | "ctypes_typeof_clock_t" -> emit_int_const ctx 3 (* Int64 *); Kind.K_int
-  | "ctypes_typeof_dev_t" -> emit_int_const ctx 7 (* Uint64 *); Kind.K_int
-  | "ctypes_typeof_ino_t" -> emit_int_const ctx 7 (* Uint64 *); Kind.K_int
-  | "ctypes_typeof_mode_t" -> emit_int_const ctx 6 (* Uint32 *); Kind.K_int
-  | "ctypes_typeof_nlink_t" -> emit_int_const ctx 7 (* Uint64 *); Kind.K_int
-  | "ctypes_typeof_off_t" -> emit_int_const ctx 3 (* Int64 *); Kind.K_int
-  | "ctypes_typeof_pid_t" -> emit_int_const ctx 2 (* Int32 *); Kind.K_int
-  | "ctypes_typeof_ssize_t" -> emit_int_const ctx 3 (* Int64 *); Kind.K_int
-  | "ctypes_typeof_time_t" -> emit_int_const ctx 3 (* Int64 *); Kind.K_int
-  | "ctypes_typeof_useconds_t" -> emit_int_const ctx 6 (* Uint32 *); Kind.K_int
-  | "ctypes_typeof_uid_t" -> emit_int_const ctx 6 (* Uint32 *); Kind.K_int
-  | "ctypes_typeof_gid_t" -> emit_int_const ctx 6 (* Uint32 *); Kind.K_int
-  | "ctypes_typeof_blkcnt_t" -> emit_int_const ctx 3 (* Int64 *); Kind.K_int
-  | "ctypes_typeof_blksize_t" -> emit_int_const ctx 3 (* Int64 *); Kind.K_int
-  | "ctypes_typeof_fsblkcnt_t" -> emit_int_const ctx 7 (* Uint64 *); Kind.K_int
-  | "ctypes_typeof_fsfilcnt_t" -> emit_int_const ctx 7 (* Uint64 *); Kind.K_int
-  | "ctypes_typeof_id_t" -> emit_int_const ctx 6 (* Uint32 *); Kind.K_int
-  | "ctypes_typeof_key_t" -> emit_int_const ctx 2 (* Int32 *); Kind.K_int
-  | "ctypes_typeof_suseconds_t" -> emit_int_const ctx 3 (* Int64 *); Kind.K_int
-  | "ctypes_typeof_speed_t" -> emit_int_const ctx 6 (* Uint32 *); Kind.K_int
-  | "ctypes_typeof_cc_t" -> emit_int_const ctx 4 (* Uint8 *); Kind.K_int
-  | "ctypes_typeof_tcflag_t" -> emit_int_const ctx 6 (* Uint32 *); Kind.K_int
-  | "ctypes_typeof_nfds_t" -> emit_int_const ctx 7 (* Uint64 *); Kind.K_int
-  | "ctypes_typeof_rlim_t" -> emit_int_const ctx 7 (* Uint64 *); Kind.K_int
-  | "ctypes_typeof_socklen_t" -> emit_int_const ctx 6 (* Uint32 *); Kind.K_int
-  | "ctypes_typeof_intptr_t" -> emit_int_const ctx 3 (* Int64 *); Kind.K_int
-  | "ctypes_typeof_uintptr_t" -> emit_int_const ctx 7 (* Uint64 *); Kind.K_int
-  | "ctypes_typeof_ptrdiff_t" -> emit_int_const ctx 3 (* Int64 *); Kind.K_int
-  | "ctypes_typeof_sigset_t" -> emit_int_const ctx 7 (* Uint64 — opaque *); Kind.K_int
-  | "ctypes_alignmentof_sigset_t" | "ctypes_alignmentof_fd_set" ->
-    emit_int_const ctx 8; Kind.K_int
-  | "ctypes_sizeof_sigset_t" -> emit_int_const ctx 128; Kind.K_int
-  | "ctypes_sizeof_fd_set" -> emit_int_const ctx 128; Kind.K_int
+  (* integers_uint*_max/min/size, integers_*_size,
+     ctypes_typeof_* / alignmentof_* / sizeof_* — migrated to
+     [runtime-java/stubs/ConstantStubs.java]. *)
   | "re_string_match" | "re_partial_match"
   | "re_search_forward" | "re_search_backward" ->
     (* Pretend the whole string always matches at pos=0. Returns

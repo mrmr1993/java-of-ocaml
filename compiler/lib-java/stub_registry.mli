@@ -24,6 +24,13 @@ type stub =
   ; descriptor : string   (* JVM method descriptor *)
   ; arity : int           (* parameter count, derived from descriptor *)
   ; weakdef : bool        (* if true, hardcoded handler wins *)
+  ; shorthand : bool      (* true if the manifest entry was the
+                             [Class.method] shorthand — the
+                             descriptor is a placeholder, and the
+                             emitter should build the real one from
+                             the call-site arity. False when the
+                             descriptor came explicitly from the
+                             manifest. *)
   ; source_path : string  (* manifest path, for diagnostics *)
   }
 
