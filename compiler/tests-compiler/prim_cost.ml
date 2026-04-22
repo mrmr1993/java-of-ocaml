@@ -189,64 +189,64 @@ let%expect_test "primitive cost table vs real emission" =
       | Error msg -> Printf.printf "%-40s ERROR: %s\n" name msg)
     prefix_tests;
   [%expect {|
-    caml_ml_string_length                    est= 16 act= 13 delta= -3
-    caml_string_length                       est= 16 act= 13 delta= -3
-    caml_ml_bytes_length                     est= 16 act= 10 delta= -6
-    caml_bytes_length                        est= 16 act= 10 delta= -6
-    caml_string_get                          est= 30 act= 18 delta=-12
-    caml_bytes_get                           est= 30 act= 15 delta=-15
-    caml_bytes_set                           est= 36 act= 24 delta=-12
+    caml_ml_string_length                    est= 16 act= 14 delta= -2
+    caml_string_length                       est= 16 act= 14 delta= -2
+    caml_ml_bytes_length                     est= 16 act= 11 delta= -5
+    caml_bytes_length                        est= 16 act= 11 delta= -5
+    caml_string_get                          est= 30 act= 19 delta=-11
+    caml_bytes_get                           est= 30 act= 16 delta=-14
+    caml_bytes_set                           est= 36 act= 25 delta=-11
     caml_string_of_bytes                     est= 16 act=  7 delta= -9
     caml_bytes_of_string                     est= 16 act= 10 delta= -6
     caml_create_bytes                        est= 22 act= 15 delta= -7
-    caml_blit_string                         est= 50 act= 36 delta=-14
-    caml_blit_bytes                          est= 50 act= 36 delta=-14
-    caml_fill_bytes                          est= 46 act= 31 delta=-15
-    caml_string_equal                        est= 26 act= 17 delta= -9
-    caml_string_notequal                     est= 28 act= 19 delta= -9
-    caml_bytes_equal                         est= 26 act= 17 delta= -9
-    caml_string_compare                      est= 26 act= 17 delta= -9
-    caml_ml_flush                            est= 20 act= 14 delta= -6
-    caml_ml_output_char                      est= 24 act= 19 delta= -5
-    caml_ml_output                           est= 36 act= 30 delta= -6
+    caml_blit_string                         est= 50 act= 37 delta=-13
+    caml_blit_bytes                          est= 50 act= 37 delta=-13
+    caml_fill_bytes                          est= 46 act= 32 delta=-14
+    caml_string_equal                        est= 26 act= 18 delta= -8
+    caml_string_notequal                     est= 28 act= 20 delta= -8
+    caml_bytes_equal                         est= 26 act= 18 delta= -8
+    caml_string_compare                      est= 26 act= 18 delta= -8
+    caml_ml_flush                            est= 20 act= 15 delta= -5
+    caml_ml_output_char                      est= 24 act= 20 delta= -4
+    caml_ml_output                           est= 36 act= 31 delta= -5
     caml_ml_output_string                    est= 28 act= 14 delta=-14
     caml_array_unsafe_get                    est= 28 act= 16 delta=-12
     caml_array_get                           est= 28 act= 16 delta=-12
-    caml_array_unsafe_set                    est= 36 act= 21 delta=-15
-    caml_array_set                           est= 36 act= 21 delta=-15
+    caml_array_unsafe_set                    est= 36 act= 22 delta=-14
+    caml_array_set                           est= 36 act= 22 delta=-14
     caml_array_make                          est= 30 act= 26 delta= -4
     caml_array_sub                           est= 38 act= 37 delta= -1
-    caml_array_blit                          est= 46 act= 42 delta= -4
-    caml_array_fill                          est= 42 act= 36 delta= -6
+    caml_array_blit                          est= 46 act= 43 delta= -3
+    caml_array_fill                          est= 42 act= 37 delta= -5
     caml_array_append                        est= 84 act= 82 delta= -2
     caml_ba_create                           est= 32 act= 20 delta=-12
-    caml_ba_dim_1                            est= 20 act= 13 delta= -7
-    caml_ba_dim_2                            est= 20 act= 13 delta= -7
-    caml_ba_dim_3                            est= 20 act= 13 delta= -7
-    caml_ba_num_dims                         est= 20 act= 13 delta= -7
-    caml_ba_kind                             est= 20 act= 13 delta= -7
-    caml_ba_layout                           est= 20 act= 13 delta= -7
+    caml_ba_dim_1                            est= 20 act= 14 delta= -6
+    caml_ba_dim_2                            est= 20 act= 14 delta= -6
+    caml_ba_dim_3                            est= 20 act= 14 delta= -6
+    caml_ba_num_dims                         est= 20 act= 14 delta= -6
+    caml_ba_kind                             est= 20 act= 14 delta= -6
+    caml_ba_layout                           est= 20 act= 14 delta= -6
     caml_ba_get_1                            est= 30 act= 15 delta=-15
     caml_ba_get_2                            est= 34 act= 20 delta=-14
-    caml_ba_set_1                            est= 36 act= 19 delta=-17
-    caml_ba_set_2                            est= 40 act= 26 delta=-14
-    caml_ba_fill                             est= 32 act= 14 delta=-18
-    caml_ba_blit                             est= 28 act= 17 delta=-11
-    caml_ba_uint8_get16                      est= 28 act= 18 delta=-10
-    caml_ba_uint8_get32                      est= 28 act= 18 delta=-10
+    caml_ba_set_1                            est= 36 act= 20 delta=-16
+    caml_ba_set_2                            est= 40 act= 27 delta=-13
+    caml_ba_fill                             est= 32 act= 15 delta=-17
+    caml_ba_blit                             est= 28 act= 18 delta=-10
+    caml_ba_uint8_get16                      est= 28 act= 19 delta= -9
+    caml_ba_uint8_get32                      est= 28 act= 19 delta= -9
     caml_ba_uint8_get64                      est= 32 act= 18 delta=-14
-    caml_ba_uint8_set16                      est= 32 act= 23 delta= -9
-    caml_ba_uint8_set32                      est= 32 act= 23 delta= -9
-    caml_ba_uint8_set64                      est= 36 act= 22 delta=-14
+    caml_ba_uint8_set16                      est= 32 act= 24 delta= -8
+    caml_ba_uint8_set32                      est= 32 act= 24 delta= -8
+    caml_ba_uint8_set64                      est= 36 act= 23 delta=-13
     caml_obj_dup                             est= 22 act= 10 delta=-12
-    caml_obj_tag                             est= 65 act= 64 delta= -1
+    caml_obj_tag                             est= 65 act= 65 delta= +0
     caml_obj_block                           est= 26 act= 23 delta= -3
     caml_obj_with_tag                        est= 26 act= 27 delta= +1
-    caml_fresh_oo_id                         est= 20 act=  7 delta=-13
+    caml_fresh_oo_id                         est= 20 act=  8 delta=-12
     caml_alloc_dummy                         est= 26 act= 19 delta= -7
     caml_alloc_dummy_function                est= 30 act= 10 delta=-20
     caml_alloc_dummy_float                   est= 26 act= 19 delta= -7
-    caml_update_dummy                        est= 54 act= 51 delta= -3
+    caml_update_dummy                        est= 54 act= 52 delta= -2
     caml_add_float                           est= 24 act= 21 delta= -3
     caml_sub_float                           est= 24 act= 21 delta= -3
     caml_mul_float                           est= 24 act= 21 delta= -3
@@ -256,14 +256,14 @@ let%expect_test "primitive cost table vs real emission" =
     caml_sqrt_float                          est= 22 act= 16 delta= -6
     caml_sin_float                           est= 22 act= 16 delta= -6
     caml_cos_float                           est= 22 act= 16 delta= -6
-    caml_eq_float                            est= 34 act= 31 delta= -3
-    caml_neq_float                           est= 34 act= 31 delta= -3
-    caml_lt_float                            est= 34 act= 31 delta= -3
-    caml_le_float                            est= 34 act= 31 delta= -3
-    caml_gt_float                            est= 34 act= 31 delta= -3
-    caml_ge_float                            est= 34 act= 31 delta= -3
+    caml_eq_float                            est= 34 act= 33 delta= -1
+    caml_neq_float                           est= 34 act= 33 delta= -1
+    caml_lt_float                            est= 34 act= 33 delta= -1
+    caml_le_float                            est= 34 act= 33 delta= -1
+    caml_gt_float                            est= 34 act= 33 delta= -1
+    caml_ge_float                            est= 34 act= 33 delta= -1
     caml_int_of_float                        est= 20 act= 14 delta= -6
-    caml_float_of_int                        est= 20 act= 12 delta= -8
+    caml_float_of_int                        est= 20 act= 11 delta= -9
     caml_int64_add                           est= 28 act= 15 delta=-13
     caml_int64_sub                           est= 28 act= 15 delta=-13
     caml_int64_mul                           est= 28 act= 15 delta=-13
@@ -271,58 +271,58 @@ let%expect_test "primitive cost table vs real emission" =
     caml_int64_and                           est= 28 act= 15 delta=-13
     caml_int64_or                            est= 28 act= 15 delta=-13
     caml_int64_xor                           est= 28 act= 15 delta=-13
-    caml_int64_to_int                        est= 22 act= 11 delta=-11
+    caml_int64_to_int                        est= 22 act= 10 delta=-12
     caml_int64_of_int                        est= 22 act= 12 delta=-10
-    caml_int64_compare                       est= 26 act= 15 delta=-11
-    caml_equal                               est= 22 act= 11 delta=-11
-    caml_notequal                            est= 22 act= 11 delta=-11
-    caml_compare                             est= 22 act= 11 delta=-11
-    caml_lessthan                            est= 22 act= 11 delta=-11
-    caml_lessequal                           est= 22 act= 11 delta=-11
-    caml_greaterthan                         est= 22 act= 11 delta=-11
-    caml_greaterequal                        est= 22 act= 11 delta=-11
-    caml_int_compare                         est= 22 act= 19 delta= -3
+    caml_int64_compare                       est= 26 act= 16 delta=-10
+    caml_equal                               est= 22 act= 12 delta=-10
+    caml_notequal                            est= 22 act= 12 delta=-10
+    caml_compare                             est= 22 act= 12 delta=-10
+    caml_lessthan                            est= 22 act= 12 delta=-10
+    caml_lessequal                           est= 22 act= 12 delta=-10
+    caml_greaterthan                         est= 22 act= 12 delta=-10
+    caml_greaterequal                        est= 22 act= 12 delta=-10
+    caml_int_compare                         est= 22 act= 18 delta= -4
     caml_atomic_load                         est= 26 act= 12 delta=-14
-    caml_atomic_cas                          est= 34 act= 29 delta= -5
+    caml_atomic_cas                          est= 34 act= 30 delta= -4
     caml_atomic_exchange                     est= 30 act= 22 delta= -8
-    caml_atomic_fetch_add                    est= 44 act= 40 delta= -4
-    caml_format_int                          est= 34 act= 15 delta=-19
+    caml_atomic_fetch_add                    est= 44 act= 36 delta= -8
+    caml_format_int                          est= 34 act= 14 delta=-20
     caml_int_of_string                       est= 22 act= 13 delta= -9
     caml_float_of_string                     est= 22 act= 13 delta= -9
     caml_md5_string                          est= 28 act= 17 delta=-11
     caml_md5_bytes                           est= 28 act= 17 delta=-11
     caml_ml_mutex_new                        est= 18 act=  6 delta=-12
-    caml_ml_mutex_lock                       est= 18 act= 13 delta= -5
-    caml_ml_mutex_unlock                     est= 18 act= 13 delta= -5
+    caml_ml_mutex_lock                       est= 18 act= 14 delta= -4
+    caml_ml_mutex_unlock                     est= 18 act= 14 delta= -4
     caml_ml_condition_new                    est= 18 act=  6 delta=-12
-    caml_ml_condition_signal                 est= 18 act= 13 delta= -5
-    caml_ml_condition_broadcast              est= 18 act= 13 delta= -5
+    caml_ml_condition_signal                 est= 18 act= 14 delta= -4
+    caml_ml_condition_broadcast              est= 18 act= 14 delta= -4
     caml_thread_self                         est= 18 act=  6 delta=-12
-    caml_thread_yield                        est= 18 act=  9 delta= -9
-    caml_thread_id                           est= 18 act= 13 delta= -5
-    caml_sys_const_big_endian                est= 14 act=  7 delta= -7
-    caml_sys_const_word_size                 est= 14 act=  8 delta= -6
-    caml_sys_const_int_size                  est= 14 act=  8 delta= -6
-    caml_sys_const_max_wosize                est= 14 act=  8 delta= -6
-    caml_sys_get_config                      est= 40 act= 35 delta= -5
+    caml_thread_yield                        est= 18 act= 10 delta= -8
+    caml_thread_id                           est= 18 act= 14 delta= -4
+    caml_sys_const_big_endian                est= 14 act=  8 delta= -6
+    caml_sys_const_word_size                 est= 14 act=  9 delta= -5
+    caml_sys_const_int_size                  est= 14 act=  9 delta= -5
+    caml_sys_const_max_wosize                est= 14 act=  9 delta= -5
+    caml_sys_get_config                      est= 40 act= 37 delta= -3
     caml_sys_get_argv                        est= 45 act= 32 delta=-13
     caml_sys_time                            est= 30 act= 14 delta=-16
-    caml_sys_random_seed                     est= 30 act= 25 delta= -5
-    caml_ensure_stack_capacity               est= 14 act=  7 delta= -7
-    caml_register_named_value                est= 18 act=  7 delta=-11
-    caml_init_signals                        est= 14 act=  7 delta= -7
-    caml_record_backtrace                    est= 14 act=  7 delta= -7
+    caml_sys_random_seed                     est= 30 act= 24 delta= -6
+    caml_ensure_stack_capacity               est= 14 act=  8 delta= -6
+    caml_register_named_value                est= 18 act=  8 delta=-10
+    caml_init_signals                        est= 14 act=  8 delta= -6
+    caml_record_backtrace                    est= 14 act=  8 delta= -6
     caml_channel_descriptor                  est= 12 act=  4 delta= -8
     caml_sys_executable_name                 est= 12 act=  4 delta= -8
-    caml_gc_minor                            est= 14 act=  7 delta= -7
-    caml_gc_major                            est= 14 act=  7 delta= -7
-    caml_final_register                      est= 18 act=  7 delta=-11
-    caml_java_print_int                      est= 20 act= 18 delta= -2
-    caml_java_print_endline                  est= 20 act= 17 delta= -3
-    caml_java_print_float                    est= 20 act= 20 delta= +0
-    caml_lazy_update_to_forcing              est= 40 act= 32 delta= -8
-    caml_lazy_reset_to_lazy                  est= 30 act= 17 delta=-13
-    caml_lazy_update_to_forward              est= 30 act= 17 delta=-13
+    caml_gc_minor                            est= 14 act=  8 delta= -6
+    caml_gc_major                            est= 14 act=  8 delta= -6
+    caml_final_register                      est= 18 act=  8 delta=-10
+    caml_java_print_int                      est= 20 act= 19 delta= -1
+    caml_java_print_endline                  est= 20 act= 18 delta= -2
+    caml_java_print_float                    est= 20 act= 21 delta= +1
+    caml_lazy_update_to_forcing              est= 40 act= 33 delta= -7
+    caml_lazy_reset_to_lazy                  est= 30 act= 18 delta=-12
+    caml_lazy_update_to_forward              est= 30 act= 18 delta=-12
     caml_lazy_make_forward                   est= 30 act= 21 delta= -9
     alloc_block                              est= 30 act= 15 delta=-15
     get_global                               est= 19 act=  8 delta=-11
@@ -330,5 +330,5 @@ let%expect_test "primitive cost table vs real emission" =
     caml_unix_inet_addr_of_string            est= 12 act=  4 delta= -8
     unix_inet_addr_of_string                 est= 12 act=  4 delta= -8
     nonexistent_primitive_stub_path          est= 50 act= 14 delta=-36
-    set_global                               est= 25 act= 13 delta=-12
+    set_global                               est= 25 act= 14 delta=-11
     |}]

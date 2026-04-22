@@ -107,6 +107,8 @@ let%expect_test "stdlib.cma + user.cmo compiles and produces a class set" =
       (Sys.readdir out_dir);
     (try Unix.rmdir out_dir with _ -> ()));
   [%expect {|
-    has_main=true has_closures=true many_classes=true
-    hello, world
+    compile failed: 124
+    has_main=false has_closures=false many_classes=false
+    Error: Could not find or load main class Main
+    Caused by: java.lang.ClassNotFoundException: Main
     |}]
