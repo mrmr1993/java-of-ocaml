@@ -21,4 +21,25 @@ public final class CoreUnixStubs {
         });
         return new Block(0, new Object[] { limit, limit });
     }
+
+    /** Parse IPv4 "a.b.c.d" → 32-bit integer. Stub: always 127.0.0.1. */
+    public static long inet4_addr_to_int(Object s) {
+        return 0x7F000001L;
+    }
+
+    /** Inverse — stub returns "127.0.0.1" regardless. */
+    public static String inet4_addr_of_int(long v) {
+        return "127.0.0.1";
+    }
+
+    /** [errno_to_error_variant]. Return EAGAIN=11 consistently. */
+    public static long error_of_code(long code) { return 11; }
+
+    /** [error_variant_to_errno]. Return 0 (no error). */
+    public static long code_of_error(Object e) { return 0; }
+
+    /** [bigstring_alloc pos len]. Size is [len]; [pos] is ignored. */
+    public static Object bigstring_alloc(Object pos, long len) {
+        return BigArray.allocBigstring(len);
+    }
 }

@@ -23,7 +23,8 @@
   CoreUnixStubs.class
   ConstantStubs.class
   IntegersStubs.class
-  CtypesStubs.class)
+  CtypesStubs.class
+  ZeroStubs.class)
  (deps
   Block.java
   Closure.java
@@ -44,7 +45,8 @@
   stubs/CoreUnixStubs.java
   stubs/ConstantStubs.java
   stubs/IntegersStubs.java
-  stubs/CtypesStubs.java)
+  stubs/CtypesStubs.java
+  stubs/ZeroStubs.java)
  (action
   (run javac -d . %{deps})))
 
@@ -72,6 +74,7 @@
    ConstantStubs.class
    IntegersStubs.class
    CtypesStubs.class
+   ZeroStubs.class
    stubs/stubs.json))
  (action
   (with-stdout-to

@@ -126,6 +126,7 @@ let%expect_test "compile accepts a .cmo and emits class files" =
     Ocaml.class
     PartialClosure.class
     ThreadPrim.class
+    ZeroStubs.class
     |}]
 
 let%expect_test "link de-duplicates primitives across two units" =
