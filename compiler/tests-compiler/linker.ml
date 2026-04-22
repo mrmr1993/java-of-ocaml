@@ -117,6 +117,7 @@ let%expect_test "compile accepts a .cmo and emits class files" =
     DummyClosure.class
     Ephemeron.class
     Format.class
+    IntegersStubs.class
     JavaFFI.class
     Main$globals_0.class
     Main.class
