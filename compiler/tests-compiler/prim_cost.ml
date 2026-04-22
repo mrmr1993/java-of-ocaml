@@ -272,7 +272,7 @@ let%expect_test "primitive cost table vs real emission" =
     caml_int64_or                            est= 28 act= 15 delta=-13
     caml_int64_xor                           est= 28 act= 15 delta=-13
     caml_int64_to_int                        est= 22 act= 10 delta=-12
-    caml_int64_of_int                        est= 22 act= 12 delta=-10
+    caml_int64_of_int                        est= 22 act= 10 delta=-12
     caml_int64_compare                       est= 26 act= 16 delta=-10
     caml_equal                               est= 22 act= 12 delta=-10
     caml_notequal                            est= 22 act= 12 delta=-10

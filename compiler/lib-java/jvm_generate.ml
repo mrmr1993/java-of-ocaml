@@ -2224,7 +2224,8 @@ and emit_ccall_named ctx name args =
        Jvm.Code.i2l ctx.code;
        Kind.K_int
      | _ -> raise (Unsupported "caml_thread_set_name arity"))
-  | "caml_ml_mutex_new" | "caml_mutex_new" ->
+  | "caml_ml_mutex_new" | "caml_mutex_new"
+  | "unix_create_error_checking_mutex" ->
     (match args with
      | [ _ ] ->
        Jvm.Code.invokestatic
@@ -2306,10 +2307,96 @@ and emit_ccall_named ctx name args =
        Jvm.Code.i2l ctx.code;
        Kind.K_int
      | _ -> raise (Unsupported "caml_ml_condition_broadcast arity"))
-  | "generated_hg_version" | "generated_build_info" ->
+  | "generated_hg_version" ->
     (match args with
      | [ _ ] ->
        Jvm.Code.ldc_string ctx.code "unknown";
+       Kind.K_string
+     | _ -> raise (Unsupported (name ^ " arity")))
+  | "unix_O_RDONLY" -> emit_int_const ctx 0; Kind.K_int
+  | "unix_O_WRONLY" -> emit_int_const ctx 1; Kind.K_int
+  | "unix_O_RDWR" -> emit_int_const ctx 2; Kind.K_int
+  | "unix_O_CREAT" -> emit_int_const ctx 0x40; Kind.K_int
+  | "unix_O_EXCL" -> emit_int_const ctx 0x80; Kind.K_int
+  | "unix_O_NOCTTY" -> emit_int_const ctx 0x100; Kind.K_int
+  | "unix_O_TRUNC" -> emit_int_const ctx 0x200; Kind.K_int
+  | "unix_O_APPEND" -> emit_int_const ctx 0x400; Kind.K_int
+  | "unix_O_NONBLOCK" -> emit_int_const ctx 0x800; Kind.K_int
+  | "unix_O_DSYNC" -> emit_int_const ctx 0x1000; Kind.K_int
+  | "unix_O_ASYNC" -> emit_int_const ctx 0x2000; Kind.K_int
+  | "unix_O_DIRECT" -> emit_int_const ctx 0x4000; Kind.K_int
+  | "unix_O_DIRECTORY" -> emit_int_const ctx 0x10000; Kind.K_int
+  | "unix_O_NOFOLLOW" -> emit_int_const ctx 0x20000; Kind.K_int
+  | "unix_O_NOATIME" -> emit_int_const ctx 0x40000; Kind.K_int
+  | "unix_O_CLOEXEC" -> emit_int_const ctx 0x80000; Kind.K_int
+  | "unix_O_SYNC" -> emit_int_const ctx 0x101000; Kind.K_int
+  | "unix_O_RSYNC" -> emit_int_const ctx 0x101000; Kind.K_int
+  | "unix_F_GETFD" -> emit_int_const ctx 1; Kind.K_int
+  | "unix_F_SETFD" -> emit_int_const ctx 2; Kind.K_int
+  | "unix_F_GETFL" -> emit_int_const ctx 3; Kind.K_int
+  | "unix_F_SETFL" -> emit_int_const ctx 4; Kind.K_int
+  | "unix_FD_CLOEXEC" -> emit_int_const ctx 1; Kind.K_int
+  | "bigstring_init_stub"
+  | "bigstring_realloc"
+  | "bigstring_memset_stub"
+  | "core_unix_sysconf"
+  | "core_unix_clock_gettime"
+  | "core_unix_clock_getres"
+  | "core_unix_clock_process_cputime_id_stub"
+  | "core_unix_clock_thread_cputime_id_stub" ->
+    (match args with
+     | [ _ ] | [ _; _ ] | [] ->
+       emit_int_const ctx 0;
+       Kind.K_int
+     | _ -> raise (Unsupported (name ^ " arity")))
+  | "core_unix_inet4_addr_to_int32_exn"
+  | "core_unix_inet4_addr_to_int63_exn" ->
+    (* Parse IPv4 "a.b.c.d" → 32-bit integer. Stub: return 0x7F000001
+       (127.0.0.1) regardless; callers that actually care are rare
+       during init. *)
+    (match args with
+     | [ _ ] ->
+       emit_int_const ctx 0x7F000001;
+       Kind.K_int
+     | _ -> raise (Unsupported (name ^ " arity")))
+  | "core_unix_inet4_addr_of_int32"
+  | "core_unix_inet4_addr_of_int63" ->
+    (match args with
+     | [ _ ] ->
+       Jvm.Code.ldc_string ctx.code "127.0.0.1";
+       Kind.K_string
+     | _ -> raise (Unsupported (name ^ " arity")))
+  | "core_unix_error_of_code" ->
+    (* Core_unix maps errno ints back to the OCaml Unix.error variant.
+       Return an arbitrary constant-constructor (EUNKNOWNERR has
+       tag 0 with int payload, EBADF=9, etc.). Callers that don't
+       actually interpret the specific value won't notice; callers
+       that do will see EAGAIN (11) consistently. *)
+    (match args with
+     | [ _ ] ->
+       emit_int_const ctx 11;
+       Kind.K_int
+     | _ -> raise (Unsupported (name ^ " arity")))
+  | "core_unix_code_of_error" ->
+    (match args with
+     | [ _ ] ->
+       emit_int_const ctx 0;
+       Kind.K_int
+     | _ -> raise (Unsupported (name ^ " arity")))
+  | "generated_build_info" ->
+    (* Core_kernel's [version_util] parses this string with
+       [Sexp.of_string] and then [t_of_sexp] into a record. Return
+       a minimally-valid sexp covering the non-[@sexp.option] fields
+       so record parsing doesn't trip on an atom. *)
+    (match args with
+     | [ _ ] ->
+       Jvm.Code.ldc_string ctx.code
+         "((x_library_inlining false)\
+          \ (portable_int63 false)\
+          \ (dynlinkable_code false)\
+          \ (ocaml_version \"unknown\")\
+          \ (executable_path \"\")\
+          \ (build_system \"unknown\"))";
        Kind.K_string
      | _ -> raise (Unsupported (name ^ " arity")))
   | "time_now_nanoseconds_since_unix_epoch_or_zero" ->

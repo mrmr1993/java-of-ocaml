@@ -18,6 +18,10 @@ public final class CamlException extends RuntimeException {
     }
 
     private static String describe(Object v) {
+        return fmt(v, 3);
+    }
+
+    private static String fmt(Object v, int depth) {
         if (v == null) return "null";
         if (v instanceof Block) {
             Block b = (Block) v;
@@ -36,12 +40,17 @@ public final class CamlException extends RuntimeException {
                 for (int i = 1; i < b.fields.length; i++) {
                     if (i > 1) sb.append(", ");
                     Object f = b.fields[i];
-                    sb.append(f == null ? "null" : f.toString());
+                    if (depth > 0)
+                        sb.append(fmt(f, depth - 1));
+                    else if (f == null) sb.append("null");
+                    else if (f instanceof Block) sb.append("Block@").append(Integer.toHexString(System.identityHashCode(f)));
+                    else sb.append(f);
                 }
                 sb.append(")");
             }
             return sb.toString();
         }
+        if (v instanceof String) return "\"" + ((String)v).replace("\\", "\\\\").replace("\"", "\\\"") + "\"";
         return v.toString();
     }
 }
