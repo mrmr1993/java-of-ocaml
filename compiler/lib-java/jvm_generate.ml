@@ -1528,8 +1528,8 @@ and emit_ccall_named ctx name args =
      in a core_unix-linked program resolves to [unix_inet_addr_of_string]
      rather than [caml_unix_inet_addr_of_string]. Same init-time-only
      treatment — null is OK until an actual socket path runs. *)
-  | "unix_inet_addr_of_string"
-  | "unix_string_of_inet_addr" ->
+  | "unix_string_of_inet_addr"
+  | "unix_inet_addr_of_string" ->
     Jvm.Code.aconst_null ctx.code;
     Kind.K_obj
   | "caml_ml_open_descriptor_in" ->
@@ -2331,6 +2331,28 @@ and emit_ccall_named ctx name args =
   | "unix_O_CLOEXEC" -> emit_int_const ctx 0x80000; Kind.K_int
   | "unix_O_SYNC" -> emit_int_const ctx 0x101000; Kind.K_int
   | "unix_O_RSYNC" -> emit_int_const ctx 0x101000; Kind.K_int
+  (* Linux epoll / eventfd / timerfd flags. Values match the kernel
+     ABI. [Flags.Make] checks each bit-field is non-zero, so we need
+     real values rather than 0 stubs. *)
+  | "core_linux_epoll_EPOLLIN_flag" -> emit_int_const ctx 0x001; Kind.K_int
+  | "core_linux_epoll_EPOLLPRI_flag" -> emit_int_const ctx 0x002; Kind.K_int
+  | "core_linux_epoll_EPOLLOUT_flag" -> emit_int_const ctx 0x004; Kind.K_int
+  | "core_linux_epoll_EPOLLERR_flag" -> emit_int_const ctx 0x008; Kind.K_int
+  | "core_linux_epoll_EPOLLHUP_flag" -> emit_int_const ctx 0x010; Kind.K_int
+  | "core_linux_epoll_EPOLLET_flag" -> emit_int_const ctx 0x80000000; Kind.K_int
+  | "core_linux_epoll_EPOLLONESHOT_flag" -> emit_int_const ctx 0x40000000; Kind.K_int
+  | "core_linux_eventfd_EFD_CLOEXEC" -> emit_int_const ctx 0x80000; Kind.K_int
+  | "core_linux_eventfd_EFD_NONBLOCK" -> emit_int_const ctx 0x800; Kind.K_int
+  | "core_linux_eventfd_EFD_SEMAPHORE" -> emit_int_const ctx 1; Kind.K_int
+  | "core_linux_timerfd_CLOCK_MONOTONIC" -> emit_int_const ctx 1; Kind.K_int
+  | "core_linux_timerfd_CLOCK_REALTIME" -> emit_int_const ctx 0; Kind.K_int
+  | "core_linux_timerfd_TFD_CLOEXEC" -> emit_int_const ctx 0x80000; Kind.K_int
+  | "core_linux_timerfd_TFD_NONBLOCK" -> emit_int_const ctx 0x800; Kind.K_int
+  | "core_linux_xattr_XATTR_CREATE_flag" -> emit_int_const ctx 1; Kind.K_int
+  | "core_linux_xattr_XATTR_REPLACE_flag" -> emit_int_const ctx 2; Kind.K_int
+  | "core_linux_epoll_sizeof_epoll_event" -> emit_int_const ctx 12; Kind.K_int
+  | "core_linux_epoll_offsetof_readyfd" -> emit_int_const ctx 4; Kind.K_int
+  | "core_linux_epoll_offsetof_readyflags" -> emit_int_const ctx 0; Kind.K_int
   | "unix_F_GETFD" -> emit_int_const ctx 1; Kind.K_int
   | "unix_F_SETFD" -> emit_int_const ctx 2; Kind.K_int
   | "unix_F_GETFL" -> emit_int_const ctx 3; Kind.K_int
@@ -2339,13 +2361,262 @@ and emit_ccall_named ctx name args =
   | "bigstring_init_stub"
   | "bigstring_realloc"
   | "bigstring_memset_stub"
+  | "bigstring_recvmmsg_assume_fd_is_nonblocking_stub"
+  | "bigstring_recvfrom_assume_fd_is_nonblocking_stub"
+  | "bigstring_sendto_nonblocking_no_sigpipe_stub"
+  | "bigstring_send_nonblocking_no_sigpipe_stub"
+  | "bigstring_sendmsg_nonblocking_no_sigpipe_stub"
+  | "bigstring_really_send_no_sigpipe_stub"
+  | "bigstring_really_recv_stub"
+  | "bigstring_really_write_stub"
+  | "bigstring_pread_assume_fd_is_nonblocking_stub"
+  | "bigstring_pwrite_assume_fd_is_nonblocking_stub"
+  | "bigstring_read_assume_fd_is_nonblocking_stub"
+  | "bigstring_write_assume_fd_is_nonblocking_stub"
+  | "bigstring_writev_assume_fd_is_nonblocking_stub"
+  | "bigstring_writev_stub"
+  | "bigstring_read_stub"
+  | "bigstring_write_stub"
+  | "bigstring_output_stub"
+  | "bigstring_input_stub"
+  | "bigstring_destroy_stub"
+  | "bigstring_is_mmapped_stub"
+  | "bigstring_memcmp_stub"
+  | "bigstring_find"
+  | "bigstring_blit_stub"
+  | "bigstring_blit_bigstring_bytes_stub"
+  | "bigstring_blit_bytes_bigstring_stub"
+  | "bigstring_blit_string_bigstring_stub"
+  | "caml_blit_bigstring_to_bigstring"
+  | "caml_blit_bigstring_to_string"
   | "core_unix_sysconf"
   | "core_unix_clock_gettime"
   | "core_unix_clock_getres"
+  | "core_unix_clock_settime"
   | "core_unix_clock_process_cputime_id_stub"
-  | "core_unix_clock_thread_cputime_id_stub" ->
+  | "core_unix_clock_thread_cputime_id_stub"
+  | "core_unix_abort"
+  | "core_unix_endpwent"
+  | "core_unix_dirfd"
+  | "core_unix_fcntl"
+  | "core_unix_fdatasync"
+  | "core_unix_flock"
+  | "core_unix_fnmatch"
+  | "core_unix_fnmatch_make_flags"
+  | "core_unix_fsync"
+  | "core_unix_getgrgid_r"
+  | "core_unix_getgrnam_r"
+  | "core_unix_getgrouplist"
+  | "core_unix_getifaddrs"
+  | "core_unix_getpwent"
+  | "core_unix_getpwnam_r"
+  | "core_unix_getpwuid_r"
+  | "core_unix_getrlimit"
+  | "core_unix_getrusage"
+  | "core_unix_gettid"
+  | "core_unix_if_indextoname"
+  | "core_unix_iff_to_int"
+  | "core_unix_initgroups"
+  | "core_unix_mcast_get_loop"
+  | "core_unix_mcast_get_ttl"
+  | "core_unix_mcast_modify"
+  | "core_unix_mcast_set_ifname"
+  | "core_unix_mcast_set_loop"
+  | "core_unix_mcast_set_ttl"
+  | "core_unix_mkdtemp"
+  | "core_unix_mknod_stub"
+  | "core_unix_mkstemp"
+  | "core_unix_mlockall"
+  | "core_unix_munlockall"
+  | "core_unix_nice"
+  | "core_unix_pselect_stub"
+  | "core_unix_pthread_getcpuclockid"
+  | "core_unix_read_assume_fd_is_nonblocking_stub"
+  | "core_unix_readdir_ino_stub"
+  | "core_unix_realpath"
+  | "core_unix_remove"
+  | "core_unix_sched_setscheduler"
+  | "core_unix_setpwent"
+  | "core_unix_setrlimit"
+  | "core_unix_strptime"
+  | "core_unix_sync"
+  | "core_unix_uname"
+  | "core_unix_unsetenv"
+  | "core_unix_wordexp"
+  | "core_linux_epoll_create"
+  | "core_linux_epoll_ctl_add"
+  | "core_linux_epoll_ctl_del"
+  | "core_linux_epoll_ctl_mod"
+  | "core_linux_epoll_wait"
+  | "core_linux_eventfd"
+  | "core_linux_eventfd_read"
+  | "core_linux_eventfd_write"
+  | "core_linux_timerfd_create"
+  | "core_linux_timerfd_gettime"
+  | "core_linux_timerfd_settime"
+  | "core_linux_bind_to_interface"
+  | "core_linux_get_bind_to_interface"
+  | "core_linux_get_ipv4_address_for_interface"
+  | "core_linux_get_terminal_size"
+  | "core_linux_getpriority"
+  | "core_linux_gettcpopt_bool_stub"
+  | "core_linux_getxattr"
+  | "core_linux_peer_credentials"
+  | "core_linux_pr_get_name"
+  | "core_linux_pr_get_pdeathsig_stub"
+  | "core_linux_pr_set_name"
+  | "core_linux_pr_set_pdeathsig_stub"
+  | "core_linux_sched_getaffinity"
+  | "core_linux_sched_setaffinity"
+  | "core_linux_send_no_sigpipe_stub"
+  | "core_linux_send_nonblocking_no_sigpipe_stub"
+  | "core_linux_sendfile_stub"
+  | "core_linux_sendmsg_nonblocking_no_sigpipe_stub"
+  | "core_linux_setpriority"
+  | "core_linux_settcpopt_bool_stub"
+  | "core_linux_setxattr"
+  | "core_linux_sysinfo"
+  | "iobuf_recvmmsg_assume_fd_is_nonblocking_stub"
+  | "iobuf_recvmmsg_ctx"
+  | "iobuf_unsafe_pokef_double_bytecode"
+  | "unix_accept"
+  | "unix_access"
+  | "unix_alarm"
+  | "unix_bind"
+  | "unix_chdir"
+  | "unix_chmod"
+  | "unix_chown"
+  | "unix_chroot"
+  | "unix_clear_close_on_exec"
+  | "unix_clear_nonblock"
+  | "unix_close"
+  | "unix_closedir"
+  | "unix_connect"
+  | "unix_dup"
+  | "unix_dup2"
+  | "unix_environment"
+  | "unix_environment_unsafe"
+  | "unix_error_message"
+  | "unix_execv"
+  | "unix_execve"
+  | "unix_execvp"
+  | "unix_execvpe"
+  | "unix_exit"
+  | "unix_fchmod"
+  | "unix_fchown"
+  | "unix_fork"
+  | "unix_fstat"
+  | "unix_fstat_64"
+  | "unix_fsync"
+  | "unix_ftruncate"
+  | "unix_ftruncate_64"
+  | "unix_getaddrinfo"
+  | "unix_getcwd"
+  | "unix_getegid"
+  | "unix_geteuid"
+  | "unix_getgid"
+  | "unix_getgrgid"
+  | "unix_getgrnam"
+  | "unix_getgroups"
+  | "unix_gethostbyaddr"
+  | "unix_gethostbyname"
+  | "unix_gethostname"
+  | "unix_getitimer"
+  | "unix_getlogin"
+  | "unix_getnameinfo"
+  | "unix_getpeername"
+  | "unix_getpid"
+  | "unix_getppid"
+  | "unix_getprotobyname"
+  | "unix_getprotobynumber"
+  | "unix_getpwnam"
+  | "unix_getpwuid"
+  | "unix_getservbyname"
+  | "unix_getservbyport"
+  | "unix_getsockname"
+  | "unix_getsockopt"
+  | "unix_gettimeofday"
+  | "unix_getuid"
+  | "unix_gmtime"
+  | "unix_has_symlink"
+  | "unix_inchannel_of_filedescr"
+  | "unix_initgroups"
+  | "unix_isatty"
+  | "unix_kill"
+  | "unix_link"
+  | "unix_listen"
+  | "unix_localtime"
+  | "unix_lockf"
+  | "unix_lseek"
+  | "unix_lseek_64"
+  | "unix_lstat"
+  | "unix_lstat_64"
+  | "unix_mkdir"
+  | "unix_mkfifo"
+  | "unix_mktime"
+  | "unix_nice"
+  | "unix_open"
+  | "unix_opendir"
+  | "unix_outchannel_of_filedescr"
+  | "unix_pipe"
+  | "unix_putenv"
+  | "unix_read"
+  | "unix_readdir"
+  | "unix_readlink"
+  | "unix_realpath"
+  | "unix_recv"
+  | "unix_recvfrom"
+  | "unix_rename"
+  | "unix_rewinddir"
+  | "unix_rmdir"
+  | "unix_select"
+  | "unix_send"
+  | "unix_sendto"
+  | "unix_set_close_on_exec"
+  | "unix_set_nonblock"
+  | "unix_setgid"
+  | "unix_setgroups"
+  | "unix_setitimer"
+  | "unix_setsid"
+  | "unix_setsockopt"
+  | "unix_setuid"
+  | "unix_shutdown"
+  | "unix_sigpending"
+  | "unix_sigprocmask"
+  | "unix_sigsuspend"
+  | "unix_single_write"
+  | "unix_sleep"
+  | "unix_socket"
+  | "unix_socketpair"
+  | "unix_spawn"
+  | "unix_stat"
+  | "unix_symlink"
+  | "unix_tcdrain"
+  | "unix_tcflow"
+  | "unix_tcflush"
+  | "unix_tcgetattr"
+  | "unix_tcsendbreak"
+  | "unix_tcsetattr"
+  | "unix_time"
+  | "unix_times"
+  | "unix_truncate"
+  | "unix_truncate_64"
+  | "unix_umask"
+  | "unix_unlink"
+  | "unix_utimes"
+  | "unix_wait"
+  | "unix_waitpid"
+  | "unix_write"
+  | "core_unix_error_stub" ->
+    (* Shallow stubs: return 0 for the primitive's "int-ish"
+       return type. Covers the Unix/bigstring init chain that
+       a caller's [Command.run] touches transitively. Most
+       are never actually called at runtime on our happy path;
+       those that are get 0, which is a successful syscall result
+       in Core's conventions (0 bytes written, 0 error code). *)
     (match args with
-     | [ _ ] | [ _; _ ] | [] ->
+     | [] | [ _ ] | [ _; _ ] | [ _; _; _ ] | [ _; _; _; _ ]
+     | [ _; _; _; _; _ ] | [ _; _; _; _; _; _ ] ->
        emit_int_const ctx 0;
        Kind.K_int
      | _ -> raise (Unsupported (name ^ " arity")))
@@ -4275,6 +4546,34 @@ and emit_ccall_named ctx name args =
        emit_int_const ctx 0;
        Kind.K_int
      | _ -> raise (Unsupported "caml_lazy_reset_to_lazy arity"))
+  | "caml_obj_make_forward" ->
+    (* [caml_obj_make_forward blk v]: in-place turn [blk] into
+       a forward reference to [v]. Matches what
+       [caml_lazy_update_to_forward] does, plus assigning
+       [blk.fields[0] := v]. *)
+    (match args with
+     | [ Pv blk; v ] ->
+       emit_load ctx blk;
+       Jvm.Code.checkcast ctx.code "Block";
+       Jvm.Code.dup ctx.code;
+       Jvm.Code.getfield
+         ctx.code
+         ~class_:"Block"
+         ~field:"fields"
+         ~descriptor:"[Ljava/lang/Object;";
+       Jvm.Code.ldc_int ctx.code 0;
+       let k = emit_prim_arg ctx v in
+       (match k with
+        | Kind.K_int -> Kind.emit_box_long ctx.code
+        | Kind.K_float -> Kind.emit_box_float ctx.code
+        | _ -> ());
+       Jvm.Code.aastore ctx.code;
+       (* Stack: [Block]. Set tag := 250. *)
+       Jvm.Code.ldc_int ctx.code 250;
+       Jvm.Code.putfield ctx.code ~class_:"Block" ~field:"tag" ~descriptor:"I";
+       emit_int_const ctx 0;
+       Kind.K_int
+     | _ -> raise (Unsupported "caml_obj_make_forward arity"))
   | "caml_lazy_update_to_forward" ->
     (* Rewrite the tag to [forward_tag=250] once the result is stored.
        At this point field 0 holds the forced value rather than the
