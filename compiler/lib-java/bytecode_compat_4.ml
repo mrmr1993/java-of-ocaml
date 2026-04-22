@@ -31,8 +31,36 @@ type cu_header =
   ; cu_debugsize : int
   }
 
+(* Translate a [Lambda.structured_constant] into the live OCaml value
+   it denotes. Mirrors [Symtable.transl_const] from the OCaml
+   compiler; the 4.x [Reloc_literal] is a [structured_constant] AST,
+   not an already-computed [Obj.t], so we have to evaluate it to get
+   the object the runtime would see. Without this an [Int64] literal
+   (say [0x7FF0...L]) is stored as the AST [Const_base(Const_int64 n)]
+   — a regular [Block(0, [Block(5, [Int64])])] — instead of as the
+   custom-tag block that [caml_int64_float_of_bits] expects, and
+   [Block.asLong] throws at runtime. *)
+let rec transl_const : Lambda.structured_constant -> Obj.t = function
+  | Const_base (Const_int i) -> Obj.repr i
+  | Const_base (Const_char c) -> Obj.repr c
+  | Const_base (Const_string (s, _, _)) -> Obj.repr s
+  | Const_base (Const_float f) -> Obj.repr (float_of_string f)
+  | Const_base (Const_int32 i) -> Obj.repr i
+  | Const_base (Const_int64 i) -> Obj.repr i
+  | Const_base (Const_nativeint i) -> Obj.repr i
+  | Const_immstring s -> Obj.repr s
+  | Const_block (tag, fields) ->
+    let n = List.length fields in
+    let blk = Obj.new_block tag n in
+    List.iteri (fun i c -> Obj.set_field blk i (transl_const c)) fields;
+    blk
+  | Const_float_array fields ->
+    let res = Array.Floatarray.create (List.length fields) in
+    List.iteri (fun i f -> Array.Floatarray.set res i (float_of_string f)) fields;
+    Obj.repr res
+
 let reloc_of_cmo : Cmo_format.reloc_info -> reloc = function
-  | Reloc_literal obj -> Reloc_literal (Obj.repr obj)
+  | Reloc_literal sc -> Reloc_literal (transl_const sc)
   | Reloc_getglobal id ->
     let name = Ident.name id in
     if Ident.is_predef id then Reloc_getpredef name else Reloc_getcompunit name
