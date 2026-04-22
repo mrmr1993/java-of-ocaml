@@ -888,8 +888,9 @@ and emit_ccall_named ctx name args =
      | _ -> raise (Unsupported "caml_int_of_float arity"))
   | "caml_float_of_int" ->
     (match args with
-     | [ Pv n ] ->
-       as_int n;
+     | [ (Pv _ as n) ] ->
+       let k = emit_prim_arg ctx n in
+       ensure_int ctx k;
        Jvm.Code.l2d ctx.code;
        Kind.K_float
      | _ -> raise (Unsupported "caml_float_of_int arity"))
@@ -1312,10 +1313,9 @@ and emit_ccall_named ctx name args =
        as_string s;
        Jvm.Code.invokestatic
          ctx.code
-         ~class_:"java/lang/Integer"
-         ~method_:"parseInt"
-         ~descriptor:"(Ljava/lang/String;)I";
-       Jvm.Code.i2l ctx.code;
+         ~class_:"java/lang/Long"
+         ~method_:"parseLong"
+         ~descriptor:"(Ljava/lang/String;)J";
        Kind.K_int
      | _ -> raise (Unsupported "caml_int_of_string arity"))
   | "caml_format_float" ->
@@ -3639,18 +3639,32 @@ and emit_ccall_named ctx name args =
     emit_int_const ctx 1;
     Kind.K_int
   | "Base_int_math_int_popcount" ->
+    (* OCaml [int] is 63-bit (JVM [long]); use [Long.bitCount]. *)
     (match args with
-     | [ Pv n ] ->
-       as_int n;
+     | [ (Pv _ as n) ] ->
+       let k = emit_prim_arg ctx n in
+       ensure_int ctx k;
        Jvm.Code.invokestatic
          ctx.code
-         ~class_:"java/lang/Integer"
+         ~class_:"java/lang/Long"
          ~method_:"bitCount"
-         ~descriptor:"(I)I";
+         ~descriptor:"(J)I";
        Jvm.Code.i2l ctx.code;
        Kind.K_int
      | _ -> raise (Unsupported "Base_int_math_int_popcount arity"))
-  | "Base_int_math_int_clz"
+  | "Base_int_math_int_clz" ->
+    (match args with
+     | [ (Pv _ as n) ] ->
+       let k = emit_prim_arg ctx n in
+       ensure_int ctx k;
+       Jvm.Code.invokestatic
+         ctx.code
+         ~class_:"java/lang/Long"
+         ~method_:"numberOfLeadingZeros"
+         ~descriptor:"(J)I";
+       Jvm.Code.i2l ctx.code;
+       Kind.K_int
+     | _ -> raise (Unsupported "Base_int_math_int_clz arity"))
   | "Base_int_math_int32_clz"
   | "Base_int_math_nativeint_clz" ->
     (match args with
@@ -3664,7 +3678,19 @@ and emit_ccall_named ctx name args =
        Jvm.Code.i2l ctx.code;
        Kind.K_int
      | _ -> raise (Unsupported "Base_int_math_clz arity"))
-  | "Base_int_math_int_ctz"
+  | "Base_int_math_int_ctz" ->
+    (match args with
+     | [ (Pv _ as n) ] ->
+       let k = emit_prim_arg ctx n in
+       ensure_int ctx k;
+       Jvm.Code.invokestatic
+         ctx.code
+         ~class_:"java/lang/Long"
+         ~method_:"numberOfTrailingZeros"
+         ~descriptor:"(J)I";
+       Jvm.Code.i2l ctx.code;
+       Kind.K_int
+     | _ -> raise (Unsupported "Base_int_math_int_ctz arity"))
   | "Base_int_math_int32_ctz"
   | "Base_int_math_nativeint_ctz" ->
     (match args with
@@ -4378,6 +4404,7 @@ and emit_ccall_named ctx name args =
        Jvm.Code.mark_label ctx.code label_ne;
        Jvm.Code.ldc_int ctx.code 0;
        Jvm.Code.mark_label ctx.code label_end;
+       Jvm.Code.i2l ctx.code;
        Kind.K_int
      | _ -> raise (Unsupported "caml_domain_dls_compare_and_set arity"))
   | "caml_ml_domain_id" | "caml_ml_domain_index" ->

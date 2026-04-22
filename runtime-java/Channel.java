@@ -79,7 +79,7 @@ public class Channel {
     Object node = flagsList;
     while (node instanceof Block) {
       Block cons = (Block) node;
-      int flag = ((Integer) cons.fields[0]).intValue();
+      int flag = (int) Block.asLong(cons.fields[0]);
       flags |= (1 << flag);
       node = cons.fields[1];
     }

@@ -45,7 +45,7 @@ public class BigArray {
         int n = dimsBlock.fields.length;
         int[] dims = new int[n];
         for (int i = 0; i < n; i++) {
-            dims[i] = ((Integer) dimsBlock.fields[i]).intValue();
+            dims[i] = (int) Block.asLong(dimsBlock.fields[i]);
         }
         return new BigArray(kind, layout, dims);
     }
@@ -90,41 +90,43 @@ public class BigArray {
     // Bin_prot fast-write helpers: byte-addressed multi-byte writes /
     // reads into a uint8 / char Bigarray, little-endian. Used heavily
     // by Jane Street's Bin_prot on a Bigstring buffer. Each cell in
-    // [data] is an Integer 0..255 for this access pattern.
+    // [data] is a boxed OCaml int (now [Long] after 63-bit widening,
+    // but legacy module globals may still materialise as [Integer] —
+    // route reads through [Block.asLong] for compatibility).
     public static int setU16(BigArray ba, int pos, int v) {
-        ba.data[pos    ] = Integer.valueOf(v & 0xff);
-        ba.data[pos + 1] = Integer.valueOf((v >>> 8) & 0xff);
+        ba.data[pos    ] = Long.valueOf(v & 0xffL);
+        ba.data[pos + 1] = Long.valueOf((v >>> 8) & 0xffL);
         return 0;
     }
     public static int setU32(BigArray ba, int pos, int v) {
-        ba.data[pos    ] = Integer.valueOf(v & 0xff);
-        ba.data[pos + 1] = Integer.valueOf((v >>> 8) & 0xff);
-        ba.data[pos + 2] = Integer.valueOf((v >>> 16) & 0xff);
-        ba.data[pos + 3] = Integer.valueOf((v >>> 24) & 0xff);
+        ba.data[pos    ] = Long.valueOf(v & 0xffL);
+        ba.data[pos + 1] = Long.valueOf((v >>> 8) & 0xffL);
+        ba.data[pos + 2] = Long.valueOf((v >>> 16) & 0xffL);
+        ba.data[pos + 3] = Long.valueOf((v >>> 24) & 0xffL);
         return 0;
     }
     public static int setU64(BigArray ba, int pos, long v) {
         for (int k = 0; k < 8; k++) {
-            ba.data[pos + k] = Integer.valueOf((int) ((v >>> (k * 8)) & 0xffL));
+            ba.data[pos + k] = Long.valueOf((v >>> (k * 8)) & 0xffL);
         }
         return 0;
     }
     public static int getU16(BigArray ba, int pos) {
-        int b0 = ((Integer) ba.data[pos    ]).intValue() & 0xff;
-        int b1 = ((Integer) ba.data[pos + 1]).intValue() & 0xff;
+        int b0 = (int) Block.asLong(ba.data[pos    ]) & 0xff;
+        int b1 = (int) Block.asLong(ba.data[pos + 1]) & 0xff;
         return b0 | (b1 << 8);
     }
     public static int getU32(BigArray ba, int pos) {
-        int b0 = ((Integer) ba.data[pos    ]).intValue() & 0xff;
-        int b1 = ((Integer) ba.data[pos + 1]).intValue() & 0xff;
-        int b2 = ((Integer) ba.data[pos + 2]).intValue() & 0xff;
-        int b3 = ((Integer) ba.data[pos + 3]).intValue() & 0xff;
+        int b0 = (int) Block.asLong(ba.data[pos    ]) & 0xff;
+        int b1 = (int) Block.asLong(ba.data[pos + 1]) & 0xff;
+        int b2 = (int) Block.asLong(ba.data[pos + 2]) & 0xff;
+        int b3 = (int) Block.asLong(ba.data[pos + 3]) & 0xff;
         return b0 | (b1 << 8) | (b2 << 16) | (b3 << 24);
     }
     public static long getU64(BigArray ba, int pos) {
         long r = 0L;
         for (int k = 0; k < 8; k++) {
-            long bk = ((Integer) ba.data[pos + k]).intValue() & 0xffL;
+            long bk = Block.asLong(ba.data[pos + k]) & 0xffL;
             r |= bk << (k * 8);
         }
         return r;
