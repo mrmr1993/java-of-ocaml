@@ -22,7 +22,8 @@
   Ocaml.class
   CoreUnixStubs.class
   ConstantStubs.class
-  IntegersStubs.class)
+  IntegersStubs.class
+  CtypesStubs.class)
  (deps
   Block.java
   Closure.java
@@ -42,7 +43,8 @@
   Ocaml.java
   stubs/CoreUnixStubs.java
   stubs/ConstantStubs.java
-  stubs/IntegersStubs.java)
+  stubs/IntegersStubs.java
+  stubs/CtypesStubs.java)
  (action
   (run javac -d . %{deps})))
 
@@ -69,6 +71,7 @@
    CoreUnixStubs.class
    ConstantStubs.class
    IntegersStubs.class
+   CtypesStubs.class
    stubs/stubs.json))
  (action
   (with-stdout-to

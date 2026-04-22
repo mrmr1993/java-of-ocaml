@@ -27,6 +27,7 @@ let builtin_stub_classes () =
   [ "CoreUnixStubs", R.core_unix_stubs
   ; "ConstantStubs", R.constant_stubs
   ; "IntegersStubs", R.integers_stubs
+  ; "CtypesStubs", R.ctypes_stubs
   ]
 
 let builtin_stubs_json () = R.stubs_json

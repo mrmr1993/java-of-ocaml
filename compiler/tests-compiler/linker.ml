@@ -114,6 +114,7 @@ let%expect_test "compile accepts a .cmo and emits class files" =
     CondVar.class
     ConstantStubs.class
     CoreUnixStubs.class
+    CtypesStubs.class
     DummyClosure.class
     Ephemeron.class
     Format.class
