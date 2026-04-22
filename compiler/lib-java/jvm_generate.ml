@@ -4815,7 +4815,15 @@ let emit_prim ctx (p : Code.prim) (args : Code.prim_arg list) : Kind.kind =
        emit_int_const ctx 1;
        K_int
      | _ ->
+       (* OCaml [int] boxes as [java.lang.Long] now that its backing
+          JVM type is [long]. Legacy [java.lang.Integer] boxes also
+          still appear (from module-level int globals materialised
+          through the DATA section pre-widening). Accept either. *)
+       Jvm.Code.dup ctx.code;
+       Jvm.Code.instanceof_ ctx.code "java/lang/Long";
+       Jvm.Code.swap ctx.code;
        Jvm.Code.instanceof_ ctx.code "java/lang/Integer";
+       Jvm.Code.ior ctx.code;
        Jvm.Code.i2l ctx.code;
        K_int)
   | p, _ ->
@@ -5307,26 +5315,34 @@ let emit_last ctx prog (l : Code.last) =
         ~descriptor:"I";
       emit_tag_dispatch ())
     else (
-      (* Mixed: instanceof Block -> tag path, else int path. *)
-      let l_block = Jvm.Code.fresh_label ctx.code in
-      emit_load ctx v;
-      Jvm.Code.instanceof_ ctx.code "Block";
-      Jvm.Code.ifne ctx.code l_block;
-      emit_load ctx v;
-      (match kv with
-       | K_int -> ()
-       | _ -> Kind.emit_unbox_long ctx.code);
-      Jvm.Code.l2i ctx.code;
-      emit_int_dispatch ();
-      Jvm.Code.mark_label ctx.code l_block;
-      emit_load ctx v;
-      Jvm.Code.checkcast ctx.code "Block";
-      Jvm.Code.getfield
-        ctx.code
-        ~class_:"Block"
-        ~field:"tag"
-        ~descriptor:"I";
-      emit_tag_dispatch ());
+      (* Mixed: instanceof Block -> tag path, else int path. When
+         [kv] is statically [K_int] (backs as JVM long), no block is
+         possible: skip the instanceof dispatch entirely and take the
+         int path. Without this, [instanceof] would see a long on the
+         stack instead of a reference. *)
+      match kv with
+      | K_int ->
+        emit_load ctx v;
+        Jvm.Code.l2i ctx.code;
+        emit_int_dispatch ()
+      | _ ->
+        let l_block = Jvm.Code.fresh_label ctx.code in
+        emit_load ctx v;
+        Jvm.Code.instanceof_ ctx.code "Block";
+        Jvm.Code.ifne ctx.code l_block;
+        emit_load ctx v;
+        Kind.emit_unbox_long ctx.code;
+        Jvm.Code.l2i ctx.code;
+        emit_int_dispatch ();
+        Jvm.Code.mark_label ctx.code l_block;
+        emit_load ctx v;
+        Jvm.Code.checkcast ctx.code "Block";
+        Jvm.Code.getfield
+          ctx.code
+          ~class_:"Block"
+          ~field:"tag"
+          ~descriptor:"I";
+        emit_tag_dispatch ());
     Array.iteri
       (fun i c ->
         Jvm.Code.mark_label ctx.code int_labels.(i);
