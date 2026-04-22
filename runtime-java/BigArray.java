@@ -50,6 +50,11 @@ public class BigArray {
         return new BigArray(kind, layout, dims);
     }
 
+    // bigstring_alloc helper: 1-D char (kind 12), c-layout (0), len.
+    public static BigArray allocBigstring(long len) {
+        return new BigArray(12, 0, new int[] { (int) len });
+    }
+
     public int numDims() { return dims.length; }
     public int dim(int n) { return dims[n]; }
     public int dim1() { return dims[0]; }

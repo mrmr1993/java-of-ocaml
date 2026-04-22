@@ -2358,6 +2358,442 @@ and emit_ccall_named ctx name args =
   | "unix_F_GETFL" -> emit_int_const ctx 3; Kind.K_int
   | "unix_F_SETFL" -> emit_int_const ctx 4; Kind.K_int
   | "unix_FD_CLOEXEC" -> emit_int_const ctx 1; Kind.K_int
+  | "ldouble_init" | "ldouble_complex_init"
+  | "ctypes_ldouble_init" ->
+    (match args with
+     | [ _ ] -> emit_int_const ctx 0; Kind.K_int
+     | _ -> raise (Unsupported (name ^ " arity")))
+  | "ctypes_ldouble_min" | "ldouble_min" ->
+    Jvm.Code.ldc_double ctx.code (-. Float.max_float);
+    Kind.K_float
+  | "ctypes_ldouble_max" | "ldouble_max" ->
+    Jvm.Code.ldc_double ctx.code Float.max_float;
+    Kind.K_float
+  | "ctypes_ldouble_epsilon" | "ldouble_epsilon" ->
+    Jvm.Code.ldc_double ctx.code Float.epsilon;
+    Kind.K_float
+  | "ctypes_ldouble_nan" | "ldouble_nan" ->
+    Jvm.Code.ldc_double ctx.code Float.nan;
+    Kind.K_float
+  | "ctypes_ldouble_inf" | "ldouble_inf" ->
+    Jvm.Code.ldc_double ctx.code Float.infinity;
+    Kind.K_float
+  | "ctypes_ldouble_ninf" | "ldouble_ninf" ->
+    Jvm.Code.ldc_double ctx.code Float.neg_infinity;
+    Kind.K_float
+  | "ctypes_ldouble_pi" | "ldouble_pi" ->
+    Jvm.Code.ldc_double ctx.code Float.pi;
+    Kind.K_float
+  | "ctypes_ldouble_e" | "ldouble_e" ->
+    Jvm.Code.ldc_double ctx.code (Stdlib.exp 1.0);
+    Kind.K_float
+  | "ctypes_ldouble_euler" | "ldouble_euler" ->
+    Jvm.Code.ldc_double ctx.code 0.5772156649015329;
+    Kind.K_float
+  | "ctypes_ldouble_mant_dig" | "ldouble_mant_dig" ->
+    emit_int_const ctx 53; Kind.K_int
+  | "ctypes_ldouble_size" -> emit_int_const ctx 8; Kind.K_int
+  | "ctypes_ldouble_of_float" | "ldouble_of_float"
+  | "ctypes_ldouble_to_float" | "ldouble_to_float" ->
+    (match args with
+     | [ v ] ->
+       let k = emit_prim_arg ctx v in
+       (match k with
+        | K_float -> ()
+        | K_int -> Jvm.Code.l2d ctx.code
+        | _ ->
+          Kind.emit_unbox_to_kind ctx.code Kind.K_float);
+       Kind.K_float
+     | _ -> raise (Unsupported (name ^ " arity")))
+  | "ctypes_ldouble_of_int" | "ldouble_of_int" ->
+    (match args with
+     | [ v ] ->
+       let k = emit_prim_arg ctx v in ensure_int ctx k;
+       Jvm.Code.l2d ctx.code;
+       Kind.K_float
+     | _ -> raise (Unsupported (name ^ " arity")))
+  | "ctypes_ldouble_to_int" | "ldouble_to_int" ->
+    (match args with
+     | [ v ] ->
+       let k = emit_prim_arg ctx v in
+       (match k with
+        | K_float -> ()
+        | _ -> Kind.emit_unbox_to_kind ctx.code Kind.K_float);
+       Jvm.Code.d2l ctx.code;
+       Kind.K_int
+     | _ -> raise (Unsupported (name ^ " arity")))
+  | "ctypes_ldouble_add" | "ldouble_add" ->
+    (match args with
+     | [ a; b ] ->
+       let ka = emit_prim_arg ctx a in
+       (match ka with
+        | K_float -> () | _ -> Kind.emit_unbox_to_kind ctx.code Kind.K_float);
+       let kb = emit_prim_arg ctx b in
+       (match kb with
+        | K_float -> () | _ -> Kind.emit_unbox_to_kind ctx.code Kind.K_float);
+       Jvm.Code.dadd ctx.code; Kind.K_float
+     | _ -> raise (Unsupported (name ^ " arity")))
+  | "ctypes_ldouble_sub" | "ldouble_sub" ->
+    (match args with
+     | [ a; b ] ->
+       let ka = emit_prim_arg ctx a in
+       (match ka with
+        | K_float -> () | _ -> Kind.emit_unbox_to_kind ctx.code Kind.K_float);
+       let kb = emit_prim_arg ctx b in
+       (match kb with
+        | K_float -> () | _ -> Kind.emit_unbox_to_kind ctx.code Kind.K_float);
+       Jvm.Code.dsub ctx.code; Kind.K_float
+     | _ -> raise (Unsupported (name ^ " arity")))
+  | "ctypes_ldouble_mul" | "ldouble_mul" ->
+    (match args with
+     | [ a; b ] ->
+       let ka = emit_prim_arg ctx a in
+       (match ka with
+        | K_float -> () | _ -> Kind.emit_unbox_to_kind ctx.code Kind.K_float);
+       let kb = emit_prim_arg ctx b in
+       (match kb with
+        | K_float -> () | _ -> Kind.emit_unbox_to_kind ctx.code Kind.K_float);
+       Jvm.Code.dmul ctx.code; Kind.K_float
+     | _ -> raise (Unsupported (name ^ " arity")))
+  | "ctypes_ldouble_div" | "ldouble_div" ->
+    (match args with
+     | [ a; b ] ->
+       let ka = emit_prim_arg ctx a in
+       (match ka with
+        | K_float -> () | _ -> Kind.emit_unbox_to_kind ctx.code Kind.K_float);
+       let kb = emit_prim_arg ctx b in
+       (match kb with
+        | K_float -> () | _ -> Kind.emit_unbox_to_kind ctx.code Kind.K_float);
+       Jvm.Code.ddiv ctx.code; Kind.K_float
+     | _ -> raise (Unsupported (name ^ " arity")))
+  | "ctypes_ldouble_neg" | "ldouble_neg" ->
+    (match args with
+     | [ v ] ->
+       let k = emit_prim_arg ctx v in
+       (match k with
+        | K_float -> () | _ -> Kind.emit_unbox_to_kind ctx.code Kind.K_float);
+       Jvm.Code.dneg ctx.code; Kind.K_float
+     | _ -> raise (Unsupported (name ^ " arity")))
+  | "ctypes_ldouble_complex_make" | "ldouble_complex_make"
+  | "ctypes_ldouble_complex_add" | "ldouble_complex_add"
+  | "ctypes_ldouble_complex_sub" | "ldouble_complex_sub"
+  | "ctypes_ldouble_complex_mul" | "ldouble_complex_mul"
+  | "ctypes_ldouble_complex_div" | "ldouble_complex_div"
+  | "ctypes_ldouble_complex_neg" | "ldouble_complex_neg"
+  | "ctypes_ldouble_complex_conj" | "ldouble_complex_conj"
+  | "ctypes_ldouble_complex_inv" | "ldouble_complex_inv"
+  | "ctypes_ldouble_complex_sqrt" | "ldouble_complex_sqrt"
+  | "ctypes_ldouble_complex_exp" | "ldouble_complex_exp"
+  | "ctypes_ldouble_complex_polar" | "ldouble_complex_polar" ->
+    (* Complex stubs: return a 2-field Block {re=0.0; im=0.0}. *)
+    Jvm.Code.new_ ctx.code "Block";
+    Jvm.Code.dup ctx.code;
+    Jvm.Code.ldc_int ctx.code 0;
+    Jvm.Code.ldc_int ctx.code 2;
+    Jvm.Code.anewarray ctx.code "java/lang/Object";
+    Jvm.Code.dup ctx.code;
+    Jvm.Code.ldc_int ctx.code 0;
+    Jvm.Code.ldc_double ctx.code 0.0;
+    Jvm.Code.invokestatic
+      ctx.code ~class_:"java/lang/Double"
+      ~method_:"valueOf" ~descriptor:"(D)Ljava/lang/Double;";
+    Jvm.Code.aastore ctx.code;
+    Jvm.Code.dup ctx.code;
+    Jvm.Code.ldc_int ctx.code 1;
+    Jvm.Code.ldc_double ctx.code 0.0;
+    Jvm.Code.invokestatic
+      ctx.code ~class_:"java/lang/Double"
+      ~method_:"valueOf" ~descriptor:"(D)Ljava/lang/Double;";
+    Jvm.Code.aastore ctx.code;
+    Jvm.Code.invokespecial
+      ctx.code ~class_:"Block"
+      ~method_:"<init>"
+      ~descriptor:"(I[Ljava/lang/Object;)V";
+    Kind.K_obj
+  | "ctypes_ldouble_complex_real" | "ldouble_complex_real"
+  | "ctypes_ldouble_complex_imag" | "ldouble_complex_imag"
+  | "ctypes_ldouble_complex_abs" | "ldouble_complex_abs"
+  | "ctypes_ldouble_complex_arg" | "ldouble_complex_arg"
+  | "ctypes_ldouble_complex_norm" | "ldouble_complex_norm" ->
+    Jvm.Code.ldc_double ctx.code 0.0;
+    Kind.K_float
+  | "integers_unsigned_init" ->
+    (* [integers] library C init — no-op. *)
+    (match args with
+     | [ _ ] -> emit_int_const ctx 0; Kind.K_int
+     | _ -> raise (Unsupported (name ^ " arity")))
+  | "integers_uint8_max" -> emit_int_const ctx 0xFF; Kind.K_int
+  | "integers_uint8_min" -> emit_int_const ctx 0; Kind.K_int
+  | "integers_uint16_max" -> emit_int_const ctx 0xFFFF; Kind.K_int
+  | "integers_uint16_min" -> emit_int_const ctx 0; Kind.K_int
+  | "integers_uint32_max" ->
+    Jvm.Code.ldc_long ctx.code 0xFFFFFFFFL;
+    Kind.K_int
+  | "integers_uint32_min" -> emit_int_const ctx 0; Kind.K_int
+  | "integers_uint64_max" ->
+    Jvm.Code.ldc_long ctx.code (-1L);
+    Kind.K_int
+  | "integers_uint64_min" -> emit_int_const ctx 0; Kind.K_int
+  | "integers_size_t_size" -> emit_int_const ctx 8; Kind.K_int
+  | "integers_ushort_size" -> emit_int_const ctx 2; Kind.K_int
+  | "integers_uint_size" -> emit_int_const ctx 4; Kind.K_int
+  | "integers_ulong_size" -> emit_int_const ctx 8; Kind.K_int
+  | "integers_ulonglong_size" -> emit_int_const ctx 8; Kind.K_int
+  | "integers_intptr_t_size" | "integers_uintptr_t_size"
+  | "integers_ptrdiff_t_size" -> emit_int_const ctx 8; Kind.K_int
+  (* ctypes_typeof_* primitives return a [Ctypes_static.arithmetic]
+     variant, whose cases are: [Int8=0 | Int16=1 | Int32=2 | Int64=3 |
+     Uint8=4 | Uint16=5 | Uint32=6 | Uint64=7 | Float=8 | Double=9].
+     Using the Linux/x86_64 ABI sizes of the respective POSIX types.
+     [mkSigned] / [mkUnsigned] both [assert false] on Float/Double, so
+     picking a non-matching variant will fault at init — these values
+     match Linux/x86_64 typedefs. *)
+  | "ctypes_typeof_clock_t" -> emit_int_const ctx 3 (* Int64 *); Kind.K_int
+  | "ctypes_typeof_dev_t" -> emit_int_const ctx 7 (* Uint64 *); Kind.K_int
+  | "ctypes_typeof_ino_t" -> emit_int_const ctx 7 (* Uint64 *); Kind.K_int
+  | "ctypes_typeof_mode_t" -> emit_int_const ctx 6 (* Uint32 *); Kind.K_int
+  | "ctypes_typeof_nlink_t" -> emit_int_const ctx 7 (* Uint64 *); Kind.K_int
+  | "ctypes_typeof_off_t" -> emit_int_const ctx 3 (* Int64 *); Kind.K_int
+  | "ctypes_typeof_pid_t" -> emit_int_const ctx 2 (* Int32 *); Kind.K_int
+  | "ctypes_typeof_ssize_t" -> emit_int_const ctx 3 (* Int64 *); Kind.K_int
+  | "ctypes_typeof_time_t" -> emit_int_const ctx 3 (* Int64 *); Kind.K_int
+  | "ctypes_typeof_useconds_t" -> emit_int_const ctx 6 (* Uint32 *); Kind.K_int
+  | "ctypes_typeof_uid_t" -> emit_int_const ctx 6 (* Uint32 *); Kind.K_int
+  | "ctypes_typeof_gid_t" -> emit_int_const ctx 6 (* Uint32 *); Kind.K_int
+  | "ctypes_typeof_blkcnt_t" -> emit_int_const ctx 3 (* Int64 *); Kind.K_int
+  | "ctypes_typeof_blksize_t" -> emit_int_const ctx 3 (* Int64 *); Kind.K_int
+  | "ctypes_typeof_fsblkcnt_t" -> emit_int_const ctx 7 (* Uint64 *); Kind.K_int
+  | "ctypes_typeof_fsfilcnt_t" -> emit_int_const ctx 7 (* Uint64 *); Kind.K_int
+  | "ctypes_typeof_id_t" -> emit_int_const ctx 6 (* Uint32 *); Kind.K_int
+  | "ctypes_typeof_key_t" -> emit_int_const ctx 2 (* Int32 *); Kind.K_int
+  | "ctypes_typeof_suseconds_t" -> emit_int_const ctx 3 (* Int64 *); Kind.K_int
+  | "ctypes_typeof_speed_t" -> emit_int_const ctx 6 (* Uint32 *); Kind.K_int
+  | "ctypes_typeof_cc_t" -> emit_int_const ctx 4 (* Uint8 *); Kind.K_int
+  | "ctypes_typeof_tcflag_t" -> emit_int_const ctx 6 (* Uint32 *); Kind.K_int
+  | "ctypes_typeof_nfds_t" -> emit_int_const ctx 7 (* Uint64 *); Kind.K_int
+  | "ctypes_typeof_rlim_t" -> emit_int_const ctx 7 (* Uint64 *); Kind.K_int
+  | "ctypes_typeof_socklen_t" -> emit_int_const ctx 6 (* Uint32 *); Kind.K_int
+  | "ctypes_typeof_intptr_t" -> emit_int_const ctx 3 (* Int64 *); Kind.K_int
+  | "ctypes_typeof_uintptr_t" -> emit_int_const ctx 7 (* Uint64 *); Kind.K_int
+  | "ctypes_typeof_ptrdiff_t" -> emit_int_const ctx 3 (* Int64 *); Kind.K_int
+  | "ctypes_typeof_sigset_t" -> emit_int_const ctx 7 (* Uint64 — opaque *); Kind.K_int
+  | "ctypes_alignmentof_sigset_t" | "ctypes_alignmentof_fd_set" ->
+    emit_int_const ctx 8; Kind.K_int
+  | "ctypes_sizeof_sigset_t" -> emit_int_const ctx 128; Kind.K_int
+  | "ctypes_sizeof_fd_set" -> emit_int_const ctx 128; Kind.K_int
+  | "re_string_match" | "re_partial_match"
+  | "re_search_forward" | "re_search_backward" ->
+    (* Return empty int array = no match. *)
+    Jvm.Code.new_ ctx.code "Block";
+    Jvm.Code.dup ctx.code;
+    Jvm.Code.ldc_int ctx.code 0;
+    Jvm.Code.ldc_int ctx.code 0;
+    Jvm.Code.anewarray ctx.code "java/lang/Object";
+    Jvm.Code.invokespecial
+      ctx.code ~class_:"Block"
+      ~method_:"<init>"
+      ~descriptor:"(I[Ljava/lang/Object;)V";
+    Kind.K_obj
+  | "re_replacement_text" ->
+    (* Return empty string. *)
+    Jvm.Code.ldc_string ctx.code "";
+    Kind.K_string
+  | "integers_uint8_of_int" | "integers_uint8_to_int"
+  | "integers_uint16_of_int" | "integers_uint16_to_int"
+  | "integers_uint32_of_int" | "integers_uint32_to_int"
+  | "integers_uint64_of_int" | "integers_uint64_to_int"
+  | "integers_uint32_of_int32" | "integers_uint32_to_int32"
+  | "integers_uint64_of_int64" | "integers_uint64_to_int64"
+  | "integers_uint32_of_int64" | "integers_uint32_to_int64"
+  | "integers_uint64_of_int32" | "integers_uint64_to_int32"
+  | "integers_uint64_of_uint32" | "integers_uint32_of_uint64"
+  | "integers_uint16_of_uint32" | "integers_uint32_of_uint16"
+  | "integers_uint8_of_uint16" | "integers_uint16_of_uint8"
+  | "integers_size_t_of_int" | "integers_size_t_to_int"
+  | "integers_uint_of_int" | "integers_uint_to_int"
+  | "integers_ulong_of_int" | "integers_ulong_to_int"
+  | "integers_ulonglong_of_int" | "integers_ulonglong_to_int" ->
+    (* Passthrough: our OCaml [int] is already JVM [long] (64-bit
+       signed), which covers every unsigned range the [integers]
+       library models at least for values that fit. *)
+    (match args with
+     | [ v ] ->
+       let k = emit_prim_arg ctx v in
+       ensure_int ctx k;
+       Kind.K_int
+     | _ -> raise (Unsupported (name ^ " arity")))
+  | "integers_uint8_add" | "integers_uint16_add" | "integers_uint32_add"
+  | "integers_uint64_add" | "integers_size_t_add" ->
+    (match args with
+     | [ a; b ] ->
+       let ka = emit_prim_arg ctx a in ensure_int ctx ka;
+       let kb = emit_prim_arg ctx b in ensure_int ctx kb;
+       Jvm.Code.ladd ctx.code; Kind.K_int
+     | _ -> raise (Unsupported (name ^ " arity")))
+  | "integers_uint8_sub" | "integers_uint16_sub" | "integers_uint32_sub"
+  | "integers_uint64_sub" | "integers_size_t_sub" ->
+    (match args with
+     | [ a; b ] ->
+       let ka = emit_prim_arg ctx a in ensure_int ctx ka;
+       let kb = emit_prim_arg ctx b in ensure_int ctx kb;
+       Jvm.Code.lsub ctx.code; Kind.K_int
+     | _ -> raise (Unsupported (name ^ " arity")))
+  | "integers_uint8_mul" | "integers_uint16_mul" | "integers_uint32_mul"
+  | "integers_uint64_mul" | "integers_size_t_mul" ->
+    (match args with
+     | [ a; b ] ->
+       let ka = emit_prim_arg ctx a in ensure_int ctx ka;
+       let kb = emit_prim_arg ctx b in ensure_int ctx kb;
+       Jvm.Code.lmul ctx.code; Kind.K_int
+     | _ -> raise (Unsupported (name ^ " arity")))
+  | "integers_uint8_div" | "integers_uint16_div" | "integers_uint32_div"
+  | "integers_uint64_div" | "integers_size_t_div" ->
+    (match args with
+     | [ a; b ] ->
+       let ka = emit_prim_arg ctx a in ensure_int ctx ka;
+       let kb = emit_prim_arg ctx b in ensure_int ctx kb;
+       Jvm.Code.invokestatic
+         ctx.code ~class_:"java/lang/Long"
+         ~method_:"divideUnsigned" ~descriptor:"(JJ)J";
+       Kind.K_int
+     | _ -> raise (Unsupported (name ^ " arity")))
+  | "integers_uint8_rem" | "integers_uint16_rem" | "integers_uint32_rem"
+  | "integers_uint64_rem" | "integers_size_t_rem" ->
+    (match args with
+     | [ a; b ] ->
+       let ka = emit_prim_arg ctx a in ensure_int ctx ka;
+       let kb = emit_prim_arg ctx b in ensure_int ctx kb;
+       Jvm.Code.invokestatic
+         ctx.code ~class_:"java/lang/Long"
+         ~method_:"remainderUnsigned" ~descriptor:"(JJ)J";
+       Kind.K_int
+     | _ -> raise (Unsupported (name ^ " arity")))
+  | "integers_uint8_logand" | "integers_uint16_logand" | "integers_uint32_logand"
+  | "integers_uint64_logand" | "integers_size_t_logand" ->
+    (match args with
+     | [ a; b ] ->
+       let ka = emit_prim_arg ctx a in ensure_int ctx ka;
+       let kb = emit_prim_arg ctx b in ensure_int ctx kb;
+       Jvm.Code.land_ ctx.code; Kind.K_int
+     | _ -> raise (Unsupported (name ^ " arity")))
+  | "integers_uint8_logor" | "integers_uint16_logor" | "integers_uint32_logor"
+  | "integers_uint64_logor" | "integers_size_t_logor" ->
+    (match args with
+     | [ a; b ] ->
+       let ka = emit_prim_arg ctx a in ensure_int ctx ka;
+       let kb = emit_prim_arg ctx b in ensure_int ctx kb;
+       Jvm.Code.lor_ ctx.code; Kind.K_int
+     | _ -> raise (Unsupported (name ^ " arity")))
+  | "integers_uint8_logxor" | "integers_uint16_logxor" | "integers_uint32_logxor"
+  | "integers_uint64_logxor" | "integers_size_t_logxor" ->
+    (match args with
+     | [ a; b ] ->
+       let ka = emit_prim_arg ctx a in ensure_int ctx ka;
+       let kb = emit_prim_arg ctx b in ensure_int ctx kb;
+       Jvm.Code.lxor_ ctx.code; Kind.K_int
+     | _ -> raise (Unsupported (name ^ " arity")))
+  | "integers_uint8_shift_left" | "integers_uint16_shift_left"
+  | "integers_uint32_shift_left" | "integers_uint64_shift_left"
+  | "integers_size_t_shift_left" ->
+    (match args with
+     | [ a; b ] ->
+       let ka = emit_prim_arg ctx a in ensure_int ctx ka;
+       let kb = emit_prim_arg ctx b in ensure_int ctx kb;
+       Jvm.Code.l2i ctx.code;
+       Jvm.Code.lshl ctx.code; Kind.K_int
+     | _ -> raise (Unsupported (name ^ " arity")))
+  | "integers_uint8_shift_right" | "integers_uint16_shift_right"
+  | "integers_uint32_shift_right" | "integers_uint64_shift_right"
+  | "integers_size_t_shift_right" ->
+    (match args with
+     | [ a; b ] ->
+       let ka = emit_prim_arg ctx a in ensure_int ctx ka;
+       let kb = emit_prim_arg ctx b in ensure_int ctx kb;
+       Jvm.Code.l2i ctx.code;
+       Jvm.Code.lushr ctx.code; Kind.K_int
+     | _ -> raise (Unsupported (name ^ " arity")))
+  | "integers_uint8_of_string" | "integers_uint16_of_string"
+  | "integers_uint32_of_string" | "integers_uint64_of_string"
+  | "integers_size_t_of_string" ->
+    (match args with
+     | [ s ] ->
+       let _ = emit_prim_arg ctx s in
+       Jvm.Code.checkcast ctx.code "java/lang/String";
+       Jvm.Code.invokestatic
+         ctx.code ~class_:"java/lang/Long"
+         ~method_:"parseUnsignedLong" ~descriptor:"(Ljava/lang/String;)J";
+       Kind.K_int
+     | _ -> raise (Unsupported (name ^ " arity")))
+  | "integers_uint8_to_string" | "integers_uint16_to_string"
+  | "integers_uint32_to_string" | "integers_uint64_to_string"
+  | "integers_size_t_to_string" ->
+    (match args with
+     | [ v ] ->
+       let k = emit_prim_arg ctx v in ensure_int ctx k;
+       Jvm.Code.invokestatic
+         ctx.code ~class_:"java/lang/Long"
+         ~method_:"toUnsignedString" ~descriptor:"(J)Ljava/lang/String;";
+       Kind.K_string
+     | _ -> raise (Unsupported (name ^ " arity")))
+  | "bigstring_alloc" ->
+    (* [bigstring_alloc pos len] — Core creates a 1-D char bigstring
+       of size [len]; [pos] is ignored. *)
+    (match args with
+     | [ _; len ] ->
+       let kl = emit_prim_arg ctx len in
+       ensure_int ctx kl;
+       Jvm.Code.invokestatic
+         ctx.code
+         ~class_:"BigArray"
+         ~method_:"allocBigstring"
+         ~descriptor:"(J)LBigArray;";
+       Kind.K_obj
+     | _ -> raise (Unsupported (name ^ " arity")))
+  | "core_unix_getrlimit" ->
+    (* Returns [{ rlim_cur : Rlim.t; rlim_max : Rlim.t }] where
+       [Rlim.t = Infinity | Limit of Int63.t]. Return
+       [{Limit max_int; Limit max_int}] — a 2-field Block of Blocks,
+       each inner Block being the [Limit] variant (tag 0, 1 field:
+       Int63 boxed as Long). *)
+    let emit_limit () =
+      Jvm.Code.new_ ctx.code "Block";
+      Jvm.Code.dup ctx.code;
+      Jvm.Code.ldc_int ctx.code 0;
+      Jvm.Code.ldc_int ctx.code 1;
+      Jvm.Code.anewarray ctx.code "java/lang/Object";
+      Jvm.Code.dup ctx.code;
+      Jvm.Code.ldc_int ctx.code 0;
+      Jvm.Code.ldc_long ctx.code 0x3fffffffffffffffL;
+      Kind.emit_box_long ctx.code;
+      Jvm.Code.aastore ctx.code;
+      Jvm.Code.invokespecial
+        ctx.code
+        ~class_:"Block"
+        ~method_:"<init>"
+        ~descriptor:"(I[Ljava/lang/Object;)V"
+    in
+    (match args with
+     | [ _ ] ->
+       Jvm.Code.new_ ctx.code "Block";
+       Jvm.Code.dup ctx.code;
+       Jvm.Code.ldc_int ctx.code 0;
+       Jvm.Code.ldc_int ctx.code 2;
+       Jvm.Code.anewarray ctx.code "java/lang/Object";
+       Jvm.Code.dup ctx.code;
+       Jvm.Code.ldc_int ctx.code 0;
+       emit_limit ();
+       Jvm.Code.aastore ctx.code;
+       Jvm.Code.dup ctx.code;
+       Jvm.Code.ldc_int ctx.code 1;
+       emit_limit ();
+       Jvm.Code.aastore ctx.code;
+       Jvm.Code.invokespecial
+         ctx.code
+         ~class_:"Block"
+         ~method_:"<init>"
+         ~descriptor:"(I[Ljava/lang/Object;)V";
+       Kind.K_obj
+     | _ -> raise (Unsupported (name ^ " arity")))
   | "bigstring_init_stub"
   | "bigstring_realloc"
   | "bigstring_memset_stub"
@@ -2411,7 +2847,6 @@ and emit_ccall_named ctx name args =
   | "core_unix_getpwent"
   | "core_unix_getpwnam_r"
   | "core_unix_getpwuid_r"
-  | "core_unix_getrlimit"
   | "core_unix_getrusage"
   | "core_unix_gettid"
   | "core_unix_if_indextoname"
@@ -2617,6 +3052,20 @@ and emit_ccall_named ctx name args =
     (match args with
      | [] | [ _ ] | [ _; _ ] | [ _; _; _ ] | [ _; _; _; _ ]
      | [ _; _; _; _; _ ] | [ _; _; _; _; _; _ ] ->
+       if (try Sys.getenv "JAVA_OF_OCAML_TRACE_STUBS" <> ""
+           with Not_found -> false)
+       then (
+         Jvm.Code.getstatic
+           ctx.code
+           ~class_:"java/lang/System"
+           ~field:"err"
+           ~descriptor:"Ljava/io/PrintStream;";
+         Jvm.Code.ldc_string ctx.code ("[stub] " ^ name);
+         Jvm.Code.invokevirtual
+           ctx.code
+           ~class_:"java/io/PrintStream"
+           ~method_:"println"
+           ~descriptor:"(Ljava/lang/String;)V");
        emit_int_const ctx 0;
        Kind.K_int
      | _ -> raise (Unsupported (name ^ " arity")))
