@@ -1,7 +1,7 @@
 (library
  (name java_of_ocaml_compiler)
  (public_name java_of_ocaml.compiler)
- (libraries java_of_ocaml_runtime_bytes compiler-libs.bytecomp)
+ (libraries java_of_ocaml_runtime_bytes compiler-libs.bytecomp yojson unix)
  (modules :standard \ gen_known_prims bytecode_compat_4 bytecode_compat_5)
  (wrapped true))
 

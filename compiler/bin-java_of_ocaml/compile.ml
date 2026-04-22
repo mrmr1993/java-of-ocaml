@@ -10,7 +10,8 @@ let run
     print_functions
     print_ir
     print_tree
-    list_missing =
+    list_missing
+    stub_manifests =
   List.iter Java_of_ocaml_compiler.Debug.enable debug_flags;
   match inputs, output_dir, list_missing with
   | [], _, _ -> `Error (true, "missing input file(s)")
@@ -38,6 +39,7 @@ let run
          ~print_functions
          ~print_ir
          ~print_tree
+         ~stub_manifests
          ~bcs
          ~out_dir
          ();
@@ -107,6 +109,21 @@ let print_tree_arg =
     & opt_all int []
     & info [ "print-tree" ] ~docv:"PC" ~doc)
 
+let stub_manifest_arg =
+  let doc =
+    "Path to a JSON manifest declaring Java-authored C-primitive \
+     stubs. The manifest is a flat object mapping OCaml primitive \
+     names to $(i,ClassName.methodName) shorthands, or to records \
+     with optional $(i,descriptor) / $(i,weakdef) fields. The \
+     referenced $(b,.java) sources are expected to live next to \
+     the manifest; they're compiled via $(b,javac) and bundled \
+     into the output directory. May be repeated."
+  in
+  Arg.(
+    value
+    & opt_all file []
+    & info [ "stub-manifest" ] ~docv:"PATH" ~doc)
+
 let list_missing_arg =
   let doc =
     "Don't compile; instead list every C primitive that the input \
@@ -127,7 +144,8 @@ let term =
        $ print_function_arg
        $ print_ir_arg
        $ print_tree_arg
-       $ list_missing_arg))
+       $ list_missing_arg
+       $ stub_manifest_arg))
 
 let info =
   let doc = "Compile OCaml bytecode to JVM class files." in

@@ -28,6 +28,9 @@ val emit_program :
          whose descriptor matches the callee's actual capture-kind
          layout. *)
   -> prim_name:(int -> string)
+  -> ?stubs:Stub_registry.t
+      (** User + built-in Java stub table. Consulted before the
+          hardcoded primitive match in [emit_ccall]. *)
   -> ?arg_vars:Code.Var.t list
   -> ?enclosing:Function_info.function_info * Code.Var.t
   -> ?not_found_idx:int

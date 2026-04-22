@@ -2,6 +2,7 @@ val compile :
      ?print_functions:int list
   -> ?print_ir:int list
   -> ?print_tree:int list
+  -> ?stub_manifests:string list
   -> bcs:string list
   -> out_dir:string
   -> unit
@@ -32,6 +33,7 @@ val compile_t :
      ?print_functions:int list
   -> ?print_ir:int list
   -> ?print_tree:int list
+  -> ?stub_manifests:string list
   -> parsed:Bytecode.t
   -> out_dir:string
   -> unit

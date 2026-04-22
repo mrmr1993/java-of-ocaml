@@ -47,3 +47,9 @@ let cond_var_class_bytes = Jvm_runtime.cond_var_class_bytes
 let big_array_class_bytes = Jvm_runtime.big_array_class_bytes
 
 let thread_prim_class_bytes = Jvm_runtime.thread_prim_class_bytes
+
+let ocaml_class_bytes = Jvm_runtime.ocaml_class_bytes
+
+let builtin_stub_classes = Jvm_runtime.builtin_stub_classes
+
+let builtin_stubs_json = Jvm_runtime.builtin_stubs_json

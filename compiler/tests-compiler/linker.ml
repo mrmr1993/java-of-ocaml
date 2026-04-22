@@ -112,6 +112,7 @@ let%expect_test "compile accepts a .cmo and emits class files" =
     Closure.class
     Compare.class
     CondVar.class
+    CoreUnixStubs.class
     DummyClosure.class
     Ephemeron.class
     Format.class
@@ -119,6 +120,7 @@ let%expect_test "compile accepts a .cmo and emits class files" =
     Main$globals_0.class
     Main.class
     Mutex.class
+    Ocaml.class
     PartialClosure.class
     ThreadPrim.class
     |}]

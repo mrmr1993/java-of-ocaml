@@ -18,7 +18,9 @@
   Mutex.class
   CondVar.class
   BigArray.class
-  ThreadPrim.class)
+  ThreadPrim.class
+  Ocaml.class
+  CoreUnixStubs.class)
  (deps
   Block.java
   Closure.java
@@ -34,7 +36,9 @@
   Mutex.java
   CondVar.java
   BigArray.java
-  ThreadPrim.java)
+  ThreadPrim.java
+  Ocaml.java
+  stubs/CoreUnixStubs.java)
  (action
   (run javac -d . %{deps})))
 
@@ -56,7 +60,10 @@
    Mutex.class
    CondVar.class
    BigArray.class
-  ThreadPrim.class))
+   ThreadPrim.class
+   Ocaml.class
+   CoreUnixStubs.class
+   stubs/stubs.json))
  (action
   (with-stdout-to
    %{targets}

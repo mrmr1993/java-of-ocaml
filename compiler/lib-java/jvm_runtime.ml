@@ -21,3 +21,9 @@ let mutex_class_bytes () = R.mutex
 let cond_var_class_bytes () = R.cond_var
 let big_array_class_bytes () = R.big_array
 let thread_prim_class_bytes () = R.thread_prim
+let ocaml_class_bytes () = R.ocaml
+
+let builtin_stub_classes () =
+  [ "CoreUnixStubs", R.core_unix_stubs ]
+
+let builtin_stubs_json () = R.stubs_json

@@ -325,6 +325,98 @@ let time_phase name f =
     r
 
 (* -------------------------------------------------------------------------- *)
+(* User-stub compilation.
+
+   Each --stub-manifest PATH points at a JSON file that lists
+   OCaml primitive names together with ClassName.methodName
+   targets. The [.java] sources referenced by those targets live
+   next to the manifest (one file per class). We compile them via
+   [javac], using the built-in runtime classes as classpath, and
+   return the resulting [.class] bytes for the write-classes phase
+   to drop alongside [Main.class]. *)
+
+let compile_user_stubs ~stub_manifests =
+  (* Gather all [.java] source paths to feed [javac] in one go. *)
+  let sources =
+    List.concat_map
+      (fun manifest ->
+        let registry = Stub_registry.load_manifests [ manifest ] in
+        Stub_registry.java_sources
+          ~manifest_dir:(Filename.dirname manifest) registry)
+      stub_manifests
+    |> List.sort_uniq compare
+  in
+  if sources = [] then []
+  else (
+    let tmp_dir = Filename.temp_file "jofo-stubs-" "" in
+    Sys.remove tmp_dir;
+    Unix.mkdir tmp_dir 0o755;
+    let classpath_dir = Filename.concat tmp_dir "_classpath" in
+    Unix.mkdir classpath_dir 0o755;
+    (* Seed the classpath with runtime classes stub authors reference. *)
+    let seed name bytes =
+      let path = Filename.concat classpath_dir (name ^ ".class") in
+      let oc = open_out_bin path in
+      output_string oc bytes;
+      close_out oc
+    in
+    seed "Block" (Jvm.block_class_bytes ());
+    seed "Closure" (Jvm.closure_class_bytes ());
+    seed "CamlException" (Jvm.camlexception_class_bytes ());
+    seed "Ocaml" (Jvm.ocaml_class_bytes ());
+    seed "Bytes" (Jvm.bytes_class_bytes ());
+    seed "BigArray" (Jvm.big_array_class_bytes ());
+    (* Invoke javac. *)
+    let argv =
+      [| "javac"; "-d"; tmp_dir; "-cp"; classpath_dir |]
+      |> Array.to_list
+      |> fun base -> Array.of_list (base @ sources)
+    in
+    let pid =
+      Unix.create_process "javac" argv
+        Unix.stdin Unix.stdout Unix.stderr
+    in
+    (match Unix.waitpid [] pid with
+     | _, Unix.WEXITED 0 -> ()
+     | _, Unix.WEXITED n ->
+       failwith
+         (Printf.sprintf "javac failed (exit %d) on stub sources: %s"
+            n (String.concat " " sources))
+     | _, Unix.WSIGNALED n | _, Unix.WSTOPPED n ->
+       failwith (Printf.sprintf "javac killed by signal %d" n));
+    (* Collect every compiled [.class] in tmp_dir's root. We don't
+       support packaged stubs in v1; everything is top-level. *)
+    let read path =
+      let ic = open_in_bin path in
+      let n = in_channel_length ic in
+      let s = Bytes.create n in
+      really_input ic s 0 n;
+      close_in ic;
+      Bytes.unsafe_to_string s
+    in
+    let entries =
+      Sys.readdir tmp_dir
+      |> Array.to_list
+      |> List.filter (fun f -> Filename.extension f = ".class")
+      |> List.map (fun f ->
+           let name = Filename.remove_extension f in
+           let bytes = read (Filename.concat tmp_dir f) in
+           (name, bytes))
+    in
+    (* Best-effort cleanup. *)
+    (try
+       Array.iter
+         (fun f -> Sys.remove (Filename.concat classpath_dir f))
+         (Sys.readdir classpath_dir);
+       Unix.rmdir classpath_dir;
+       List.iter
+         (fun (n, _) -> Sys.remove (Filename.concat tmp_dir (n ^ ".class")))
+         entries;
+       Unix.rmdir tmp_dir
+     with _ -> ());
+    entries)
+
+(* -------------------------------------------------------------------------- *)
 (* Compile-wide driver. *)
 
 
@@ -626,10 +718,20 @@ let compile_t
       ?(print_functions = [])
       ?(print_ir = [])
       ?(print_tree = [])
+      ?(stub_manifests = [])
       ~parsed
       ~out_dir
       () =
   let total = if debug_times () then Some (Timer.make ()) else None in
+  let stubs =
+    let builtin =
+      Stub_registry.load_string
+        ~source_path:"<builtin>"
+        (Jvm.builtin_stubs_json ())
+    in
+    let user = Stub_registry.load_manifests stub_manifests in
+    Stub_registry.merge_defaults ~builtin ~user
+  in
   let prim_table = Prim.find_supported_prims parsed in
   (* A zero-primitive input is legitimate for separate-compilation
      inputs: a [.cmo]'s [cu_primitives] only lists C primitives
@@ -1104,6 +1206,7 @@ let compile_t
                           ~name_of_body
                           ~fn_info_of_body
                           ~prim_name
+                          ~stubs
                           ~arg_vars:h.params
                           ~line_of_pc
                           ~unbox_args:true
@@ -1221,6 +1324,7 @@ let compile_t
              ~name_of_body
              ~fn_info_of_body
              ~prim_name
+             ~stubs
              ~is_static:true
              ~line_of_pc
              head
@@ -1473,6 +1577,7 @@ let compile_t
                         ~name_of_body
                         ~fn_info_of_body
                         ~prim_name
+                        ~stubs
                         ~arg_vars:h.params
                         ~enclosing:(fn_info, env_var)
                         ~line_of_pc
@@ -1492,6 +1597,7 @@ let compile_t
                   ~name_of_body
                   ~fn_info_of_body
                   ~prim_name
+                  ~stubs
                   ~arg_vars
                   ~enclosing:(fn_info, env_var)
                   ~line_of_pc
@@ -1700,6 +1806,16 @@ let compile_t
     output_string oc bytes;
     close_out oc
   in
+  (* Compile any user-supplied stub [.java] sources via [javac],
+     using a temp dir, with the built-in runtime classes on the
+     classpath so stub authors can reference [Block], [Ocaml], etc.
+     The resulting [.class] files are written alongside [Main.class]
+     by the write-classes phase below. *)
+  let user_stub_classes =
+    if stub_manifests = [] then []
+    else time_phase "compile-user-stubs" (fun () ->
+      compile_user_stubs ~stub_manifests)
+  in
   time_phase "write-classes" (fun () ->
     write_class "Main" main_class_bytes;
     write_class "Block" (Jvm.block_class_bytes ());
@@ -1717,8 +1833,13 @@ let compile_t
     write_class "CondVar" (Jvm.cond_var_class_bytes ());
     write_class "BigArray" (Jvm.big_array_class_bytes ());
     write_class "ThreadPrim" (Jvm.thread_prim_class_bytes ());
+    write_class "Ocaml" (Jvm.ocaml_class_bytes ());
+    List.iter
+      (fun (name, bytes) -> write_class name bytes)
+      (Jvm.builtin_stub_classes ());
     List.iter (fun (name, bytes) -> write_class name bytes) !main_sibling_classes;
-    List.iter (fun (name, bytes) -> write_class name bytes) closure_class_files);
+    List.iter (fun (name, bytes) -> write_class name bytes) closure_class_files;
+    List.iter (fun (name, bytes) -> write_class name bytes) user_stub_classes);
   match total with
   | Some t -> Format.eprintf "[times] total: %a s@." Timer.print t
   | None -> ()
@@ -1736,6 +1857,7 @@ let compile
       ?(print_functions = [])
       ?(print_ir = [])
       ?(print_tree = [])
+      ?(stub_manifests = [])
       ~bcs
       ~out_dir
       () =
@@ -1761,7 +1883,8 @@ let compile
         Linker.link units)
   in
   oversized_stubs := [];
-  compile_t ~print_functions ~print_ir ~print_tree ~parsed ~out_dir ();
+  compile_t ~print_functions ~print_ir ~print_tree ~stub_manifests
+    ~parsed ~out_dir ();
   report_oversized_stubs_and_maybe_fail ()
 
 (* Share the "read bcs into a [Bytecode.t]" part of [compile] so the

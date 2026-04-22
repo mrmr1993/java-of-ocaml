@@ -20,6 +20,9 @@ type ctx =
   ; name_of_body : int -> string
   ; fn_info_of_body : int -> Function_info.function_info option
   ; prim_name : int -> string
+  ; stubs : Stub_registry.t
+        (* User + built-in Java-stub table consulted before the
+           hardcoded [emit_ccall_named] match. *)
   ; enclosing : (Function_info.function_info * Code.Var.t) option
   ; fresh_oo_id : int ref
   ; not_found_idx : int ref
@@ -451,7 +454,51 @@ let emit_java_ffi ctx name (args : Code.prim_arg list) : Kind.kind =
 let rec emit_ccall ctx name args =
   if String.length name >= 5 && String.sub name 0 5 = "java:"
   then emit_java_ffi ctx name args
-  else emit_ccall_named ctx name args
+  else
+    match Stub_registry.find ctx.stubs name with
+    | Some stub when not stub.weakdef -> emit_stub_call ctx stub args
+    | Some stub ->
+      (try emit_ccall_named ctx name args
+       with Unsupported _ -> emit_stub_call ctx stub args)
+    | None -> emit_ccall_named ctx name args
+
+and emit_stub_call ctx (stub : Stub_registry.stub) args =
+  let default_desc =
+    (* Shorthand form: all-Object descriptor matching the actual arg
+       count. We prefer to trust the method's reported descriptor
+       but the shorthand path has arity=0 at manifest-load time —
+       the true arity is the number of call-site args. *)
+    let n = List.length args in
+    let buf = Buffer.create (n * 18 + 18) in
+    Buffer.add_char buf '(';
+    for _ = 1 to n do Buffer.add_string buf "Ljava/lang/Object;" done;
+    Buffer.add_string buf ")Ljava/lang/Object;";
+    Buffer.contents buf
+  in
+  let descriptor =
+    (* If the stub gave us a real descriptor, honour it. Otherwise
+       build an all-Object one from the call-site arity. *)
+    if stub.arity = 0 && List.length args <> 0
+    then default_desc
+    else stub.descriptor
+  in
+  let param_types, ret_type = parse_method_desc descriptor in
+  if List.length param_types <> List.length args
+  then
+    raise
+      (Unsupported
+         (Printf.sprintf
+            "stub %s: descriptor %s declares %d params but call-site \
+             passes %d args"
+            stub.prim_name descriptor
+            (List.length param_types) (List.length args)));
+  List.iter2 (emit_arg_coerced ctx) args param_types;
+  Jvm.Code.invokestatic
+    ctx.code
+    ~class_:stub.class_name
+    ~method_:stub.method_name
+    ~descriptor;
+  finish_java_return ctx ret_type
 
 and emit_ccall_named ctx name args =
   let load_args_obj () =
@@ -2583,17 +2630,19 @@ and emit_ccall_named ctx name args =
   | "ctypes_sizeof_fd_set" -> emit_int_const ctx 128; Kind.K_int
   | "re_string_match" | "re_partial_match"
   | "re_search_forward" | "re_search_backward" ->
-    (* Return empty int array = no match. *)
-    Jvm.Code.new_ ctx.code "Block";
-    Jvm.Code.dup ctx.code;
-    Jvm.Code.ldc_int ctx.code 0;
-    Jvm.Code.ldc_int ctx.code 0;
-    Jvm.Code.anewarray ctx.code "java/lang/Object";
-    Jvm.Code.invokespecial
-      ctx.code ~class_:"Block"
-      ~method_:"<init>"
-      ~descriptor:"(I[Ljava/lang/Object;)V";
-    Kind.K_obj
+    (* Pretend the whole string always matches at pos=0. Returns
+       [Block(0, [Long 0; Long (length s)])] — enough for [Str]'s
+       [string_match] to return true and [matched_string] to yield
+       the input. Used by [ctypes_path.path_of_string] at init. *)
+    (match args with
+     | [ _; s; _ ] ->
+       let _ = emit_prim_arg ctx s in
+       Jvm.Code.invokestatic
+         ctx.code ~class_:"BigArray"
+         ~method_:"strWholeMatch"
+         ~descriptor:"(Ljava/lang/Object;)LBlock;";
+       Kind.K_obj
+     | _ -> raise (Unsupported (name ^ " arity")))
   | "re_replacement_text" ->
     (* Return empty string. *)
     Jvm.Code.ldc_string ctx.code "";
@@ -2749,51 +2798,8 @@ and emit_ccall_named ctx name args =
          ~descriptor:"(J)LBigArray;";
        Kind.K_obj
      | _ -> raise (Unsupported (name ^ " arity")))
-  | "core_unix_getrlimit" ->
-    (* Returns [{ rlim_cur : Rlim.t; rlim_max : Rlim.t }] where
-       [Rlim.t = Infinity | Limit of Int63.t]. Return
-       [{Limit max_int; Limit max_int}] — a 2-field Block of Blocks,
-       each inner Block being the [Limit] variant (tag 0, 1 field:
-       Int63 boxed as Long). *)
-    let emit_limit () =
-      Jvm.Code.new_ ctx.code "Block";
-      Jvm.Code.dup ctx.code;
-      Jvm.Code.ldc_int ctx.code 0;
-      Jvm.Code.ldc_int ctx.code 1;
-      Jvm.Code.anewarray ctx.code "java/lang/Object";
-      Jvm.Code.dup ctx.code;
-      Jvm.Code.ldc_int ctx.code 0;
-      Jvm.Code.ldc_long ctx.code 0x3fffffffffffffffL;
-      Kind.emit_box_long ctx.code;
-      Jvm.Code.aastore ctx.code;
-      Jvm.Code.invokespecial
-        ctx.code
-        ~class_:"Block"
-        ~method_:"<init>"
-        ~descriptor:"(I[Ljava/lang/Object;)V"
-    in
-    (match args with
-     | [ _ ] ->
-       Jvm.Code.new_ ctx.code "Block";
-       Jvm.Code.dup ctx.code;
-       Jvm.Code.ldc_int ctx.code 0;
-       Jvm.Code.ldc_int ctx.code 2;
-       Jvm.Code.anewarray ctx.code "java/lang/Object";
-       Jvm.Code.dup ctx.code;
-       Jvm.Code.ldc_int ctx.code 0;
-       emit_limit ();
-       Jvm.Code.aastore ctx.code;
-       Jvm.Code.dup ctx.code;
-       Jvm.Code.ldc_int ctx.code 1;
-       emit_limit ();
-       Jvm.Code.aastore ctx.code;
-       Jvm.Code.invokespecial
-         ctx.code
-         ~class_:"Block"
-         ~method_:"<init>"
-         ~descriptor:"(I[Ljava/lang/Object;)V";
-       Kind.K_obj
-     | _ -> raise (Unsupported (name ^ " arity")))
+  (* [core_unix_getrlimit] lives in [runtime-java/stubs/CoreUnixStubs.java];
+     dispatch routes through the stub registry. *)
   | "bigstring_init_stub"
   | "bigstring_realloc"
   | "bigstring_memset_stub"
@@ -6309,6 +6315,7 @@ let emit_program
     ~name_of_body
     ~fn_info_of_body
     ~prim_name
+    ?(stubs = Stub_registry.empty)
     ?(arg_vars = [])
     ?enclosing
     ?(not_found_idx = 6)
@@ -6349,6 +6356,7 @@ let emit_program
     ; name_of_body
     ; fn_info_of_body
     ; prim_name
+    ; stubs
     ; enclosing
     ; fresh_oo_id = ref 0
     ; not_found_idx = ref not_found_idx

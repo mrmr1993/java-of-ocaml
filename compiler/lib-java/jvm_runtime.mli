@@ -69,3 +69,18 @@ val thread_prim_class_bytes : unit -> string
 (** OCaml Thread primitives: [caml_thread_new] / [_self] / [_id]
     / [_join] / [_yield] / [_initialize] / [_cleanup] etc., all
     delegating to [java.lang.Thread]. *)
+
+val ocaml_class_bytes : unit -> string
+(** Support library for user-written Java stubs — static helpers
+    for boxing, unboxing, and building Blocks. *)
+
+(** Built-in stubs emitted from [runtime-java/stubs/]. Each entry
+    is a class name and its compiled bytes, written next to
+    [Main.class] by the driver at output time. *)
+val builtin_stub_classes : unit -> (string * string) list
+
+(** The JSON manifest text compiled in from
+    [runtime-java/stubs/stubs.json]. Callers parse it via
+    [Stub_registry] — surfaced raw so the parser doesn't have to
+    know about the embed step. *)
+val builtin_stubs_json : unit -> string

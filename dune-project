@@ -11,6 +11,7 @@
  (depends
   (ocaml (>= 4.14))
   (cmdliner (>= 1.1.0))
+  (yojson (>= 2.0))
   (ppx_expect
    (and
     (>= v0.16.1)

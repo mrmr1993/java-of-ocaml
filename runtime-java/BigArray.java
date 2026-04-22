@@ -55,6 +55,15 @@ public class BigArray {
         return new BigArray(12, 0, new int[] { (int) len });
     }
 
+    // re_string_match "whole match" helper: returns [|0; len|]
+    // so Str.matched_string returns [s]. Used only when stubbing Str.
+    public static Block strWholeMatch(Object s) {
+        int len = (s instanceof String) ? ((String) s).length() : 0;
+        return new Block(0, new Object[] {
+            Long.valueOf(0L), Long.valueOf((long) len)
+        });
+    }
+
     public int numDims() { return dims.length; }
     public int dim(int n) { return dims[n]; }
     public int dim1() { return dims[0]; }

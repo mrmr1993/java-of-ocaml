@@ -399,6 +399,21 @@ val thread_prim_class_bytes : unit -> string
 (** Bytes of the [ThreadPrim] runtime class — OCaml Thread
     primitives delegating to [java.lang.Thread]. *)
 
+val ocaml_class_bytes : unit -> string
+(** Bytes of the [Ocaml] support class — static helpers for
+    boxing/unboxing and Block construction, used by Java-authored
+    stub methods. *)
+
+val builtin_stub_classes : unit -> (string * string) list
+(** Name + bytes of every built-in stub class compiled from
+    [runtime-java/stubs/]. Written alongside [Main.class] at output
+    time. *)
+
+val builtin_stubs_json : unit -> string
+(** Raw text of [runtime-java/stubs/stubs.json]. Parsed at compile
+    start via [Stub_registry] and merged with user-supplied
+    manifests before codegen. *)
+
 val closure_class_bytes : unit -> string
 
 val dummy_closure_class_bytes : unit -> string
