@@ -492,6 +492,18 @@
   (pps ppx_expect)))
 
 (library
+ ;; compiler/tests-compiler/stub_registry_parse.ml
+ (name stub_registry_parse_15)
+ (enabled_if true)
+ (modules stub_registry_parse)
+ (libraries unix str java_of_ocaml_expect_tests_helper)
+ (inline_tests
+  (enabled_if true))
+ (flags (:standard -open Java_of_ocaml_expect_tests_helper))
+ (preprocess
+  (pps ppx_expect)))
+
+(library
  ;; compiler/tests-compiler/sys_module.ml
  (name sys_module_15)
  (enabled_if true)
@@ -508,6 +520,18 @@
  (name tuples_records_arrays_15)
  (enabled_if true)
  (modules tuples_records_arrays)
+ (libraries unix str java_of_ocaml_expect_tests_helper)
+ (inline_tests
+  (enabled_if true))
+ (flags (:standard -open Java_of_ocaml_expect_tests_helper))
+ (preprocess
+  (pps ppx_expect)))
+
+(library
+ ;; compiler/tests-compiler/user_stubs.ml
+ (name user_stubs_15)
+ (enabled_if true)
+ (modules user_stubs)
  (libraries unix str java_of_ocaml_expect_tests_helper)
  (inline_tests
   (enabled_if true))
