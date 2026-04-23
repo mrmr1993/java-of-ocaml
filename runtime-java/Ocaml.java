@@ -132,6 +132,12 @@ public final class Ocaml {
      *  that case so it still throws something OCaml-shaped. */
     public static Object failureExn;
 
+    /** OCaml's predefined [Not_found] exception identifier
+     *  ([GLOBALS[6]]). Used by stubs that need to signal "lookup
+     *  failed" the way OCaml stdlib does (e.g. [Unix.gethostbyname]
+     *  on an unresolvable name, [Hashtbl.find] on a missing key). */
+    public static Object notFoundExn;
+
     /** Throw a [CamlException] wrapping [Failure msg]. The shape is
      *  [Block(0, [failureExn, msg])] so OCaml's [try ... with Failure _]
      *  matches by reference identity on field 0. */
@@ -143,6 +149,16 @@ public final class Ocaml {
             id = new Block(248, new Object[] { "Failure", Long.valueOf(-1L) });
         }
         throw new CamlException(new Block(0, new Object[] { id, msg }));
+    }
+
+    /** Throw a [CamlException] wrapping [Not_found]. Constructor is
+     *  nullary, so the payload is just the descriptor itself. */
+    public static RuntimeException raiseNotFound() {
+        Object id = notFoundExn;
+        if (id == null) {
+            id = new Block(248, new Object[] { "Not_found", Long.valueOf(-1L) });
+        }
+        throw new CamlException(id);
     }
 
     // -------- sentinels --------

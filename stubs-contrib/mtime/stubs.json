@@ -1,0 +1,14 @@
+{
+  "ocaml_mtime_clock_elapsed_ns": {
+    "descriptor": "(Ljava/lang/Object;)J",
+    "target": "Mtime.elapsed_ns"
+  },
+  "ocaml_mtime_clock_now_ns": {
+    "descriptor": "(Ljava/lang/Object;)J",
+    "target": "Mtime.now_ns"
+  },
+  "ocaml_mtime_clock_period_ns": {
+    "descriptor": "(Ljava/lang/Object;)Ljava/lang/Object;",
+    "target": "Mtime.period_ns"
+  }
+}

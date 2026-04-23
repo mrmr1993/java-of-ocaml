@@ -143,6 +143,62 @@ public final class Unix {
         return Channel.forDescriptor((int) Block.asLong(fd));
     }
 
-    // ==== zero-returning syscall stubs =================================
+    // === REAL IMPLEMENTATION: unix_gethostbyname ======================
+    // Resolves a hostname through [java.net.InetAddress]. Returns
+    // an OCaml [Unix.host_entry] record:
+    //   Block(0, [h_name; h_aliases; h_addrtype; h_addr_list])
+    //     h_name      : String
+    //     h_aliases   : Block(0, []) — empty array
+    //     h_addrtype  : Long(0) = PF_UNIX, Long(1) = PF_INET
+    //     h_addr_list : Block(0, [inet_addr ...])
+    // [inet_addr] is OCaml-shaped as an opaque [String] of the
+    // host-byte-order packed bytes; we follow that.
+    public static Block gethostbyname(Object name) {
+        String s = (String) name;
+        try {
+            InetAddress[] addrs = InetAddress.getAllByName(s);
+            Object[] addrFields = new Object[addrs.length];
+            for (int i = 0; i < addrs.length; i++) {
+                byte[] raw = addrs[i].getAddress();
+                addrFields[i] = new String(raw, java.nio.charset.StandardCharsets.ISO_8859_1);
+            }
+            Block addrList = new Block(0, addrFields);
+            Block aliases  = new Block(0, new Object[0]);
+            return new Block(0, new Object[] {
+                addrs[0].getCanonicalHostName(),
+                aliases,
+                Long.valueOf(1L),  // PF_INET
+                addrList,
+            });
+        } catch (UnknownHostException e) {
+            // Match OCaml stdlib semantics: lookup failure raises
+            // Not_found, which CLI-flag init paths catch and fall
+            // back to a default address.
+            throw Ocaml.raiseNotFound();
+        }
+    }
 
+    // === DELIBERATE STUB: unix_spawn ==================================
+    // [Unix.spawn prog argv envopt useShell stdfds]: real impl
+    // (e.g. [git rev-parse] for build-tag capture) through here.
+    // Returns a fake pid (1) — our [waitpidStub] below already
+    // returns [(pid, WEXITED 0)] for any pid, so the probe sees
+    // a "successful empty subprocess" and binds whatever default
+    // it has for the no-output case.
+    public static long spawn(Object prog, Object argv, Object env,
+                             Object useShell, Object stdfds) {
+        return 1L;
+    }
+
+    // === DELIBERATE STUB: unix_close ==================================
+    // (subprocess emulation we've stubbed elsewhere) and then closes
+    // the resulting fds. We don't actually open anything — fds in
+    // this build are either real Channel-managed handles (closed by
+    // [Channel.closeFd]) or stub-allocated Long(0) tokens. Returning
+    // unit unconditionally is safe for the latter; the former case
+    // is fine too because OCaml's [Unix.close] on an unknown fd just
+    // raises EBADF, which init code typically swallows via
+    // [protect ~finally:close]. Either way we don't leak anything
+    // visible to the rest of the program.
+    public static long close(Object fd) { return 0; }
 }

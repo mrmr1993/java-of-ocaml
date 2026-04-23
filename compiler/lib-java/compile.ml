@@ -615,7 +615,8 @@ let emit_runtime_init_after_globals main_code =
       ~descriptor:"Ljava/lang/Object;"
   in
   wire_global ~slot:4 ~class_:"Channel" ~field:"endOfFileExn";
-  wire_global ~slot:2 ~class_:"Ocaml" ~field:"failureExn"
+  wire_global ~slot:2 ~class_:"Ocaml" ~field:"failureExn";
+  wire_global ~slot:6 ~class_:"Ocaml" ~field:"notFoundExn"
 
 (* [emit_globals_init globals ~main_code] allocates the [GLOBALS]
    array in [main_code] and then populates it. Entries flow into

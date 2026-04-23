@@ -223,6 +223,10 @@
     "descriptor": "(Ljava/lang/Object;)J",
     "target": "CoreUnix.O_WRONLY"
   },
+  "unix_close": {
+    "descriptor": "(Ljava/lang/Object;)J",
+    "target": "Unix.close"
+  },
   "unix_dup": {
     "descriptor": "(Ljava/lang/Object;Ljava/lang/Object;)J",
     "target": "Unix.dupStub"
@@ -250,6 +254,10 @@
   "unix_getgid": {
     "descriptor": "(Ljava/lang/Object;)J",
     "target": "Unix.getgid"
+  },
+  "unix_gethostbyname": {
+    "descriptor": "(Ljava/lang/Object;)LBlock;",
+    "target": "Unix.gethostbyname"
   },
   "unix_gethostname": {
     "descriptor": "(Ljava/lang/Object;)Ljava/lang/String;",
@@ -282,6 +290,10 @@
   "unix_pipe": {
     "descriptor": "(Ljava/lang/Object;Ljava/lang/Object;)LBlock;",
     "target": "Unix.pipeStub"
+  },
+  "unix_spawn": {
+    "descriptor": "(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)J",
+    "target": "Unix.spawn"
   },
   "unix_time": {
     "descriptor": "(Ljava/lang/Object;)J",
