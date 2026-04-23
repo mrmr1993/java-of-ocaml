@@ -1285,9 +1285,34 @@ let compile_t
                          stub_cp, stub)
                      in
                      let sibling = Hashtbl.find placement h.method_name in
+                     let helper_source_file =
+                       let exception Found of int in
+                       let find_pc (p : Code.program) =
+                         try
+                           let visit addr =
+                             match
+                               Code.Addr.Map.find_opt addr p.Code.blocks
+                             with
+                             | None -> ()
+                             | Some (b : Code.block) ->
+                               Array.iter
+                                 (function
+                                   | Code.Source_pc pc -> raise (Found pc)
+                                   | _ -> ())
+                                 b.body
+                           in
+                           visit p.start;
+                           Code.Addr.Map.iter (fun addr _ -> visit addr) p.blocks;
+                           None
+                         with Found pc -> Some pc
+                       in
+                       match find_pc h.prog with
+                       | Some pc -> source_file_from pc
+                       | None -> main_source_file
+                     in
                      let bytes =
                        assemble_sibling_class
-                         ?source_file:main_source_file
+                         ?source_file:helper_source_file
                          ~class_name:sibling
                          ~method_name:h.method_name
                          ~descriptor:h.descriptor
