@@ -1,0 +1,6 @@
+{
+  "caml_fill_bigstring": {
+    "target": "Cstruct.caml_fill_bigstring",
+    "descriptor": "(Ljava/lang/Object;JJJ)J"
+  }
+}

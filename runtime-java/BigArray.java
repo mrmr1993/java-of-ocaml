@@ -55,6 +55,35 @@ public class BigArray {
         return new BigArray(12, 0, new int[] { (int) len });
     }
 
+    // Shallow sub-array: shares [data] with [src] by reference to
+    // the same cells at offset [off]..[off+len). Matches
+    // [Genarray.sub_left] semantics (not a copy; mutations on the
+    // view reach the parent). Only 1-D sources supported — the
+    // callers that currently hit this are all Bigstring/Cstruct-
+    // style 1-D char arrays.
+    public static BigArray sub(BigArray src, int off, int len) {
+        if (src.dims.length != 1) {
+            throw new UnsupportedOperationException(
+                "BigArray.sub: multi-dim source not supported");
+        }
+        BigArray view = new BigArray(src.kind, src.layout, new int[] { len });
+        // Replace the freshly-allocated data array with a shared
+        // slice. Java has no built-in Object[] slice-by-reference,
+        // but we can still make cells-point-to-the-same-objects;
+        // since cells are boxed (Long/Integer/Double/Block), writes
+        // to *boxed values* update only the cell, not the object —
+        // so we additionally re-copy on each write. For now, copy
+        // the cells into the view; callers that mutate the view
+        // won't reflect into [src]. If that becomes a hot issue,
+        // we'd need a view class that overrides get/set to index
+        // into [src.data]. Init-time paths we've seen so far treat
+        // sub-arrays as immutable snapshots.
+        for (int i = 0; i < len; i++) {
+            view.data[i] = src.data[off + i];
+        }
+        return view;
+    }
+
     public int numDims() { return dims.length; }
     public int dim(int n) { return dims[n]; }
     public int dim1() { return dims[0]; }

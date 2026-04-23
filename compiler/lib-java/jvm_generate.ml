@@ -1790,6 +1790,23 @@ and emit_ccall_named ctx name args =
          ~descriptor:"(IILBlock;)LBigArray;";
        Kind.K_obj
      | _ -> raise (Unsupported "caml_ba_create arity"))
+  | "caml_ba_sub" ->
+    (* [caml_ba_sub ba off len]: 1-D sub-view of [ba] at offset
+       [off] with length [len]. Shallow copy — view shares boxed
+       cell references with the parent (not mutation-through). *)
+    (match args with
+     | [ Pv ba; Pv off; Pv len ] ->
+       emit_load ctx ba;
+       Jvm.Code.checkcast ctx.code "BigArray";
+       as_int off;
+       as_int len;
+       Jvm.Code.invokestatic
+         ctx.code
+         ~class_:"BigArray"
+         ~method_:"sub"
+         ~descriptor:"(LBigArray;II)LBigArray;";
+       Kind.K_obj
+     | _ -> raise (Unsupported "caml_ba_sub arity"))
   | "caml_ba_num_dims" ->
     (match args with
      | [ Pv ba ] ->
