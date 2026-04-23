@@ -19,6 +19,22 @@
     "descriptor": "(Ljava/lang/Object;Ljava/lang/Object;)J",
     "target": "MirageCrypto.ec_unit_2"
   },
+  "mc_aes_dec_bc": {
+    "descriptor": "(Ljava/lang/Object;JLjava/lang/Object;JLjava/lang/Object;JJ)J",
+    "target": "MirageCrypto.aes_dec"
+  },
+  "mc_aes_derive_d_key": {
+    "descriptor": "(Ljava/lang/Object;JLjava/lang/Object;JLjava/lang/Object;)J",
+    "target": "MirageCrypto.aes_derive_d_key"
+  },
+  "mc_aes_derive_e_key": {
+    "descriptor": "(Ljava/lang/Object;JLjava/lang/Object;J)J",
+    "target": "MirageCrypto.aes_derive_e_key"
+  },
+  "mc_aes_enc_bc": {
+    "descriptor": "(Ljava/lang/Object;JLjava/lang/Object;JLjava/lang/Object;JJ)J",
+    "target": "MirageCrypto.aes_enc"
+  },
   "mc_aes_mode": {
     "descriptor": "(Ljava/lang/Object;)J",
     "target": "MirageCrypto.aes_mode"
@@ -55,6 +71,10 @@
     "descriptor": "(Ljava/lang/Object;)J",
     "target": "MirageCrypto.entropy_detect"
   },
+  "mc_getrandom": {
+    "descriptor": "(Ljava/lang/Object;J)J",
+    "target": "MirageCrypto.mc_getrandom"
+  },
   "mc_ghash_key_size": {
     "descriptor": "(Ljava/lang/Object;)J",
     "target": "MirageCrypto.ghash_key_size"
@@ -68,7 +88,7 @@
     "target": "MirageCrypto.md5_ctx_size"
   },
   "mc_md5_finalize": {
-    "descriptor": "(Ljava/lang/Object;Ljava/lang/Object;J)J",
+    "descriptor": "(Ljava/lang/Object;Ljava/lang/Object;)J",
     "target": "MirageCrypto.md5_finalize"
   },
   "mc_md5_init": {
@@ -76,7 +96,7 @@
     "target": "MirageCrypto.md5_init"
   },
   "mc_md5_update": {
-    "descriptor": "(Ljava/lang/Object;Ljava/lang/Object;JJ)J",
+    "descriptor": "(Ljava/lang/Object;Ljava/lang/Object;J)J",
     "target": "MirageCrypto.md5_update"
   },
   "mc_misc_mode": {
@@ -448,7 +468,7 @@
     "target": "MirageCrypto.sha1_ctx_size"
   },
   "mc_sha1_finalize": {
-    "descriptor": "(Ljava/lang/Object;Ljava/lang/Object;J)J",
+    "descriptor": "(Ljava/lang/Object;Ljava/lang/Object;)J",
     "target": "MirageCrypto.sha1_finalize"
   },
   "mc_sha1_init": {
@@ -456,7 +476,7 @@
     "target": "MirageCrypto.sha1_init"
   },
   "mc_sha1_update": {
-    "descriptor": "(Ljava/lang/Object;Ljava/lang/Object;JJ)J",
+    "descriptor": "(Ljava/lang/Object;Ljava/lang/Object;J)J",
     "target": "MirageCrypto.sha1_update"
   },
   "mc_sha224_ctx_size": {
@@ -464,7 +484,7 @@
     "target": "MirageCrypto.sha224_ctx_size"
   },
   "mc_sha224_finalize": {
-    "descriptor": "(Ljava/lang/Object;Ljava/lang/Object;J)J",
+    "descriptor": "(Ljava/lang/Object;Ljava/lang/Object;)J",
     "target": "MirageCrypto.sha224_finalize"
   },
   "mc_sha224_init": {
@@ -472,7 +492,7 @@
     "target": "MirageCrypto.sha224_init"
   },
   "mc_sha224_update": {
-    "descriptor": "(Ljava/lang/Object;Ljava/lang/Object;JJ)J",
+    "descriptor": "(Ljava/lang/Object;Ljava/lang/Object;J)J",
     "target": "MirageCrypto.sha224_update"
   },
   "mc_sha256_ctx_size": {
@@ -480,7 +500,7 @@
     "target": "MirageCrypto.sha256_ctx_size"
   },
   "mc_sha256_finalize": {
-    "descriptor": "(Ljava/lang/Object;Ljava/lang/Object;J)J",
+    "descriptor": "(Ljava/lang/Object;Ljava/lang/Object;)J",
     "target": "MirageCrypto.sha256_finalize"
   },
   "mc_sha256_init": {
@@ -488,7 +508,7 @@
     "target": "MirageCrypto.sha256_init"
   },
   "mc_sha256_update": {
-    "descriptor": "(Ljava/lang/Object;Ljava/lang/Object;JJ)J",
+    "descriptor": "(Ljava/lang/Object;Ljava/lang/Object;J)J",
     "target": "MirageCrypto.sha256_update"
   },
   "mc_sha384_ctx_size": {
@@ -496,7 +516,7 @@
     "target": "MirageCrypto.sha384_ctx_size"
   },
   "mc_sha384_finalize": {
-    "descriptor": "(Ljava/lang/Object;Ljava/lang/Object;J)J",
+    "descriptor": "(Ljava/lang/Object;Ljava/lang/Object;)J",
     "target": "MirageCrypto.sha384_finalize"
   },
   "mc_sha384_init": {
@@ -504,7 +524,7 @@
     "target": "MirageCrypto.sha384_init"
   },
   "mc_sha384_update": {
-    "descriptor": "(Ljava/lang/Object;Ljava/lang/Object;JJ)J",
+    "descriptor": "(Ljava/lang/Object;Ljava/lang/Object;J)J",
     "target": "MirageCrypto.sha384_update"
   },
   "mc_sha512_ctx_size": {
@@ -512,7 +532,7 @@
     "target": "MirageCrypto.sha512_ctx_size"
   },
   "mc_sha512_finalize": {
-    "descriptor": "(Ljava/lang/Object;Ljava/lang/Object;J)J",
+    "descriptor": "(Ljava/lang/Object;Ljava/lang/Object;)J",
     "target": "MirageCrypto.sha512_finalize"
   },
   "mc_sha512_init": {
@@ -520,7 +540,7 @@
     "target": "MirageCrypto.sha512_init"
   },
   "mc_sha512_update": {
-    "descriptor": "(Ljava/lang/Object;Ljava/lang/Object;JJ)J",
+    "descriptor": "(Ljava/lang/Object;Ljava/lang/Object;J)J",
     "target": "MirageCrypto.sha512_update"
   },
   "mc_x25519_scalar_mult_generic": {

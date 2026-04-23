@@ -1,6 +1,18 @@
 {
+  "caml_blit_bigstring_to_bigstring": {
+    "descriptor": "(Ljava/lang/Object;JLjava/lang/Object;JJ)J",
+    "target": "Cstruct.caml_blit_bigstring_to_bigstring"
+  },
+  "caml_blit_bigstring_to_string": {
+    "descriptor": "(Ljava/lang/Object;JLjava/lang/Object;JJ)J",
+    "target": "Cstruct.caml_blit_bigstring_to_string"
+  },
+  "caml_blit_string_to_bigstring": {
+    "descriptor": "(Ljava/lang/Object;JLjava/lang/Object;JJ)J",
+    "target": "Cstruct.caml_blit_string_to_bigstring"
+  },
   "caml_fill_bigstring": {
-    "target": "Cstruct.caml_fill_bigstring",
-    "descriptor": "(Ljava/lang/Object;JJJ)J"
+    "descriptor": "(Ljava/lang/Object;JJJ)J",
+    "target": "Cstruct.caml_fill_bigstring"
   }
 }

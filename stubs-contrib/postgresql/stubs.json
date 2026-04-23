@@ -1,0 +1,14 @@
+{
+  "PQocaml_init": {
+    "descriptor": "(Ljava/lang/Object;)J",
+    "target": "Postgresql.ocaml_init"
+  },
+  "ftype_of_oid_stub_bc": {
+    "descriptor": "(J)Ljava/lang/Object;",
+    "target": "Postgresql.ftype_of_oid"
+  },
+  "oid_of_ftype_stub_bc": {
+    "descriptor": "(Ljava/lang/Object;)J",
+    "target": "Postgresql.oid_of_ftype"
+  }
+}

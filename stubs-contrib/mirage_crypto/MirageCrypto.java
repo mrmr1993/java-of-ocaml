@@ -85,24 +85,75 @@ public final class MirageCrypto {
     //
     // The right fix is a [java.security.MessageDigest]-backed
     // implementation; tracked as future work.
-    public static long md5_init(Object ctx)                                    { return 0; }
-    public static long md5_update(Object ctx, Object buf, long off, long len)  { return 0; }
-    public static long md5_finalize(Object ctx, Object out, long off)          { return 0; }
-    public static long sha1_init(Object ctx)                                   { return 0; }
-    public static long sha1_update(Object ctx, Object buf, long off, long len) { return 0; }
-    public static long sha1_finalize(Object ctx, Object out, long off)         { return 0; }
-    public static long sha224_init(Object ctx)                                   { return 0; }
-    public static long sha224_update(Object ctx, Object buf, long off, long len) { return 0; }
-    public static long sha224_finalize(Object ctx, Object out, long off)         { return 0; }
-    public static long sha256_init(Object ctx)                                   { return 0; }
-    public static long sha256_update(Object ctx, Object buf, long off, long len) { return 0; }
-    public static long sha256_finalize(Object ctx, Object out, long off)         { return 0; }
-    public static long sha384_init(Object ctx)                                   { return 0; }
-    public static long sha384_update(Object ctx, Object buf, long off, long len) { return 0; }
-    public static long sha384_finalize(Object ctx, Object out, long off)         { return 0; }
-    public static long sha512_init(Object ctx)                                   { return 0; }
-    public static long sha512_update(Object ctx, Object buf, long off, long len) { return 0; }
-    public static long sha512_finalize(Object ctx, Object out, long off)         { return 0; }
+    // Arities from mirage-crypto/native.ml:
+    //   init     : ctx -> unit                        (1 arg)
+    //   update   : ctx -> buffer -> size -> unit      (3 args)
+    //   finalize : ctx -> buffer -> unit              (2 args)
+    public static long md5_init(Object ctx)                              { return 0; }
+    public static long md5_update(Object ctx, Object buf, long size)     { return 0; }
+    public static long md5_finalize(Object ctx, Object out)              { return 0; }
+    public static long sha1_init(Object ctx)                             { return 0; }
+    public static long sha1_update(Object ctx, Object buf, long size)    { return 0; }
+    public static long sha1_finalize(Object ctx, Object out)             { return 0; }
+    public static long sha224_init(Object ctx)                           { return 0; }
+    public static long sha224_update(Object ctx, Object buf, long size)  { return 0; }
+    public static long sha224_finalize(Object ctx, Object out)           { return 0; }
+    public static long sha256_init(Object ctx)                           { return 0; }
+    public static long sha256_update(Object ctx, Object buf, long size)  { return 0; }
+    public static long sha256_finalize(Object ctx, Object out)           { return 0; }
+    public static long sha384_init(Object ctx)                           { return 0; }
+    public static long sha384_update(Object ctx, Object buf, long size)  { return 0; }
+    public static long sha384_finalize(Object ctx, Object out)           { return 0; }
+    public static long sha512_init(Object ctx)                           { return 0; }
+    public static long sha512_update(Object ctx, Object buf, long size)  { return 0; }
+    public static long sha512_finalize(Object ctx, Object out)           { return 0; }
+
+    // === DELIBERATE STUB: AES key schedule + en/decrypt ===============
+    // !!! AES IS A NO-OP IN THIS BUILD. !!!
+    //
+    // [cipher_block.ml] AES.of_secret derives encryption /
+    // decryption round keys via [mc_aes_derive_e_key] /
+    // [mc_aes_derive_d_key] at construction time, then encrypts /
+    // decrypts blocks via [mc_aes_enc_bc] / [mc_aes_dec_bc].
+    // Mirage-crypto's Fortuna RNG ([rng/fortuna.ml]) builds an AES
+    // key at module init to drive its CTR mode.
+    //
+    // Stubbing as no-ops: round-key buffers stay zero-initialised,
+    // ciphertext = zeros, decryption output = zeros. Fortuna's RNG
+    // output is consequently NOT random — anything that consumes
+    // these paths are exercised only by TLS / non-a native extension
+    // ancillaries (which we don't actually run).
+    // Arities follow the OCaml externals in mirage-crypto/native.ml:
+    //   derive_e : secret -> off -> key -> int -> unit            (4 args)
+    //   derive_d : secret -> off -> key -> int -> key option -> unit (5 args)
+    //   enc / dec : buffer -> off -> buffer -> off -> key -> int -> size -> unit (7 args)
+    public static long aes_derive_e_key(Object secret, long off, Object key,
+                                        long rounds) { return 0; }
+    public static long aes_derive_d_key(Object secret, long off, Object key,
+                                        long rounds, Object eOpt) { return 0; }
+    public static long aes_enc(Object src, long soff, Object dst, long doff,
+                               Object key, long rounds, long size) { return 0; }
+    public static long aes_dec(Object src, long soff, Object dst, long doff,
+                               Object key, long rounds, long size) { return 0; }
+
+    // === REAL IMPLEMENTATION: mc_getrandom ============================
+    // [mirage_crypto_rng_unix.ml: getrandom_buf : buffer -> int -> unit]
+    // fills the buffer with [n] random bytes from the OS RNG.
+    // [java.security.SecureRandom] (the JVM's CSPRNG, backed by
+    // [/dev/urandom] on Linux).
+    private static final java.security.SecureRandom SECURE_RANDOM
+        = new java.security.SecureRandom();
+
+    public static long mc_getrandom(Object buf, long n) {
+        BigArray ba = (BigArray) buf;
+        int len = (int) n;
+        byte[] tmp = new byte[len];
+        SECURE_RANDOM.nextBytes(tmp);
+        for (int i = 0; i < len; i++) {
+            ba.data[i] = Long.valueOf(tmp[i] & 0xFFL);
+        }
+        return 0;
+    }
 
     // === DELIBERATE STUB: elliptic-curve field arithmetic =============
     // !!! ALL ECC OPS ELIDED. !!!
