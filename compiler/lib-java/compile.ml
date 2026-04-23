@@ -335,7 +335,7 @@ let time_phase name f =
    return the resulting [.class] bytes for the write-classes phase
    to drop alongside [Main.class]. *)
 
-let compile_user_stubs ~stub_manifests =
+let compile_user_stubs ~stub_manifests ~stub_classpath =
   (* Gather all [.java] source paths to feed [javac] in one go. *)
   let sources =
     List.concat_map
@@ -366,9 +366,15 @@ let compile_user_stubs ~stub_manifests =
     seed "Ocaml" (Jvm.ocaml_class_bytes ());
     seed "Bytes" (Jvm.bytes_class_bytes ());
     seed "BigArray" (Jvm.big_array_class_bytes ());
-    (* Invoke javac. *)
+    (* Invoke javac. Extend the classpath with any user-provided
+       jars / class dirs (e.g. JNA for native-FFI-backed stubs). *)
+    let cp =
+      match stub_classpath with
+      | [] -> classpath_dir
+      | extras -> String.concat ":" (classpath_dir :: extras)
+    in
     let argv =
-      [| "javac"; "-d"; tmp_dir; "-cp"; classpath_dir |]
+      [| "javac"; "-d"; tmp_dir; "-cp"; cp |]
       |> Array.to_list
       |> fun base -> Array.of_list (base @ sources)
     in
@@ -719,6 +725,7 @@ let compile_t
       ?(print_ir = [])
       ?(print_tree = [])
       ?(stub_manifests = [])
+      ?(stub_classpath = [])
       ~parsed
       ~out_dir
       () =
@@ -1844,7 +1851,7 @@ let compile_t
   let user_stub_classes =
     if stub_manifests = [] then []
     else time_phase "compile-user-stubs" (fun () ->
-      compile_user_stubs ~stub_manifests)
+      compile_user_stubs ~stub_manifests ~stub_classpath)
   in
   time_phase "write-classes" (fun () ->
     write_class "Main" main_class_bytes;
@@ -1888,6 +1895,7 @@ let compile
       ?(print_ir = [])
       ?(print_tree = [])
       ?(stub_manifests = [])
+      ?(stub_classpath = [])
       ~bcs
       ~out_dir
       () =
@@ -1914,7 +1922,7 @@ let compile
   in
   oversized_stubs := [];
   compile_t ~print_functions ~print_ir ~print_tree ~stub_manifests
-    ~parsed ~out_dir ();
+    ~stub_classpath ~parsed ~out_dir ();
   report_oversized_stubs_and_maybe_fail ()
 
 (* Share the "read bcs into a [Bytecode.t]" part of [compile] so the

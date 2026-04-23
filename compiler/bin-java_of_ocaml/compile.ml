@@ -11,7 +11,8 @@ let run
     print_ir
     print_tree
     list_missing
-    stub_manifests =
+    stub_manifests
+    stub_classpath =
   List.iter Java_of_ocaml_compiler.Debug.enable debug_flags;
   match inputs, output_dir, list_missing with
   | [], _, _ -> `Error (true, "missing input file(s)")
@@ -40,6 +41,7 @@ let run
          ~print_ir
          ~print_tree
          ~stub_manifests
+         ~stub_classpath
          ~bcs
          ~out_dir
          ();
@@ -124,6 +126,20 @@ let stub_manifest_arg =
     & opt_all file []
     & info [ "stub-manifest" ] ~docv:"PATH" ~doc)
 
+let stub_classpath_arg =
+  let doc =
+    "Path to a $(b,.jar) file (or directory of $(b,.class) files) \
+     to add to the classpath when compiling stub $(b,.java) \
+     sources with $(b,javac). Useful for stubs that import an \
+     external library such as JNA. The same path must be passed \
+     to $(b,java -cp) at runtime when executing the compiled \
+     program. May be repeated."
+  in
+  Arg.(
+    value
+    & opt_all file []
+    & info [ "stub-classpath" ] ~docv:"PATH" ~doc)
+
 let list_missing_arg =
   let doc =
     "Don't compile; instead list every C primitive that the input \
@@ -145,7 +161,8 @@ let term =
        $ print_ir_arg
        $ print_tree_arg
        $ list_missing_arg
-       $ stub_manifest_arg))
+       $ stub_manifest_arg
+       $ stub_classpath_arg))
 
 let info =
   let doc = "Compile OCaml bytecode to JVM class files." in
