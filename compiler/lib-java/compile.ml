@@ -993,6 +993,11 @@ let compile_t
     arr
   in
   let line_of_pc pc =
+    (* OCaml debug events (`Event_before`) mark the START of a
+       source-location region: an entry [(PC=100, line=23)] means
+       "starting at bytecode PC 100, code belongs to line 23, and
+       stays on line 23 until the next event's PC". So for a
+       lookup PC we want the LAST event whose PC is <= pc. *)
     let n = Array.length sorted_debug_pcs in
     if n = 0
     then None
@@ -1001,11 +1006,11 @@ let compile_t
       while !lo <= !hi do
         let mid = (!lo + !hi) / 2 in
         let mpc, _ = sorted_debug_pcs.(mid) in
-        if mpc >= pc
+        if mpc <= pc
         then (
           found := mid;
-          hi := mid - 1)
-        else lo := mid + 1
+          lo := mid + 1)
+        else hi := mid - 1
       done;
       if !found = -1
       then None
