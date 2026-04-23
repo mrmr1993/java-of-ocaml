@@ -210,8 +210,10 @@ public class Closure {
                                  s[7], s[8], s[9], s[10], s[11], s[12],
                                  s[13], s[14], s[15]);
             default:
-                throw new RuntimeException(
-                    "closure oversupply split: k=" + k + " out of supported range");
+                // k > 16: no apply{k} on the [Closure] base. The
+                // generated subclass [c]'s own apply{k} is the
+                // declared arity entry point — dispatch reflectively.
+                return PartialClosure.reflectiveApply(c, s);
         }
     }
 }

@@ -1,9 +1,47 @@
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
+import java.util.concurrent.ConcurrentHashMap;
+
 // Undersupplied application: holds a target Closure, the args already
 // captured, and a caller's declared arity. Each applyN appends its
 // new args to [captured] and either builds a deeper PartialClosure (if
 // still short of [targetArity]) or dispatches through a caller's
 // own applyN at saturation.
 public final class PartialClosure extends Closure {
+    // Cache of (subclass, arity) -> applyN Method handle for the
+    // reflective fallback path used when arity > 16.
+    private static final ConcurrentHashMap<Class<?>, Method> APPLY_METHOD_CACHE
+        = new ConcurrentHashMap<>();
+
+    private static Method resolveApplyMethod(Class<?> cls, int arity) {
+        Method cached = APPLY_METHOD_CACHE.get(cls);
+        if (cached != null) return cached;
+        Class<?>[] paramTypes = new Class<?>[arity];
+        for (int i = 0; i < arity; i++) paramTypes[i] = Object.class;
+        try {
+            Method m = cls.getMethod("apply" + arity, paramTypes);
+            APPLY_METHOD_CACHE.putIfAbsent(cls, m);
+            return m;
+        } catch (NoSuchMethodException e) {
+            throw new RuntimeException(
+                "no apply" + arity + " method on " + cls.getName(), e);
+        }
+    }
+
+    static Object reflectiveApply(Closure target, Object[] args) {
+        Method m = resolveApplyMethod(target.getClass(), args.length);
+        try {
+            return m.invoke(target, args);
+        } catch (InvocationTargetException e) {
+            Throwable cause = e.getCause();
+            if (cause instanceof RuntimeException) throw (RuntimeException) cause;
+            if (cause instanceof Error) throw (Error) cause;
+            throw new RuntimeException(cause);
+        } catch (IllegalAccessException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
     public final Closure target;
     public final Object[] captured;
     public final int targetArity;
@@ -65,8 +103,12 @@ public final class PartialClosure extends Closure {
                                       c[6], c[7], c[8], c[9], c[10], c[11],
                                       c[12], c[13], c[14], c[15]);
             default:
-                throw new RuntimeException(
-                    "unsupported partial-closure arity " + c.length);
+                // Arity > 16: the [Closure] base class has no
+                // [applyN] for this N (since the base only declares
+                // up to apply16). Fall back to reflection on the
+                // generated subclass's own [applyN]. Cached per
+                // class so the lookup cost is amortised.
+                return reflectiveApply(target, c);
         }
     }
 
