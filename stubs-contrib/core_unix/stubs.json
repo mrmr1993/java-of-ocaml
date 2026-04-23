@@ -151,6 +151,10 @@
     "descriptor": "(J)Ljava/lang/Object;",
     "target": "CoreUnix.error_of_code"
   },
+  "core_unix_fcntl": {
+    "descriptor": "(Ljava/lang/Object;JJ)J",
+    "target": "Unix.fcntl"
+  },
   "core_unix_getrlimit": {
     "descriptor": "(Ljava/lang/Object;)Ljava/lang/Object;",
     "target": "CoreUnix.getrlimit"
@@ -371,6 +375,10 @@
     "descriptor": "(Ljava/lang/Object;Ljava/lang/Object;)J",
     "target": "Unix.mkdir"
   },
+  "unix_open": {
+    "descriptor": "(Ljava/lang/Object;Ljava/lang/Object;J)J",
+    "target": "Unix.openfile"
+  },
   "unix_outchannel_of_filedescr": {
     "descriptor": "(Ljava/lang/Object;)LChannel;",
     "target": "Unix.outchannelOfFiledescr"
@@ -378,6 +386,10 @@
   "unix_pipe": {
     "descriptor": "(Ljava/lang/Object;Ljava/lang/Object;)LBlock;",
     "target": "Unix.pipeStub"
+  },
+  "unix_read": {
+    "descriptor": "(JLjava/lang/Object;JJ)J",
+    "target": "Unix.read"
   },
   "unix_rmdir": {
     "descriptor": "(Ljava/lang/Object;)J",
@@ -418,5 +430,9 @@
   "unix_waitpid": {
     "descriptor": "(Ljava/lang/Object;Ljava/lang/Object;)LBlock;",
     "target": "Unix.waitpidStub"
+  },
+  "unix_write": {
+    "descriptor": "(JLjava/lang/Object;JJ)J",
+    "target": "Unix.write"
   }
 }

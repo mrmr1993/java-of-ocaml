@@ -404,6 +404,41 @@ public final class Unix {
         return System.getProperty("user.dir");
     }
 
+    /** [Unix.openfile path flags perm] — delegates to Channel's
+     *  fd registry. */
+    public static long openfile(Object path, Object flags, long perm) {
+        try {
+            return Channel.unixOpen((String) path, flags, (int) perm);
+        } catch (java.io.FileNotFoundException e) {
+            throw Ocaml.raiseUnixError(20L, "open", (String) path);
+        } catch (java.io.IOException e) {
+            throw Ocaml.raiseUnixError(13L, "open", (String) path);
+        }
+    }
+
+    /** [Unix.write fd buf pos len] - delegates to Channel registry. */
+    public static long write(long fd, Object buf, long pos, long len) {
+        try {
+            return Channel.unixWrite((int) fd, buf, (int) pos, (int) len);
+        } catch (java.io.IOException e) {
+            throw Ocaml.raiseUnixError(5L, "write", "");
+        }
+    }
+
+    /** [Unix.read fd buf pos len]. */
+    public static long read(long fd, Object buf, long pos, long len) {
+        try {
+            return Channel.unixRead((int) fd, buf, (int) pos, (int) len);
+        } catch (java.io.IOException e) {
+            throw Ocaml.raiseUnixError(5L, "read", "");
+        }
+    }
+
+    // === DELIBERATE STUB: fcntl ========================================
+    // [core_unix_fcntl fd cmd arg]: F_GETFL / F_SETFL / F_GETFD /
+    // F_SETFD / F_GETLK / etc. JVM doesn't expose this; for the
+    public static long fcntl(Object fd, long cmd, long arg) { return 0; }
+
     // === DELIBERATE STUB: file-descriptor flag ops ====================
     // [set_close_on_exec fd] / [clear_close_on_exec fd] / [set_nonblock
     // fd] / [clear_nonblock fd]: tweak fd flags. The JVM doesn't model

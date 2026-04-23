@@ -2160,12 +2160,33 @@ and emit_ccall_named ctx name args =
       ~method_:"<init>"
       ~descriptor:"(I[Ljava/lang/Object;)V";
     Kind.K_obj
-  (* [convert_raw_backtrace] returns [backtrace_slot array option]
-     — [None] (with a backtrace-not-available signal) keeps
-     printers quiet. *)
+  (* [convert_raw_backtrace] returns [backtrace_slot array option].
+     Return [Some empty_array] = Block(0, [Block(0, [||])]) so
+     [printexc.ml]'s [Some a -> for i = 0 to Array.length a - 1]
+     loop sees a real array (length 0, iterates zero times) rather
+     than tripping a Long→Block cast on the [a.(i)] inside. */ *)
   | "caml_convert_raw_backtrace" ->
-    emit_int_const ctx 0;
-    Kind.K_int
+    Jvm.Code.new_ ctx.code "Block";
+    Jvm.Code.dup ctx.code;
+    Jvm.Code.ldc_int ctx.code 0;          (* outer Some-tag *)
+    Jvm.Code.ldc_int ctx.code 1;          (* outer 1 field *)
+    Jvm.Code.anewarray ctx.code "java/lang/Object";
+    Jvm.Code.dup ctx.code;
+    Jvm.Code.ldc_int ctx.code 0;
+    (* Inner empty array Block(0, [||]). *)
+    Jvm.Code.new_ ctx.code "Block";
+    Jvm.Code.dup ctx.code;
+    Jvm.Code.ldc_int ctx.code 0;
+    Jvm.Code.ldc_int ctx.code 0;
+    Jvm.Code.anewarray ctx.code "java/lang/Object";
+    Jvm.Code.invokespecial ctx.code
+      ~class_:"Block" ~method_:"<init>"
+      ~descriptor:"(I[Ljava/lang/Object;)V";
+    Jvm.Code.aastore ctx.code;
+    Jvm.Code.invokespecial ctx.code
+      ~class_:"Block" ~method_:"<init>"
+      ~descriptor:"(I[Ljava/lang/Object;)V";
+    Kind.K_obj
   (* [raw_backtrace_length] / [raw_backtrace_slot] — int-valued
      integer accessors. *)
   | "caml_raw_backtrace_length"

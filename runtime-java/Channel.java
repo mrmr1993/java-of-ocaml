@@ -170,6 +170,81 @@ public class Channel {
     return 0;
   }
 
+  /** [Unix.openfile path flags perm] — Unix-style fd open. Flags is
+   *  a list of [open_flag] variant indices:
+   *    0=O_RDONLY, 1=O_WRONLY, 2=O_RDWR, 3=O_NONBLOCK, 4=O_APPEND,
+   *    5=O_CREAT,  6=O_TRUNC,  7=O_EXCL, 8=O_NOCTTY,   9=O_DSYNC,
+   *   10=O_SYNC,  11=O_RSYNC, 12=O_SHARE_DELETE, 13=O_CLOEXEC,
+   *   14=O_KEEPEXEC.
+   *  Returns an int fd registered in [FDS]. */
+  /** [Unix.write fd buf pos len]. Looks up [fd] in [FDS]; if it's
+   *  a writable stream, writes the slice. Returns bytes written. */
+  public static int unixWrite(int fd, Object bufObj, int pos, int len) throws IOException {
+    Object stream;
+    synchronized (FDS) { stream = FDS.get(fd); }
+    if (stream == null) throw new IOException("bad fd " + fd);
+    String s;
+    if (bufObj instanceof Bytes) s = ((Bytes) bufObj).sb.toString();
+    else                          s = (String) bufObj;
+    byte[] bytes = new byte[len];
+    for (int i = 0; i < len; i++) bytes[i] = (byte) s.charAt(pos + i);
+    if (stream instanceof OutputStream) {
+      ((OutputStream) stream).write(bytes);
+      return len;
+    }
+    throw new IOException("fd " + fd + " is not writable");
+  }
+
+  /** [Unix.read fd buf pos len]. Looks up [fd] in [FDS]; reads up
+   *  to [len] bytes into the buffer. Returns bytes read. */
+  public static int unixRead(int fd, Object bufObj, int pos, int len) throws IOException {
+    Object stream;
+    synchronized (FDS) { stream = FDS.get(fd); }
+    if (stream == null) throw new IOException("bad fd " + fd);
+    if (!(stream instanceof InputStream)) {
+      throw new IOException("fd " + fd + " is not readable");
+    }
+    byte[] tmp = new byte[len];
+    int n = ((InputStream) stream).read(tmp, 0, len);
+    if (n <= 0) return 0;
+    Bytes b = (Bytes) bufObj;
+    for (int i = 0; i < n; i++) b.sb.setCharAt(pos + i, (char) (tmp[i] & 0xFF));
+    return n;
+  }
+
+  public static int unixOpen(String path, Object flagsList, int perm) throws IOException {
+    int flags = 0;
+    Object node = flagsList;
+    while (node instanceof Block) {
+      Block cons = (Block) node;
+      flags |= (1 << (int) Block.asLong(cons.fields[0]));
+      node = cons.fields[1];
+    }
+    boolean wantWrite  = (flags & ((1 << 1) | (1 << 2))) != 0;
+    boolean wantRead   = (flags & ((1 << 0) | (1 << 2))) != 0;
+    boolean append     = (flags & (1 << 4)) != 0;
+    boolean create     = (flags & (1 << 5)) != 0;
+    boolean truncate   = (flags & (1 << 6)) != 0;
+    java.io.File f = new java.io.File(path);
+    if (create && !f.exists()) f.createNewFile();
+    int fd;
+    synchronized (FDS) {
+      fd = nextFd++;
+      Object stream;
+      if (wantWrite) {
+        stream = new FileOutputStream(f, append && !truncate);
+      } else if (wantRead) {
+        stream = new BufferedInputStream(new FileInputStream(f));
+      } else {
+        // No read, no write — open just to test existence. Wrap an
+        // empty input stream so subsequent reads behave like EOF.
+        stream = emptyInputStream();
+      }
+      FDS.put(fd, stream);
+    }
+    return fd;
+  }
+
   public int inputChar() throws IOException {
     if (in == null) throw new IOException("not an input channel");
     if (bufCurr >= bufEnd) {
