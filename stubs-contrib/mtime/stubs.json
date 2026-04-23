@@ -1,4 +1,16 @@
 {
+  "core_unix_clock_getres": {
+    "descriptor": "(J)D",
+    "target": "Mtime.clock_getres"
+  },
+  "core_unix_clock_gettime": {
+    "descriptor": "(J)D",
+    "target": "Mtime.clock_gettime"
+  },
+  "core_unix_clock_settime": {
+    "descriptor": "(JD)J",
+    "target": "Mtime.clock_settime"
+  },
   "ocaml_mtime_clock_elapsed_ns": {
     "descriptor": "(Ljava/lang/Object;)J",
     "target": "Mtime.elapsed_ns"
@@ -10,5 +22,13 @@
   "ocaml_mtime_clock_period_ns": {
     "descriptor": "(Ljava/lang/Object;)Ljava/lang/Object;",
     "target": "Mtime.period_ns"
+  },
+  "time_now_nanoseconds_since_unix_epoch_or_zero": {
+    "descriptor": "(Ljava/lang/Object;)J",
+    "target": "Mtime.time_now_nanoseconds_since_unix_epoch_or_zero"
+  },
+  "tsc_get": {
+    "descriptor": "(Ljava/lang/Object;)J",
+    "target": "Mtime.tsc_get"
   }
 }

@@ -88,6 +88,15 @@ public final class LinuxExt {
         throw Ocaml.raiseUnixError(25L, "timerfd_create", "");
     }
 
+    // === DELIBERATE STUB: process priority ============================
+    // [getpriority ()] / [setpriority p]: read or set the process's
+    // scheduler nice value. We don't manipulate JVM thread priorities
+    // through here — the daemon only reads it once at startup to log
+    // a stat. Returning 0 (= "normal" priority) is honest. Setpriority
+    // is a no-op for the same reason.
+    public static long getpriority(Object unit) { return 0; }
+    public static long setpriority(Object prio) { return 0; }
+
     // ==== syscall zero-returners =======================================
 
 }

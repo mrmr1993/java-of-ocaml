@@ -31,6 +31,10 @@
     "descriptor": "(Ljava/lang/Object;JJJ)J",
     "target": "Bigstring.memset"
   },
+  "core_kernel_time_ns_format": {
+    "descriptor": "(DLjava/lang/Object;)Ljava/lang/String;",
+    "target": "Unix.time_ns_format"
+  },
   "core_linux_epoll_EPOLLERR_flag": {
     "descriptor": "(Ljava/lang/Object;)J",
     "target": "LinuxExt.EPOLLERR_flag"
@@ -86,6 +90,14 @@
   "core_linux_eventfd_EFD_SEMAPHORE": {
     "descriptor": "(Ljava/lang/Object;)J",
     "target": "LinuxExt.EFD_SEMAPHORE"
+  },
+  "core_linux_getpriority": {
+    "descriptor": "(Ljava/lang/Object;)J",
+    "target": "LinuxExt.getpriority"
+  },
+  "core_linux_setpriority": {
+    "descriptor": "(Ljava/lang/Object;)J",
+    "target": "LinuxExt.setpriority"
   },
   "core_linux_timerfd_CLOCK_MONOTONIC": {
     "descriptor": "(Ljava/lang/Object;)J",
@@ -227,6 +239,14 @@
     "descriptor": "(Ljava/lang/Object;)J",
     "target": "CoreUnix.O_WRONLY"
   },
+  "unix_clear_close_on_exec": {
+    "descriptor": "(Ljava/lang/Object;)J",
+    "target": "Unix.clear_close_on_exec"
+  },
+  "unix_clear_nonblock": {
+    "descriptor": "(Ljava/lang/Object;)J",
+    "target": "Unix.clear_nonblock"
+  },
   "unix_close": {
     "descriptor": "(Ljava/lang/Object;)J",
     "target": "Unix.close"
@@ -246,6 +266,14 @@
   "unix_fork": {
     "descriptor": "(Ljava/lang/Object;)J",
     "target": "Unix.forkStub"
+  },
+  "unix_fstat": {
+    "descriptor": "(Ljava/lang/Object;)LBlock;",
+    "target": "Unix.fstat"
+  },
+  "unix_fstat_64": {
+    "descriptor": "(Ljava/lang/Object;)LBlock;",
+    "target": "Unix.fstat"
   },
   "unix_getegid": {
     "descriptor": "(Ljava/lang/Object;)J",
@@ -287,6 +315,14 @@
     "descriptor": "(Ljava/lang/Object;)LChannel;",
     "target": "Unix.inchannelOfFiledescr"
   },
+  "unix_lstat": {
+    "descriptor": "(Ljava/lang/Object;)LBlock;",
+    "target": "Unix.lstat"
+  },
+  "unix_lstat_64": {
+    "descriptor": "(Ljava/lang/Object;)LBlock;",
+    "target": "Unix.lstat"
+  },
   "unix_outchannel_of_filedescr": {
     "descriptor": "(Ljava/lang/Object;)LChannel;",
     "target": "Unix.outchannelOfFiledescr"
@@ -295,9 +331,25 @@
     "descriptor": "(Ljava/lang/Object;Ljava/lang/Object;)LBlock;",
     "target": "Unix.pipeStub"
   },
+  "unix_set_close_on_exec": {
+    "descriptor": "(Ljava/lang/Object;)J",
+    "target": "Unix.set_close_on_exec"
+  },
+  "unix_set_nonblock": {
+    "descriptor": "(Ljava/lang/Object;)J",
+    "target": "Unix.set_nonblock"
+  },
   "unix_spawn": {
     "descriptor": "(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)J",
     "target": "Unix.spawn"
+  },
+  "unix_stat": {
+    "descriptor": "(Ljava/lang/Object;)LBlock;",
+    "target": "Unix.stat"
+  },
+  "unix_stat_64": {
+    "descriptor": "(Ljava/lang/Object;)LBlock;",
+    "target": "Unix.stat"
   },
   "unix_time": {
     "descriptor": "(Ljava/lang/Object;)J",

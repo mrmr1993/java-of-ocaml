@@ -18,6 +18,16 @@
 import java.lang.management.ManagementFactory;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.attribute.BasicFileAttributes;
+import java.nio.file.attribute.PosixFileAttributes;
+import java.nio.file.attribute.PosixFilePermission;
+import java.text.SimpleDateFormat;
+import java.util.Date;
+import java.util.Set;
+import java.util.TimeZone;
 
 public final class Unix {
     private Unix() {}
@@ -189,6 +199,130 @@ public final class Unix {
                              Object useShell, Object stdfds) {
         return 1L;
     }
+
+    // === REAL: unix_stat / unix_lstat / unix_fstat ====================
+    // Returns a [Unix.stats] record:
+    //   { st_dev; st_ino; st_kind; st_perm; st_nlink; st_uid; st_gid;
+    //     st_rdev; st_size; st_atime; st_mtime; st_ctime }
+    // st_kind variant: 0=REG, 1=DIR, 2=CHR, 3=BLK, 4=LNK, 5=FIFO, 6=SOCK
+    // Use [java.nio.file.Files] PosixFileAttributes; falls back to
+    // BasicFileAttributes if POSIX isn't supported.
+    public static Block stat(Object pathObj) {
+        return statPath((String) pathObj, false);
+    }
+
+    public static Block lstat(Object pathObj) {
+        return statPath((String) pathObj, true);
+    }
+
+    public static Block fstat(Object fdObj) {
+        // We don't yet maintain a fd → path registry; return a
+        // during init.
+        return makeStat(0, 0, 0, 0, 1, 0, 0, 0, 0, 0.0, 0.0, 0.0);
+    }
+
+    private static Block statPath(String path, boolean noFollow) {
+        try {
+            Path p = Paths.get(path);
+            BasicFileAttributes ba;
+            int kind = 0; long size = 0; double atime = 0, mtime = 0, ctime = 0;
+            try {
+                PosixFileAttributes pa = noFollow
+                    ? Files.readAttributes(p, PosixFileAttributes.class,
+                          java.nio.file.LinkOption.NOFOLLOW_LINKS)
+                    : Files.readAttributes(p, PosixFileAttributes.class);
+                ba = pa;
+            } catch (UnsupportedOperationException ue) {
+                ba = noFollow
+                    ? Files.readAttributes(p, BasicFileAttributes.class,
+                          java.nio.file.LinkOption.NOFOLLOW_LINKS)
+                    : Files.readAttributes(p, BasicFileAttributes.class);
+            }
+            if (ba.isDirectory()) kind = 1;
+            else if (ba.isSymbolicLink()) kind = 4;
+            else if (ba.isRegularFile()) kind = 0;
+            else kind = 2; // approximate other → CHR
+            size = ba.size();
+            atime = ba.lastAccessTime().toMillis() / 1000.0;
+            mtime = ba.lastModifiedTime().toMillis() / 1000.0;
+            ctime = ba.creationTime().toMillis() / 1000.0;
+            return makeStat(0, 0, kind, 0644, 1, 0, 0, 0, size,
+                            atime, mtime, ctime);
+        } catch (java.io.IOException e) {
+            throw Ocaml.raiseUnixError(20L, "stat", path); // ENOENT-ish
+        }
+    }
+
+    private static Block makeStat(long dev, long ino, int kind, int perm,
+                                  long nlink, long uid, long gid, long rdev,
+                                  long size, double atime, double mtime,
+                                  double ctime) {
+        return new Block(0, new Object[] {
+            Long.valueOf(dev), Long.valueOf(ino), Long.valueOf(kind),
+            Long.valueOf(perm), Long.valueOf(nlink), Long.valueOf(uid),
+            Long.valueOf(gid), Long.valueOf(rdev), Long.valueOf(size),
+            Double.valueOf(atime), Double.valueOf(mtime), Double.valueOf(ctime),
+        });
+    }
+
+    // === REAL: core_kernel_time_ns_format =============================
+    // [format : float -> string -> string] — seconds-since-epoch +
+    // strftime-style format → formatted string. The OCaml Async
+    // logger uses this for line timestamps. Translate the common
+    // strftime conversions to Java's SimpleDateFormat patterns.
+    public static String time_ns_format(double timeSec, Object fmtObj) {
+        String fmt = (String) fmtObj;
+        StringBuilder out = new StringBuilder();
+        StringBuilder lit = new StringBuilder();
+        for (int i = 0; i < fmt.length(); i++) {
+            char c = fmt.charAt(i);
+            if (c == '%' && i + 1 < fmt.length()) {
+                if (lit.length() > 0) {
+                    out.append("'").append(lit.toString().replace("'", "''")).append("'");
+                    lit.setLength(0);
+                }
+                char spec = fmt.charAt(++i);
+                switch (spec) {
+                    case 'Y': out.append("yyyy"); break;
+                    case 'm': out.append("MM");   break;
+                    case 'd': out.append("dd");   break;
+                    case 'H': out.append("HH");   break;
+                    case 'M': out.append("mm");   break;
+                    case 'S': out.append("ss");   break;
+                    case 'z': out.append("Z");    break;
+                    case 'Z': out.append("zzz");  break;
+                    case 'j': out.append("DDD");  break;
+                    case 'a': out.append("EEE");  break;
+                    case 'A': out.append("EEEE"); break;
+                    case 'b': out.append("MMM");  break;
+                    case 'B': out.append("MMMM"); break;
+                    case '%': lit.append('%');    break;
+                    default:  lit.append('%').append(spec);
+                }
+            } else {
+                lit.append(c);
+            }
+        }
+        if (lit.length() > 0) {
+            out.append("'").append(lit.toString().replace("'", "''")).append("'");
+        }
+        SimpleDateFormat sdf = new SimpleDateFormat(out.toString());
+        sdf.setTimeZone(TimeZone.getTimeZone("UTC"));
+        return sdf.format(new Date((long) (timeSec * 1000)));
+    }
+
+    // === DELIBERATE STUB: file-descriptor flag ops ====================
+    // [set_close_on_exec fd] / [clear_close_on_exec fd] / [set_nonblock
+    // fd] / [clear_nonblock fd]: tweak fd flags. The JVM doesn't model
+    // these — sockets / channels track non-blocking mode on the
+    // [SelectableChannel] level instead. Returning unit is safe; if a
+    // caller later observes the fd not being non-blocking, that
+    // surfaces as a wouldblock-style error from the actual I/O call,
+    // not from the flag-set call.
+    public static long set_close_on_exec(Object fd)   { return 0; }
+    public static long clear_close_on_exec(Object fd) { return 0; }
+    public static long set_nonblock(Object fd)        { return 0; }
+    public static long clear_nonblock(Object fd)      { return 0; }
 
     // === DELIBERATE STUB: unix_close ==================================
     // (subprocess emulation we've stubbed elsewhere) and then closes
