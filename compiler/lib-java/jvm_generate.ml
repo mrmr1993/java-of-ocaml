@@ -1470,7 +1470,6 @@ and emit_ccall_named ctx name args =
   | "caml_ensure_stack_capacity"
   | "caml_ml_set_binary_mode"
   | "caml_ml_set_channel_name"
-  | "caml_register_named_value"
   | "caml_init_signals"
   | "caml_record_backtrace"
   | "caml_backtrace_status"
@@ -1490,6 +1489,22 @@ and emit_ccall_named ctx name args =
   | "caml_ml_pos_in_64" ->
     emit_int_const ctx 0;
     Kind.K_int
+  | "caml_register_named_value" ->
+    (* [Callback.register] / [Callback.register_exception] call this
+       to expose an OCaml value to the C side under a string name.
+       Route through [Ocaml.registerNamedValue] so Java-side stubs
+       ([Unix.Unix_error], etc.) can look it up at call time. *)
+    (match args with
+     | [ name; value ] ->
+       let _ = emit_prim_arg ctx name in
+       let _ = emit_prim_arg ctx value in
+       Jvm.Code.invokestatic
+         ctx.code
+         ~class_:"Ocaml"
+         ~method_:"registerNamedValue"
+         ~descriptor:"(Ljava/lang/Object;Ljava/lang/Object;)J";
+       Kind.K_int
+     | _ -> raise (Unsupported "caml_register_named_value arity"))
   | "caml_sys_getenv" | "caml_sys_unsafe_getenv" ->
     (* Look up the env var via java.lang.System.getenv; if absent,
        raise OCaml's [Not_found] so [Sys.getenv_opt]'s [try ... with

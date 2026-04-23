@@ -180,6 +180,53 @@ public final class Ocaml {
         throw new CamlException(id);
     }
 
+    // -------- Callback.register / Callback.register_exception --------
+    //
+    // OCaml programs expose values (closures, exception descriptors) to
+    // the C side via [Callback.register] / [Callback.register_exception],
+    // which call [caml_register_named_value name v]. Our backend wires
+    // that primitive to [Ocaml.registerNamedValue] so Java-side stubs
+    // can retrieve the registered value with [Ocaml.namedValue name].
+    //
+    // Common callers: [Unix] registers its [Unix_error] exception so C
+    // stubs can raise it; [Digestif] registers internal continuations;
+    // bridge OCaml identities into Java stubs goes through here.
+
+    private static final java.util.concurrent.ConcurrentHashMap<String, Object>
+        NAMED_VALUES = new java.util.concurrent.ConcurrentHashMap<>();
+
+    public static long registerNamedValue(Object name, Object value) {
+        String key = (String) name;
+        if (value != null) NAMED_VALUES.put(key, value);
+        else NAMED_VALUES.remove(key);
+        return 0;
+    }
+
+    /** Returns the OCaml value registered under [name], or [null] if
+     *  no registration has happened yet. */
+    public static Object namedValue(String name) {
+        return NAMED_VALUES.get(name);
+    }
+
+    /** Throw a [CamlException] wrapping [Unix.Unix_error(err, syscall, arg)].
+     *  [err] is a variant tag index from [stubs-contrib/core_unix/
+     *  CoreUnix.java#errnoToVariantIndex] — e.g. 25 for ENOSYS,
+     *  2 for EAGAIN. Requires [Unix.Unix_error] to have been
+     *  registered via [Callback.register_exception] — which happens
+     *  early in any program that links the Unix stdlib. */
+    public static RuntimeException raiseUnixError(
+            long errVariant, String syscall, String arg) {
+        Object id = namedValue("Unix.Unix_error");
+        if (id == null) {
+            id = new Block(248, new Object[] {
+                "Unix.Unix_error", Long.valueOf(-1L),
+            });
+        }
+        throw new CamlException(new Block(0, new Object[] {
+            id, Long.valueOf(errVariant), syscall, arg,
+        }));
+    }
+
     // -------- sentinels --------
 
     public static final Object unit = Long.valueOf(0L);

@@ -103,6 +103,10 @@
     "descriptor": "(Ljava/lang/Object;)J",
     "target": "LinuxExt.TFD_NONBLOCK"
   },
+  "core_linux_timerfd_create": {
+    "descriptor": "(JJ)J",
+    "target": "LinuxExt.timerfd_create"
+  },
   "core_linux_xattr_XATTR_CREATE_flag": {
     "descriptor": "(Ljava/lang/Object;)J",
     "target": "LinuxExt.XATTR_CREATE_flag"

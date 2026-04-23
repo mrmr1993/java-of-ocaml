@@ -69,6 +69,25 @@ public final class LinuxExt {
     public static long XATTR_CREATE_flag(Object ignore)  { return 1; }
     public static long XATTR_REPLACE_flag(Object ignore) { return 2; }
 
+    // === DELIBERATE STUB: timerfd (feature-unavailable) ===============
+    // [core_linux_timerfd_create clock flags]: creates a Linux
+    // timerfd for scheduler wakeups. [Async_unix.raw_scheduler]
+    // probes this at startup via [Result.try_with create] and falls
+    // back to the generic [epoll/select]-with-timeout path when it
+    // raises [Unix.Unix_error (ENOSYS, _, _)]. Raising ENOSYS is
+    // the right signal — async's wrapper at
+    // [core/linux_ext/linux_ext.ml:386-398] specifically catches
+    // ENOSYS and binds [Timerfd.create] to [Or_error.unimplemented],
+    // which scheduler init then treats as "no timerfd available,
+    // use the fallback path."
+    //
+    // errno 38 = ENOSYS. We raise [Unix_error(ENOSYS, "timerfd_create", "")]
+    // via [Ocaml.raiseUnixError]; the variant index for ENOSYS is 25
+    // (see CoreUnix.errnoToVariantIndex).
+    public static long timerfd_create(long clock, long flags) {
+        throw Ocaml.raiseUnixError(25L, "timerfd_create", "");
+    }
+
     // ==== syscall zero-returners =======================================
 
 }

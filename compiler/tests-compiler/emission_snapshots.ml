@@ -152,1378 +152,1380 @@ let%expect_test "emission: println of a string literal" =
          217: bipush        36
          219: aaload
          220: astore        16
-         222: iconst_0
-         223: i2l
-         224: invokestatic  #61                 // Method java/lang/Long.valueOf:(J)Ljava/lang/Long;
-         227: astore        17
-         229: new           #2                  // class Block
-         232: dup
-         233: iconst_0
-         234: bipush        104
-         236: anewarray     #4                  // class java/lang/Object
-         239: invokespecial #16                 // Method Block."<init>":(I[Ljava/lang/Object;)V
-         242: astore        18
-         244: new           #63                 // class ocaml_fn_8
-         247: dup
-         248: invokespecial #64                 // Method ocaml_fn_8."<init>":()V
-         251: astore        19
-         253: aload         18
-         255: checkcast     #2                  // class Block
-         258: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-         261: iconst_1
-         262: aload         19
-         264: aastore
-         265: new           #69                 // class ocaml_fn_9
-         268: dup
-         269: invokespecial #70                 // Method ocaml_fn_9."<init>":()V
-         272: astore        20
-         274: aload         18
-         276: checkcast     #2                  // class Block
-         279: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-         282: iconst_0
-         283: aload         20
-         285: aastore
-         286: iconst_0
-         287: i2l
-         288: lstore        21
-         290: iconst_0
-         291: i2l
-         292: invokestatic  #61                 // Method java/lang/Long.valueOf:(J)Ljava/lang/Long;
-         295: astore        23
-         297: getstatic     #25                 // Field GLOBALS:[Ljava/lang/Object;
-         300: bipush        37
-         302: aaload
-         303: astore        24
-         305: new           #2                  // class Block
-         308: dup
-         309: sipush        248
-         312: iconst_2
-         313: anewarray     #4                  // class java/lang/Object
-         316: dup
-         317: iconst_0
-         318: aload         24
-         320: aastore
+         222: aload         16
+         224: aload         15
+         226: invokestatic  #65                 // Method Ocaml.registerNamedValue:(Ljava/lang/Object;Ljava/lang/Object;)J
+         229: invokestatic  #61                 // Method java/lang/Long.valueOf:(J)Ljava/lang/Long;
+         232: astore        17
+         234: new           #2                  // class Block
+         237: dup
+         238: iconst_0
+         239: bipush        104
+         241: anewarray     #4                  // class java/lang/Object
+         244: invokespecial #16                 // Method Block."<init>":(I[Ljava/lang/Object;)V
+         247: astore        18
+         249: new           #67                 // class ocaml_fn_8
+         252: dup
+         253: invokespecial #68                 // Method ocaml_fn_8."<init>":()V
+         256: astore        19
+         258: aload         18
+         260: checkcast     #2                  // class Block
+         263: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+         266: iconst_1
+         267: aload         19
+         269: aastore
+         270: new           #73                 // class ocaml_fn_9
+         273: dup
+         274: invokespecial #74                 // Method ocaml_fn_9."<init>":()V
+         277: astore        20
+         279: aload         18
+         281: checkcast     #2                  // class Block
+         284: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+         287: iconst_0
+         288: aload         20
+         290: aastore
+         291: iconst_0
+         292: i2l
+         293: lstore        21
+         295: iconst_0
+         296: i2l
+         297: invokestatic  #61                 // Method java/lang/Long.valueOf:(J)Ljava/lang/Long;
+         300: astore        23
+         302: getstatic     #25                 // Field GLOBALS:[Ljava/lang/Object;
+         305: bipush        37
+         307: aaload
+         308: astore        24
+         310: new           #2                  // class Block
+         313: dup
+         314: sipush        248
+         317: iconst_2
+         318: anewarray     #4                  // class java/lang/Object
          321: dup
-         322: iconst_1
-         323: aload         23
+         322: iconst_0
+         323: aload         24
          325: aastore
-         326: invokespecial #16                 // Method Block."<init>":(I[Ljava/lang/Object;)V
-         329: astore        25
-         331: aload         18
-         333: checkcast     #2                  // class Block
-         336: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-         339: iconst_2
-         340: aload         25
-         342: aastore
-         343: getstatic     #25                 // Field GLOBALS:[Ljava/lang/Object;
-         346: bipush        7
-         348: aaload
-         349: astore        26
-         351: aload         18
-         353: checkcast     #2                  // class Block
-         356: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-         359: iconst_3
-         360: aload         26
-         362: aastore
-         363: getstatic     #25                 // Field GLOBALS:[Ljava/lang/Object;
-         366: bipush        10
-         368: aaload
-         369: astore        27
-         371: aload         18
-         373: checkcast     #2                  // class Block
-         376: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-         379: iconst_4
-         380: aload         27
-         382: aastore
-         383: getstatic     #25                 // Field GLOBALS:[Ljava/lang/Object;
-         386: iconst_3
-         387: aaload
-         388: astore        28
-         390: aload         18
-         392: checkcast     #2                  // class Block
-         395: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-         398: iconst_5
-         399: aload         28
-         401: aastore
-         402: getstatic     #25                 // Field GLOBALS:[Ljava/lang/Object;
-         405: iconst_2
-         406: aaload
-         407: astore        29
-         409: aload         18
-         411: checkcast     #2                  // class Block
-         414: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-         417: bipush        6
-         419: aload         29
-         421: aastore
-         422: getstatic     #25                 // Field GLOBALS:[Ljava/lang/Object;
-         425: bipush        6
-         427: aaload
-         428: astore        30
-         430: aload         18
-         432: checkcast     #2                  // class Block
-         435: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-         438: bipush        7
-         440: aload         30
-         442: aastore
-         443: getstatic     #25                 // Field GLOBALS:[Ljava/lang/Object;
-         446: iconst_0
-         447: aaload
-         448: astore        31
-         450: aload         18
-         452: checkcast     #2                  // class Block
-         455: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-         458: bipush        8
-         460: aload         31
-         462: aastore
-         463: getstatic     #25                 // Field GLOBALS:[Ljava/lang/Object;
-         466: bipush        8
-         468: aaload
-         469: astore        32
-         471: aload         18
-         473: checkcast     #2                  // class Block
-         476: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-         479: bipush        9
-         481: aload         32
-         483: aastore
-         484: getstatic     #25                 // Field GLOBALS:[Ljava/lang/Object;
-         487: iconst_1
-         488: aaload
-         489: astore        33
-         491: aload         18
-         493: checkcast     #2                  // class Block
-         496: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-         499: bipush        10
-         501: aload         33
-         503: aastore
-         504: getstatic     #25                 // Field GLOBALS:[Ljava/lang/Object;
-         507: iconst_4
-         508: aaload
-         509: astore        34
-         511: aload         18
-         513: checkcast     #2                  // class Block
-         516: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-         519: bipush        11
-         521: aload         34
-         523: aastore
-         524: getstatic     #25                 // Field GLOBALS:[Ljava/lang/Object;
-         527: iconst_5
-         528: aaload
-         529: astore        35
-         531: aload         18
-         533: checkcast     #2                  // class Block
-         536: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-         539: bipush        12
-         541: aload         35
-         543: aastore
-         544: getstatic     #25                 // Field GLOBALS:[Ljava/lang/Object;
-         547: bipush        9
-         549: aaload
-         550: astore        36
-         552: aload         18
-         554: checkcast     #2                  // class Block
-         557: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-         560: bipush        13
-         562: aload         36
-         564: aastore
-         565: getstatic     #25                 // Field GLOBALS:[Ljava/lang/Object;
-         568: bipush        11
-         570: aaload
-         571: astore        37
-         573: aload         18
-         575: checkcast     #2                  // class Block
-         578: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-         581: bipush        14
-         583: aload         37
-         585: aastore
-         586: new           #72                 // class ocaml_fn_10
-         589: dup
-         590: invokespecial #73                 // Method ocaml_fn_10."<init>":()V
-         593: astore        38
-         595: aload         18
-         597: checkcast     #2                  // class Block
-         600: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-         603: bipush        15
-         605: aload         38
-         607: aastore
-         608: new           #75                 // class ocaml_fn_11
-         611: dup
-         612: invokespecial #76                 // Method ocaml_fn_11."<init>":()V
-         615: astore        39
-         617: aload         18
-         619: checkcast     #2                  // class Block
-         622: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-         625: bipush        16
-         627: aload         39
-         629: aastore
-         630: new           #78                 // class ocaml_fn_12
-         633: dup
-         634: invokespecial #79                 // Method ocaml_fn_12."<init>":()V
-         637: astore        40
-         639: aload         18
-         641: checkcast     #2                  // class Block
-         644: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-         647: bipush        17
-         649: aload         40
-         651: aastore
-         652: new           #81                 // class ocaml_fn_13
-         655: dup
-         656: invokespecial #82                 // Method ocaml_fn_13."<init>":()V
-         659: astore        41
-         661: aload         18
-         663: checkcast     #2                  // class Block
-         666: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-         669: bipush        20
-         671: aload         41
-         673: aastore
-         674: ldc2_w        #83                 // long 4611686018427387903l
-         677: lstore        42
-         679: aload         18
-         681: checkcast     #2                  // class Block
-         684: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-         687: bipush        18
-         689: lload         42
-         691: invokestatic  #61                 // Method java/lang/Long.valueOf:(J)Ljava/lang/Long;
-         694: aastore
-         695: ldc2_w        #85                 // long -4611686018427387904l
-         698: lstore        44
-         700: aload         18
-         702: checkcast     #2                  // class Block
-         705: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-         708: bipush        19
-         710: lload         44
-         712: invokestatic  #61                 // Method java/lang/Long.valueOf:(J)Ljava/lang/Long;
-         715: aastore
-         716: getstatic     #25                 // Field GLOBALS:[Ljava/lang/Object;
-         719: bipush        38
-         721: aaload
-         722: astore        46
-         724: aload         46
-         726: invokestatic  #90                 // Method Block.asLong:(Ljava/lang/Object;)J
-         729: invokestatic  #96                 // Method java/lang/Double.longBitsToDouble:(J)D
-         732: invokestatic  #99                 // Method java/lang/Double.valueOf:(D)Ljava/lang/Double;
-         735: astore        47
-         737: aload         18
-         739: checkcast     #2                  // class Block
-         742: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-         745: bipush        21
-         747: aload         47
-         749: aastore
-         750: getstatic     #25                 // Field GLOBALS:[Ljava/lang/Object;
-         753: bipush        39
-         755: aaload
-         756: astore        48
-         758: aload         48
-         760: invokestatic  #90                 // Method Block.asLong:(Ljava/lang/Object;)J
-         763: invokestatic  #96                 // Method java/lang/Double.longBitsToDouble:(J)D
-         766: invokestatic  #99                 // Method java/lang/Double.valueOf:(D)Ljava/lang/Double;
-         769: astore        49
-         771: aload         18
-         773: checkcast     #2                  // class Block
-         776: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-         779: bipush        22
-         781: aload         49
-         783: aastore
-         784: getstatic     #25                 // Field GLOBALS:[Ljava/lang/Object;
-         787: bipush        40
-         789: aaload
-         790: astore        50
-         792: aload         50
-         794: invokestatic  #90                 // Method Block.asLong:(Ljava/lang/Object;)J
-         797: invokestatic  #96                 // Method java/lang/Double.longBitsToDouble:(J)D
-         800: invokestatic  #99                 // Method java/lang/Double.valueOf:(D)Ljava/lang/Double;
-         803: astore        51
-         805: aload         18
-         807: checkcast     #2                  // class Block
-         810: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-         813: bipush        23
-         815: aload         51
-         817: aastore
-         818: getstatic     #25                 // Field GLOBALS:[Ljava/lang/Object;
-         821: bipush        41
-         823: aaload
-         824: astore        52
-         826: aload         52
-         828: invokestatic  #90                 // Method Block.asLong:(Ljava/lang/Object;)J
-         831: invokestatic  #96                 // Method java/lang/Double.longBitsToDouble:(J)D
-         834: invokestatic  #99                 // Method java/lang/Double.valueOf:(D)Ljava/lang/Double;
-         837: astore        53
-         839: aload         18
-         841: checkcast     #2                  // class Block
-         844: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-         847: bipush        24
-         849: aload         53
-         851: aastore
-         852: getstatic     #25                 // Field GLOBALS:[Ljava/lang/Object;
-         855: bipush        42
-         857: aaload
-         858: astore        54
-         860: aload         54
-         862: invokestatic  #90                 // Method Block.asLong:(Ljava/lang/Object;)J
-         865: invokestatic  #96                 // Method java/lang/Double.longBitsToDouble:(J)D
-         868: invokestatic  #99                 // Method java/lang/Double.valueOf:(D)Ljava/lang/Double;
-         871: astore        55
-         873: aload         18
-         875: checkcast     #2                  // class Block
-         878: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-         881: bipush        25
-         883: aload         55
-         885: aastore
-         886: getstatic     #25                 // Field GLOBALS:[Ljava/lang/Object;
-         889: bipush        43
-         891: aaload
-         892: astore        56
-         894: aload         56
-         896: invokestatic  #90                 // Method Block.asLong:(Ljava/lang/Object;)J
-         899: invokestatic  #96                 // Method java/lang/Double.longBitsToDouble:(J)D
-         902: invokestatic  #99                 // Method java/lang/Double.valueOf:(D)Ljava/lang/Double;
-         905: astore        57
-         907: aload         18
-         909: checkcast     #2                  // class Block
-         912: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-         915: bipush        26
-         917: aload         57
-         919: aastore
-         920: new           #101                // class ocaml_fn_14
-         923: dup
-         924: invokespecial #102                // Method ocaml_fn_14."<init>":()V
-         927: astore        58
-         929: aload         18
-         931: checkcast     #2                  // class Block
-         934: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-         937: bipush        27
-         939: aload         58
-         941: aastore
-         942: new           #104                // class ocaml_fn_15
-         945: dup
-         946: aload         20
-         948: invokespecial #107                // Method ocaml_fn_15."<init>":(Ljava/lang/Object;)V
-         951: astore        59
-         953: aload         18
-         955: checkcast     #2                  // class Block
-         958: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-         961: bipush        28
-         963: aload         59
-         965: aastore
-         966: new           #109                // class ocaml_fn_16
-         969: dup
-         970: invokespecial #110                // Method ocaml_fn_16."<init>":()V
-         973: astore        60
-         975: aload         18
-         977: checkcast     #2                  // class Block
-         980: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-         983: bipush        29
-         985: aload         60
-         987: aastore
-         988: new           #112                // class ocaml_fn_17
-         991: dup
-         992: aload         20
-         994: invokespecial #113                // Method ocaml_fn_17."<init>":(Ljava/lang/Object;)V
-         997: astore        61
-         999: aload         18
-        1001: checkcast     #2                  // class Block
-        1004: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        1007: bipush        31
-        1009: aload         61
-        1011: aastore
-        1012: new           #115                // class ocaml_fn_18
-        1015: dup
-        1016: invokespecial #116                // Method ocaml_fn_18."<init>":()V
-        1019: astore        62
-        1021: aload         18
-        1023: checkcast     #2                  // class Block
-        1026: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        1029: bipush        30
-        1031: aload         62
-        1033: aastore
-        1034: new           #118                // class ocaml_fn_19
-        1037: dup
-        1038: invokespecial #119                // Method ocaml_fn_19."<init>":()V
-        1041: astore        63
-        1043: aload         18
-        1045: checkcast     #2                  // class Block
-        1048: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        1051: bipush        32
-        1053: aload         63
-        1055: aastore
-        1056: new           #121                // class ocaml_fn_20
-        1059: dup
-        1060: aload         29
-        1062: invokespecial #122                // Method ocaml_fn_20."<init>":(Ljava/lang/Object;)V
-        1065: astore        64
-        1067: aload         18
-        1069: checkcast     #2                  // class Block
-        1072: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        1075: bipush        33
-        1077: aload         64
-        1079: aastore
-        1080: new           #124                // class ocaml_fn_21
-        1083: dup
-        1084: aload         58
-        1086: invokespecial #125                // Method ocaml_fn_21."<init>":(Ljava/lang/Object;)V
-        1089: astore        65
-        1091: aload         18
-        1093: checkcast     #2                  // class Block
-        1096: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        1099: bipush        100
-        1101: aload         65
-        1103: aastore
-        1104: new           #127                // class ocaml_fn_22
-        1107: dup
-        1108: aload         65
-        1110: invokespecial #128                // Method ocaml_fn_22."<init>":(Ljava/lang/Object;)V
-        1113: astore        66
-        1115: aload         18
-        1117: checkcast     #2                  // class Block
-        1120: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        1123: bipush        34
-        1125: aload         66
-        1127: aastore
-        1128: new           #130                // class ocaml_fn_23
-        1131: dup
-        1132: aload         29
-        1134: invokespecial #131                // Method ocaml_fn_23."<init>":(Ljava/lang/Object;)V
-        1137: astore        67
-        1139: aload         18
-        1141: checkcast     #2                  // class Block
-        1144: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        1147: bipush        35
-        1149: aload         67
-        1151: aastore
-        1152: new           #133                // class ocaml_fn_24
-        1155: dup
-        1156: invokespecial #134                // Method ocaml_fn_24."<init>":()V
-        1159: astore        68
-        1161: aload         18
-        1163: checkcast     #2                  // class Block
-        1166: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        1169: bipush        36
-        1171: aload         68
-        1173: aastore
-        1174: new           #136                // class ocaml_fn_25
-        1177: dup
-        1178: invokespecial #137                // Method ocaml_fn_25."<init>":()V
-        1181: astore        69
-        1183: aload         68
-        1185: checkcast     #133                // class ocaml_fn_24
+         326: dup
+         327: iconst_1
+         328: aload         23
+         330: aastore
+         331: invokespecial #16                 // Method Block."<init>":(I[Ljava/lang/Object;)V
+         334: astore        25
+         336: aload         18
+         338: checkcast     #2                  // class Block
+         341: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+         344: iconst_2
+         345: aload         25
+         347: aastore
+         348: getstatic     #25                 // Field GLOBALS:[Ljava/lang/Object;
+         351: bipush        7
+         353: aaload
+         354: astore        26
+         356: aload         18
+         358: checkcast     #2                  // class Block
+         361: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+         364: iconst_3
+         365: aload         26
+         367: aastore
+         368: getstatic     #25                 // Field GLOBALS:[Ljava/lang/Object;
+         371: bipush        10
+         373: aaload
+         374: astore        27
+         376: aload         18
+         378: checkcast     #2                  // class Block
+         381: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+         384: iconst_4
+         385: aload         27
+         387: aastore
+         388: getstatic     #25                 // Field GLOBALS:[Ljava/lang/Object;
+         391: iconst_3
+         392: aaload
+         393: astore        28
+         395: aload         18
+         397: checkcast     #2                  // class Block
+         400: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+         403: iconst_5
+         404: aload         28
+         406: aastore
+         407: getstatic     #25                 // Field GLOBALS:[Ljava/lang/Object;
+         410: iconst_2
+         411: aaload
+         412: astore        29
+         414: aload         18
+         416: checkcast     #2                  // class Block
+         419: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+         422: bipush        6
+         424: aload         29
+         426: aastore
+         427: getstatic     #25                 // Field GLOBALS:[Ljava/lang/Object;
+         430: bipush        6
+         432: aaload
+         433: astore        30
+         435: aload         18
+         437: checkcast     #2                  // class Block
+         440: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+         443: bipush        7
+         445: aload         30
+         447: aastore
+         448: getstatic     #25                 // Field GLOBALS:[Ljava/lang/Object;
+         451: iconst_0
+         452: aaload
+         453: astore        31
+         455: aload         18
+         457: checkcast     #2                  // class Block
+         460: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+         463: bipush        8
+         465: aload         31
+         467: aastore
+         468: getstatic     #25                 // Field GLOBALS:[Ljava/lang/Object;
+         471: bipush        8
+         473: aaload
+         474: astore        32
+         476: aload         18
+         478: checkcast     #2                  // class Block
+         481: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+         484: bipush        9
+         486: aload         32
+         488: aastore
+         489: getstatic     #25                 // Field GLOBALS:[Ljava/lang/Object;
+         492: iconst_1
+         493: aaload
+         494: astore        33
+         496: aload         18
+         498: checkcast     #2                  // class Block
+         501: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+         504: bipush        10
+         506: aload         33
+         508: aastore
+         509: getstatic     #25                 // Field GLOBALS:[Ljava/lang/Object;
+         512: iconst_4
+         513: aaload
+         514: astore        34
+         516: aload         18
+         518: checkcast     #2                  // class Block
+         521: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+         524: bipush        11
+         526: aload         34
+         528: aastore
+         529: getstatic     #25                 // Field GLOBALS:[Ljava/lang/Object;
+         532: iconst_5
+         533: aaload
+         534: astore        35
+         536: aload         18
+         538: checkcast     #2                  // class Block
+         541: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+         544: bipush        12
+         546: aload         35
+         548: aastore
+         549: getstatic     #25                 // Field GLOBALS:[Ljava/lang/Object;
+         552: bipush        9
+         554: aaload
+         555: astore        36
+         557: aload         18
+         559: checkcast     #2                  // class Block
+         562: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+         565: bipush        13
+         567: aload         36
+         569: aastore
+         570: getstatic     #25                 // Field GLOBALS:[Ljava/lang/Object;
+         573: bipush        11
+         575: aaload
+         576: astore        37
+         578: aload         18
+         580: checkcast     #2                  // class Block
+         583: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+         586: bipush        14
+         588: aload         37
+         590: aastore
+         591: new           #76                 // class ocaml_fn_10
+         594: dup
+         595: invokespecial #77                 // Method ocaml_fn_10."<init>":()V
+         598: astore        38
+         600: aload         18
+         602: checkcast     #2                  // class Block
+         605: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+         608: bipush        15
+         610: aload         38
+         612: aastore
+         613: new           #79                 // class ocaml_fn_11
+         616: dup
+         617: invokespecial #80                 // Method ocaml_fn_11."<init>":()V
+         620: astore        39
+         622: aload         18
+         624: checkcast     #2                  // class Block
+         627: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+         630: bipush        16
+         632: aload         39
+         634: aastore
+         635: new           #82                 // class ocaml_fn_12
+         638: dup
+         639: invokespecial #83                 // Method ocaml_fn_12."<init>":()V
+         642: astore        40
+         644: aload         18
+         646: checkcast     #2                  // class Block
+         649: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+         652: bipush        17
+         654: aload         40
+         656: aastore
+         657: new           #85                 // class ocaml_fn_13
+         660: dup
+         661: invokespecial #86                 // Method ocaml_fn_13."<init>":()V
+         664: astore        41
+         666: aload         18
+         668: checkcast     #2                  // class Block
+         671: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+         674: bipush        20
+         676: aload         41
+         678: aastore
+         679: ldc2_w        #87                 // long 4611686018427387903l
+         682: lstore        42
+         684: aload         18
+         686: checkcast     #2                  // class Block
+         689: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+         692: bipush        18
+         694: lload         42
+         696: invokestatic  #61                 // Method java/lang/Long.valueOf:(J)Ljava/lang/Long;
+         699: aastore
+         700: ldc2_w        #89                 // long -4611686018427387904l
+         703: lstore        44
+         705: aload         18
+         707: checkcast     #2                  // class Block
+         710: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+         713: bipush        19
+         715: lload         44
+         717: invokestatic  #61                 // Method java/lang/Long.valueOf:(J)Ljava/lang/Long;
+         720: aastore
+         721: getstatic     #25                 // Field GLOBALS:[Ljava/lang/Object;
+         724: bipush        38
+         726: aaload
+         727: astore        46
+         729: aload         46
+         731: invokestatic  #94                 // Method Block.asLong:(Ljava/lang/Object;)J
+         734: invokestatic  #100                // Method java/lang/Double.longBitsToDouble:(J)D
+         737: invokestatic  #103                // Method java/lang/Double.valueOf:(D)Ljava/lang/Double;
+         740: astore        47
+         742: aload         18
+         744: checkcast     #2                  // class Block
+         747: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+         750: bipush        21
+         752: aload         47
+         754: aastore
+         755: getstatic     #25                 // Field GLOBALS:[Ljava/lang/Object;
+         758: bipush        39
+         760: aaload
+         761: astore        48
+         763: aload         48
+         765: invokestatic  #94                 // Method Block.asLong:(Ljava/lang/Object;)J
+         768: invokestatic  #100                // Method java/lang/Double.longBitsToDouble:(J)D
+         771: invokestatic  #103                // Method java/lang/Double.valueOf:(D)Ljava/lang/Double;
+         774: astore        49
+         776: aload         18
+         778: checkcast     #2                  // class Block
+         781: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+         784: bipush        22
+         786: aload         49
+         788: aastore
+         789: getstatic     #25                 // Field GLOBALS:[Ljava/lang/Object;
+         792: bipush        40
+         794: aaload
+         795: astore        50
+         797: aload         50
+         799: invokestatic  #94                 // Method Block.asLong:(Ljava/lang/Object;)J
+         802: invokestatic  #100                // Method java/lang/Double.longBitsToDouble:(J)D
+         805: invokestatic  #103                // Method java/lang/Double.valueOf:(D)Ljava/lang/Double;
+         808: astore        51
+         810: aload         18
+         812: checkcast     #2                  // class Block
+         815: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+         818: bipush        23
+         820: aload         51
+         822: aastore
+         823: getstatic     #25                 // Field GLOBALS:[Ljava/lang/Object;
+         826: bipush        41
+         828: aaload
+         829: astore        52
+         831: aload         52
+         833: invokestatic  #94                 // Method Block.asLong:(Ljava/lang/Object;)J
+         836: invokestatic  #100                // Method java/lang/Double.longBitsToDouble:(J)D
+         839: invokestatic  #103                // Method java/lang/Double.valueOf:(D)Ljava/lang/Double;
+         842: astore        53
+         844: aload         18
+         846: checkcast     #2                  // class Block
+         849: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+         852: bipush        24
+         854: aload         53
+         856: aastore
+         857: getstatic     #25                 // Field GLOBALS:[Ljava/lang/Object;
+         860: bipush        42
+         862: aaload
+         863: astore        54
+         865: aload         54
+         867: invokestatic  #94                 // Method Block.asLong:(Ljava/lang/Object;)J
+         870: invokestatic  #100                // Method java/lang/Double.longBitsToDouble:(J)D
+         873: invokestatic  #103                // Method java/lang/Double.valueOf:(D)Ljava/lang/Double;
+         876: astore        55
+         878: aload         18
+         880: checkcast     #2                  // class Block
+         883: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+         886: bipush        25
+         888: aload         55
+         890: aastore
+         891: getstatic     #25                 // Field GLOBALS:[Ljava/lang/Object;
+         894: bipush        43
+         896: aaload
+         897: astore        56
+         899: aload         56
+         901: invokestatic  #94                 // Method Block.asLong:(Ljava/lang/Object;)J
+         904: invokestatic  #100                // Method java/lang/Double.longBitsToDouble:(J)D
+         907: invokestatic  #103                // Method java/lang/Double.valueOf:(D)Ljava/lang/Double;
+         910: astore        57
+         912: aload         18
+         914: checkcast     #2                  // class Block
+         917: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+         920: bipush        26
+         922: aload         57
+         924: aastore
+         925: new           #105                // class ocaml_fn_14
+         928: dup
+         929: invokespecial #106                // Method ocaml_fn_14."<init>":()V
+         932: astore        58
+         934: aload         18
+         936: checkcast     #2                  // class Block
+         939: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+         942: bipush        27
+         944: aload         58
+         946: aastore
+         947: new           #108                // class ocaml_fn_15
+         950: dup
+         951: aload         20
+         953: invokespecial #111                // Method ocaml_fn_15."<init>":(Ljava/lang/Object;)V
+         956: astore        59
+         958: aload         18
+         960: checkcast     #2                  // class Block
+         963: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+         966: bipush        28
+         968: aload         59
+         970: aastore
+         971: new           #113                // class ocaml_fn_16
+         974: dup
+         975: invokespecial #114                // Method ocaml_fn_16."<init>":()V
+         978: astore        60
+         980: aload         18
+         982: checkcast     #2                  // class Block
+         985: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+         988: bipush        29
+         990: aload         60
+         992: aastore
+         993: new           #116                // class ocaml_fn_17
+         996: dup
+         997: aload         20
+         999: invokespecial #117                // Method ocaml_fn_17."<init>":(Ljava/lang/Object;)V
+        1002: astore        61
+        1004: aload         18
+        1006: checkcast     #2                  // class Block
+        1009: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        1012: bipush        31
+        1014: aload         61
+        1016: aastore
+        1017: new           #119                // class ocaml_fn_18
+        1020: dup
+        1021: invokespecial #120                // Method ocaml_fn_18."<init>":()V
+        1024: astore        62
+        1026: aload         18
+        1028: checkcast     #2                  // class Block
+        1031: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        1034: bipush        30
+        1036: aload         62
+        1038: aastore
+        1039: new           #122                // class ocaml_fn_19
+        1042: dup
+        1043: invokespecial #123                // Method ocaml_fn_19."<init>":()V
+        1046: astore        63
+        1048: aload         18
+        1050: checkcast     #2                  // class Block
+        1053: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        1056: bipush        32
+        1058: aload         63
+        1060: aastore
+        1061: new           #125                // class ocaml_fn_20
+        1064: dup
+        1065: aload         29
+        1067: invokespecial #126                // Method ocaml_fn_20."<init>":(Ljava/lang/Object;)V
+        1070: astore        64
+        1072: aload         18
+        1074: checkcast     #2                  // class Block
+        1077: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        1080: bipush        33
+        1082: aload         64
+        1084: aastore
+        1085: new           #128                // class ocaml_fn_21
+        1088: dup
+        1089: aload         58
+        1091: invokespecial #129                // Method ocaml_fn_21."<init>":(Ljava/lang/Object;)V
+        1094: astore        65
+        1096: aload         18
+        1098: checkcast     #2                  // class Block
+        1101: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        1104: bipush        100
+        1106: aload         65
+        1108: aastore
+        1109: new           #131                // class ocaml_fn_22
+        1112: dup
+        1113: aload         65
+        1115: invokespecial #132                // Method ocaml_fn_22."<init>":(Ljava/lang/Object;)V
+        1118: astore        66
+        1120: aload         18
+        1122: checkcast     #2                  // class Block
+        1125: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        1128: bipush        34
+        1130: aload         66
+        1132: aastore
+        1133: new           #134                // class ocaml_fn_23
+        1136: dup
+        1137: aload         29
+        1139: invokespecial #135                // Method ocaml_fn_23."<init>":(Ljava/lang/Object;)V
+        1142: astore        67
+        1144: aload         18
+        1146: checkcast     #2                  // class Block
+        1149: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        1152: bipush        35
+        1154: aload         67
+        1156: aastore
+        1157: new           #137                // class ocaml_fn_24
+        1160: dup
+        1161: invokespecial #138                // Method ocaml_fn_24."<init>":()V
+        1164: astore        68
+        1166: aload         18
+        1168: checkcast     #2                  // class Block
+        1171: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        1174: bipush        36
+        1176: aload         68
+        1178: aastore
+        1179: new           #140                // class ocaml_fn_25
+        1182: dup
+        1183: invokespecial #141                // Method ocaml_fn_25."<init>":()V
+        1186: astore        69
         1188: aload         68
-        1190: checkcast     #139                // class Closure
-        1193: putfield      #143                // Field ocaml_fn_24.sibling_0:LClosure;
-        1196: iconst_0
-        1197: i2l
-        1198: invokestatic  #61                 // Method java/lang/Long.valueOf:(J)Ljava/lang/Long;
-        1201: astore        70
-        1203: aload         68
-        1205: checkcast     #133                // class ocaml_fn_24
-        1208: aload         69
-        1210: checkcast     #139                // class Closure
-        1213: putfield      #146                // Field ocaml_fn_24.sibling_1:LClosure;
-        1216: iconst_0
-        1217: i2l
-        1218: invokestatic  #61                 // Method java/lang/Long.valueOf:(J)Ljava/lang/Long;
-        1221: astore        71
-        1223: aload         69
-        1225: checkcast     #136                // class ocaml_fn_25
-        1228: aload         68
-        1230: checkcast     #139                // class Closure
-        1233: putfield      #147                // Field ocaml_fn_25.sibling_0:LClosure;
-        1236: iconst_0
-        1237: i2l
-        1238: invokestatic  #61                 // Method java/lang/Long.valueOf:(J)Ljava/lang/Long;
-        1241: astore        72
-        1243: aload         69
-        1245: checkcast     #136                // class ocaml_fn_25
+        1190: checkcast     #137                // class ocaml_fn_24
+        1193: aload         68
+        1195: checkcast     #143                // class Closure
+        1198: putfield      #147                // Field ocaml_fn_24.sibling_0:LClosure;
+        1201: iconst_0
+        1202: i2l
+        1203: invokestatic  #61                 // Method java/lang/Long.valueOf:(J)Ljava/lang/Long;
+        1206: astore        70
+        1208: aload         68
+        1210: checkcast     #137                // class ocaml_fn_24
+        1213: aload         69
+        1215: checkcast     #143                // class Closure
+        1218: putfield      #150                // Field ocaml_fn_24.sibling_1:LClosure;
+        1221: iconst_0
+        1222: i2l
+        1223: invokestatic  #61                 // Method java/lang/Long.valueOf:(J)Ljava/lang/Long;
+        1226: astore        71
+        1228: aload         69
+        1230: checkcast     #140                // class ocaml_fn_25
+        1233: aload         68
+        1235: checkcast     #143                // class Closure
+        1238: putfield      #151                // Field ocaml_fn_25.sibling_0:LClosure;
+        1241: iconst_0
+        1242: i2l
+        1243: invokestatic  #61                 // Method java/lang/Long.valueOf:(J)Ljava/lang/Long;
+        1246: astore        72
         1248: aload         69
-        1250: checkcast     #139                // class Closure
-        1253: putfield      #148                // Field ocaml_fn_25.sibling_1:LClosure;
-        1256: iconst_0
-        1257: i2l
-        1258: invokestatic  #61                 // Method java/lang/Long.valueOf:(J)Ljava/lang/Long;
-        1261: astore        73
-        1263: iconst_0
-        1264: i2l
-        1265: lstore        74
-        1267: lload         74
-        1269: l2i
-        1270: invokestatic  #152                // Method Channel.forDescriptor:(I)LChannel;
-        1273: astore        76
-        1275: aload         18
-        1277: checkcast     #2                  // class Block
-        1280: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        1283: bipush        37
-        1285: aload         76
-        1287: aastore
-        1288: iconst_1
-        1289: i2l
-        1290: lstore        77
-        1292: lload         77
-        1294: l2i
-        1295: invokestatic  #152                // Method Channel.forDescriptor:(I)LChannel;
-        1298: astore        79
-        1300: aload         18
-        1302: checkcast     #2                  // class Block
-        1305: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        1308: bipush        38
-        1310: aload         79
-        1312: aastore
-        1313: iconst_2
-        1314: i2l
-        1315: lstore        80
-        1317: lload         80
-        1319: l2i
-        1320: invokestatic  #152                // Method Channel.forDescriptor:(I)LChannel;
-        1323: astore        82
-        1325: aload         18
-        1327: checkcast     #2                  // class Block
-        1330: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        1333: bipush        39
-        1335: aload         82
-        1337: aastore
-        1338: new           #154                // class ocaml_fn_26
-        1341: dup
-        1342: invokespecial #155                // Method ocaml_fn_26."<init>":()V
-        1345: astore        83
-        1347: aload         18
-        1349: checkcast     #2                  // class Block
-        1352: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        1355: bipush        61
-        1357: aload         83
-        1359: aastore
-        1360: new           #157                // class ocaml_fn_27
-        1363: dup
-        1364: aload         83
-        1366: invokespecial #158                // Method ocaml_fn_27."<init>":(Ljava/lang/Object;)V
-        1369: astore        84
-        1371: aload         18
-        1373: checkcast     #2                  // class Block
-        1376: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        1379: bipush        59
-        1381: aload         84
-        1383: aastore
-        1384: new           #160                // class ocaml_fn_28
-        1387: dup
-        1388: aload         83
-        1390: invokespecial #161                // Method ocaml_fn_28."<init>":(Ljava/lang/Object;)V
-        1393: astore        85
-        1395: aload         18
-        1397: checkcast     #2                  // class Block
-        1400: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        1403: bipush        60
-        1405: aload         85
-        1407: aastore
-        1408: new           #163                // class ocaml_fn_29
-        1411: dup
-        1412: aload         33
-        1414: invokespecial #164                // Method ocaml_fn_29."<init>":(Ljava/lang/Object;)V
-        1417: astore        86
-        1419: aload         18
-        1421: checkcast     #2                  // class Block
-        1424: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        1427: bipush        63
-        1429: aload         86
-        1431: aastore
-        1432: new           #166                // class ocaml_fn_30
-        1435: dup
-        1436: invokespecial #167                // Method ocaml_fn_30."<init>":()V
-        1439: astore        87
-        1441: aload         18
-        1443: checkcast     #2                  // class Block
-        1446: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        1449: bipush        66
-        1451: aload         87
-        1453: aastore
-        1454: new           #169                // class ocaml_fn_31
-        1457: dup
-        1458: invokespecial #170                // Method ocaml_fn_31."<init>":()V
-        1461: astore        88
-        1463: aload         18
-        1465: checkcast     #2                  // class Block
-        1468: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        1471: bipush        65
-        1473: aload         88
-        1475: aastore
-        1476: new           #172                // class ocaml_fn_32
-        1479: dup
-        1480: aload         20
-        1482: invokespecial #173                // Method ocaml_fn_32."<init>":(Ljava/lang/Object;)V
-        1485: astore        89
-        1487: aload         18
-        1489: checkcast     #2                  // class Block
-        1492: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        1495: bipush        67
-        1497: aload         89
-        1499: aastore
-        1500: new           #175                // class ocaml_fn_33
-        1503: dup
-        1504: aload         20
-        1506: invokespecial #176                // Method ocaml_fn_33."<init>":(Ljava/lang/Object;)V
-        1509: astore        90
-        1511: aload         18
-        1513: checkcast     #2                  // class Block
-        1516: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        1519: bipush        68
-        1521: aload         90
-        1523: aastore
-        1524: new           #178                // class ocaml_fn_34
-        1527: dup
-        1528: invokespecial #179                // Method ocaml_fn_34."<init>":()V
-        1531: astore        91
-        1533: aload         18
-        1535: checkcast     #2                  // class Block
-        1538: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        1541: bipush        71
-        1543: aload         91
-        1545: aastore
-        1546: new           #181                // class ocaml_fn_35
-        1549: dup
-        1550: invokespecial #182                // Method ocaml_fn_35."<init>":()V
-        1553: astore        92
-        1555: aload         18
-        1557: checkcast     #2                  // class Block
-        1560: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        1563: bipush        75
-        1565: aload         92
-        1567: aastore
-        1568: new           #184                // class ocaml_fn_36
-        1571: dup
-        1572: invokespecial #185                // Method ocaml_fn_36."<init>":()V
-        1575: astore        93
-        1577: aload         18
-        1579: checkcast     #2                  // class Block
-        1582: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        1585: bipush        76
-        1587: aload         93
-        1589: aastore
-        1590: new           #187                // class ocaml_fn_37
-        1593: dup
-        1594: invokespecial #188                // Method ocaml_fn_37."<init>":()V
-        1597: astore        94
-        1599: aload         18
-        1601: checkcast     #2                  // class Block
-        1604: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        1607: bipush        80
-        1609: aload         94
-        1611: aastore
-        1612: new           #190                // class ocaml_fn_38
-        1615: dup
-        1616: aload         94
-        1618: invokespecial #191                // Method ocaml_fn_38."<init>":(Ljava/lang/Object;)V
-        1621: astore        95
-        1623: aload         18
-        1625: checkcast     #2                  // class Block
-        1628: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        1631: bipush        78
-        1633: aload         95
-        1635: aastore
-        1636: new           #193                // class ocaml_fn_39
-        1639: dup
-        1640: aload         94
-        1642: invokespecial #194                // Method ocaml_fn_39."<init>":(Ljava/lang/Object;)V
-        1645: astore        96
-        1647: aload         18
-        1649: checkcast     #2                  // class Block
-        1652: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        1655: bipush        79
-        1657: aload         96
-        1659: aastore
-        1660: new           #196                // class ocaml_fn_40
-        1663: dup
-        1664: aload         20
-        1666: invokespecial #197                // Method ocaml_fn_40."<init>":(Ljava/lang/Object;)V
-        1669: astore        97
-        1671: aload         18
-        1673: checkcast     #2                  // class Block
-        1676: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        1679: bipush        83
-        1681: aload         97
-        1683: aastore
-        1684: new           #199                // class ocaml_fn_41
-        1687: dup
-        1688: aload         34
-        1690: invokespecial #200                // Method ocaml_fn_41."<init>":(Ljava/lang/Object;)V
-        1693: astore        98
-        1695: aload         18
-        1697: checkcast     #2                  // class Block
-        1700: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        1703: bipush        101
-        1705: aload         98
-        1707: aastore
-        1708: new           #202                // class ocaml_fn_42
-        1711: dup
-        1712: aload         20
-        1714: aload         98
-        1716: invokespecial #205                // Method ocaml_fn_42."<init>":(Ljava/lang/Object;Ljava/lang/Object;)V
-        1719: astore        99
-        1721: aload         18
-        1723: checkcast     #2                  // class Block
-        1726: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        1729: bipush        84
-        1731: aload         99
-        1733: aastore
-        1734: new           #207                // class ocaml_fn_43
-        1737: dup
-        1738: aload         99
-        1740: invokespecial #208                // Method ocaml_fn_43."<init>":(Ljava/lang/Object;)V
-        1743: astore        100
-        1745: aload         18
-        1747: checkcast     #2                  // class Block
-        1750: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        1753: bipush        85
-        1755: aload         100
-        1757: aastore
-        1758: new           #210                // class ocaml_fn_44
-        1761: dup
-        1762: aload         34
-        1764: invokespecial #211                // Method ocaml_fn_44."<init>":(Ljava/lang/Object;)V
-        1767: astore        101
-        1769: aload         18
-        1771: checkcast     #2                  // class Block
-        1774: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        1777: bipush        82
-        1779: aload         101
-        1781: aastore
-        1782: new           #213                // class ocaml_fn_45
-        1785: dup
-        1786: invokespecial #214                // Method ocaml_fn_45."<init>":()V
-        1789: astore        102
-        1791: aload         18
-        1793: checkcast     #2                  // class Block
-        1796: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        1799: bipush        93
-        1801: aload         102
-        1803: aastore
-        1804: new           #216                // class ocaml_fn_46
-        1807: dup
-        1808: aload         79
-        1810: invokespecial #217                // Method ocaml_fn_46."<init>":(Ljava/lang/Object;)V
-        1813: astore        103
-        1815: aload         18
-        1817: checkcast     #2                  // class Block
-        1820: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        1823: bipush        40
-        1825: aload         103
-        1827: aastore
-        1828: new           #219                // class ocaml_fn_47
-        1831: dup
-        1832: aload         79
-        1834: aload         88
-        1836: invokespecial #220                // Method ocaml_fn_47."<init>":(Ljava/lang/Object;Ljava/lang/Object;)V
-        1839: astore        104
-        1841: aload         18
-        1843: checkcast     #2                  // class Block
-        1846: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        1849: bipush        41
-        1851: aload         104
-        1853: aastore
-        1854: new           #222                // class ocaml_fn_48
-        1857: dup
-        1858: aload         79
-        1860: aload         87
-        1862: invokespecial #223                // Method ocaml_fn_48."<init>":(Ljava/lang/Object;Ljava/lang/Object;)V
-        1865: astore        105
-        1867: aload         18
-        1869: checkcast     #2                  // class Block
-        1872: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        1875: bipush        42
-        1877: aload         105
-        1879: aastore
-        1880: new           #225                // class ocaml_fn_49
-        1883: dup
-        1884: aload         63
-        1886: aload         79
-        1888: aload         88
-        1890: invokespecial #228                // Method ocaml_fn_49."<init>":(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)V
-        1893: astore        106
-        1895: aload         18
-        1897: checkcast     #2                  // class Block
-        1900: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        1903: bipush        43
-        1905: aload         106
-        1907: aastore
-        1908: new           #230                // class ocaml_fn_50
-        1911: dup
-        1912: aload         66
-        1914: aload         79
-        1916: aload         88
-        1918: invokespecial #231                // Method ocaml_fn_50."<init>":(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)V
-        1921: astore        107
-        1923: aload         18
-        1925: checkcast     #2                  // class Block
-        1928: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        1931: bipush        44
-        1933: aload         107
-        1935: aastore
-        1936: new           #233                // class ocaml_fn_51
-        1939: dup
-        1940: aload         79
-        1942: aload         88
-        1944: invokespecial #234                // Method ocaml_fn_51."<init>":(Ljava/lang/Object;Ljava/lang/Object;)V
-        1947: astore        108
-        1949: aload         18
-        1951: checkcast     #2                  // class Block
-        1954: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        1957: bipush        45
-        1959: aload         108
-        1961: aastore
-        1962: new           #236                // class ocaml_fn_52
-        1965: dup
-        1966: aload         79
-        1968: invokespecial #237                // Method ocaml_fn_52."<init>":(Ljava/lang/Object;)V
-        1971: astore        109
-        1973: aload         18
-        1975: checkcast     #2                  // class Block
-        1978: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        1981: bipush        46
-        1983: aload         109
-        1985: aastore
-        1986: new           #239                // class ocaml_fn_53
-        1989: dup
-        1990: aload         82
-        1992: invokespecial #240                // Method ocaml_fn_53."<init>":(Ljava/lang/Object;)V
-        1995: astore        110
-        1997: aload         18
-        1999: checkcast     #2                  // class Block
-        2002: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        2005: bipush        47
-        2007: aload         110
-        2009: aastore
-        2010: new           #242                // class ocaml_fn_54
-        2013: dup
-        2014: aload         82
-        2016: aload         88
-        2018: invokespecial #243                // Method ocaml_fn_54."<init>":(Ljava/lang/Object;Ljava/lang/Object;)V
-        2021: astore        111
-        2023: aload         18
-        2025: checkcast     #2                  // class Block
-        2028: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        2031: bipush        48
-        2033: aload         111
-        2035: aastore
-        2036: new           #245                // class ocaml_fn_55
-        2039: dup
-        2040: aload         82
-        2042: aload         87
-        2044: invokespecial #246                // Method ocaml_fn_55."<init>":(Ljava/lang/Object;Ljava/lang/Object;)V
-        2047: astore        112
-        2049: aload         18
-        2051: checkcast     #2                  // class Block
-        2054: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        2057: bipush        49
-        2059: aload         112
-        2061: aastore
-        2062: new           #248                // class ocaml_fn_56
-        2065: dup
-        2066: aload         63
-        2068: aload         82
-        2070: aload         88
-        2072: invokespecial #249                // Method ocaml_fn_56."<init>":(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)V
-        2075: astore        113
-        2077: aload         18
-        2079: checkcast     #2                  // class Block
-        2082: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        2085: bipush        50
-        2087: aload         113
-        2089: aastore
-        2090: new           #251                // class ocaml_fn_57
-        2093: dup
-        2094: aload         66
-        2096: aload         82
-        2098: aload         88
-        2100: invokespecial #252                // Method ocaml_fn_57."<init>":(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)V
-        2103: astore        114
-        2105: aload         18
-        2107: checkcast     #2                  // class Block
-        2110: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        2113: bipush        51
-        2115: aload         114
-        2117: aastore
-        2118: new           #254                // class ocaml_fn_58
-        2121: dup
-        2122: aload         82
-        2124: aload         88
-        2126: invokespecial #255                // Method ocaml_fn_58."<init>":(Ljava/lang/Object;Ljava/lang/Object;)V
-        2129: astore        115
-        2131: aload         18
-        2133: checkcast     #2                  // class Block
-        2136: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        2139: bipush        52
-        2141: aload         115
-        2143: aastore
-        2144: new           #257                // class ocaml_fn_59
-        2147: dup
-        2148: aload         82
-        2150: invokespecial #258                // Method ocaml_fn_59."<init>":(Ljava/lang/Object;)V
-        2153: astore        116
-        2155: aload         18
-        2157: checkcast     #2                  // class Block
-        2160: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        2163: bipush        53
-        2165: aload         116
-        2167: aastore
-        2168: new           #260                // class ocaml_fn_60
-        2171: dup
-        2172: aload         76
-        2174: aload         79
-        2176: aload         101
-        2178: invokespecial #261                // Method ocaml_fn_60."<init>":(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)V
-        2181: astore        117
-        2183: aload         18
-        2185: checkcast     #2                  // class Block
-        2188: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        2191: bipush        54
-        2193: aload         117
-        2195: aastore
-        2196: new           #263                // class ocaml_fn_61
-        2199: dup
-        2200: aload         117
-        2202: invokespecial #264                // Method ocaml_fn_61."<init>":(Ljava/lang/Object;)V
-        2205: astore        118
-        2207: aload         18
-        2209: checkcast     #2                  // class Block
-        2212: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        2215: bipush        56
-        2217: aload         118
-        2219: aastore
-        2220: new           #266                // class ocaml_fn_62
-        2223: dup
-        2224: aload         64
-        2226: aload         117
-        2228: invokespecial #267                // Method ocaml_fn_62."<init>":(Ljava/lang/Object;Ljava/lang/Object;)V
-        2231: astore        119
-        2233: aload         18
-        2235: checkcast     #2                  // class Block
-        2238: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        2241: bipush        55
-        2243: aload         119
-        2245: aastore
-        2246: new           #269                // class ocaml_fn_63
-        2249: dup
-        2250: aload         117
-        2252: invokespecial #270                // Method ocaml_fn_63."<init>":(Ljava/lang/Object;)V
-        2255: astore        120
-        2257: aload         18
-        2259: checkcast     #2                  // class Block
-        2262: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        2265: bipush        58
-        2267: aload         120
-        2269: aastore
-        2270: new           #272                // class ocaml_fn_64
-        2273: dup
-        2274: aload         67
-        2276: aload         117
-        2278: invokespecial #273                // Method ocaml_fn_64."<init>":(Ljava/lang/Object;Ljava/lang/Object;)V
-        2281: astore        121
-        2283: aload         18
-        2285: checkcast     #2                  // class Block
-        2288: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        2291: bipush        57
-        2293: aload         121
-        2295: aastore
-        2296: new           #275                // class ocaml_fn_65
-        2299: dup
-        2300: invokespecial #276                // Method ocaml_fn_65."<init>":()V
-        2303: astore        122
-        2305: aload         18
-        2307: checkcast     #2                  // class Block
-        2310: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        2313: bipush        96
-        2315: aload         122
-        2317: aastore
-        2318: new           #278                // class ocaml_fn_66
-        2321: dup
-        2322: aload         58
-        2324: invokespecial #279                // Method ocaml_fn_66."<init>":(Ljava/lang/Object;)V
-        2327: astore        123
-        2329: aload         18
-        2331: checkcast     #2                  // class Block
-        2334: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        2337: bipush        97
-        2339: aload         123
-        2341: aastore
-        2342: new           #2                  // class Block
-        2345: dup
-        2346: iconst_0
-        2347: iconst_1
-        2348: anewarray     #4                  // class java/lang/Object
-        2351: dup
-        2352: iconst_0
-        2353: aload         86
-        2355: aastore
-        2356: invokespecial #16                 // Method Block."<init>":(I[Ljava/lang/Object;)V
-        2359: astore        124
-        2361: new           #281                // class ocaml_fn_67
-        2364: dup
-        2365: aload         124
-        2367: invokespecial #282                // Method ocaml_fn_67."<init>":(Ljava/lang/Object;)V
-        2370: astore        125
-        2372: aload         18
-        2374: checkcast     #2                  // class Block
-        2377: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        2380: bipush        99
-        2382: aload         125
-        2384: aastore
-        2385: new           #284                // class ocaml_fn_68
-        2388: dup
-        2389: invokespecial #285                // Method ocaml_fn_68."<init>":()V
-        2392: astore        126
-        2394: new           #2                  // class Block
-        2397: dup
-        2398: iconst_0
-        2399: iconst_1
-        2400: anewarray     #4                  // class java/lang/Object
-        2403: dup
-        2404: iconst_0
-        2405: aload         126
-        2407: aastore
-        2408: invokespecial #16                 // Method Block."<init>":(I[Ljava/lang/Object;)V
-        2411: astore        127
-        2413: aload         18
-        2415: checkcast     #2                  // class Block
-        2418: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        2421: bipush        103
-        2423: aload         127
-        2425: aastore
-        2426: new           #287                // class ocaml_fn_69
-        2429: dup
-        2430: aload         124
-        2432: aload         127
-        2434: invokespecial #288                // Method ocaml_fn_69."<init>":(Ljava/lang/Object;Ljava/lang/Object;)V
-        2437: astore        128
-        2439: aload         18
-        2441: checkcast     #2                  // class Block
-        2444: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        2447: bipush        102
-        2449: aload         128
-        2451: aastore
-        2452: new           #290                // class ocaml_fn_70
-        2455: dup
-        2456: aload         128
-        2458: invokespecial #291                // Method ocaml_fn_70."<init>":(Ljava/lang/Object;)V
-        2461: astore        129
-        2463: aload         18
-        2465: checkcast     #2                  // class Block
-        2468: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        2471: bipush        98
-        2473: aload         129
-        2475: aastore
-        2476: getstatic     #25                 // Field GLOBALS:[Ljava/lang/Object;
-        2479: bipush        44
-        2481: aaload
-        2482: astore        130
-        2484: iconst_0
-        2485: i2l
-        2486: invokestatic  #61                 // Method java/lang/Long.valueOf:(J)Ljava/lang/Long;
-        2489: astore        131
-        2491: new           #2                  // class Block
-        2494: dup
-        2495: iconst_0
-        2496: bipush        6
-        2498: anewarray     #4                  // class java/lang/Object
-        2501: invokespecial #16                 // Method Block."<init>":(I[Ljava/lang/Object;)V
-        2504: astore        132
-        2506: new           #293                // class ocaml_fn_71
-        2509: dup
-        2510: invokespecial #294                // Method ocaml_fn_71."<init>":()V
-        2513: astore        133
-        2515: aload         132
-        2517: checkcast     #2                  // class Block
-        2520: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        2523: iconst_5
-        2524: aload         133
-        2526: aastore
-        2527: new           #296                // class ocaml_fn_72
-        2530: dup
-        2531: invokespecial #297                // Method ocaml_fn_72."<init>":()V
-        2534: astore        134
-        2536: aload         132
-        2538: checkcast     #2                  // class Block
-        2541: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        2544: iconst_4
-        2545: aload         134
-        2547: aastore
-        2548: new           #299                // class ocaml_fn_73
-        2551: dup
-        2552: invokespecial #300                // Method ocaml_fn_73."<init>":()V
-        2555: astore        135
-        2557: aload         132
-        2559: checkcast     #2                  // class Block
-        2562: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        2565: iconst_3
-        2566: aload         135
-        2568: aastore
-        2569: new           #302                // class ocaml_fn_74
-        2572: dup
-        2573: invokespecial #303                // Method ocaml_fn_74."<init>":()V
-        2576: astore        136
-        2578: aload         132
-        2580: checkcast     #2                  // class Block
-        2583: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        2586: iconst_2
-        2587: aload         136
-        2589: aastore
-        2590: new           #305                // class ocaml_fn_75
-        2593: dup
-        2594: invokespecial #306                // Method ocaml_fn_75."<init>":()V
-        2597: astore        137
-        2599: aload         132
-        2601: checkcast     #2                  // class Block
-        2604: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        2607: iconst_1
-        2608: aload         137
-        2610: aastore
-        2611: new           #308                // class ocaml_fn_76
-        2614: dup
-        2615: invokespecial #309                // Method ocaml_fn_76."<init>":()V
-        2618: astore        138
-        2620: aload         132
-        2622: checkcast     #2                  // class Block
-        2625: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        2628: iconst_0
-        2629: aload         138
-        2631: aastore
-        2632: aload         18
-        2634: checkcast     #2                  // class Block
-        2637: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        2640: bipush        95
-        2642: aload         132
-        2644: aastore
-        2645: new           #311                // class ocaml_fn_77
-        2648: dup
-        2649: invokespecial #312                // Method ocaml_fn_77."<init>":()V
-        2652: astore        139
-        2654: aload         18
-        2656: checkcast     #2                  // class Block
-        2659: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        2662: bipush        94
-        2664: aload         139
-        2666: aastore
-        2667: new           #314                // class ocaml_fn_78
-        2670: dup
-        2671: invokespecial #315                // Method ocaml_fn_78."<init>":()V
-        2674: astore        140
-        2676: aload         18
-        2678: checkcast     #2                  // class Block
-        2681: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        2684: bipush        92
-        2686: aload         140
-        2688: aastore
-        2689: new           #317                // class ocaml_fn_79
-        2692: dup
-        2693: invokespecial #318                // Method ocaml_fn_79."<init>":()V
-        2696: astore        141
-        2698: aload         18
-        2700: checkcast     #2                  // class Block
-        2703: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        2706: bipush        91
-        2708: aload         141
-        2710: aastore
-        2711: new           #320                // class ocaml_fn_80
-        2714: dup
-        2715: invokespecial #321                // Method ocaml_fn_80."<init>":()V
-        2718: astore        142
-        2720: aload         18
-        2722: checkcast     #2                  // class Block
-        2725: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        2728: bipush        90
-        2730: aload         142
-        2732: aastore
-        2733: new           #323                // class ocaml_fn_81
-        2736: dup
-        2737: invokespecial #324                // Method ocaml_fn_81."<init>":()V
-        2740: astore        143
-        2742: aload         18
-        2744: checkcast     #2                  // class Block
-        2747: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        2750: bipush        89
-        2752: aload         143
-        2754: aastore
-        2755: new           #326                // class ocaml_fn_82
-        2758: dup
-        2759: invokespecial #327                // Method ocaml_fn_82."<init>":()V
-        2762: astore        144
-        2764: aload         18
-        2766: checkcast     #2                  // class Block
-        2769: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        2772: bipush        88
-        2774: aload         144
-        2776: aastore
-        2777: new           #329                // class ocaml_fn_83
-        2780: dup
-        2781: invokespecial #330                // Method ocaml_fn_83."<init>":()V
-        2784: astore        145
-        2786: aload         18
-        2788: checkcast     #2                  // class Block
-        2791: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        2794: bipush        87
-        2796: aload         145
-        2798: aastore
-        2799: new           #332                // class ocaml_fn_84
-        2802: dup
-        2803: invokespecial #333                // Method ocaml_fn_84."<init>":()V
-        2806: astore        146
-        2808: aload         18
-        2810: checkcast     #2                  // class Block
-        2813: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        2816: bipush        86
-        2818: aload         146
-        2820: aastore
-        2821: new           #335                // class ocaml_fn_85
-        2824: dup
-        2825: invokespecial #336                // Method ocaml_fn_85."<init>":()V
-        2828: astore        147
-        2830: aload         18
-        2832: checkcast     #2                  // class Block
-        2835: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        2838: bipush        81
-        2840: aload         147
-        2842: aastore
-        2843: new           #338                // class ocaml_fn_86
-        2846: dup
-        2847: invokespecial #339                // Method ocaml_fn_86."<init>":()V
-        2850: astore        148
-        2852: aload         18
-        2854: checkcast     #2                  // class Block
-        2857: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        2860: bipush        77
-        2862: aload         148
-        2864: aastore
-        2865: new           #341                // class ocaml_fn_87
-        2868: dup
-        2869: invokespecial #342                // Method ocaml_fn_87."<init>":()V
-        2872: astore        149
-        2874: aload         18
-        2876: checkcast     #2                  // class Block
-        2879: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        2882: bipush        74
-        2884: aload         149
-        2886: aastore
-        2887: new           #344                // class ocaml_fn_88
-        2890: dup
-        2891: invokespecial #345                // Method ocaml_fn_88."<init>":()V
-        2894: astore        150
-        2896: aload         18
-        2898: checkcast     #2                  // class Block
-        2901: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        2904: bipush        73
-        2906: aload         150
-        2908: aastore
-        2909: new           #347                // class ocaml_fn_89
-        2912: dup
-        2913: invokespecial #348                // Method ocaml_fn_89."<init>":()V
-        2916: astore        151
-        2918: aload         18
-        2920: checkcast     #2                  // class Block
-        2923: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        2926: bipush        72
-        2928: aload         151
-        2930: aastore
-        2931: new           #350                // class ocaml_fn_90
-        2934: dup
-        2935: invokespecial #351                // Method ocaml_fn_90."<init>":()V
-        2938: astore        152
-        2940: aload         18
-        2942: checkcast     #2                  // class Block
-        2945: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        2948: bipush        70
-        2950: aload         152
-        2952: aastore
-        2953: new           #353                // class ocaml_fn_91
-        2956: dup
-        2957: invokespecial #354                // Method ocaml_fn_91."<init>":()V
-        2960: astore        153
-        2962: aload         18
-        2964: checkcast     #2                  // class Block
-        2967: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        2970: bipush        69
-        2972: aload         153
-        2974: aastore
-        2975: new           #356                // class ocaml_fn_92
-        2978: dup
-        2979: invokespecial #357                // Method ocaml_fn_92."<init>":()V
-        2982: astore        154
-        2984: aload         18
-        2986: checkcast     #2                  // class Block
-        2989: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        2992: bipush        64
-        2994: aload         154
-        2996: aastore
-        2997: new           #359                // class ocaml_fn_93
-        3000: dup
-        3001: invokespecial #360                // Method ocaml_fn_93."<init>":()V
-        3004: astore        155
-        3006: aload         18
-        3008: checkcast     #2                  // class Block
-        3011: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        3014: bipush        62
-        3016: aload         155
-        3018: aastore
-        3019: getstatic     #25                 // Field GLOBALS:[Ljava/lang/Object;
-        3022: bipush        45
-        3024: aload         18
-        3026: aastore
-        3027: iconst_0
-        3028: i2l
-        3029: invokestatic  #61                 // Method java/lang/Long.valueOf:(J)Ljava/lang/Long;
-        3032: astore        156
-        3034: getstatic     #25                 // Field GLOBALS:[Ljava/lang/Object;
-        3037: bipush        46
-        3039: aaload
-        3040: astore        157
-        3042: getstatic     #364                // Field java/lang/System.out:Ljava/io/PrintStream;
-        3045: aload         157
-        3047: checkcast     #366                // class java/lang/String
-        3050: invokevirtual #372                // Method java/io/PrintStream.println:(Ljava/lang/String;)V
-        3053: iconst_0
-        3054: i2l
-        3055: invokestatic  #61                 // Method java/lang/Long.valueOf:(J)Ljava/lang/Long;
-        3058: astore        158
-        3060: new           #2                  // class Block
-        3063: dup
-        3064: iconst_0
-        3065: iconst_0
-        3066: anewarray     #4                  // class java/lang/Object
-        3069: invokespecial #16                 // Method Block."<init>":(I[Ljava/lang/Object;)V
-        3072: astore        159
-        3074: getstatic     #25                 // Field GLOBALS:[Ljava/lang/Object;
-        3077: bipush        47
-        3079: aload         159
-        3081: aastore
-        3082: iconst_0
-        3083: i2l
-        3084: invokestatic  #61                 // Method java/lang/Long.valueOf:(J)Ljava/lang/Long;
-        3087: astore        160
-        3089: iconst_0
-        3090: i2l
-        3091: lstore        161
-        3093: getstatic     #25                 // Field GLOBALS:[Ljava/lang/Object;
-        3096: bipush        45
-        3098: aaload
-        3099: checkcast     #2                  // class Block
-        3102: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        3105: bipush        102
-        3107: aaload
-        3108: astore        163
-        3110: aload         163
-        3112: checkcast     #139                // class Closure
-        3115: lload         161
-        3117: invokestatic  #61                 // Method java/lang/Long.valueOf:(J)Ljava/lang/Long;
-        3120: invokevirtual #376                // Method Closure.apply1:(Ljava/lang/Object;)Ljava/lang/Object;
-        3123: astore        164
-        3125: new           #2                  // class Block
-        3128: dup
-        3129: iconst_0
-        3130: iconst_0
-        3131: anewarray     #4                  // class java/lang/Object
-        3134: invokespecial #16                 // Method Block."<init>":(I[Ljava/lang/Object;)V
-        3137: astore        165
-        3139: getstatic     #25                 // Field GLOBALS:[Ljava/lang/Object;
-        3142: bipush        48
-        3144: aload         165
-        3146: aastore
-        3147: iconst_0
-        3148: i2l
-        3149: invokestatic  #61                 // Method java/lang/Long.valueOf:(J)Ljava/lang/Long;
-        3152: astore        166
-        3154: return
+        1250: checkcast     #140                // class ocaml_fn_25
+        1253: aload         69
+        1255: checkcast     #143                // class Closure
+        1258: putfield      #152                // Field ocaml_fn_25.sibling_1:LClosure;
+        1261: iconst_0
+        1262: i2l
+        1263: invokestatic  #61                 // Method java/lang/Long.valueOf:(J)Ljava/lang/Long;
+        1266: astore        73
+        1268: iconst_0
+        1269: i2l
+        1270: lstore        74
+        1272: lload         74
+        1274: l2i
+        1275: invokestatic  #156                // Method Channel.forDescriptor:(I)LChannel;
+        1278: astore        76
+        1280: aload         18
+        1282: checkcast     #2                  // class Block
+        1285: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        1288: bipush        37
+        1290: aload         76
+        1292: aastore
+        1293: iconst_1
+        1294: i2l
+        1295: lstore        77
+        1297: lload         77
+        1299: l2i
+        1300: invokestatic  #156                // Method Channel.forDescriptor:(I)LChannel;
+        1303: astore        79
+        1305: aload         18
+        1307: checkcast     #2                  // class Block
+        1310: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        1313: bipush        38
+        1315: aload         79
+        1317: aastore
+        1318: iconst_2
+        1319: i2l
+        1320: lstore        80
+        1322: lload         80
+        1324: l2i
+        1325: invokestatic  #156                // Method Channel.forDescriptor:(I)LChannel;
+        1328: astore        82
+        1330: aload         18
+        1332: checkcast     #2                  // class Block
+        1335: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        1338: bipush        39
+        1340: aload         82
+        1342: aastore
+        1343: new           #158                // class ocaml_fn_26
+        1346: dup
+        1347: invokespecial #159                // Method ocaml_fn_26."<init>":()V
+        1350: astore        83
+        1352: aload         18
+        1354: checkcast     #2                  // class Block
+        1357: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        1360: bipush        61
+        1362: aload         83
+        1364: aastore
+        1365: new           #161                // class ocaml_fn_27
+        1368: dup
+        1369: aload         83
+        1371: invokespecial #162                // Method ocaml_fn_27."<init>":(Ljava/lang/Object;)V
+        1374: astore        84
+        1376: aload         18
+        1378: checkcast     #2                  // class Block
+        1381: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        1384: bipush        59
+        1386: aload         84
+        1388: aastore
+        1389: new           #164                // class ocaml_fn_28
+        1392: dup
+        1393: aload         83
+        1395: invokespecial #165                // Method ocaml_fn_28."<init>":(Ljava/lang/Object;)V
+        1398: astore        85
+        1400: aload         18
+        1402: checkcast     #2                  // class Block
+        1405: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        1408: bipush        60
+        1410: aload         85
+        1412: aastore
+        1413: new           #167                // class ocaml_fn_29
+        1416: dup
+        1417: aload         33
+        1419: invokespecial #168                // Method ocaml_fn_29."<init>":(Ljava/lang/Object;)V
+        1422: astore        86
+        1424: aload         18
+        1426: checkcast     #2                  // class Block
+        1429: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        1432: bipush        63
+        1434: aload         86
+        1436: aastore
+        1437: new           #170                // class ocaml_fn_30
+        1440: dup
+        1441: invokespecial #171                // Method ocaml_fn_30."<init>":()V
+        1444: astore        87
+        1446: aload         18
+        1448: checkcast     #2                  // class Block
+        1451: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        1454: bipush        66
+        1456: aload         87
+        1458: aastore
+        1459: new           #173                // class ocaml_fn_31
+        1462: dup
+        1463: invokespecial #174                // Method ocaml_fn_31."<init>":()V
+        1466: astore        88
+        1468: aload         18
+        1470: checkcast     #2                  // class Block
+        1473: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        1476: bipush        65
+        1478: aload         88
+        1480: aastore
+        1481: new           #176                // class ocaml_fn_32
+        1484: dup
+        1485: aload         20
+        1487: invokespecial #177                // Method ocaml_fn_32."<init>":(Ljava/lang/Object;)V
+        1490: astore        89
+        1492: aload         18
+        1494: checkcast     #2                  // class Block
+        1497: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        1500: bipush        67
+        1502: aload         89
+        1504: aastore
+        1505: new           #179                // class ocaml_fn_33
+        1508: dup
+        1509: aload         20
+        1511: invokespecial #180                // Method ocaml_fn_33."<init>":(Ljava/lang/Object;)V
+        1514: astore        90
+        1516: aload         18
+        1518: checkcast     #2                  // class Block
+        1521: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        1524: bipush        68
+        1526: aload         90
+        1528: aastore
+        1529: new           #182                // class ocaml_fn_34
+        1532: dup
+        1533: invokespecial #183                // Method ocaml_fn_34."<init>":()V
+        1536: astore        91
+        1538: aload         18
+        1540: checkcast     #2                  // class Block
+        1543: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        1546: bipush        71
+        1548: aload         91
+        1550: aastore
+        1551: new           #185                // class ocaml_fn_35
+        1554: dup
+        1555: invokespecial #186                // Method ocaml_fn_35."<init>":()V
+        1558: astore        92
+        1560: aload         18
+        1562: checkcast     #2                  // class Block
+        1565: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        1568: bipush        75
+        1570: aload         92
+        1572: aastore
+        1573: new           #188                // class ocaml_fn_36
+        1576: dup
+        1577: invokespecial #189                // Method ocaml_fn_36."<init>":()V
+        1580: astore        93
+        1582: aload         18
+        1584: checkcast     #2                  // class Block
+        1587: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        1590: bipush        76
+        1592: aload         93
+        1594: aastore
+        1595: new           #191                // class ocaml_fn_37
+        1598: dup
+        1599: invokespecial #192                // Method ocaml_fn_37."<init>":()V
+        1602: astore        94
+        1604: aload         18
+        1606: checkcast     #2                  // class Block
+        1609: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        1612: bipush        80
+        1614: aload         94
+        1616: aastore
+        1617: new           #194                // class ocaml_fn_38
+        1620: dup
+        1621: aload         94
+        1623: invokespecial #195                // Method ocaml_fn_38."<init>":(Ljava/lang/Object;)V
+        1626: astore        95
+        1628: aload         18
+        1630: checkcast     #2                  // class Block
+        1633: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        1636: bipush        78
+        1638: aload         95
+        1640: aastore
+        1641: new           #197                // class ocaml_fn_39
+        1644: dup
+        1645: aload         94
+        1647: invokespecial #198                // Method ocaml_fn_39."<init>":(Ljava/lang/Object;)V
+        1650: astore        96
+        1652: aload         18
+        1654: checkcast     #2                  // class Block
+        1657: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        1660: bipush        79
+        1662: aload         96
+        1664: aastore
+        1665: new           #200                // class ocaml_fn_40
+        1668: dup
+        1669: aload         20
+        1671: invokespecial #201                // Method ocaml_fn_40."<init>":(Ljava/lang/Object;)V
+        1674: astore        97
+        1676: aload         18
+        1678: checkcast     #2                  // class Block
+        1681: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        1684: bipush        83
+        1686: aload         97
+        1688: aastore
+        1689: new           #203                // class ocaml_fn_41
+        1692: dup
+        1693: aload         34
+        1695: invokespecial #204                // Method ocaml_fn_41."<init>":(Ljava/lang/Object;)V
+        1698: astore        98
+        1700: aload         18
+        1702: checkcast     #2                  // class Block
+        1705: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        1708: bipush        101
+        1710: aload         98
+        1712: aastore
+        1713: new           #206                // class ocaml_fn_42
+        1716: dup
+        1717: aload         20
+        1719: aload         98
+        1721: invokespecial #209                // Method ocaml_fn_42."<init>":(Ljava/lang/Object;Ljava/lang/Object;)V
+        1724: astore        99
+        1726: aload         18
+        1728: checkcast     #2                  // class Block
+        1731: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        1734: bipush        84
+        1736: aload         99
+        1738: aastore
+        1739: new           #211                // class ocaml_fn_43
+        1742: dup
+        1743: aload         99
+        1745: invokespecial #212                // Method ocaml_fn_43."<init>":(Ljava/lang/Object;)V
+        1748: astore        100
+        1750: aload         18
+        1752: checkcast     #2                  // class Block
+        1755: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        1758: bipush        85
+        1760: aload         100
+        1762: aastore
+        1763: new           #214                // class ocaml_fn_44
+        1766: dup
+        1767: aload         34
+        1769: invokespecial #215                // Method ocaml_fn_44."<init>":(Ljava/lang/Object;)V
+        1772: astore        101
+        1774: aload         18
+        1776: checkcast     #2                  // class Block
+        1779: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        1782: bipush        82
+        1784: aload         101
+        1786: aastore
+        1787: new           #217                // class ocaml_fn_45
+        1790: dup
+        1791: invokespecial #218                // Method ocaml_fn_45."<init>":()V
+        1794: astore        102
+        1796: aload         18
+        1798: checkcast     #2                  // class Block
+        1801: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        1804: bipush        93
+        1806: aload         102
+        1808: aastore
+        1809: new           #220                // class ocaml_fn_46
+        1812: dup
+        1813: aload         79
+        1815: invokespecial #221                // Method ocaml_fn_46."<init>":(Ljava/lang/Object;)V
+        1818: astore        103
+        1820: aload         18
+        1822: checkcast     #2                  // class Block
+        1825: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        1828: bipush        40
+        1830: aload         103
+        1832: aastore
+        1833: new           #223                // class ocaml_fn_47
+        1836: dup
+        1837: aload         79
+        1839: aload         88
+        1841: invokespecial #224                // Method ocaml_fn_47."<init>":(Ljava/lang/Object;Ljava/lang/Object;)V
+        1844: astore        104
+        1846: aload         18
+        1848: checkcast     #2                  // class Block
+        1851: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        1854: bipush        41
+        1856: aload         104
+        1858: aastore
+        1859: new           #226                // class ocaml_fn_48
+        1862: dup
+        1863: aload         79
+        1865: aload         87
+        1867: invokespecial #227                // Method ocaml_fn_48."<init>":(Ljava/lang/Object;Ljava/lang/Object;)V
+        1870: astore        105
+        1872: aload         18
+        1874: checkcast     #2                  // class Block
+        1877: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        1880: bipush        42
+        1882: aload         105
+        1884: aastore
+        1885: new           #229                // class ocaml_fn_49
+        1888: dup
+        1889: aload         63
+        1891: aload         79
+        1893: aload         88
+        1895: invokespecial #232                // Method ocaml_fn_49."<init>":(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)V
+        1898: astore        106
+        1900: aload         18
+        1902: checkcast     #2                  // class Block
+        1905: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        1908: bipush        43
+        1910: aload         106
+        1912: aastore
+        1913: new           #234                // class ocaml_fn_50
+        1916: dup
+        1917: aload         66
+        1919: aload         79
+        1921: aload         88
+        1923: invokespecial #235                // Method ocaml_fn_50."<init>":(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)V
+        1926: astore        107
+        1928: aload         18
+        1930: checkcast     #2                  // class Block
+        1933: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        1936: bipush        44
+        1938: aload         107
+        1940: aastore
+        1941: new           #237                // class ocaml_fn_51
+        1944: dup
+        1945: aload         79
+        1947: aload         88
+        1949: invokespecial #238                // Method ocaml_fn_51."<init>":(Ljava/lang/Object;Ljava/lang/Object;)V
+        1952: astore        108
+        1954: aload         18
+        1956: checkcast     #2                  // class Block
+        1959: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        1962: bipush        45
+        1964: aload         108
+        1966: aastore
+        1967: new           #240                // class ocaml_fn_52
+        1970: dup
+        1971: aload         79
+        1973: invokespecial #241                // Method ocaml_fn_52."<init>":(Ljava/lang/Object;)V
+        1976: astore        109
+        1978: aload         18
+        1980: checkcast     #2                  // class Block
+        1983: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        1986: bipush        46
+        1988: aload         109
+        1990: aastore
+        1991: new           #243                // class ocaml_fn_53
+        1994: dup
+        1995: aload         82
+        1997: invokespecial #244                // Method ocaml_fn_53."<init>":(Ljava/lang/Object;)V
+        2000: astore        110
+        2002: aload         18
+        2004: checkcast     #2                  // class Block
+        2007: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        2010: bipush        47
+        2012: aload         110
+        2014: aastore
+        2015: new           #246                // class ocaml_fn_54
+        2018: dup
+        2019: aload         82
+        2021: aload         88
+        2023: invokespecial #247                // Method ocaml_fn_54."<init>":(Ljava/lang/Object;Ljava/lang/Object;)V
+        2026: astore        111
+        2028: aload         18
+        2030: checkcast     #2                  // class Block
+        2033: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        2036: bipush        48
+        2038: aload         111
+        2040: aastore
+        2041: new           #249                // class ocaml_fn_55
+        2044: dup
+        2045: aload         82
+        2047: aload         87
+        2049: invokespecial #250                // Method ocaml_fn_55."<init>":(Ljava/lang/Object;Ljava/lang/Object;)V
+        2052: astore        112
+        2054: aload         18
+        2056: checkcast     #2                  // class Block
+        2059: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        2062: bipush        49
+        2064: aload         112
+        2066: aastore
+        2067: new           #252                // class ocaml_fn_56
+        2070: dup
+        2071: aload         63
+        2073: aload         82
+        2075: aload         88
+        2077: invokespecial #253                // Method ocaml_fn_56."<init>":(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)V
+        2080: astore        113
+        2082: aload         18
+        2084: checkcast     #2                  // class Block
+        2087: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        2090: bipush        50
+        2092: aload         113
+        2094: aastore
+        2095: new           #255                // class ocaml_fn_57
+        2098: dup
+        2099: aload         66
+        2101: aload         82
+        2103: aload         88
+        2105: invokespecial #256                // Method ocaml_fn_57."<init>":(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)V
+        2108: astore        114
+        2110: aload         18
+        2112: checkcast     #2                  // class Block
+        2115: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        2118: bipush        51
+        2120: aload         114
+        2122: aastore
+        2123: new           #258                // class ocaml_fn_58
+        2126: dup
+        2127: aload         82
+        2129: aload         88
+        2131: invokespecial #259                // Method ocaml_fn_58."<init>":(Ljava/lang/Object;Ljava/lang/Object;)V
+        2134: astore        115
+        2136: aload         18
+        2138: checkcast     #2                  // class Block
+        2141: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        2144: bipush        52
+        2146: aload         115
+        2148: aastore
+        2149: new           #261                // class ocaml_fn_59
+        2152: dup
+        2153: aload         82
+        2155: invokespecial #262                // Method ocaml_fn_59."<init>":(Ljava/lang/Object;)V
+        2158: astore        116
+        2160: aload         18
+        2162: checkcast     #2                  // class Block
+        2165: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        2168: bipush        53
+        2170: aload         116
+        2172: aastore
+        2173: new           #264                // class ocaml_fn_60
+        2176: dup
+        2177: aload         76
+        2179: aload         79
+        2181: aload         101
+        2183: invokespecial #265                // Method ocaml_fn_60."<init>":(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)V
+        2186: astore        117
+        2188: aload         18
+        2190: checkcast     #2                  // class Block
+        2193: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        2196: bipush        54
+        2198: aload         117
+        2200: aastore
+        2201: new           #267                // class ocaml_fn_61
+        2204: dup
+        2205: aload         117
+        2207: invokespecial #268                // Method ocaml_fn_61."<init>":(Ljava/lang/Object;)V
+        2210: astore        118
+        2212: aload         18
+        2214: checkcast     #2                  // class Block
+        2217: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        2220: bipush        56
+        2222: aload         118
+        2224: aastore
+        2225: new           #270                // class ocaml_fn_62
+        2228: dup
+        2229: aload         64
+        2231: aload         117
+        2233: invokespecial #271                // Method ocaml_fn_62."<init>":(Ljava/lang/Object;Ljava/lang/Object;)V
+        2236: astore        119
+        2238: aload         18
+        2240: checkcast     #2                  // class Block
+        2243: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        2246: bipush        55
+        2248: aload         119
+        2250: aastore
+        2251: new           #273                // class ocaml_fn_63
+        2254: dup
+        2255: aload         117
+        2257: invokespecial #274                // Method ocaml_fn_63."<init>":(Ljava/lang/Object;)V
+        2260: astore        120
+        2262: aload         18
+        2264: checkcast     #2                  // class Block
+        2267: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        2270: bipush        58
+        2272: aload         120
+        2274: aastore
+        2275: new           #276                // class ocaml_fn_64
+        2278: dup
+        2279: aload         67
+        2281: aload         117
+        2283: invokespecial #277                // Method ocaml_fn_64."<init>":(Ljava/lang/Object;Ljava/lang/Object;)V
+        2286: astore        121
+        2288: aload         18
+        2290: checkcast     #2                  // class Block
+        2293: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        2296: bipush        57
+        2298: aload         121
+        2300: aastore
+        2301: new           #279                // class ocaml_fn_65
+        2304: dup
+        2305: invokespecial #280                // Method ocaml_fn_65."<init>":()V
+        2308: astore        122
+        2310: aload         18
+        2312: checkcast     #2                  // class Block
+        2315: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        2318: bipush        96
+        2320: aload         122
+        2322: aastore
+        2323: new           #282                // class ocaml_fn_66
+        2326: dup
+        2327: aload         58
+        2329: invokespecial #283                // Method ocaml_fn_66."<init>":(Ljava/lang/Object;)V
+        2332: astore        123
+        2334: aload         18
+        2336: checkcast     #2                  // class Block
+        2339: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        2342: bipush        97
+        2344: aload         123
+        2346: aastore
+        2347: new           #2                  // class Block
+        2350: dup
+        2351: iconst_0
+        2352: iconst_1
+        2353: anewarray     #4                  // class java/lang/Object
+        2356: dup
+        2357: iconst_0
+        2358: aload         86
+        2360: aastore
+        2361: invokespecial #16                 // Method Block."<init>":(I[Ljava/lang/Object;)V
+        2364: astore        124
+        2366: new           #285                // class ocaml_fn_67
+        2369: dup
+        2370: aload         124
+        2372: invokespecial #286                // Method ocaml_fn_67."<init>":(Ljava/lang/Object;)V
+        2375: astore        125
+        2377: aload         18
+        2379: checkcast     #2                  // class Block
+        2382: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        2385: bipush        99
+        2387: aload         125
+        2389: aastore
+        2390: new           #288                // class ocaml_fn_68
+        2393: dup
+        2394: invokespecial #289                // Method ocaml_fn_68."<init>":()V
+        2397: astore        126
+        2399: new           #2                  // class Block
+        2402: dup
+        2403: iconst_0
+        2404: iconst_1
+        2405: anewarray     #4                  // class java/lang/Object
+        2408: dup
+        2409: iconst_0
+        2410: aload         126
+        2412: aastore
+        2413: invokespecial #16                 // Method Block."<init>":(I[Ljava/lang/Object;)V
+        2416: astore        127
+        2418: aload         18
+        2420: checkcast     #2                  // class Block
+        2423: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        2426: bipush        103
+        2428: aload         127
+        2430: aastore
+        2431: new           #291                // class ocaml_fn_69
+        2434: dup
+        2435: aload         124
+        2437: aload         127
+        2439: invokespecial #292                // Method ocaml_fn_69."<init>":(Ljava/lang/Object;Ljava/lang/Object;)V
+        2442: astore        128
+        2444: aload         18
+        2446: checkcast     #2                  // class Block
+        2449: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        2452: bipush        102
+        2454: aload         128
+        2456: aastore
+        2457: new           #294                // class ocaml_fn_70
+        2460: dup
+        2461: aload         128
+        2463: invokespecial #295                // Method ocaml_fn_70."<init>":(Ljava/lang/Object;)V
+        2466: astore        129
+        2468: aload         18
+        2470: checkcast     #2                  // class Block
+        2473: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        2476: bipush        98
+        2478: aload         129
+        2480: aastore
+        2481: getstatic     #25                 // Field GLOBALS:[Ljava/lang/Object;
+        2484: bipush        44
+        2486: aaload
+        2487: astore        130
+        2489: aload         130
+        2491: aload         128
+        2493: invokestatic  #65                 // Method Ocaml.registerNamedValue:(Ljava/lang/Object;Ljava/lang/Object;)J
+        2496: invokestatic  #61                 // Method java/lang/Long.valueOf:(J)Ljava/lang/Long;
+        2499: astore        131
+        2501: new           #2                  // class Block
+        2504: dup
+        2505: iconst_0
+        2506: bipush        6
+        2508: anewarray     #4                  // class java/lang/Object
+        2511: invokespecial #16                 // Method Block."<init>":(I[Ljava/lang/Object;)V
+        2514: astore        132
+        2516: new           #297                // class ocaml_fn_71
+        2519: dup
+        2520: invokespecial #298                // Method ocaml_fn_71."<init>":()V
+        2523: astore        133
+        2525: aload         132
+        2527: checkcast     #2                  // class Block
+        2530: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        2533: iconst_5
+        2534: aload         133
+        2536: aastore
+        2537: new           #300                // class ocaml_fn_72
+        2540: dup
+        2541: invokespecial #301                // Method ocaml_fn_72."<init>":()V
+        2544: astore        134
+        2546: aload         132
+        2548: checkcast     #2                  // class Block
+        2551: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        2554: iconst_4
+        2555: aload         134
+        2557: aastore
+        2558: new           #303                // class ocaml_fn_73
+        2561: dup
+        2562: invokespecial #304                // Method ocaml_fn_73."<init>":()V
+        2565: astore        135
+        2567: aload         132
+        2569: checkcast     #2                  // class Block
+        2572: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        2575: iconst_3
+        2576: aload         135
+        2578: aastore
+        2579: new           #306                // class ocaml_fn_74
+        2582: dup
+        2583: invokespecial #307                // Method ocaml_fn_74."<init>":()V
+        2586: astore        136
+        2588: aload         132
+        2590: checkcast     #2                  // class Block
+        2593: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        2596: iconst_2
+        2597: aload         136
+        2599: aastore
+        2600: new           #309                // class ocaml_fn_75
+        2603: dup
+        2604: invokespecial #310                // Method ocaml_fn_75."<init>":()V
+        2607: astore        137
+        2609: aload         132
+        2611: checkcast     #2                  // class Block
+        2614: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        2617: iconst_1
+        2618: aload         137
+        2620: aastore
+        2621: new           #312                // class ocaml_fn_76
+        2624: dup
+        2625: invokespecial #313                // Method ocaml_fn_76."<init>":()V
+        2628: astore        138
+        2630: aload         132
+        2632: checkcast     #2                  // class Block
+        2635: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        2638: iconst_0
+        2639: aload         138
+        2641: aastore
+        2642: aload         18
+        2644: checkcast     #2                  // class Block
+        2647: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        2650: bipush        95
+        2652: aload         132
+        2654: aastore
+        2655: new           #315                // class ocaml_fn_77
+        2658: dup
+        2659: invokespecial #316                // Method ocaml_fn_77."<init>":()V
+        2662: astore        139
+        2664: aload         18
+        2666: checkcast     #2                  // class Block
+        2669: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        2672: bipush        94
+        2674: aload         139
+        2676: aastore
+        2677: new           #318                // class ocaml_fn_78
+        2680: dup
+        2681: invokespecial #319                // Method ocaml_fn_78."<init>":()V
+        2684: astore        140
+        2686: aload         18
+        2688: checkcast     #2                  // class Block
+        2691: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        2694: bipush        92
+        2696: aload         140
+        2698: aastore
+        2699: new           #321                // class ocaml_fn_79
+        2702: dup
+        2703: invokespecial #322                // Method ocaml_fn_79."<init>":()V
+        2706: astore        141
+        2708: aload         18
+        2710: checkcast     #2                  // class Block
+        2713: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        2716: bipush        91
+        2718: aload         141
+        2720: aastore
+        2721: new           #324                // class ocaml_fn_80
+        2724: dup
+        2725: invokespecial #325                // Method ocaml_fn_80."<init>":()V
+        2728: astore        142
+        2730: aload         18
+        2732: checkcast     #2                  // class Block
+        2735: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        2738: bipush        90
+        2740: aload         142
+        2742: aastore
+        2743: new           #327                // class ocaml_fn_81
+        2746: dup
+        2747: invokespecial #328                // Method ocaml_fn_81."<init>":()V
+        2750: astore        143
+        2752: aload         18
+        2754: checkcast     #2                  // class Block
+        2757: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        2760: bipush        89
+        2762: aload         143
+        2764: aastore
+        2765: new           #330                // class ocaml_fn_82
+        2768: dup
+        2769: invokespecial #331                // Method ocaml_fn_82."<init>":()V
+        2772: astore        144
+        2774: aload         18
+        2776: checkcast     #2                  // class Block
+        2779: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        2782: bipush        88
+        2784: aload         144
+        2786: aastore
+        2787: new           #333                // class ocaml_fn_83
+        2790: dup
+        2791: invokespecial #334                // Method ocaml_fn_83."<init>":()V
+        2794: astore        145
+        2796: aload         18
+        2798: checkcast     #2                  // class Block
+        2801: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        2804: bipush        87
+        2806: aload         145
+        2808: aastore
+        2809: new           #336                // class ocaml_fn_84
+        2812: dup
+        2813: invokespecial #337                // Method ocaml_fn_84."<init>":()V
+        2816: astore        146
+        2818: aload         18
+        2820: checkcast     #2                  // class Block
+        2823: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        2826: bipush        86
+        2828: aload         146
+        2830: aastore
+        2831: new           #339                // class ocaml_fn_85
+        2834: dup
+        2835: invokespecial #340                // Method ocaml_fn_85."<init>":()V
+        2838: astore        147
+        2840: aload         18
+        2842: checkcast     #2                  // class Block
+        2845: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        2848: bipush        81
+        2850: aload         147
+        2852: aastore
+        2853: new           #342                // class ocaml_fn_86
+        2856: dup
+        2857: invokespecial #343                // Method ocaml_fn_86."<init>":()V
+        2860: astore        148
+        2862: aload         18
+        2864: checkcast     #2                  // class Block
+        2867: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        2870: bipush        77
+        2872: aload         148
+        2874: aastore
+        2875: new           #345                // class ocaml_fn_87
+        2878: dup
+        2879: invokespecial #346                // Method ocaml_fn_87."<init>":()V
+        2882: astore        149
+        2884: aload         18
+        2886: checkcast     #2                  // class Block
+        2889: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        2892: bipush        74
+        2894: aload         149
+        2896: aastore
+        2897: new           #348                // class ocaml_fn_88
+        2900: dup
+        2901: invokespecial #349                // Method ocaml_fn_88."<init>":()V
+        2904: astore        150
+        2906: aload         18
+        2908: checkcast     #2                  // class Block
+        2911: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        2914: bipush        73
+        2916: aload         150
+        2918: aastore
+        2919: new           #351                // class ocaml_fn_89
+        2922: dup
+        2923: invokespecial #352                // Method ocaml_fn_89."<init>":()V
+        2926: astore        151
+        2928: aload         18
+        2930: checkcast     #2                  // class Block
+        2933: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        2936: bipush        72
+        2938: aload         151
+        2940: aastore
+        2941: new           #354                // class ocaml_fn_90
+        2944: dup
+        2945: invokespecial #355                // Method ocaml_fn_90."<init>":()V
+        2948: astore        152
+        2950: aload         18
+        2952: checkcast     #2                  // class Block
+        2955: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        2958: bipush        70
+        2960: aload         152
+        2962: aastore
+        2963: new           #357                // class ocaml_fn_91
+        2966: dup
+        2967: invokespecial #358                // Method ocaml_fn_91."<init>":()V
+        2970: astore        153
+        2972: aload         18
+        2974: checkcast     #2                  // class Block
+        2977: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        2980: bipush        69
+        2982: aload         153
+        2984: aastore
+        2985: new           #360                // class ocaml_fn_92
+        2988: dup
+        2989: invokespecial #361                // Method ocaml_fn_92."<init>":()V
+        2992: astore        154
+        2994: aload         18
+        2996: checkcast     #2                  // class Block
+        2999: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        3002: bipush        64
+        3004: aload         154
+        3006: aastore
+        3007: new           #363                // class ocaml_fn_93
+        3010: dup
+        3011: invokespecial #364                // Method ocaml_fn_93."<init>":()V
+        3014: astore        155
+        3016: aload         18
+        3018: checkcast     #2                  // class Block
+        3021: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        3024: bipush        62
+        3026: aload         155
+        3028: aastore
+        3029: getstatic     #25                 // Field GLOBALS:[Ljava/lang/Object;
+        3032: bipush        45
+        3034: aload         18
+        3036: aastore
+        3037: iconst_0
+        3038: i2l
+        3039: invokestatic  #61                 // Method java/lang/Long.valueOf:(J)Ljava/lang/Long;
+        3042: astore        156
+        3044: getstatic     #25                 // Field GLOBALS:[Ljava/lang/Object;
+        3047: bipush        46
+        3049: aaload
+        3050: astore        157
+        3052: getstatic     #368                // Field java/lang/System.out:Ljava/io/PrintStream;
+        3055: aload         157
+        3057: checkcast     #370                // class java/lang/String
+        3060: invokevirtual #376                // Method java/io/PrintStream.println:(Ljava/lang/String;)V
+        3063: iconst_0
+        3064: i2l
+        3065: invokestatic  #61                 // Method java/lang/Long.valueOf:(J)Ljava/lang/Long;
+        3068: astore        158
+        3070: new           #2                  // class Block
+        3073: dup
+        3074: iconst_0
+        3075: iconst_0
+        3076: anewarray     #4                  // class java/lang/Object
+        3079: invokespecial #16                 // Method Block."<init>":(I[Ljava/lang/Object;)V
+        3082: astore        159
+        3084: getstatic     #25                 // Field GLOBALS:[Ljava/lang/Object;
+        3087: bipush        47
+        3089: aload         159
+        3091: aastore
+        3092: iconst_0
+        3093: i2l
+        3094: invokestatic  #61                 // Method java/lang/Long.valueOf:(J)Ljava/lang/Long;
+        3097: astore        160
+        3099: iconst_0
+        3100: i2l
+        3101: lstore        161
+        3103: getstatic     #25                 // Field GLOBALS:[Ljava/lang/Object;
+        3106: bipush        45
+        3108: aaload
+        3109: checkcast     #2                  // class Block
+        3112: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        3115: bipush        102
+        3117: aaload
+        3118: astore        163
+        3120: aload         163
+        3122: checkcast     #143                // class Closure
+        3125: lload         161
+        3127: invokestatic  #61                 // Method java/lang/Long.valueOf:(J)Ljava/lang/Long;
+        3130: invokevirtual #380                // Method Closure.apply1:(Ljava/lang/Object;)Ljava/lang/Object;
+        3133: astore        164
+        3135: new           #2                  // class Block
+        3138: dup
+        3139: iconst_0
+        3140: iconst_0
+        3141: anewarray     #4                  // class java/lang/Object
+        3144: invokespecial #16                 // Method Block."<init>":(I[Ljava/lang/Object;)V
+        3147: astore        165
+        3149: getstatic     #25                 // Field GLOBALS:[Ljava/lang/Object;
+        3152: bipush        48
+        3154: aload         165
+        3156: aastore
+        3157: iconst_0
+        3158: i2l
+        3159: invokestatic  #61                 // Method java/lang/Long.valueOf:(J)Ljava/lang/Long;
+        3162: astore        166
+        3164: return
     }
     |}]
 
@@ -1665,1377 +1667,1379 @@ let%expect_test "emission: arithmetic ops" =
          217: bipush        36
          219: aaload
          220: astore        16
-         222: iconst_0
-         223: i2l
-         224: invokestatic  #61                 // Method java/lang/Long.valueOf:(J)Ljava/lang/Long;
-         227: astore        17
-         229: new           #2                  // class Block
-         232: dup
-         233: iconst_0
-         234: bipush        104
-         236: anewarray     #4                  // class java/lang/Object
-         239: invokespecial #16                 // Method Block."<init>":(I[Ljava/lang/Object;)V
-         242: astore        18
-         244: new           #63                 // class ocaml_fn_8
-         247: dup
-         248: invokespecial #64                 // Method ocaml_fn_8."<init>":()V
-         251: astore        19
-         253: aload         18
-         255: checkcast     #2                  // class Block
-         258: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-         261: iconst_1
-         262: aload         19
-         264: aastore
-         265: new           #69                 // class ocaml_fn_9
-         268: dup
-         269: invokespecial #70                 // Method ocaml_fn_9."<init>":()V
-         272: astore        20
-         274: aload         18
-         276: checkcast     #2                  // class Block
-         279: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-         282: iconst_0
-         283: aload         20
-         285: aastore
-         286: iconst_0
-         287: i2l
-         288: lstore        21
-         290: iconst_0
-         291: i2l
-         292: invokestatic  #61                 // Method java/lang/Long.valueOf:(J)Ljava/lang/Long;
-         295: astore        23
-         297: getstatic     #25                 // Field GLOBALS:[Ljava/lang/Object;
-         300: bipush        37
-         302: aaload
-         303: astore        24
-         305: new           #2                  // class Block
-         308: dup
-         309: sipush        248
-         312: iconst_2
-         313: anewarray     #4                  // class java/lang/Object
-         316: dup
-         317: iconst_0
-         318: aload         24
-         320: aastore
+         222: aload         16
+         224: aload         15
+         226: invokestatic  #65                 // Method Ocaml.registerNamedValue:(Ljava/lang/Object;Ljava/lang/Object;)J
+         229: invokestatic  #61                 // Method java/lang/Long.valueOf:(J)Ljava/lang/Long;
+         232: astore        17
+         234: new           #2                  // class Block
+         237: dup
+         238: iconst_0
+         239: bipush        104
+         241: anewarray     #4                  // class java/lang/Object
+         244: invokespecial #16                 // Method Block."<init>":(I[Ljava/lang/Object;)V
+         247: astore        18
+         249: new           #67                 // class ocaml_fn_8
+         252: dup
+         253: invokespecial #68                 // Method ocaml_fn_8."<init>":()V
+         256: astore        19
+         258: aload         18
+         260: checkcast     #2                  // class Block
+         263: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+         266: iconst_1
+         267: aload         19
+         269: aastore
+         270: new           #73                 // class ocaml_fn_9
+         273: dup
+         274: invokespecial #74                 // Method ocaml_fn_9."<init>":()V
+         277: astore        20
+         279: aload         18
+         281: checkcast     #2                  // class Block
+         284: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+         287: iconst_0
+         288: aload         20
+         290: aastore
+         291: iconst_0
+         292: i2l
+         293: lstore        21
+         295: iconst_0
+         296: i2l
+         297: invokestatic  #61                 // Method java/lang/Long.valueOf:(J)Ljava/lang/Long;
+         300: astore        23
+         302: getstatic     #25                 // Field GLOBALS:[Ljava/lang/Object;
+         305: bipush        37
+         307: aaload
+         308: astore        24
+         310: new           #2                  // class Block
+         313: dup
+         314: sipush        248
+         317: iconst_2
+         318: anewarray     #4                  // class java/lang/Object
          321: dup
-         322: iconst_1
-         323: aload         23
+         322: iconst_0
+         323: aload         24
          325: aastore
-         326: invokespecial #16                 // Method Block."<init>":(I[Ljava/lang/Object;)V
-         329: astore        25
-         331: aload         18
-         333: checkcast     #2                  // class Block
-         336: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-         339: iconst_2
-         340: aload         25
-         342: aastore
-         343: getstatic     #25                 // Field GLOBALS:[Ljava/lang/Object;
-         346: bipush        7
-         348: aaload
-         349: astore        26
-         351: aload         18
-         353: checkcast     #2                  // class Block
-         356: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-         359: iconst_3
-         360: aload         26
-         362: aastore
-         363: getstatic     #25                 // Field GLOBALS:[Ljava/lang/Object;
-         366: bipush        10
-         368: aaload
-         369: astore        27
-         371: aload         18
-         373: checkcast     #2                  // class Block
-         376: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-         379: iconst_4
-         380: aload         27
-         382: aastore
-         383: getstatic     #25                 // Field GLOBALS:[Ljava/lang/Object;
-         386: iconst_3
-         387: aaload
-         388: astore        28
-         390: aload         18
-         392: checkcast     #2                  // class Block
-         395: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-         398: iconst_5
-         399: aload         28
-         401: aastore
-         402: getstatic     #25                 // Field GLOBALS:[Ljava/lang/Object;
-         405: iconst_2
-         406: aaload
-         407: astore        29
-         409: aload         18
-         411: checkcast     #2                  // class Block
-         414: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-         417: bipush        6
-         419: aload         29
-         421: aastore
-         422: getstatic     #25                 // Field GLOBALS:[Ljava/lang/Object;
-         425: bipush        6
-         427: aaload
-         428: astore        30
-         430: aload         18
-         432: checkcast     #2                  // class Block
-         435: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-         438: bipush        7
-         440: aload         30
-         442: aastore
-         443: getstatic     #25                 // Field GLOBALS:[Ljava/lang/Object;
-         446: iconst_0
-         447: aaload
-         448: astore        31
-         450: aload         18
-         452: checkcast     #2                  // class Block
-         455: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-         458: bipush        8
-         460: aload         31
-         462: aastore
-         463: getstatic     #25                 // Field GLOBALS:[Ljava/lang/Object;
-         466: bipush        8
-         468: aaload
-         469: astore        32
-         471: aload         18
-         473: checkcast     #2                  // class Block
-         476: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-         479: bipush        9
-         481: aload         32
-         483: aastore
-         484: getstatic     #25                 // Field GLOBALS:[Ljava/lang/Object;
-         487: iconst_1
-         488: aaload
-         489: astore        33
-         491: aload         18
-         493: checkcast     #2                  // class Block
-         496: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-         499: bipush        10
-         501: aload         33
-         503: aastore
-         504: getstatic     #25                 // Field GLOBALS:[Ljava/lang/Object;
-         507: iconst_4
-         508: aaload
-         509: astore        34
-         511: aload         18
-         513: checkcast     #2                  // class Block
-         516: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-         519: bipush        11
-         521: aload         34
-         523: aastore
-         524: getstatic     #25                 // Field GLOBALS:[Ljava/lang/Object;
-         527: iconst_5
-         528: aaload
-         529: astore        35
-         531: aload         18
-         533: checkcast     #2                  // class Block
-         536: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-         539: bipush        12
-         541: aload         35
-         543: aastore
-         544: getstatic     #25                 // Field GLOBALS:[Ljava/lang/Object;
-         547: bipush        9
-         549: aaload
-         550: astore        36
-         552: aload         18
-         554: checkcast     #2                  // class Block
-         557: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-         560: bipush        13
-         562: aload         36
-         564: aastore
-         565: getstatic     #25                 // Field GLOBALS:[Ljava/lang/Object;
-         568: bipush        11
-         570: aaload
-         571: astore        37
-         573: aload         18
-         575: checkcast     #2                  // class Block
-         578: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-         581: bipush        14
-         583: aload         37
-         585: aastore
-         586: new           #72                 // class ocaml_fn_10
-         589: dup
-         590: invokespecial #73                 // Method ocaml_fn_10."<init>":()V
-         593: astore        38
-         595: aload         18
-         597: checkcast     #2                  // class Block
-         600: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-         603: bipush        15
-         605: aload         38
-         607: aastore
-         608: new           #75                 // class ocaml_fn_11
-         611: dup
-         612: invokespecial #76                 // Method ocaml_fn_11."<init>":()V
-         615: astore        39
-         617: aload         18
-         619: checkcast     #2                  // class Block
-         622: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-         625: bipush        16
-         627: aload         39
-         629: aastore
-         630: new           #78                 // class ocaml_fn_12
-         633: dup
-         634: invokespecial #79                 // Method ocaml_fn_12."<init>":()V
-         637: astore        40
-         639: aload         18
-         641: checkcast     #2                  // class Block
-         644: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-         647: bipush        17
-         649: aload         40
-         651: aastore
-         652: new           #81                 // class ocaml_fn_13
-         655: dup
-         656: invokespecial #82                 // Method ocaml_fn_13."<init>":()V
-         659: astore        41
-         661: aload         18
-         663: checkcast     #2                  // class Block
-         666: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-         669: bipush        20
-         671: aload         41
-         673: aastore
-         674: ldc2_w        #83                 // long 4611686018427387903l
-         677: lstore        42
-         679: aload         18
-         681: checkcast     #2                  // class Block
-         684: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-         687: bipush        18
-         689: lload         42
-         691: invokestatic  #61                 // Method java/lang/Long.valueOf:(J)Ljava/lang/Long;
-         694: aastore
-         695: ldc2_w        #85                 // long -4611686018427387904l
-         698: lstore        44
-         700: aload         18
-         702: checkcast     #2                  // class Block
-         705: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-         708: bipush        19
-         710: lload         44
-         712: invokestatic  #61                 // Method java/lang/Long.valueOf:(J)Ljava/lang/Long;
-         715: aastore
-         716: getstatic     #25                 // Field GLOBALS:[Ljava/lang/Object;
-         719: bipush        38
-         721: aaload
-         722: astore        46
-         724: aload         46
-         726: invokestatic  #90                 // Method Block.asLong:(Ljava/lang/Object;)J
-         729: invokestatic  #96                 // Method java/lang/Double.longBitsToDouble:(J)D
-         732: invokestatic  #99                 // Method java/lang/Double.valueOf:(D)Ljava/lang/Double;
-         735: astore        47
-         737: aload         18
-         739: checkcast     #2                  // class Block
-         742: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-         745: bipush        21
-         747: aload         47
-         749: aastore
-         750: getstatic     #25                 // Field GLOBALS:[Ljava/lang/Object;
-         753: bipush        39
-         755: aaload
-         756: astore        48
-         758: aload         48
-         760: invokestatic  #90                 // Method Block.asLong:(Ljava/lang/Object;)J
-         763: invokestatic  #96                 // Method java/lang/Double.longBitsToDouble:(J)D
-         766: invokestatic  #99                 // Method java/lang/Double.valueOf:(D)Ljava/lang/Double;
-         769: astore        49
-         771: aload         18
-         773: checkcast     #2                  // class Block
-         776: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-         779: bipush        22
-         781: aload         49
-         783: aastore
-         784: getstatic     #25                 // Field GLOBALS:[Ljava/lang/Object;
-         787: bipush        40
-         789: aaload
-         790: astore        50
-         792: aload         50
-         794: invokestatic  #90                 // Method Block.asLong:(Ljava/lang/Object;)J
-         797: invokestatic  #96                 // Method java/lang/Double.longBitsToDouble:(J)D
-         800: invokestatic  #99                 // Method java/lang/Double.valueOf:(D)Ljava/lang/Double;
-         803: astore        51
-         805: aload         18
-         807: checkcast     #2                  // class Block
-         810: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-         813: bipush        23
-         815: aload         51
-         817: aastore
-         818: getstatic     #25                 // Field GLOBALS:[Ljava/lang/Object;
-         821: bipush        41
-         823: aaload
-         824: astore        52
-         826: aload         52
-         828: invokestatic  #90                 // Method Block.asLong:(Ljava/lang/Object;)J
-         831: invokestatic  #96                 // Method java/lang/Double.longBitsToDouble:(J)D
-         834: invokestatic  #99                 // Method java/lang/Double.valueOf:(D)Ljava/lang/Double;
-         837: astore        53
-         839: aload         18
-         841: checkcast     #2                  // class Block
-         844: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-         847: bipush        24
-         849: aload         53
-         851: aastore
-         852: getstatic     #25                 // Field GLOBALS:[Ljava/lang/Object;
-         855: bipush        42
-         857: aaload
-         858: astore        54
-         860: aload         54
-         862: invokestatic  #90                 // Method Block.asLong:(Ljava/lang/Object;)J
-         865: invokestatic  #96                 // Method java/lang/Double.longBitsToDouble:(J)D
-         868: invokestatic  #99                 // Method java/lang/Double.valueOf:(D)Ljava/lang/Double;
-         871: astore        55
-         873: aload         18
-         875: checkcast     #2                  // class Block
-         878: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-         881: bipush        25
-         883: aload         55
-         885: aastore
-         886: getstatic     #25                 // Field GLOBALS:[Ljava/lang/Object;
-         889: bipush        43
-         891: aaload
-         892: astore        56
-         894: aload         56
-         896: invokestatic  #90                 // Method Block.asLong:(Ljava/lang/Object;)J
-         899: invokestatic  #96                 // Method java/lang/Double.longBitsToDouble:(J)D
-         902: invokestatic  #99                 // Method java/lang/Double.valueOf:(D)Ljava/lang/Double;
-         905: astore        57
-         907: aload         18
-         909: checkcast     #2                  // class Block
-         912: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-         915: bipush        26
-         917: aload         57
-         919: aastore
-         920: new           #101                // class ocaml_fn_14
-         923: dup
-         924: invokespecial #102                // Method ocaml_fn_14."<init>":()V
-         927: astore        58
-         929: aload         18
-         931: checkcast     #2                  // class Block
-         934: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-         937: bipush        27
-         939: aload         58
-         941: aastore
-         942: new           #104                // class ocaml_fn_15
-         945: dup
-         946: aload         20
-         948: invokespecial #107                // Method ocaml_fn_15."<init>":(Ljava/lang/Object;)V
-         951: astore        59
-         953: aload         18
-         955: checkcast     #2                  // class Block
-         958: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-         961: bipush        28
-         963: aload         59
-         965: aastore
-         966: new           #109                // class ocaml_fn_16
-         969: dup
-         970: invokespecial #110                // Method ocaml_fn_16."<init>":()V
-         973: astore        60
-         975: aload         18
-         977: checkcast     #2                  // class Block
-         980: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-         983: bipush        29
-         985: aload         60
-         987: aastore
-         988: new           #112                // class ocaml_fn_17
-         991: dup
-         992: aload         20
-         994: invokespecial #113                // Method ocaml_fn_17."<init>":(Ljava/lang/Object;)V
-         997: astore        61
-         999: aload         18
-        1001: checkcast     #2                  // class Block
-        1004: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        1007: bipush        31
-        1009: aload         61
-        1011: aastore
-        1012: new           #115                // class ocaml_fn_18
-        1015: dup
-        1016: invokespecial #116                // Method ocaml_fn_18."<init>":()V
-        1019: astore        62
-        1021: aload         18
-        1023: checkcast     #2                  // class Block
-        1026: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        1029: bipush        30
-        1031: aload         62
-        1033: aastore
-        1034: new           #118                // class ocaml_fn_19
-        1037: dup
-        1038: invokespecial #119                // Method ocaml_fn_19."<init>":()V
-        1041: astore        63
-        1043: aload         18
-        1045: checkcast     #2                  // class Block
-        1048: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        1051: bipush        32
-        1053: aload         63
-        1055: aastore
-        1056: new           #121                // class ocaml_fn_20
-        1059: dup
-        1060: aload         29
-        1062: invokespecial #122                // Method ocaml_fn_20."<init>":(Ljava/lang/Object;)V
-        1065: astore        64
-        1067: aload         18
-        1069: checkcast     #2                  // class Block
-        1072: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        1075: bipush        33
-        1077: aload         64
-        1079: aastore
-        1080: new           #124                // class ocaml_fn_21
-        1083: dup
-        1084: aload         58
-        1086: invokespecial #125                // Method ocaml_fn_21."<init>":(Ljava/lang/Object;)V
-        1089: astore        65
-        1091: aload         18
-        1093: checkcast     #2                  // class Block
-        1096: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        1099: bipush        100
-        1101: aload         65
-        1103: aastore
-        1104: new           #127                // class ocaml_fn_22
-        1107: dup
-        1108: aload         65
-        1110: invokespecial #128                // Method ocaml_fn_22."<init>":(Ljava/lang/Object;)V
-        1113: astore        66
-        1115: aload         18
-        1117: checkcast     #2                  // class Block
-        1120: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        1123: bipush        34
-        1125: aload         66
-        1127: aastore
-        1128: new           #130                // class ocaml_fn_23
-        1131: dup
-        1132: aload         29
-        1134: invokespecial #131                // Method ocaml_fn_23."<init>":(Ljava/lang/Object;)V
-        1137: astore        67
-        1139: aload         18
-        1141: checkcast     #2                  // class Block
-        1144: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        1147: bipush        35
-        1149: aload         67
-        1151: aastore
-        1152: new           #133                // class ocaml_fn_24
-        1155: dup
-        1156: invokespecial #134                // Method ocaml_fn_24."<init>":()V
-        1159: astore        68
-        1161: aload         18
-        1163: checkcast     #2                  // class Block
-        1166: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        1169: bipush        36
-        1171: aload         68
-        1173: aastore
-        1174: new           #136                // class ocaml_fn_25
-        1177: dup
-        1178: invokespecial #137                // Method ocaml_fn_25."<init>":()V
-        1181: astore        69
-        1183: aload         68
-        1185: checkcast     #133                // class ocaml_fn_24
+         326: dup
+         327: iconst_1
+         328: aload         23
+         330: aastore
+         331: invokespecial #16                 // Method Block."<init>":(I[Ljava/lang/Object;)V
+         334: astore        25
+         336: aload         18
+         338: checkcast     #2                  // class Block
+         341: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+         344: iconst_2
+         345: aload         25
+         347: aastore
+         348: getstatic     #25                 // Field GLOBALS:[Ljava/lang/Object;
+         351: bipush        7
+         353: aaload
+         354: astore        26
+         356: aload         18
+         358: checkcast     #2                  // class Block
+         361: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+         364: iconst_3
+         365: aload         26
+         367: aastore
+         368: getstatic     #25                 // Field GLOBALS:[Ljava/lang/Object;
+         371: bipush        10
+         373: aaload
+         374: astore        27
+         376: aload         18
+         378: checkcast     #2                  // class Block
+         381: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+         384: iconst_4
+         385: aload         27
+         387: aastore
+         388: getstatic     #25                 // Field GLOBALS:[Ljava/lang/Object;
+         391: iconst_3
+         392: aaload
+         393: astore        28
+         395: aload         18
+         397: checkcast     #2                  // class Block
+         400: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+         403: iconst_5
+         404: aload         28
+         406: aastore
+         407: getstatic     #25                 // Field GLOBALS:[Ljava/lang/Object;
+         410: iconst_2
+         411: aaload
+         412: astore        29
+         414: aload         18
+         416: checkcast     #2                  // class Block
+         419: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+         422: bipush        6
+         424: aload         29
+         426: aastore
+         427: getstatic     #25                 // Field GLOBALS:[Ljava/lang/Object;
+         430: bipush        6
+         432: aaload
+         433: astore        30
+         435: aload         18
+         437: checkcast     #2                  // class Block
+         440: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+         443: bipush        7
+         445: aload         30
+         447: aastore
+         448: getstatic     #25                 // Field GLOBALS:[Ljava/lang/Object;
+         451: iconst_0
+         452: aaload
+         453: astore        31
+         455: aload         18
+         457: checkcast     #2                  // class Block
+         460: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+         463: bipush        8
+         465: aload         31
+         467: aastore
+         468: getstatic     #25                 // Field GLOBALS:[Ljava/lang/Object;
+         471: bipush        8
+         473: aaload
+         474: astore        32
+         476: aload         18
+         478: checkcast     #2                  // class Block
+         481: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+         484: bipush        9
+         486: aload         32
+         488: aastore
+         489: getstatic     #25                 // Field GLOBALS:[Ljava/lang/Object;
+         492: iconst_1
+         493: aaload
+         494: astore        33
+         496: aload         18
+         498: checkcast     #2                  // class Block
+         501: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+         504: bipush        10
+         506: aload         33
+         508: aastore
+         509: getstatic     #25                 // Field GLOBALS:[Ljava/lang/Object;
+         512: iconst_4
+         513: aaload
+         514: astore        34
+         516: aload         18
+         518: checkcast     #2                  // class Block
+         521: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+         524: bipush        11
+         526: aload         34
+         528: aastore
+         529: getstatic     #25                 // Field GLOBALS:[Ljava/lang/Object;
+         532: iconst_5
+         533: aaload
+         534: astore        35
+         536: aload         18
+         538: checkcast     #2                  // class Block
+         541: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+         544: bipush        12
+         546: aload         35
+         548: aastore
+         549: getstatic     #25                 // Field GLOBALS:[Ljava/lang/Object;
+         552: bipush        9
+         554: aaload
+         555: astore        36
+         557: aload         18
+         559: checkcast     #2                  // class Block
+         562: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+         565: bipush        13
+         567: aload         36
+         569: aastore
+         570: getstatic     #25                 // Field GLOBALS:[Ljava/lang/Object;
+         573: bipush        11
+         575: aaload
+         576: astore        37
+         578: aload         18
+         580: checkcast     #2                  // class Block
+         583: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+         586: bipush        14
+         588: aload         37
+         590: aastore
+         591: new           #76                 // class ocaml_fn_10
+         594: dup
+         595: invokespecial #77                 // Method ocaml_fn_10."<init>":()V
+         598: astore        38
+         600: aload         18
+         602: checkcast     #2                  // class Block
+         605: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+         608: bipush        15
+         610: aload         38
+         612: aastore
+         613: new           #79                 // class ocaml_fn_11
+         616: dup
+         617: invokespecial #80                 // Method ocaml_fn_11."<init>":()V
+         620: astore        39
+         622: aload         18
+         624: checkcast     #2                  // class Block
+         627: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+         630: bipush        16
+         632: aload         39
+         634: aastore
+         635: new           #82                 // class ocaml_fn_12
+         638: dup
+         639: invokespecial #83                 // Method ocaml_fn_12."<init>":()V
+         642: astore        40
+         644: aload         18
+         646: checkcast     #2                  // class Block
+         649: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+         652: bipush        17
+         654: aload         40
+         656: aastore
+         657: new           #85                 // class ocaml_fn_13
+         660: dup
+         661: invokespecial #86                 // Method ocaml_fn_13."<init>":()V
+         664: astore        41
+         666: aload         18
+         668: checkcast     #2                  // class Block
+         671: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+         674: bipush        20
+         676: aload         41
+         678: aastore
+         679: ldc2_w        #87                 // long 4611686018427387903l
+         682: lstore        42
+         684: aload         18
+         686: checkcast     #2                  // class Block
+         689: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+         692: bipush        18
+         694: lload         42
+         696: invokestatic  #61                 // Method java/lang/Long.valueOf:(J)Ljava/lang/Long;
+         699: aastore
+         700: ldc2_w        #89                 // long -4611686018427387904l
+         703: lstore        44
+         705: aload         18
+         707: checkcast     #2                  // class Block
+         710: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+         713: bipush        19
+         715: lload         44
+         717: invokestatic  #61                 // Method java/lang/Long.valueOf:(J)Ljava/lang/Long;
+         720: aastore
+         721: getstatic     #25                 // Field GLOBALS:[Ljava/lang/Object;
+         724: bipush        38
+         726: aaload
+         727: astore        46
+         729: aload         46
+         731: invokestatic  #94                 // Method Block.asLong:(Ljava/lang/Object;)J
+         734: invokestatic  #100                // Method java/lang/Double.longBitsToDouble:(J)D
+         737: invokestatic  #103                // Method java/lang/Double.valueOf:(D)Ljava/lang/Double;
+         740: astore        47
+         742: aload         18
+         744: checkcast     #2                  // class Block
+         747: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+         750: bipush        21
+         752: aload         47
+         754: aastore
+         755: getstatic     #25                 // Field GLOBALS:[Ljava/lang/Object;
+         758: bipush        39
+         760: aaload
+         761: astore        48
+         763: aload         48
+         765: invokestatic  #94                 // Method Block.asLong:(Ljava/lang/Object;)J
+         768: invokestatic  #100                // Method java/lang/Double.longBitsToDouble:(J)D
+         771: invokestatic  #103                // Method java/lang/Double.valueOf:(D)Ljava/lang/Double;
+         774: astore        49
+         776: aload         18
+         778: checkcast     #2                  // class Block
+         781: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+         784: bipush        22
+         786: aload         49
+         788: aastore
+         789: getstatic     #25                 // Field GLOBALS:[Ljava/lang/Object;
+         792: bipush        40
+         794: aaload
+         795: astore        50
+         797: aload         50
+         799: invokestatic  #94                 // Method Block.asLong:(Ljava/lang/Object;)J
+         802: invokestatic  #100                // Method java/lang/Double.longBitsToDouble:(J)D
+         805: invokestatic  #103                // Method java/lang/Double.valueOf:(D)Ljava/lang/Double;
+         808: astore        51
+         810: aload         18
+         812: checkcast     #2                  // class Block
+         815: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+         818: bipush        23
+         820: aload         51
+         822: aastore
+         823: getstatic     #25                 // Field GLOBALS:[Ljava/lang/Object;
+         826: bipush        41
+         828: aaload
+         829: astore        52
+         831: aload         52
+         833: invokestatic  #94                 // Method Block.asLong:(Ljava/lang/Object;)J
+         836: invokestatic  #100                // Method java/lang/Double.longBitsToDouble:(J)D
+         839: invokestatic  #103                // Method java/lang/Double.valueOf:(D)Ljava/lang/Double;
+         842: astore        53
+         844: aload         18
+         846: checkcast     #2                  // class Block
+         849: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+         852: bipush        24
+         854: aload         53
+         856: aastore
+         857: getstatic     #25                 // Field GLOBALS:[Ljava/lang/Object;
+         860: bipush        42
+         862: aaload
+         863: astore        54
+         865: aload         54
+         867: invokestatic  #94                 // Method Block.asLong:(Ljava/lang/Object;)J
+         870: invokestatic  #100                // Method java/lang/Double.longBitsToDouble:(J)D
+         873: invokestatic  #103                // Method java/lang/Double.valueOf:(D)Ljava/lang/Double;
+         876: astore        55
+         878: aload         18
+         880: checkcast     #2                  // class Block
+         883: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+         886: bipush        25
+         888: aload         55
+         890: aastore
+         891: getstatic     #25                 // Field GLOBALS:[Ljava/lang/Object;
+         894: bipush        43
+         896: aaload
+         897: astore        56
+         899: aload         56
+         901: invokestatic  #94                 // Method Block.asLong:(Ljava/lang/Object;)J
+         904: invokestatic  #100                // Method java/lang/Double.longBitsToDouble:(J)D
+         907: invokestatic  #103                // Method java/lang/Double.valueOf:(D)Ljava/lang/Double;
+         910: astore        57
+         912: aload         18
+         914: checkcast     #2                  // class Block
+         917: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+         920: bipush        26
+         922: aload         57
+         924: aastore
+         925: new           #105                // class ocaml_fn_14
+         928: dup
+         929: invokespecial #106                // Method ocaml_fn_14."<init>":()V
+         932: astore        58
+         934: aload         18
+         936: checkcast     #2                  // class Block
+         939: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+         942: bipush        27
+         944: aload         58
+         946: aastore
+         947: new           #108                // class ocaml_fn_15
+         950: dup
+         951: aload         20
+         953: invokespecial #111                // Method ocaml_fn_15."<init>":(Ljava/lang/Object;)V
+         956: astore        59
+         958: aload         18
+         960: checkcast     #2                  // class Block
+         963: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+         966: bipush        28
+         968: aload         59
+         970: aastore
+         971: new           #113                // class ocaml_fn_16
+         974: dup
+         975: invokespecial #114                // Method ocaml_fn_16."<init>":()V
+         978: astore        60
+         980: aload         18
+         982: checkcast     #2                  // class Block
+         985: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+         988: bipush        29
+         990: aload         60
+         992: aastore
+         993: new           #116                // class ocaml_fn_17
+         996: dup
+         997: aload         20
+         999: invokespecial #117                // Method ocaml_fn_17."<init>":(Ljava/lang/Object;)V
+        1002: astore        61
+        1004: aload         18
+        1006: checkcast     #2                  // class Block
+        1009: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        1012: bipush        31
+        1014: aload         61
+        1016: aastore
+        1017: new           #119                // class ocaml_fn_18
+        1020: dup
+        1021: invokespecial #120                // Method ocaml_fn_18."<init>":()V
+        1024: astore        62
+        1026: aload         18
+        1028: checkcast     #2                  // class Block
+        1031: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        1034: bipush        30
+        1036: aload         62
+        1038: aastore
+        1039: new           #122                // class ocaml_fn_19
+        1042: dup
+        1043: invokespecial #123                // Method ocaml_fn_19."<init>":()V
+        1046: astore        63
+        1048: aload         18
+        1050: checkcast     #2                  // class Block
+        1053: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        1056: bipush        32
+        1058: aload         63
+        1060: aastore
+        1061: new           #125                // class ocaml_fn_20
+        1064: dup
+        1065: aload         29
+        1067: invokespecial #126                // Method ocaml_fn_20."<init>":(Ljava/lang/Object;)V
+        1070: astore        64
+        1072: aload         18
+        1074: checkcast     #2                  // class Block
+        1077: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        1080: bipush        33
+        1082: aload         64
+        1084: aastore
+        1085: new           #128                // class ocaml_fn_21
+        1088: dup
+        1089: aload         58
+        1091: invokespecial #129                // Method ocaml_fn_21."<init>":(Ljava/lang/Object;)V
+        1094: astore        65
+        1096: aload         18
+        1098: checkcast     #2                  // class Block
+        1101: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        1104: bipush        100
+        1106: aload         65
+        1108: aastore
+        1109: new           #131                // class ocaml_fn_22
+        1112: dup
+        1113: aload         65
+        1115: invokespecial #132                // Method ocaml_fn_22."<init>":(Ljava/lang/Object;)V
+        1118: astore        66
+        1120: aload         18
+        1122: checkcast     #2                  // class Block
+        1125: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        1128: bipush        34
+        1130: aload         66
+        1132: aastore
+        1133: new           #134                // class ocaml_fn_23
+        1136: dup
+        1137: aload         29
+        1139: invokespecial #135                // Method ocaml_fn_23."<init>":(Ljava/lang/Object;)V
+        1142: astore        67
+        1144: aload         18
+        1146: checkcast     #2                  // class Block
+        1149: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        1152: bipush        35
+        1154: aload         67
+        1156: aastore
+        1157: new           #137                // class ocaml_fn_24
+        1160: dup
+        1161: invokespecial #138                // Method ocaml_fn_24."<init>":()V
+        1164: astore        68
+        1166: aload         18
+        1168: checkcast     #2                  // class Block
+        1171: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        1174: bipush        36
+        1176: aload         68
+        1178: aastore
+        1179: new           #140                // class ocaml_fn_25
+        1182: dup
+        1183: invokespecial #141                // Method ocaml_fn_25."<init>":()V
+        1186: astore        69
         1188: aload         68
-        1190: checkcast     #139                // class Closure
-        1193: putfield      #143                // Field ocaml_fn_24.sibling_0:LClosure;
-        1196: iconst_0
-        1197: i2l
-        1198: invokestatic  #61                 // Method java/lang/Long.valueOf:(J)Ljava/lang/Long;
-        1201: astore        70
-        1203: aload         68
-        1205: checkcast     #133                // class ocaml_fn_24
-        1208: aload         69
-        1210: checkcast     #139                // class Closure
-        1213: putfield      #146                // Field ocaml_fn_24.sibling_1:LClosure;
-        1216: iconst_0
-        1217: i2l
-        1218: invokestatic  #61                 // Method java/lang/Long.valueOf:(J)Ljava/lang/Long;
-        1221: astore        71
-        1223: aload         69
-        1225: checkcast     #136                // class ocaml_fn_25
-        1228: aload         68
-        1230: checkcast     #139                // class Closure
-        1233: putfield      #147                // Field ocaml_fn_25.sibling_0:LClosure;
-        1236: iconst_0
-        1237: i2l
-        1238: invokestatic  #61                 // Method java/lang/Long.valueOf:(J)Ljava/lang/Long;
-        1241: astore        72
-        1243: aload         69
-        1245: checkcast     #136                // class ocaml_fn_25
+        1190: checkcast     #137                // class ocaml_fn_24
+        1193: aload         68
+        1195: checkcast     #143                // class Closure
+        1198: putfield      #147                // Field ocaml_fn_24.sibling_0:LClosure;
+        1201: iconst_0
+        1202: i2l
+        1203: invokestatic  #61                 // Method java/lang/Long.valueOf:(J)Ljava/lang/Long;
+        1206: astore        70
+        1208: aload         68
+        1210: checkcast     #137                // class ocaml_fn_24
+        1213: aload         69
+        1215: checkcast     #143                // class Closure
+        1218: putfield      #150                // Field ocaml_fn_24.sibling_1:LClosure;
+        1221: iconst_0
+        1222: i2l
+        1223: invokestatic  #61                 // Method java/lang/Long.valueOf:(J)Ljava/lang/Long;
+        1226: astore        71
+        1228: aload         69
+        1230: checkcast     #140                // class ocaml_fn_25
+        1233: aload         68
+        1235: checkcast     #143                // class Closure
+        1238: putfield      #151                // Field ocaml_fn_25.sibling_0:LClosure;
+        1241: iconst_0
+        1242: i2l
+        1243: invokestatic  #61                 // Method java/lang/Long.valueOf:(J)Ljava/lang/Long;
+        1246: astore        72
         1248: aload         69
-        1250: checkcast     #139                // class Closure
-        1253: putfield      #148                // Field ocaml_fn_25.sibling_1:LClosure;
-        1256: iconst_0
-        1257: i2l
-        1258: invokestatic  #61                 // Method java/lang/Long.valueOf:(J)Ljava/lang/Long;
-        1261: astore        73
-        1263: iconst_0
-        1264: i2l
-        1265: lstore        74
-        1267: lload         74
-        1269: l2i
-        1270: invokestatic  #152                // Method Channel.forDescriptor:(I)LChannel;
-        1273: astore        76
-        1275: aload         18
-        1277: checkcast     #2                  // class Block
-        1280: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        1283: bipush        37
-        1285: aload         76
-        1287: aastore
-        1288: iconst_1
-        1289: i2l
-        1290: lstore        77
-        1292: lload         77
-        1294: l2i
-        1295: invokestatic  #152                // Method Channel.forDescriptor:(I)LChannel;
-        1298: astore        79
-        1300: aload         18
-        1302: checkcast     #2                  // class Block
-        1305: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        1308: bipush        38
-        1310: aload         79
-        1312: aastore
-        1313: iconst_2
-        1314: i2l
-        1315: lstore        80
-        1317: lload         80
-        1319: l2i
-        1320: invokestatic  #152                // Method Channel.forDescriptor:(I)LChannel;
-        1323: astore        82
-        1325: aload         18
-        1327: checkcast     #2                  // class Block
-        1330: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        1333: bipush        39
-        1335: aload         82
-        1337: aastore
-        1338: new           #154                // class ocaml_fn_26
-        1341: dup
-        1342: invokespecial #155                // Method ocaml_fn_26."<init>":()V
-        1345: astore        83
-        1347: aload         18
-        1349: checkcast     #2                  // class Block
-        1352: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        1355: bipush        61
-        1357: aload         83
-        1359: aastore
-        1360: new           #157                // class ocaml_fn_27
-        1363: dup
-        1364: aload         83
-        1366: invokespecial #158                // Method ocaml_fn_27."<init>":(Ljava/lang/Object;)V
-        1369: astore        84
-        1371: aload         18
-        1373: checkcast     #2                  // class Block
-        1376: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        1379: bipush        59
-        1381: aload         84
-        1383: aastore
-        1384: new           #160                // class ocaml_fn_28
-        1387: dup
-        1388: aload         83
-        1390: invokespecial #161                // Method ocaml_fn_28."<init>":(Ljava/lang/Object;)V
-        1393: astore        85
-        1395: aload         18
-        1397: checkcast     #2                  // class Block
-        1400: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        1403: bipush        60
-        1405: aload         85
-        1407: aastore
-        1408: new           #163                // class ocaml_fn_29
-        1411: dup
-        1412: aload         33
-        1414: invokespecial #164                // Method ocaml_fn_29."<init>":(Ljava/lang/Object;)V
-        1417: astore        86
-        1419: aload         18
-        1421: checkcast     #2                  // class Block
-        1424: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        1427: bipush        63
-        1429: aload         86
-        1431: aastore
-        1432: new           #166                // class ocaml_fn_30
-        1435: dup
-        1436: invokespecial #167                // Method ocaml_fn_30."<init>":()V
-        1439: astore        87
-        1441: aload         18
-        1443: checkcast     #2                  // class Block
-        1446: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        1449: bipush        66
-        1451: aload         87
-        1453: aastore
-        1454: new           #169                // class ocaml_fn_31
-        1457: dup
-        1458: invokespecial #170                // Method ocaml_fn_31."<init>":()V
-        1461: astore        88
-        1463: aload         18
-        1465: checkcast     #2                  // class Block
-        1468: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        1471: bipush        65
-        1473: aload         88
-        1475: aastore
-        1476: new           #172                // class ocaml_fn_32
-        1479: dup
-        1480: aload         20
-        1482: invokespecial #173                // Method ocaml_fn_32."<init>":(Ljava/lang/Object;)V
-        1485: astore        89
-        1487: aload         18
-        1489: checkcast     #2                  // class Block
-        1492: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        1495: bipush        67
-        1497: aload         89
-        1499: aastore
-        1500: new           #175                // class ocaml_fn_33
-        1503: dup
-        1504: aload         20
-        1506: invokespecial #176                // Method ocaml_fn_33."<init>":(Ljava/lang/Object;)V
-        1509: astore        90
-        1511: aload         18
-        1513: checkcast     #2                  // class Block
-        1516: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        1519: bipush        68
-        1521: aload         90
-        1523: aastore
-        1524: new           #178                // class ocaml_fn_34
-        1527: dup
-        1528: invokespecial #179                // Method ocaml_fn_34."<init>":()V
-        1531: astore        91
-        1533: aload         18
-        1535: checkcast     #2                  // class Block
-        1538: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        1541: bipush        71
-        1543: aload         91
-        1545: aastore
-        1546: new           #181                // class ocaml_fn_35
-        1549: dup
-        1550: invokespecial #182                // Method ocaml_fn_35."<init>":()V
-        1553: astore        92
-        1555: aload         18
-        1557: checkcast     #2                  // class Block
-        1560: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        1563: bipush        75
-        1565: aload         92
-        1567: aastore
-        1568: new           #184                // class ocaml_fn_36
-        1571: dup
-        1572: invokespecial #185                // Method ocaml_fn_36."<init>":()V
-        1575: astore        93
-        1577: aload         18
-        1579: checkcast     #2                  // class Block
-        1582: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        1585: bipush        76
-        1587: aload         93
-        1589: aastore
-        1590: new           #187                // class ocaml_fn_37
-        1593: dup
-        1594: invokespecial #188                // Method ocaml_fn_37."<init>":()V
-        1597: astore        94
-        1599: aload         18
-        1601: checkcast     #2                  // class Block
-        1604: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        1607: bipush        80
-        1609: aload         94
-        1611: aastore
-        1612: new           #190                // class ocaml_fn_38
-        1615: dup
-        1616: aload         94
-        1618: invokespecial #191                // Method ocaml_fn_38."<init>":(Ljava/lang/Object;)V
-        1621: astore        95
-        1623: aload         18
-        1625: checkcast     #2                  // class Block
-        1628: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        1631: bipush        78
-        1633: aload         95
-        1635: aastore
-        1636: new           #193                // class ocaml_fn_39
-        1639: dup
-        1640: aload         94
-        1642: invokespecial #194                // Method ocaml_fn_39."<init>":(Ljava/lang/Object;)V
-        1645: astore        96
-        1647: aload         18
-        1649: checkcast     #2                  // class Block
-        1652: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        1655: bipush        79
-        1657: aload         96
-        1659: aastore
-        1660: new           #196                // class ocaml_fn_40
-        1663: dup
-        1664: aload         20
-        1666: invokespecial #197                // Method ocaml_fn_40."<init>":(Ljava/lang/Object;)V
-        1669: astore        97
-        1671: aload         18
-        1673: checkcast     #2                  // class Block
-        1676: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        1679: bipush        83
-        1681: aload         97
-        1683: aastore
-        1684: new           #199                // class ocaml_fn_41
-        1687: dup
-        1688: aload         34
-        1690: invokespecial #200                // Method ocaml_fn_41."<init>":(Ljava/lang/Object;)V
-        1693: astore        98
-        1695: aload         18
-        1697: checkcast     #2                  // class Block
-        1700: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        1703: bipush        101
-        1705: aload         98
-        1707: aastore
-        1708: new           #202                // class ocaml_fn_42
-        1711: dup
-        1712: aload         20
-        1714: aload         98
-        1716: invokespecial #205                // Method ocaml_fn_42."<init>":(Ljava/lang/Object;Ljava/lang/Object;)V
-        1719: astore        99
-        1721: aload         18
-        1723: checkcast     #2                  // class Block
-        1726: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        1729: bipush        84
-        1731: aload         99
-        1733: aastore
-        1734: new           #207                // class ocaml_fn_43
-        1737: dup
-        1738: aload         99
-        1740: invokespecial #208                // Method ocaml_fn_43."<init>":(Ljava/lang/Object;)V
-        1743: astore        100
-        1745: aload         18
-        1747: checkcast     #2                  // class Block
-        1750: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        1753: bipush        85
-        1755: aload         100
-        1757: aastore
-        1758: new           #210                // class ocaml_fn_44
-        1761: dup
-        1762: aload         34
-        1764: invokespecial #211                // Method ocaml_fn_44."<init>":(Ljava/lang/Object;)V
-        1767: astore        101
-        1769: aload         18
-        1771: checkcast     #2                  // class Block
-        1774: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        1777: bipush        82
-        1779: aload         101
-        1781: aastore
-        1782: new           #213                // class ocaml_fn_45
-        1785: dup
-        1786: invokespecial #214                // Method ocaml_fn_45."<init>":()V
-        1789: astore        102
-        1791: aload         18
-        1793: checkcast     #2                  // class Block
-        1796: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        1799: bipush        93
-        1801: aload         102
-        1803: aastore
-        1804: new           #216                // class ocaml_fn_46
-        1807: dup
-        1808: aload         79
-        1810: invokespecial #217                // Method ocaml_fn_46."<init>":(Ljava/lang/Object;)V
-        1813: astore        103
-        1815: aload         18
-        1817: checkcast     #2                  // class Block
-        1820: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        1823: bipush        40
-        1825: aload         103
-        1827: aastore
-        1828: new           #219                // class ocaml_fn_47
-        1831: dup
-        1832: aload         79
-        1834: aload         88
-        1836: invokespecial #220                // Method ocaml_fn_47."<init>":(Ljava/lang/Object;Ljava/lang/Object;)V
-        1839: astore        104
-        1841: aload         18
-        1843: checkcast     #2                  // class Block
-        1846: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        1849: bipush        41
-        1851: aload         104
-        1853: aastore
-        1854: new           #222                // class ocaml_fn_48
-        1857: dup
-        1858: aload         79
-        1860: aload         87
-        1862: invokespecial #223                // Method ocaml_fn_48."<init>":(Ljava/lang/Object;Ljava/lang/Object;)V
-        1865: astore        105
-        1867: aload         18
-        1869: checkcast     #2                  // class Block
-        1872: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        1875: bipush        42
-        1877: aload         105
-        1879: aastore
-        1880: new           #225                // class ocaml_fn_49
-        1883: dup
-        1884: aload         63
-        1886: aload         79
-        1888: aload         88
-        1890: invokespecial #228                // Method ocaml_fn_49."<init>":(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)V
-        1893: astore        106
-        1895: aload         18
-        1897: checkcast     #2                  // class Block
-        1900: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        1903: bipush        43
-        1905: aload         106
-        1907: aastore
-        1908: new           #230                // class ocaml_fn_50
-        1911: dup
-        1912: aload         66
-        1914: aload         79
-        1916: aload         88
-        1918: invokespecial #231                // Method ocaml_fn_50."<init>":(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)V
-        1921: astore        107
-        1923: aload         18
-        1925: checkcast     #2                  // class Block
-        1928: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        1931: bipush        44
-        1933: aload         107
-        1935: aastore
-        1936: new           #233                // class ocaml_fn_51
-        1939: dup
-        1940: aload         79
-        1942: aload         88
-        1944: invokespecial #234                // Method ocaml_fn_51."<init>":(Ljava/lang/Object;Ljava/lang/Object;)V
-        1947: astore        108
-        1949: aload         18
-        1951: checkcast     #2                  // class Block
-        1954: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        1957: bipush        45
-        1959: aload         108
-        1961: aastore
-        1962: new           #236                // class ocaml_fn_52
-        1965: dup
-        1966: aload         79
-        1968: invokespecial #237                // Method ocaml_fn_52."<init>":(Ljava/lang/Object;)V
-        1971: astore        109
-        1973: aload         18
-        1975: checkcast     #2                  // class Block
-        1978: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        1981: bipush        46
-        1983: aload         109
-        1985: aastore
-        1986: new           #239                // class ocaml_fn_53
-        1989: dup
-        1990: aload         82
-        1992: invokespecial #240                // Method ocaml_fn_53."<init>":(Ljava/lang/Object;)V
-        1995: astore        110
-        1997: aload         18
-        1999: checkcast     #2                  // class Block
-        2002: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        2005: bipush        47
-        2007: aload         110
-        2009: aastore
-        2010: new           #242                // class ocaml_fn_54
-        2013: dup
-        2014: aload         82
-        2016: aload         88
-        2018: invokespecial #243                // Method ocaml_fn_54."<init>":(Ljava/lang/Object;Ljava/lang/Object;)V
-        2021: astore        111
-        2023: aload         18
-        2025: checkcast     #2                  // class Block
-        2028: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        2031: bipush        48
-        2033: aload         111
-        2035: aastore
-        2036: new           #245                // class ocaml_fn_55
-        2039: dup
-        2040: aload         82
-        2042: aload         87
-        2044: invokespecial #246                // Method ocaml_fn_55."<init>":(Ljava/lang/Object;Ljava/lang/Object;)V
-        2047: astore        112
-        2049: aload         18
-        2051: checkcast     #2                  // class Block
-        2054: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        2057: bipush        49
-        2059: aload         112
-        2061: aastore
-        2062: new           #248                // class ocaml_fn_56
-        2065: dup
-        2066: aload         63
-        2068: aload         82
-        2070: aload         88
-        2072: invokespecial #249                // Method ocaml_fn_56."<init>":(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)V
-        2075: astore        113
-        2077: aload         18
-        2079: checkcast     #2                  // class Block
-        2082: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        2085: bipush        50
-        2087: aload         113
-        2089: aastore
-        2090: new           #251                // class ocaml_fn_57
-        2093: dup
-        2094: aload         66
-        2096: aload         82
-        2098: aload         88
-        2100: invokespecial #252                // Method ocaml_fn_57."<init>":(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)V
-        2103: astore        114
-        2105: aload         18
-        2107: checkcast     #2                  // class Block
-        2110: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        2113: bipush        51
-        2115: aload         114
-        2117: aastore
-        2118: new           #254                // class ocaml_fn_58
-        2121: dup
-        2122: aload         82
-        2124: aload         88
-        2126: invokespecial #255                // Method ocaml_fn_58."<init>":(Ljava/lang/Object;Ljava/lang/Object;)V
-        2129: astore        115
-        2131: aload         18
-        2133: checkcast     #2                  // class Block
-        2136: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        2139: bipush        52
-        2141: aload         115
-        2143: aastore
-        2144: new           #257                // class ocaml_fn_59
-        2147: dup
-        2148: aload         82
-        2150: invokespecial #258                // Method ocaml_fn_59."<init>":(Ljava/lang/Object;)V
-        2153: astore        116
-        2155: aload         18
-        2157: checkcast     #2                  // class Block
-        2160: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        2163: bipush        53
-        2165: aload         116
-        2167: aastore
-        2168: new           #260                // class ocaml_fn_60
-        2171: dup
-        2172: aload         76
-        2174: aload         79
-        2176: aload         101
-        2178: invokespecial #261                // Method ocaml_fn_60."<init>":(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)V
-        2181: astore        117
-        2183: aload         18
-        2185: checkcast     #2                  // class Block
-        2188: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        2191: bipush        54
-        2193: aload         117
-        2195: aastore
-        2196: new           #263                // class ocaml_fn_61
-        2199: dup
-        2200: aload         117
-        2202: invokespecial #264                // Method ocaml_fn_61."<init>":(Ljava/lang/Object;)V
-        2205: astore        118
-        2207: aload         18
-        2209: checkcast     #2                  // class Block
-        2212: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        2215: bipush        56
-        2217: aload         118
-        2219: aastore
-        2220: new           #266                // class ocaml_fn_62
-        2223: dup
-        2224: aload         64
-        2226: aload         117
-        2228: invokespecial #267                // Method ocaml_fn_62."<init>":(Ljava/lang/Object;Ljava/lang/Object;)V
-        2231: astore        119
-        2233: aload         18
-        2235: checkcast     #2                  // class Block
-        2238: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        2241: bipush        55
-        2243: aload         119
-        2245: aastore
-        2246: new           #269                // class ocaml_fn_63
-        2249: dup
-        2250: aload         117
-        2252: invokespecial #270                // Method ocaml_fn_63."<init>":(Ljava/lang/Object;)V
-        2255: astore        120
-        2257: aload         18
-        2259: checkcast     #2                  // class Block
-        2262: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        2265: bipush        58
-        2267: aload         120
-        2269: aastore
-        2270: new           #272                // class ocaml_fn_64
-        2273: dup
-        2274: aload         67
-        2276: aload         117
-        2278: invokespecial #273                // Method ocaml_fn_64."<init>":(Ljava/lang/Object;Ljava/lang/Object;)V
-        2281: astore        121
-        2283: aload         18
-        2285: checkcast     #2                  // class Block
-        2288: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        2291: bipush        57
-        2293: aload         121
-        2295: aastore
-        2296: new           #275                // class ocaml_fn_65
-        2299: dup
-        2300: invokespecial #276                // Method ocaml_fn_65."<init>":()V
-        2303: astore        122
-        2305: aload         18
-        2307: checkcast     #2                  // class Block
-        2310: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        2313: bipush        96
-        2315: aload         122
-        2317: aastore
-        2318: new           #278                // class ocaml_fn_66
-        2321: dup
-        2322: aload         58
-        2324: invokespecial #279                // Method ocaml_fn_66."<init>":(Ljava/lang/Object;)V
-        2327: astore        123
-        2329: aload         18
-        2331: checkcast     #2                  // class Block
-        2334: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        2337: bipush        97
-        2339: aload         123
-        2341: aastore
-        2342: new           #2                  // class Block
-        2345: dup
-        2346: iconst_0
-        2347: iconst_1
-        2348: anewarray     #4                  // class java/lang/Object
-        2351: dup
-        2352: iconst_0
-        2353: aload         86
-        2355: aastore
-        2356: invokespecial #16                 // Method Block."<init>":(I[Ljava/lang/Object;)V
-        2359: astore        124
-        2361: new           #281                // class ocaml_fn_67
-        2364: dup
-        2365: aload         124
-        2367: invokespecial #282                // Method ocaml_fn_67."<init>":(Ljava/lang/Object;)V
-        2370: astore        125
-        2372: aload         18
-        2374: checkcast     #2                  // class Block
-        2377: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        2380: bipush        99
-        2382: aload         125
-        2384: aastore
-        2385: new           #284                // class ocaml_fn_68
-        2388: dup
-        2389: invokespecial #285                // Method ocaml_fn_68."<init>":()V
-        2392: astore        126
-        2394: new           #2                  // class Block
-        2397: dup
-        2398: iconst_0
-        2399: iconst_1
-        2400: anewarray     #4                  // class java/lang/Object
-        2403: dup
-        2404: iconst_0
-        2405: aload         126
-        2407: aastore
-        2408: invokespecial #16                 // Method Block."<init>":(I[Ljava/lang/Object;)V
-        2411: astore        127
-        2413: aload         18
-        2415: checkcast     #2                  // class Block
-        2418: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        2421: bipush        103
-        2423: aload         127
-        2425: aastore
-        2426: new           #287                // class ocaml_fn_69
-        2429: dup
-        2430: aload         124
-        2432: aload         127
-        2434: invokespecial #288                // Method ocaml_fn_69."<init>":(Ljava/lang/Object;Ljava/lang/Object;)V
-        2437: astore        128
-        2439: aload         18
-        2441: checkcast     #2                  // class Block
-        2444: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        2447: bipush        102
-        2449: aload         128
-        2451: aastore
-        2452: new           #290                // class ocaml_fn_70
-        2455: dup
-        2456: aload         128
-        2458: invokespecial #291                // Method ocaml_fn_70."<init>":(Ljava/lang/Object;)V
-        2461: astore        129
-        2463: aload         18
-        2465: checkcast     #2                  // class Block
-        2468: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        2471: bipush        98
-        2473: aload         129
-        2475: aastore
-        2476: getstatic     #25                 // Field GLOBALS:[Ljava/lang/Object;
-        2479: bipush        44
-        2481: aaload
-        2482: astore        130
-        2484: iconst_0
-        2485: i2l
-        2486: invokestatic  #61                 // Method java/lang/Long.valueOf:(J)Ljava/lang/Long;
-        2489: astore        131
-        2491: new           #2                  // class Block
-        2494: dup
-        2495: iconst_0
-        2496: bipush        6
-        2498: anewarray     #4                  // class java/lang/Object
-        2501: invokespecial #16                 // Method Block."<init>":(I[Ljava/lang/Object;)V
-        2504: astore        132
-        2506: new           #293                // class ocaml_fn_71
-        2509: dup
-        2510: invokespecial #294                // Method ocaml_fn_71."<init>":()V
-        2513: astore        133
-        2515: aload         132
-        2517: checkcast     #2                  // class Block
-        2520: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        2523: iconst_5
-        2524: aload         133
-        2526: aastore
-        2527: new           #296                // class ocaml_fn_72
-        2530: dup
-        2531: invokespecial #297                // Method ocaml_fn_72."<init>":()V
-        2534: astore        134
-        2536: aload         132
-        2538: checkcast     #2                  // class Block
-        2541: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        2544: iconst_4
-        2545: aload         134
-        2547: aastore
-        2548: new           #299                // class ocaml_fn_73
-        2551: dup
-        2552: invokespecial #300                // Method ocaml_fn_73."<init>":()V
-        2555: astore        135
-        2557: aload         132
-        2559: checkcast     #2                  // class Block
-        2562: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        2565: iconst_3
-        2566: aload         135
-        2568: aastore
-        2569: new           #302                // class ocaml_fn_74
-        2572: dup
-        2573: invokespecial #303                // Method ocaml_fn_74."<init>":()V
-        2576: astore        136
-        2578: aload         132
-        2580: checkcast     #2                  // class Block
-        2583: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        2586: iconst_2
-        2587: aload         136
-        2589: aastore
-        2590: new           #305                // class ocaml_fn_75
-        2593: dup
-        2594: invokespecial #306                // Method ocaml_fn_75."<init>":()V
-        2597: astore        137
-        2599: aload         132
-        2601: checkcast     #2                  // class Block
-        2604: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        2607: iconst_1
-        2608: aload         137
-        2610: aastore
-        2611: new           #308                // class ocaml_fn_76
-        2614: dup
-        2615: invokespecial #309                // Method ocaml_fn_76."<init>":()V
-        2618: astore        138
-        2620: aload         132
-        2622: checkcast     #2                  // class Block
-        2625: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        2628: iconst_0
-        2629: aload         138
-        2631: aastore
-        2632: aload         18
-        2634: checkcast     #2                  // class Block
-        2637: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        2640: bipush        95
-        2642: aload         132
-        2644: aastore
-        2645: new           #311                // class ocaml_fn_77
-        2648: dup
-        2649: invokespecial #312                // Method ocaml_fn_77."<init>":()V
-        2652: astore        139
-        2654: aload         18
-        2656: checkcast     #2                  // class Block
-        2659: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        2662: bipush        94
-        2664: aload         139
-        2666: aastore
-        2667: new           #314                // class ocaml_fn_78
-        2670: dup
-        2671: invokespecial #315                // Method ocaml_fn_78."<init>":()V
-        2674: astore        140
-        2676: aload         18
-        2678: checkcast     #2                  // class Block
-        2681: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        2684: bipush        92
-        2686: aload         140
-        2688: aastore
-        2689: new           #317                // class ocaml_fn_79
-        2692: dup
-        2693: invokespecial #318                // Method ocaml_fn_79."<init>":()V
-        2696: astore        141
-        2698: aload         18
-        2700: checkcast     #2                  // class Block
-        2703: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        2706: bipush        91
-        2708: aload         141
-        2710: aastore
-        2711: new           #320                // class ocaml_fn_80
-        2714: dup
-        2715: invokespecial #321                // Method ocaml_fn_80."<init>":()V
-        2718: astore        142
-        2720: aload         18
-        2722: checkcast     #2                  // class Block
-        2725: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        2728: bipush        90
-        2730: aload         142
-        2732: aastore
-        2733: new           #323                // class ocaml_fn_81
-        2736: dup
-        2737: invokespecial #324                // Method ocaml_fn_81."<init>":()V
-        2740: astore        143
-        2742: aload         18
-        2744: checkcast     #2                  // class Block
-        2747: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        2750: bipush        89
-        2752: aload         143
-        2754: aastore
-        2755: new           #326                // class ocaml_fn_82
-        2758: dup
-        2759: invokespecial #327                // Method ocaml_fn_82."<init>":()V
-        2762: astore        144
-        2764: aload         18
-        2766: checkcast     #2                  // class Block
-        2769: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        2772: bipush        88
-        2774: aload         144
-        2776: aastore
-        2777: new           #329                // class ocaml_fn_83
-        2780: dup
-        2781: invokespecial #330                // Method ocaml_fn_83."<init>":()V
-        2784: astore        145
-        2786: aload         18
-        2788: checkcast     #2                  // class Block
-        2791: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        2794: bipush        87
-        2796: aload         145
-        2798: aastore
-        2799: new           #332                // class ocaml_fn_84
-        2802: dup
-        2803: invokespecial #333                // Method ocaml_fn_84."<init>":()V
-        2806: astore        146
-        2808: aload         18
-        2810: checkcast     #2                  // class Block
-        2813: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        2816: bipush        86
-        2818: aload         146
-        2820: aastore
-        2821: new           #335                // class ocaml_fn_85
-        2824: dup
-        2825: invokespecial #336                // Method ocaml_fn_85."<init>":()V
-        2828: astore        147
-        2830: aload         18
-        2832: checkcast     #2                  // class Block
-        2835: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        2838: bipush        81
-        2840: aload         147
-        2842: aastore
-        2843: new           #338                // class ocaml_fn_86
-        2846: dup
-        2847: invokespecial #339                // Method ocaml_fn_86."<init>":()V
-        2850: astore        148
-        2852: aload         18
-        2854: checkcast     #2                  // class Block
-        2857: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        2860: bipush        77
-        2862: aload         148
-        2864: aastore
-        2865: new           #341                // class ocaml_fn_87
-        2868: dup
-        2869: invokespecial #342                // Method ocaml_fn_87."<init>":()V
-        2872: astore        149
-        2874: aload         18
-        2876: checkcast     #2                  // class Block
-        2879: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        2882: bipush        74
-        2884: aload         149
-        2886: aastore
-        2887: new           #344                // class ocaml_fn_88
-        2890: dup
-        2891: invokespecial #345                // Method ocaml_fn_88."<init>":()V
-        2894: astore        150
-        2896: aload         18
-        2898: checkcast     #2                  // class Block
-        2901: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        2904: bipush        73
-        2906: aload         150
-        2908: aastore
-        2909: new           #347                // class ocaml_fn_89
-        2912: dup
-        2913: invokespecial #348                // Method ocaml_fn_89."<init>":()V
-        2916: astore        151
-        2918: aload         18
-        2920: checkcast     #2                  // class Block
-        2923: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        2926: bipush        72
-        2928: aload         151
-        2930: aastore
-        2931: new           #350                // class ocaml_fn_90
-        2934: dup
-        2935: invokespecial #351                // Method ocaml_fn_90."<init>":()V
-        2938: astore        152
-        2940: aload         18
-        2942: checkcast     #2                  // class Block
-        2945: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        2948: bipush        70
-        2950: aload         152
-        2952: aastore
-        2953: new           #353                // class ocaml_fn_91
-        2956: dup
-        2957: invokespecial #354                // Method ocaml_fn_91."<init>":()V
-        2960: astore        153
-        2962: aload         18
-        2964: checkcast     #2                  // class Block
-        2967: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        2970: bipush        69
-        2972: aload         153
-        2974: aastore
-        2975: new           #356                // class ocaml_fn_92
-        2978: dup
-        2979: invokespecial #357                // Method ocaml_fn_92."<init>":()V
-        2982: astore        154
-        2984: aload         18
-        2986: checkcast     #2                  // class Block
-        2989: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        2992: bipush        64
-        2994: aload         154
-        2996: aastore
-        2997: new           #359                // class ocaml_fn_93
-        3000: dup
-        3001: invokespecial #360                // Method ocaml_fn_93."<init>":()V
-        3004: astore        155
-        3006: aload         18
-        3008: checkcast     #2                  // class Block
-        3011: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        3014: bipush        62
-        3016: aload         155
-        3018: aastore
-        3019: getstatic     #25                 // Field GLOBALS:[Ljava/lang/Object;
-        3022: bipush        45
-        3024: aload         18
-        3026: aastore
-        3027: iconst_0
-        3028: i2l
-        3029: invokestatic  #61                 // Method java/lang/Long.valueOf:(J)Ljava/lang/Long;
-        3032: astore        156
-        3034: bipush        8
-        3036: i2l
-        3037: lstore        157
-        3039: getstatic     #364                // Field java/lang/System.out:Ljava/io/PrintStream;
-        3042: lload         157
-        3044: l2i
-        3045: invokevirtual #370                // Method java/io/PrintStream.println:(I)V
-        3048: iconst_0
-        3049: i2l
-        3050: invokestatic  #61                 // Method java/lang/Long.valueOf:(J)Ljava/lang/Long;
-        3053: astore        159
-        3055: new           #2                  // class Block
-        3058: dup
-        3059: iconst_0
-        3060: iconst_0
-        3061: anewarray     #4                  // class java/lang/Object
-        3064: invokespecial #16                 // Method Block."<init>":(I[Ljava/lang/Object;)V
-        3067: astore        160
-        3069: getstatic     #25                 // Field GLOBALS:[Ljava/lang/Object;
-        3072: bipush        46
-        3074: aload         160
-        3076: aastore
-        3077: iconst_0
-        3078: i2l
-        3079: invokestatic  #61                 // Method java/lang/Long.valueOf:(J)Ljava/lang/Long;
-        3082: astore        161
-        3084: iconst_0
-        3085: i2l
-        3086: lstore        162
-        3088: getstatic     #25                 // Field GLOBALS:[Ljava/lang/Object;
-        3091: bipush        45
-        3093: aaload
-        3094: checkcast     #2                  // class Block
-        3097: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        3100: bipush        102
-        3102: aaload
-        3103: astore        164
-        3105: aload         164
-        3107: checkcast     #139                // class Closure
-        3110: lload         162
-        3112: invokestatic  #61                 // Method java/lang/Long.valueOf:(J)Ljava/lang/Long;
-        3115: invokevirtual #374                // Method Closure.apply1:(Ljava/lang/Object;)Ljava/lang/Object;
-        3118: astore        165
-        3120: new           #2                  // class Block
-        3123: dup
-        3124: iconst_0
-        3125: iconst_0
-        3126: anewarray     #4                  // class java/lang/Object
-        3129: invokespecial #16                 // Method Block."<init>":(I[Ljava/lang/Object;)V
-        3132: astore        166
-        3134: getstatic     #25                 // Field GLOBALS:[Ljava/lang/Object;
-        3137: bipush        47
-        3139: aload         166
-        3141: aastore
-        3142: iconst_0
-        3143: i2l
-        3144: invokestatic  #61                 // Method java/lang/Long.valueOf:(J)Ljava/lang/Long;
-        3147: astore        167
-        3149: return
+        1250: checkcast     #140                // class ocaml_fn_25
+        1253: aload         69
+        1255: checkcast     #143                // class Closure
+        1258: putfield      #152                // Field ocaml_fn_25.sibling_1:LClosure;
+        1261: iconst_0
+        1262: i2l
+        1263: invokestatic  #61                 // Method java/lang/Long.valueOf:(J)Ljava/lang/Long;
+        1266: astore        73
+        1268: iconst_0
+        1269: i2l
+        1270: lstore        74
+        1272: lload         74
+        1274: l2i
+        1275: invokestatic  #156                // Method Channel.forDescriptor:(I)LChannel;
+        1278: astore        76
+        1280: aload         18
+        1282: checkcast     #2                  // class Block
+        1285: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        1288: bipush        37
+        1290: aload         76
+        1292: aastore
+        1293: iconst_1
+        1294: i2l
+        1295: lstore        77
+        1297: lload         77
+        1299: l2i
+        1300: invokestatic  #156                // Method Channel.forDescriptor:(I)LChannel;
+        1303: astore        79
+        1305: aload         18
+        1307: checkcast     #2                  // class Block
+        1310: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        1313: bipush        38
+        1315: aload         79
+        1317: aastore
+        1318: iconst_2
+        1319: i2l
+        1320: lstore        80
+        1322: lload         80
+        1324: l2i
+        1325: invokestatic  #156                // Method Channel.forDescriptor:(I)LChannel;
+        1328: astore        82
+        1330: aload         18
+        1332: checkcast     #2                  // class Block
+        1335: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        1338: bipush        39
+        1340: aload         82
+        1342: aastore
+        1343: new           #158                // class ocaml_fn_26
+        1346: dup
+        1347: invokespecial #159                // Method ocaml_fn_26."<init>":()V
+        1350: astore        83
+        1352: aload         18
+        1354: checkcast     #2                  // class Block
+        1357: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        1360: bipush        61
+        1362: aload         83
+        1364: aastore
+        1365: new           #161                // class ocaml_fn_27
+        1368: dup
+        1369: aload         83
+        1371: invokespecial #162                // Method ocaml_fn_27."<init>":(Ljava/lang/Object;)V
+        1374: astore        84
+        1376: aload         18
+        1378: checkcast     #2                  // class Block
+        1381: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        1384: bipush        59
+        1386: aload         84
+        1388: aastore
+        1389: new           #164                // class ocaml_fn_28
+        1392: dup
+        1393: aload         83
+        1395: invokespecial #165                // Method ocaml_fn_28."<init>":(Ljava/lang/Object;)V
+        1398: astore        85
+        1400: aload         18
+        1402: checkcast     #2                  // class Block
+        1405: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        1408: bipush        60
+        1410: aload         85
+        1412: aastore
+        1413: new           #167                // class ocaml_fn_29
+        1416: dup
+        1417: aload         33
+        1419: invokespecial #168                // Method ocaml_fn_29."<init>":(Ljava/lang/Object;)V
+        1422: astore        86
+        1424: aload         18
+        1426: checkcast     #2                  // class Block
+        1429: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        1432: bipush        63
+        1434: aload         86
+        1436: aastore
+        1437: new           #170                // class ocaml_fn_30
+        1440: dup
+        1441: invokespecial #171                // Method ocaml_fn_30."<init>":()V
+        1444: astore        87
+        1446: aload         18
+        1448: checkcast     #2                  // class Block
+        1451: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        1454: bipush        66
+        1456: aload         87
+        1458: aastore
+        1459: new           #173                // class ocaml_fn_31
+        1462: dup
+        1463: invokespecial #174                // Method ocaml_fn_31."<init>":()V
+        1466: astore        88
+        1468: aload         18
+        1470: checkcast     #2                  // class Block
+        1473: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        1476: bipush        65
+        1478: aload         88
+        1480: aastore
+        1481: new           #176                // class ocaml_fn_32
+        1484: dup
+        1485: aload         20
+        1487: invokespecial #177                // Method ocaml_fn_32."<init>":(Ljava/lang/Object;)V
+        1490: astore        89
+        1492: aload         18
+        1494: checkcast     #2                  // class Block
+        1497: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        1500: bipush        67
+        1502: aload         89
+        1504: aastore
+        1505: new           #179                // class ocaml_fn_33
+        1508: dup
+        1509: aload         20
+        1511: invokespecial #180                // Method ocaml_fn_33."<init>":(Ljava/lang/Object;)V
+        1514: astore        90
+        1516: aload         18
+        1518: checkcast     #2                  // class Block
+        1521: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        1524: bipush        68
+        1526: aload         90
+        1528: aastore
+        1529: new           #182                // class ocaml_fn_34
+        1532: dup
+        1533: invokespecial #183                // Method ocaml_fn_34."<init>":()V
+        1536: astore        91
+        1538: aload         18
+        1540: checkcast     #2                  // class Block
+        1543: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        1546: bipush        71
+        1548: aload         91
+        1550: aastore
+        1551: new           #185                // class ocaml_fn_35
+        1554: dup
+        1555: invokespecial #186                // Method ocaml_fn_35."<init>":()V
+        1558: astore        92
+        1560: aload         18
+        1562: checkcast     #2                  // class Block
+        1565: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        1568: bipush        75
+        1570: aload         92
+        1572: aastore
+        1573: new           #188                // class ocaml_fn_36
+        1576: dup
+        1577: invokespecial #189                // Method ocaml_fn_36."<init>":()V
+        1580: astore        93
+        1582: aload         18
+        1584: checkcast     #2                  // class Block
+        1587: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        1590: bipush        76
+        1592: aload         93
+        1594: aastore
+        1595: new           #191                // class ocaml_fn_37
+        1598: dup
+        1599: invokespecial #192                // Method ocaml_fn_37."<init>":()V
+        1602: astore        94
+        1604: aload         18
+        1606: checkcast     #2                  // class Block
+        1609: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        1612: bipush        80
+        1614: aload         94
+        1616: aastore
+        1617: new           #194                // class ocaml_fn_38
+        1620: dup
+        1621: aload         94
+        1623: invokespecial #195                // Method ocaml_fn_38."<init>":(Ljava/lang/Object;)V
+        1626: astore        95
+        1628: aload         18
+        1630: checkcast     #2                  // class Block
+        1633: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        1636: bipush        78
+        1638: aload         95
+        1640: aastore
+        1641: new           #197                // class ocaml_fn_39
+        1644: dup
+        1645: aload         94
+        1647: invokespecial #198                // Method ocaml_fn_39."<init>":(Ljava/lang/Object;)V
+        1650: astore        96
+        1652: aload         18
+        1654: checkcast     #2                  // class Block
+        1657: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        1660: bipush        79
+        1662: aload         96
+        1664: aastore
+        1665: new           #200                // class ocaml_fn_40
+        1668: dup
+        1669: aload         20
+        1671: invokespecial #201                // Method ocaml_fn_40."<init>":(Ljava/lang/Object;)V
+        1674: astore        97
+        1676: aload         18
+        1678: checkcast     #2                  // class Block
+        1681: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        1684: bipush        83
+        1686: aload         97
+        1688: aastore
+        1689: new           #203                // class ocaml_fn_41
+        1692: dup
+        1693: aload         34
+        1695: invokespecial #204                // Method ocaml_fn_41."<init>":(Ljava/lang/Object;)V
+        1698: astore        98
+        1700: aload         18
+        1702: checkcast     #2                  // class Block
+        1705: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        1708: bipush        101
+        1710: aload         98
+        1712: aastore
+        1713: new           #206                // class ocaml_fn_42
+        1716: dup
+        1717: aload         20
+        1719: aload         98
+        1721: invokespecial #209                // Method ocaml_fn_42."<init>":(Ljava/lang/Object;Ljava/lang/Object;)V
+        1724: astore        99
+        1726: aload         18
+        1728: checkcast     #2                  // class Block
+        1731: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        1734: bipush        84
+        1736: aload         99
+        1738: aastore
+        1739: new           #211                // class ocaml_fn_43
+        1742: dup
+        1743: aload         99
+        1745: invokespecial #212                // Method ocaml_fn_43."<init>":(Ljava/lang/Object;)V
+        1748: astore        100
+        1750: aload         18
+        1752: checkcast     #2                  // class Block
+        1755: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        1758: bipush        85
+        1760: aload         100
+        1762: aastore
+        1763: new           #214                // class ocaml_fn_44
+        1766: dup
+        1767: aload         34
+        1769: invokespecial #215                // Method ocaml_fn_44."<init>":(Ljava/lang/Object;)V
+        1772: astore        101
+        1774: aload         18
+        1776: checkcast     #2                  // class Block
+        1779: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        1782: bipush        82
+        1784: aload         101
+        1786: aastore
+        1787: new           #217                // class ocaml_fn_45
+        1790: dup
+        1791: invokespecial #218                // Method ocaml_fn_45."<init>":()V
+        1794: astore        102
+        1796: aload         18
+        1798: checkcast     #2                  // class Block
+        1801: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        1804: bipush        93
+        1806: aload         102
+        1808: aastore
+        1809: new           #220                // class ocaml_fn_46
+        1812: dup
+        1813: aload         79
+        1815: invokespecial #221                // Method ocaml_fn_46."<init>":(Ljava/lang/Object;)V
+        1818: astore        103
+        1820: aload         18
+        1822: checkcast     #2                  // class Block
+        1825: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        1828: bipush        40
+        1830: aload         103
+        1832: aastore
+        1833: new           #223                // class ocaml_fn_47
+        1836: dup
+        1837: aload         79
+        1839: aload         88
+        1841: invokespecial #224                // Method ocaml_fn_47."<init>":(Ljava/lang/Object;Ljava/lang/Object;)V
+        1844: astore        104
+        1846: aload         18
+        1848: checkcast     #2                  // class Block
+        1851: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        1854: bipush        41
+        1856: aload         104
+        1858: aastore
+        1859: new           #226                // class ocaml_fn_48
+        1862: dup
+        1863: aload         79
+        1865: aload         87
+        1867: invokespecial #227                // Method ocaml_fn_48."<init>":(Ljava/lang/Object;Ljava/lang/Object;)V
+        1870: astore        105
+        1872: aload         18
+        1874: checkcast     #2                  // class Block
+        1877: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        1880: bipush        42
+        1882: aload         105
+        1884: aastore
+        1885: new           #229                // class ocaml_fn_49
+        1888: dup
+        1889: aload         63
+        1891: aload         79
+        1893: aload         88
+        1895: invokespecial #232                // Method ocaml_fn_49."<init>":(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)V
+        1898: astore        106
+        1900: aload         18
+        1902: checkcast     #2                  // class Block
+        1905: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        1908: bipush        43
+        1910: aload         106
+        1912: aastore
+        1913: new           #234                // class ocaml_fn_50
+        1916: dup
+        1917: aload         66
+        1919: aload         79
+        1921: aload         88
+        1923: invokespecial #235                // Method ocaml_fn_50."<init>":(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)V
+        1926: astore        107
+        1928: aload         18
+        1930: checkcast     #2                  // class Block
+        1933: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        1936: bipush        44
+        1938: aload         107
+        1940: aastore
+        1941: new           #237                // class ocaml_fn_51
+        1944: dup
+        1945: aload         79
+        1947: aload         88
+        1949: invokespecial #238                // Method ocaml_fn_51."<init>":(Ljava/lang/Object;Ljava/lang/Object;)V
+        1952: astore        108
+        1954: aload         18
+        1956: checkcast     #2                  // class Block
+        1959: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        1962: bipush        45
+        1964: aload         108
+        1966: aastore
+        1967: new           #240                // class ocaml_fn_52
+        1970: dup
+        1971: aload         79
+        1973: invokespecial #241                // Method ocaml_fn_52."<init>":(Ljava/lang/Object;)V
+        1976: astore        109
+        1978: aload         18
+        1980: checkcast     #2                  // class Block
+        1983: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        1986: bipush        46
+        1988: aload         109
+        1990: aastore
+        1991: new           #243                // class ocaml_fn_53
+        1994: dup
+        1995: aload         82
+        1997: invokespecial #244                // Method ocaml_fn_53."<init>":(Ljava/lang/Object;)V
+        2000: astore        110
+        2002: aload         18
+        2004: checkcast     #2                  // class Block
+        2007: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        2010: bipush        47
+        2012: aload         110
+        2014: aastore
+        2015: new           #246                // class ocaml_fn_54
+        2018: dup
+        2019: aload         82
+        2021: aload         88
+        2023: invokespecial #247                // Method ocaml_fn_54."<init>":(Ljava/lang/Object;Ljava/lang/Object;)V
+        2026: astore        111
+        2028: aload         18
+        2030: checkcast     #2                  // class Block
+        2033: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        2036: bipush        48
+        2038: aload         111
+        2040: aastore
+        2041: new           #249                // class ocaml_fn_55
+        2044: dup
+        2045: aload         82
+        2047: aload         87
+        2049: invokespecial #250                // Method ocaml_fn_55."<init>":(Ljava/lang/Object;Ljava/lang/Object;)V
+        2052: astore        112
+        2054: aload         18
+        2056: checkcast     #2                  // class Block
+        2059: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        2062: bipush        49
+        2064: aload         112
+        2066: aastore
+        2067: new           #252                // class ocaml_fn_56
+        2070: dup
+        2071: aload         63
+        2073: aload         82
+        2075: aload         88
+        2077: invokespecial #253                // Method ocaml_fn_56."<init>":(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)V
+        2080: astore        113
+        2082: aload         18
+        2084: checkcast     #2                  // class Block
+        2087: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        2090: bipush        50
+        2092: aload         113
+        2094: aastore
+        2095: new           #255                // class ocaml_fn_57
+        2098: dup
+        2099: aload         66
+        2101: aload         82
+        2103: aload         88
+        2105: invokespecial #256                // Method ocaml_fn_57."<init>":(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)V
+        2108: astore        114
+        2110: aload         18
+        2112: checkcast     #2                  // class Block
+        2115: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        2118: bipush        51
+        2120: aload         114
+        2122: aastore
+        2123: new           #258                // class ocaml_fn_58
+        2126: dup
+        2127: aload         82
+        2129: aload         88
+        2131: invokespecial #259                // Method ocaml_fn_58."<init>":(Ljava/lang/Object;Ljava/lang/Object;)V
+        2134: astore        115
+        2136: aload         18
+        2138: checkcast     #2                  // class Block
+        2141: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        2144: bipush        52
+        2146: aload         115
+        2148: aastore
+        2149: new           #261                // class ocaml_fn_59
+        2152: dup
+        2153: aload         82
+        2155: invokespecial #262                // Method ocaml_fn_59."<init>":(Ljava/lang/Object;)V
+        2158: astore        116
+        2160: aload         18
+        2162: checkcast     #2                  // class Block
+        2165: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        2168: bipush        53
+        2170: aload         116
+        2172: aastore
+        2173: new           #264                // class ocaml_fn_60
+        2176: dup
+        2177: aload         76
+        2179: aload         79
+        2181: aload         101
+        2183: invokespecial #265                // Method ocaml_fn_60."<init>":(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)V
+        2186: astore        117
+        2188: aload         18
+        2190: checkcast     #2                  // class Block
+        2193: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        2196: bipush        54
+        2198: aload         117
+        2200: aastore
+        2201: new           #267                // class ocaml_fn_61
+        2204: dup
+        2205: aload         117
+        2207: invokespecial #268                // Method ocaml_fn_61."<init>":(Ljava/lang/Object;)V
+        2210: astore        118
+        2212: aload         18
+        2214: checkcast     #2                  // class Block
+        2217: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        2220: bipush        56
+        2222: aload         118
+        2224: aastore
+        2225: new           #270                // class ocaml_fn_62
+        2228: dup
+        2229: aload         64
+        2231: aload         117
+        2233: invokespecial #271                // Method ocaml_fn_62."<init>":(Ljava/lang/Object;Ljava/lang/Object;)V
+        2236: astore        119
+        2238: aload         18
+        2240: checkcast     #2                  // class Block
+        2243: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        2246: bipush        55
+        2248: aload         119
+        2250: aastore
+        2251: new           #273                // class ocaml_fn_63
+        2254: dup
+        2255: aload         117
+        2257: invokespecial #274                // Method ocaml_fn_63."<init>":(Ljava/lang/Object;)V
+        2260: astore        120
+        2262: aload         18
+        2264: checkcast     #2                  // class Block
+        2267: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        2270: bipush        58
+        2272: aload         120
+        2274: aastore
+        2275: new           #276                // class ocaml_fn_64
+        2278: dup
+        2279: aload         67
+        2281: aload         117
+        2283: invokespecial #277                // Method ocaml_fn_64."<init>":(Ljava/lang/Object;Ljava/lang/Object;)V
+        2286: astore        121
+        2288: aload         18
+        2290: checkcast     #2                  // class Block
+        2293: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        2296: bipush        57
+        2298: aload         121
+        2300: aastore
+        2301: new           #279                // class ocaml_fn_65
+        2304: dup
+        2305: invokespecial #280                // Method ocaml_fn_65."<init>":()V
+        2308: astore        122
+        2310: aload         18
+        2312: checkcast     #2                  // class Block
+        2315: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        2318: bipush        96
+        2320: aload         122
+        2322: aastore
+        2323: new           #282                // class ocaml_fn_66
+        2326: dup
+        2327: aload         58
+        2329: invokespecial #283                // Method ocaml_fn_66."<init>":(Ljava/lang/Object;)V
+        2332: astore        123
+        2334: aload         18
+        2336: checkcast     #2                  // class Block
+        2339: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        2342: bipush        97
+        2344: aload         123
+        2346: aastore
+        2347: new           #2                  // class Block
+        2350: dup
+        2351: iconst_0
+        2352: iconst_1
+        2353: anewarray     #4                  // class java/lang/Object
+        2356: dup
+        2357: iconst_0
+        2358: aload         86
+        2360: aastore
+        2361: invokespecial #16                 // Method Block."<init>":(I[Ljava/lang/Object;)V
+        2364: astore        124
+        2366: new           #285                // class ocaml_fn_67
+        2369: dup
+        2370: aload         124
+        2372: invokespecial #286                // Method ocaml_fn_67."<init>":(Ljava/lang/Object;)V
+        2375: astore        125
+        2377: aload         18
+        2379: checkcast     #2                  // class Block
+        2382: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        2385: bipush        99
+        2387: aload         125
+        2389: aastore
+        2390: new           #288                // class ocaml_fn_68
+        2393: dup
+        2394: invokespecial #289                // Method ocaml_fn_68."<init>":()V
+        2397: astore        126
+        2399: new           #2                  // class Block
+        2402: dup
+        2403: iconst_0
+        2404: iconst_1
+        2405: anewarray     #4                  // class java/lang/Object
+        2408: dup
+        2409: iconst_0
+        2410: aload         126
+        2412: aastore
+        2413: invokespecial #16                 // Method Block."<init>":(I[Ljava/lang/Object;)V
+        2416: astore        127
+        2418: aload         18
+        2420: checkcast     #2                  // class Block
+        2423: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        2426: bipush        103
+        2428: aload         127
+        2430: aastore
+        2431: new           #291                // class ocaml_fn_69
+        2434: dup
+        2435: aload         124
+        2437: aload         127
+        2439: invokespecial #292                // Method ocaml_fn_69."<init>":(Ljava/lang/Object;Ljava/lang/Object;)V
+        2442: astore        128
+        2444: aload         18
+        2446: checkcast     #2                  // class Block
+        2449: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        2452: bipush        102
+        2454: aload         128
+        2456: aastore
+        2457: new           #294                // class ocaml_fn_70
+        2460: dup
+        2461: aload         128
+        2463: invokespecial #295                // Method ocaml_fn_70."<init>":(Ljava/lang/Object;)V
+        2466: astore        129
+        2468: aload         18
+        2470: checkcast     #2                  // class Block
+        2473: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        2476: bipush        98
+        2478: aload         129
+        2480: aastore
+        2481: getstatic     #25                 // Field GLOBALS:[Ljava/lang/Object;
+        2484: bipush        44
+        2486: aaload
+        2487: astore        130
+        2489: aload         130
+        2491: aload         128
+        2493: invokestatic  #65                 // Method Ocaml.registerNamedValue:(Ljava/lang/Object;Ljava/lang/Object;)J
+        2496: invokestatic  #61                 // Method java/lang/Long.valueOf:(J)Ljava/lang/Long;
+        2499: astore        131
+        2501: new           #2                  // class Block
+        2504: dup
+        2505: iconst_0
+        2506: bipush        6
+        2508: anewarray     #4                  // class java/lang/Object
+        2511: invokespecial #16                 // Method Block."<init>":(I[Ljava/lang/Object;)V
+        2514: astore        132
+        2516: new           #297                // class ocaml_fn_71
+        2519: dup
+        2520: invokespecial #298                // Method ocaml_fn_71."<init>":()V
+        2523: astore        133
+        2525: aload         132
+        2527: checkcast     #2                  // class Block
+        2530: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        2533: iconst_5
+        2534: aload         133
+        2536: aastore
+        2537: new           #300                // class ocaml_fn_72
+        2540: dup
+        2541: invokespecial #301                // Method ocaml_fn_72."<init>":()V
+        2544: astore        134
+        2546: aload         132
+        2548: checkcast     #2                  // class Block
+        2551: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        2554: iconst_4
+        2555: aload         134
+        2557: aastore
+        2558: new           #303                // class ocaml_fn_73
+        2561: dup
+        2562: invokespecial #304                // Method ocaml_fn_73."<init>":()V
+        2565: astore        135
+        2567: aload         132
+        2569: checkcast     #2                  // class Block
+        2572: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        2575: iconst_3
+        2576: aload         135
+        2578: aastore
+        2579: new           #306                // class ocaml_fn_74
+        2582: dup
+        2583: invokespecial #307                // Method ocaml_fn_74."<init>":()V
+        2586: astore        136
+        2588: aload         132
+        2590: checkcast     #2                  // class Block
+        2593: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        2596: iconst_2
+        2597: aload         136
+        2599: aastore
+        2600: new           #309                // class ocaml_fn_75
+        2603: dup
+        2604: invokespecial #310                // Method ocaml_fn_75."<init>":()V
+        2607: astore        137
+        2609: aload         132
+        2611: checkcast     #2                  // class Block
+        2614: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        2617: iconst_1
+        2618: aload         137
+        2620: aastore
+        2621: new           #312                // class ocaml_fn_76
+        2624: dup
+        2625: invokespecial #313                // Method ocaml_fn_76."<init>":()V
+        2628: astore        138
+        2630: aload         132
+        2632: checkcast     #2                  // class Block
+        2635: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        2638: iconst_0
+        2639: aload         138
+        2641: aastore
+        2642: aload         18
+        2644: checkcast     #2                  // class Block
+        2647: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        2650: bipush        95
+        2652: aload         132
+        2654: aastore
+        2655: new           #315                // class ocaml_fn_77
+        2658: dup
+        2659: invokespecial #316                // Method ocaml_fn_77."<init>":()V
+        2662: astore        139
+        2664: aload         18
+        2666: checkcast     #2                  // class Block
+        2669: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        2672: bipush        94
+        2674: aload         139
+        2676: aastore
+        2677: new           #318                // class ocaml_fn_78
+        2680: dup
+        2681: invokespecial #319                // Method ocaml_fn_78."<init>":()V
+        2684: astore        140
+        2686: aload         18
+        2688: checkcast     #2                  // class Block
+        2691: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        2694: bipush        92
+        2696: aload         140
+        2698: aastore
+        2699: new           #321                // class ocaml_fn_79
+        2702: dup
+        2703: invokespecial #322                // Method ocaml_fn_79."<init>":()V
+        2706: astore        141
+        2708: aload         18
+        2710: checkcast     #2                  // class Block
+        2713: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        2716: bipush        91
+        2718: aload         141
+        2720: aastore
+        2721: new           #324                // class ocaml_fn_80
+        2724: dup
+        2725: invokespecial #325                // Method ocaml_fn_80."<init>":()V
+        2728: astore        142
+        2730: aload         18
+        2732: checkcast     #2                  // class Block
+        2735: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        2738: bipush        90
+        2740: aload         142
+        2742: aastore
+        2743: new           #327                // class ocaml_fn_81
+        2746: dup
+        2747: invokespecial #328                // Method ocaml_fn_81."<init>":()V
+        2750: astore        143
+        2752: aload         18
+        2754: checkcast     #2                  // class Block
+        2757: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        2760: bipush        89
+        2762: aload         143
+        2764: aastore
+        2765: new           #330                // class ocaml_fn_82
+        2768: dup
+        2769: invokespecial #331                // Method ocaml_fn_82."<init>":()V
+        2772: astore        144
+        2774: aload         18
+        2776: checkcast     #2                  // class Block
+        2779: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        2782: bipush        88
+        2784: aload         144
+        2786: aastore
+        2787: new           #333                // class ocaml_fn_83
+        2790: dup
+        2791: invokespecial #334                // Method ocaml_fn_83."<init>":()V
+        2794: astore        145
+        2796: aload         18
+        2798: checkcast     #2                  // class Block
+        2801: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        2804: bipush        87
+        2806: aload         145
+        2808: aastore
+        2809: new           #336                // class ocaml_fn_84
+        2812: dup
+        2813: invokespecial #337                // Method ocaml_fn_84."<init>":()V
+        2816: astore        146
+        2818: aload         18
+        2820: checkcast     #2                  // class Block
+        2823: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        2826: bipush        86
+        2828: aload         146
+        2830: aastore
+        2831: new           #339                // class ocaml_fn_85
+        2834: dup
+        2835: invokespecial #340                // Method ocaml_fn_85."<init>":()V
+        2838: astore        147
+        2840: aload         18
+        2842: checkcast     #2                  // class Block
+        2845: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        2848: bipush        81
+        2850: aload         147
+        2852: aastore
+        2853: new           #342                // class ocaml_fn_86
+        2856: dup
+        2857: invokespecial #343                // Method ocaml_fn_86."<init>":()V
+        2860: astore        148
+        2862: aload         18
+        2864: checkcast     #2                  // class Block
+        2867: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        2870: bipush        77
+        2872: aload         148
+        2874: aastore
+        2875: new           #345                // class ocaml_fn_87
+        2878: dup
+        2879: invokespecial #346                // Method ocaml_fn_87."<init>":()V
+        2882: astore        149
+        2884: aload         18
+        2886: checkcast     #2                  // class Block
+        2889: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        2892: bipush        74
+        2894: aload         149
+        2896: aastore
+        2897: new           #348                // class ocaml_fn_88
+        2900: dup
+        2901: invokespecial #349                // Method ocaml_fn_88."<init>":()V
+        2904: astore        150
+        2906: aload         18
+        2908: checkcast     #2                  // class Block
+        2911: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        2914: bipush        73
+        2916: aload         150
+        2918: aastore
+        2919: new           #351                // class ocaml_fn_89
+        2922: dup
+        2923: invokespecial #352                // Method ocaml_fn_89."<init>":()V
+        2926: astore        151
+        2928: aload         18
+        2930: checkcast     #2                  // class Block
+        2933: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        2936: bipush        72
+        2938: aload         151
+        2940: aastore
+        2941: new           #354                // class ocaml_fn_90
+        2944: dup
+        2945: invokespecial #355                // Method ocaml_fn_90."<init>":()V
+        2948: astore        152
+        2950: aload         18
+        2952: checkcast     #2                  // class Block
+        2955: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        2958: bipush        70
+        2960: aload         152
+        2962: aastore
+        2963: new           #357                // class ocaml_fn_91
+        2966: dup
+        2967: invokespecial #358                // Method ocaml_fn_91."<init>":()V
+        2970: astore        153
+        2972: aload         18
+        2974: checkcast     #2                  // class Block
+        2977: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        2980: bipush        69
+        2982: aload         153
+        2984: aastore
+        2985: new           #360                // class ocaml_fn_92
+        2988: dup
+        2989: invokespecial #361                // Method ocaml_fn_92."<init>":()V
+        2992: astore        154
+        2994: aload         18
+        2996: checkcast     #2                  // class Block
+        2999: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        3002: bipush        64
+        3004: aload         154
+        3006: aastore
+        3007: new           #363                // class ocaml_fn_93
+        3010: dup
+        3011: invokespecial #364                // Method ocaml_fn_93."<init>":()V
+        3014: astore        155
+        3016: aload         18
+        3018: checkcast     #2                  // class Block
+        3021: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        3024: bipush        62
+        3026: aload         155
+        3028: aastore
+        3029: getstatic     #25                 // Field GLOBALS:[Ljava/lang/Object;
+        3032: bipush        45
+        3034: aload         18
+        3036: aastore
+        3037: iconst_0
+        3038: i2l
+        3039: invokestatic  #61                 // Method java/lang/Long.valueOf:(J)Ljava/lang/Long;
+        3042: astore        156
+        3044: bipush        8
+        3046: i2l
+        3047: lstore        157
+        3049: getstatic     #368                // Field java/lang/System.out:Ljava/io/PrintStream;
+        3052: lload         157
+        3054: l2i
+        3055: invokevirtual #374                // Method java/io/PrintStream.println:(I)V
+        3058: iconst_0
+        3059: i2l
+        3060: invokestatic  #61                 // Method java/lang/Long.valueOf:(J)Ljava/lang/Long;
+        3063: astore        159
+        3065: new           #2                  // class Block
+        3068: dup
+        3069: iconst_0
+        3070: iconst_0
+        3071: anewarray     #4                  // class java/lang/Object
+        3074: invokespecial #16                 // Method Block."<init>":(I[Ljava/lang/Object;)V
+        3077: astore        160
+        3079: getstatic     #25                 // Field GLOBALS:[Ljava/lang/Object;
+        3082: bipush        46
+        3084: aload         160
+        3086: aastore
+        3087: iconst_0
+        3088: i2l
+        3089: invokestatic  #61                 // Method java/lang/Long.valueOf:(J)Ljava/lang/Long;
+        3092: astore        161
+        3094: iconst_0
+        3095: i2l
+        3096: lstore        162
+        3098: getstatic     #25                 // Field GLOBALS:[Ljava/lang/Object;
+        3101: bipush        45
+        3103: aaload
+        3104: checkcast     #2                  // class Block
+        3107: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        3110: bipush        102
+        3112: aaload
+        3113: astore        164
+        3115: aload         164
+        3117: checkcast     #143                // class Closure
+        3120: lload         162
+        3122: invokestatic  #61                 // Method java/lang/Long.valueOf:(J)Ljava/lang/Long;
+        3125: invokevirtual #378                // Method Closure.apply1:(Ljava/lang/Object;)Ljava/lang/Object;
+        3128: astore        165
+        3130: new           #2                  // class Block
+        3133: dup
+        3134: iconst_0
+        3135: iconst_0
+        3136: anewarray     #4                  // class java/lang/Object
+        3139: invokespecial #16                 // Method Block."<init>":(I[Ljava/lang/Object;)V
+        3142: astore        166
+        3144: getstatic     #25                 // Field GLOBALS:[Ljava/lang/Object;
+        3147: bipush        47
+        3149: aload         166
+        3151: aastore
+        3152: iconst_0
+        3153: i2l
+        3154: invokestatic  #61                 // Method java/lang/Long.valueOf:(J)Ljava/lang/Long;
+        3157: astore        167
+        3159: return
     }
     |}]
 
@@ -3180,1407 +3184,1409 @@ let%expect_test "emission: closure with a captured int" =
          217: bipush        36
          219: aaload
          220: astore        16
-         222: iconst_0
-         223: i2l
-         224: invokestatic  #61                 // Method java/lang/Long.valueOf:(J)Ljava/lang/Long;
-         227: astore        17
-         229: new           #2                  // class Block
-         232: dup
-         233: iconst_0
-         234: bipush        104
-         236: anewarray     #4                  // class java/lang/Object
-         239: invokespecial #16                 // Method Block."<init>":(I[Ljava/lang/Object;)V
-         242: astore        18
-         244: new           #63                 // class ocaml_fn_8
-         247: dup
-         248: invokespecial #64                 // Method ocaml_fn_8."<init>":()V
-         251: astore        19
-         253: aload         18
-         255: checkcast     #2                  // class Block
-         258: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-         261: iconst_1
-         262: aload         19
-         264: aastore
-         265: new           #69                 // class ocaml_fn_9
-         268: dup
-         269: invokespecial #70                 // Method ocaml_fn_9."<init>":()V
-         272: astore        20
-         274: aload         18
-         276: checkcast     #2                  // class Block
-         279: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-         282: iconst_0
-         283: aload         20
-         285: aastore
-         286: iconst_0
-         287: i2l
-         288: lstore        21
-         290: iconst_0
-         291: i2l
-         292: invokestatic  #61                 // Method java/lang/Long.valueOf:(J)Ljava/lang/Long;
-         295: astore        23
-         297: getstatic     #25                 // Field GLOBALS:[Ljava/lang/Object;
-         300: bipush        37
-         302: aaload
-         303: astore        24
-         305: new           #2                  // class Block
-         308: dup
-         309: sipush        248
-         312: iconst_2
-         313: anewarray     #4                  // class java/lang/Object
-         316: dup
-         317: iconst_0
-         318: aload         24
-         320: aastore
+         222: aload         16
+         224: aload         15
+         226: invokestatic  #65                 // Method Ocaml.registerNamedValue:(Ljava/lang/Object;Ljava/lang/Object;)J
+         229: invokestatic  #61                 // Method java/lang/Long.valueOf:(J)Ljava/lang/Long;
+         232: astore        17
+         234: new           #2                  // class Block
+         237: dup
+         238: iconst_0
+         239: bipush        104
+         241: anewarray     #4                  // class java/lang/Object
+         244: invokespecial #16                 // Method Block."<init>":(I[Ljava/lang/Object;)V
+         247: astore        18
+         249: new           #67                 // class ocaml_fn_8
+         252: dup
+         253: invokespecial #68                 // Method ocaml_fn_8."<init>":()V
+         256: astore        19
+         258: aload         18
+         260: checkcast     #2                  // class Block
+         263: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+         266: iconst_1
+         267: aload         19
+         269: aastore
+         270: new           #73                 // class ocaml_fn_9
+         273: dup
+         274: invokespecial #74                 // Method ocaml_fn_9."<init>":()V
+         277: astore        20
+         279: aload         18
+         281: checkcast     #2                  // class Block
+         284: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+         287: iconst_0
+         288: aload         20
+         290: aastore
+         291: iconst_0
+         292: i2l
+         293: lstore        21
+         295: iconst_0
+         296: i2l
+         297: invokestatic  #61                 // Method java/lang/Long.valueOf:(J)Ljava/lang/Long;
+         300: astore        23
+         302: getstatic     #25                 // Field GLOBALS:[Ljava/lang/Object;
+         305: bipush        37
+         307: aaload
+         308: astore        24
+         310: new           #2                  // class Block
+         313: dup
+         314: sipush        248
+         317: iconst_2
+         318: anewarray     #4                  // class java/lang/Object
          321: dup
-         322: iconst_1
-         323: aload         23
+         322: iconst_0
+         323: aload         24
          325: aastore
-         326: invokespecial #16                 // Method Block."<init>":(I[Ljava/lang/Object;)V
-         329: astore        25
-         331: aload         18
-         333: checkcast     #2                  // class Block
-         336: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-         339: iconst_2
-         340: aload         25
-         342: aastore
-         343: getstatic     #25                 // Field GLOBALS:[Ljava/lang/Object;
-         346: bipush        7
-         348: aaload
-         349: astore        26
-         351: aload         18
-         353: checkcast     #2                  // class Block
-         356: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-         359: iconst_3
-         360: aload         26
-         362: aastore
-         363: getstatic     #25                 // Field GLOBALS:[Ljava/lang/Object;
-         366: bipush        10
-         368: aaload
-         369: astore        27
-         371: aload         18
-         373: checkcast     #2                  // class Block
-         376: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-         379: iconst_4
-         380: aload         27
-         382: aastore
-         383: getstatic     #25                 // Field GLOBALS:[Ljava/lang/Object;
-         386: iconst_3
-         387: aaload
-         388: astore        28
-         390: aload         18
-         392: checkcast     #2                  // class Block
-         395: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-         398: iconst_5
-         399: aload         28
-         401: aastore
-         402: getstatic     #25                 // Field GLOBALS:[Ljava/lang/Object;
-         405: iconst_2
-         406: aaload
-         407: astore        29
-         409: aload         18
-         411: checkcast     #2                  // class Block
-         414: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-         417: bipush        6
-         419: aload         29
-         421: aastore
-         422: getstatic     #25                 // Field GLOBALS:[Ljava/lang/Object;
-         425: bipush        6
-         427: aaload
-         428: astore        30
-         430: aload         18
-         432: checkcast     #2                  // class Block
-         435: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-         438: bipush        7
-         440: aload         30
-         442: aastore
-         443: getstatic     #25                 // Field GLOBALS:[Ljava/lang/Object;
-         446: iconst_0
-         447: aaload
-         448: astore        31
-         450: aload         18
-         452: checkcast     #2                  // class Block
-         455: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-         458: bipush        8
-         460: aload         31
-         462: aastore
-         463: getstatic     #25                 // Field GLOBALS:[Ljava/lang/Object;
-         466: bipush        8
-         468: aaload
-         469: astore        32
-         471: aload         18
-         473: checkcast     #2                  // class Block
-         476: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-         479: bipush        9
-         481: aload         32
-         483: aastore
-         484: getstatic     #25                 // Field GLOBALS:[Ljava/lang/Object;
-         487: iconst_1
-         488: aaload
-         489: astore        33
-         491: aload         18
-         493: checkcast     #2                  // class Block
-         496: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-         499: bipush        10
-         501: aload         33
-         503: aastore
-         504: getstatic     #25                 // Field GLOBALS:[Ljava/lang/Object;
-         507: iconst_4
-         508: aaload
-         509: astore        34
-         511: aload         18
-         513: checkcast     #2                  // class Block
-         516: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-         519: bipush        11
-         521: aload         34
-         523: aastore
-         524: getstatic     #25                 // Field GLOBALS:[Ljava/lang/Object;
-         527: iconst_5
-         528: aaload
-         529: astore        35
-         531: aload         18
-         533: checkcast     #2                  // class Block
-         536: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-         539: bipush        12
-         541: aload         35
-         543: aastore
-         544: getstatic     #25                 // Field GLOBALS:[Ljava/lang/Object;
-         547: bipush        9
-         549: aaload
-         550: astore        36
-         552: aload         18
-         554: checkcast     #2                  // class Block
-         557: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-         560: bipush        13
-         562: aload         36
-         564: aastore
-         565: getstatic     #25                 // Field GLOBALS:[Ljava/lang/Object;
-         568: bipush        11
-         570: aaload
-         571: astore        37
-         573: aload         18
-         575: checkcast     #2                  // class Block
-         578: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-         581: bipush        14
-         583: aload         37
-         585: aastore
-         586: new           #72                 // class ocaml_fn_10
-         589: dup
-         590: invokespecial #73                 // Method ocaml_fn_10."<init>":()V
-         593: astore        38
-         595: aload         18
-         597: checkcast     #2                  // class Block
-         600: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-         603: bipush        15
-         605: aload         38
-         607: aastore
-         608: new           #75                 // class ocaml_fn_11
-         611: dup
-         612: invokespecial #76                 // Method ocaml_fn_11."<init>":()V
-         615: astore        39
-         617: aload         18
-         619: checkcast     #2                  // class Block
-         622: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-         625: bipush        16
-         627: aload         39
-         629: aastore
-         630: new           #78                 // class ocaml_fn_12
-         633: dup
-         634: invokespecial #79                 // Method ocaml_fn_12."<init>":()V
-         637: astore        40
-         639: aload         18
-         641: checkcast     #2                  // class Block
-         644: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-         647: bipush        17
-         649: aload         40
-         651: aastore
-         652: new           #81                 // class ocaml_fn_13
-         655: dup
-         656: invokespecial #82                 // Method ocaml_fn_13."<init>":()V
-         659: astore        41
-         661: aload         18
-         663: checkcast     #2                  // class Block
-         666: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-         669: bipush        20
-         671: aload         41
-         673: aastore
-         674: ldc2_w        #83                 // long 4611686018427387903l
-         677: lstore        42
-         679: aload         18
-         681: checkcast     #2                  // class Block
-         684: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-         687: bipush        18
-         689: lload         42
-         691: invokestatic  #61                 // Method java/lang/Long.valueOf:(J)Ljava/lang/Long;
-         694: aastore
-         695: ldc2_w        #85                 // long -4611686018427387904l
-         698: lstore        44
-         700: aload         18
-         702: checkcast     #2                  // class Block
-         705: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-         708: bipush        19
-         710: lload         44
-         712: invokestatic  #61                 // Method java/lang/Long.valueOf:(J)Ljava/lang/Long;
-         715: aastore
-         716: getstatic     #25                 // Field GLOBALS:[Ljava/lang/Object;
-         719: bipush        38
-         721: aaload
-         722: astore        46
-         724: aload         46
-         726: invokestatic  #90                 // Method Block.asLong:(Ljava/lang/Object;)J
-         729: invokestatic  #96                 // Method java/lang/Double.longBitsToDouble:(J)D
-         732: invokestatic  #99                 // Method java/lang/Double.valueOf:(D)Ljava/lang/Double;
-         735: astore        47
-         737: aload         18
-         739: checkcast     #2                  // class Block
-         742: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-         745: bipush        21
-         747: aload         47
-         749: aastore
-         750: getstatic     #25                 // Field GLOBALS:[Ljava/lang/Object;
-         753: bipush        39
-         755: aaload
-         756: astore        48
-         758: aload         48
-         760: invokestatic  #90                 // Method Block.asLong:(Ljava/lang/Object;)J
-         763: invokestatic  #96                 // Method java/lang/Double.longBitsToDouble:(J)D
-         766: invokestatic  #99                 // Method java/lang/Double.valueOf:(D)Ljava/lang/Double;
-         769: astore        49
-         771: aload         18
-         773: checkcast     #2                  // class Block
-         776: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-         779: bipush        22
-         781: aload         49
-         783: aastore
-         784: getstatic     #25                 // Field GLOBALS:[Ljava/lang/Object;
-         787: bipush        40
-         789: aaload
-         790: astore        50
-         792: aload         50
-         794: invokestatic  #90                 // Method Block.asLong:(Ljava/lang/Object;)J
-         797: invokestatic  #96                 // Method java/lang/Double.longBitsToDouble:(J)D
-         800: invokestatic  #99                 // Method java/lang/Double.valueOf:(D)Ljava/lang/Double;
-         803: astore        51
-         805: aload         18
-         807: checkcast     #2                  // class Block
-         810: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-         813: bipush        23
-         815: aload         51
-         817: aastore
-         818: getstatic     #25                 // Field GLOBALS:[Ljava/lang/Object;
-         821: bipush        41
-         823: aaload
-         824: astore        52
-         826: aload         52
-         828: invokestatic  #90                 // Method Block.asLong:(Ljava/lang/Object;)J
-         831: invokestatic  #96                 // Method java/lang/Double.longBitsToDouble:(J)D
-         834: invokestatic  #99                 // Method java/lang/Double.valueOf:(D)Ljava/lang/Double;
-         837: astore        53
-         839: aload         18
-         841: checkcast     #2                  // class Block
-         844: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-         847: bipush        24
-         849: aload         53
-         851: aastore
-         852: getstatic     #25                 // Field GLOBALS:[Ljava/lang/Object;
-         855: bipush        42
-         857: aaload
-         858: astore        54
-         860: aload         54
-         862: invokestatic  #90                 // Method Block.asLong:(Ljava/lang/Object;)J
-         865: invokestatic  #96                 // Method java/lang/Double.longBitsToDouble:(J)D
-         868: invokestatic  #99                 // Method java/lang/Double.valueOf:(D)Ljava/lang/Double;
-         871: astore        55
-         873: aload         18
-         875: checkcast     #2                  // class Block
-         878: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-         881: bipush        25
-         883: aload         55
-         885: aastore
-         886: getstatic     #25                 // Field GLOBALS:[Ljava/lang/Object;
-         889: bipush        43
-         891: aaload
-         892: astore        56
-         894: aload         56
-         896: invokestatic  #90                 // Method Block.asLong:(Ljava/lang/Object;)J
-         899: invokestatic  #96                 // Method java/lang/Double.longBitsToDouble:(J)D
-         902: invokestatic  #99                 // Method java/lang/Double.valueOf:(D)Ljava/lang/Double;
-         905: astore        57
-         907: aload         18
-         909: checkcast     #2                  // class Block
-         912: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-         915: bipush        26
-         917: aload         57
-         919: aastore
-         920: new           #101                // class ocaml_fn_14
-         923: dup
-         924: invokespecial #102                // Method ocaml_fn_14."<init>":()V
-         927: astore        58
-         929: aload         18
-         931: checkcast     #2                  // class Block
-         934: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-         937: bipush        27
-         939: aload         58
-         941: aastore
-         942: new           #104                // class ocaml_fn_15
-         945: dup
-         946: aload         20
-         948: invokespecial #107                // Method ocaml_fn_15."<init>":(Ljava/lang/Object;)V
-         951: astore        59
-         953: aload         18
-         955: checkcast     #2                  // class Block
-         958: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-         961: bipush        28
-         963: aload         59
-         965: aastore
-         966: new           #109                // class ocaml_fn_16
-         969: dup
-         970: invokespecial #110                // Method ocaml_fn_16."<init>":()V
-         973: astore        60
-         975: aload         18
-         977: checkcast     #2                  // class Block
-         980: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-         983: bipush        29
-         985: aload         60
-         987: aastore
-         988: new           #112                // class ocaml_fn_17
-         991: dup
-         992: aload         20
-         994: invokespecial #113                // Method ocaml_fn_17."<init>":(Ljava/lang/Object;)V
-         997: astore        61
-         999: aload         18
-        1001: checkcast     #2                  // class Block
-        1004: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        1007: bipush        31
-        1009: aload         61
-        1011: aastore
-        1012: new           #115                // class ocaml_fn_18
-        1015: dup
-        1016: invokespecial #116                // Method ocaml_fn_18."<init>":()V
-        1019: astore        62
-        1021: aload         18
-        1023: checkcast     #2                  // class Block
-        1026: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        1029: bipush        30
-        1031: aload         62
-        1033: aastore
-        1034: new           #118                // class ocaml_fn_19
-        1037: dup
-        1038: invokespecial #119                // Method ocaml_fn_19."<init>":()V
-        1041: astore        63
-        1043: aload         18
-        1045: checkcast     #2                  // class Block
-        1048: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        1051: bipush        32
-        1053: aload         63
-        1055: aastore
-        1056: new           #121                // class ocaml_fn_20
-        1059: dup
-        1060: aload         29
-        1062: invokespecial #122                // Method ocaml_fn_20."<init>":(Ljava/lang/Object;)V
-        1065: astore        64
-        1067: aload         18
-        1069: checkcast     #2                  // class Block
-        1072: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        1075: bipush        33
-        1077: aload         64
-        1079: aastore
-        1080: new           #124                // class ocaml_fn_21
-        1083: dup
-        1084: aload         58
-        1086: invokespecial #125                // Method ocaml_fn_21."<init>":(Ljava/lang/Object;)V
-        1089: astore        65
-        1091: aload         18
-        1093: checkcast     #2                  // class Block
-        1096: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        1099: bipush        100
-        1101: aload         65
-        1103: aastore
-        1104: new           #127                // class ocaml_fn_22
-        1107: dup
-        1108: aload         65
-        1110: invokespecial #128                // Method ocaml_fn_22."<init>":(Ljava/lang/Object;)V
-        1113: astore        66
-        1115: aload         18
-        1117: checkcast     #2                  // class Block
-        1120: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        1123: bipush        34
-        1125: aload         66
-        1127: aastore
-        1128: new           #130                // class ocaml_fn_23
-        1131: dup
-        1132: aload         29
-        1134: invokespecial #131                // Method ocaml_fn_23."<init>":(Ljava/lang/Object;)V
-        1137: astore        67
-        1139: aload         18
-        1141: checkcast     #2                  // class Block
-        1144: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        1147: bipush        35
-        1149: aload         67
-        1151: aastore
-        1152: new           #133                // class ocaml_fn_24
-        1155: dup
-        1156: invokespecial #134                // Method ocaml_fn_24."<init>":()V
-        1159: astore        68
-        1161: aload         18
-        1163: checkcast     #2                  // class Block
-        1166: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        1169: bipush        36
-        1171: aload         68
-        1173: aastore
-        1174: new           #136                // class ocaml_fn_25
-        1177: dup
-        1178: invokespecial #137                // Method ocaml_fn_25."<init>":()V
-        1181: astore        69
-        1183: aload         68
-        1185: checkcast     #133                // class ocaml_fn_24
+         326: dup
+         327: iconst_1
+         328: aload         23
+         330: aastore
+         331: invokespecial #16                 // Method Block."<init>":(I[Ljava/lang/Object;)V
+         334: astore        25
+         336: aload         18
+         338: checkcast     #2                  // class Block
+         341: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+         344: iconst_2
+         345: aload         25
+         347: aastore
+         348: getstatic     #25                 // Field GLOBALS:[Ljava/lang/Object;
+         351: bipush        7
+         353: aaload
+         354: astore        26
+         356: aload         18
+         358: checkcast     #2                  // class Block
+         361: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+         364: iconst_3
+         365: aload         26
+         367: aastore
+         368: getstatic     #25                 // Field GLOBALS:[Ljava/lang/Object;
+         371: bipush        10
+         373: aaload
+         374: astore        27
+         376: aload         18
+         378: checkcast     #2                  // class Block
+         381: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+         384: iconst_4
+         385: aload         27
+         387: aastore
+         388: getstatic     #25                 // Field GLOBALS:[Ljava/lang/Object;
+         391: iconst_3
+         392: aaload
+         393: astore        28
+         395: aload         18
+         397: checkcast     #2                  // class Block
+         400: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+         403: iconst_5
+         404: aload         28
+         406: aastore
+         407: getstatic     #25                 // Field GLOBALS:[Ljava/lang/Object;
+         410: iconst_2
+         411: aaload
+         412: astore        29
+         414: aload         18
+         416: checkcast     #2                  // class Block
+         419: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+         422: bipush        6
+         424: aload         29
+         426: aastore
+         427: getstatic     #25                 // Field GLOBALS:[Ljava/lang/Object;
+         430: bipush        6
+         432: aaload
+         433: astore        30
+         435: aload         18
+         437: checkcast     #2                  // class Block
+         440: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+         443: bipush        7
+         445: aload         30
+         447: aastore
+         448: getstatic     #25                 // Field GLOBALS:[Ljava/lang/Object;
+         451: iconst_0
+         452: aaload
+         453: astore        31
+         455: aload         18
+         457: checkcast     #2                  // class Block
+         460: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+         463: bipush        8
+         465: aload         31
+         467: aastore
+         468: getstatic     #25                 // Field GLOBALS:[Ljava/lang/Object;
+         471: bipush        8
+         473: aaload
+         474: astore        32
+         476: aload         18
+         478: checkcast     #2                  // class Block
+         481: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+         484: bipush        9
+         486: aload         32
+         488: aastore
+         489: getstatic     #25                 // Field GLOBALS:[Ljava/lang/Object;
+         492: iconst_1
+         493: aaload
+         494: astore        33
+         496: aload         18
+         498: checkcast     #2                  // class Block
+         501: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+         504: bipush        10
+         506: aload         33
+         508: aastore
+         509: getstatic     #25                 // Field GLOBALS:[Ljava/lang/Object;
+         512: iconst_4
+         513: aaload
+         514: astore        34
+         516: aload         18
+         518: checkcast     #2                  // class Block
+         521: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+         524: bipush        11
+         526: aload         34
+         528: aastore
+         529: getstatic     #25                 // Field GLOBALS:[Ljava/lang/Object;
+         532: iconst_5
+         533: aaload
+         534: astore        35
+         536: aload         18
+         538: checkcast     #2                  // class Block
+         541: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+         544: bipush        12
+         546: aload         35
+         548: aastore
+         549: getstatic     #25                 // Field GLOBALS:[Ljava/lang/Object;
+         552: bipush        9
+         554: aaload
+         555: astore        36
+         557: aload         18
+         559: checkcast     #2                  // class Block
+         562: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+         565: bipush        13
+         567: aload         36
+         569: aastore
+         570: getstatic     #25                 // Field GLOBALS:[Ljava/lang/Object;
+         573: bipush        11
+         575: aaload
+         576: astore        37
+         578: aload         18
+         580: checkcast     #2                  // class Block
+         583: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+         586: bipush        14
+         588: aload         37
+         590: aastore
+         591: new           #76                 // class ocaml_fn_10
+         594: dup
+         595: invokespecial #77                 // Method ocaml_fn_10."<init>":()V
+         598: astore        38
+         600: aload         18
+         602: checkcast     #2                  // class Block
+         605: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+         608: bipush        15
+         610: aload         38
+         612: aastore
+         613: new           #79                 // class ocaml_fn_11
+         616: dup
+         617: invokespecial #80                 // Method ocaml_fn_11."<init>":()V
+         620: astore        39
+         622: aload         18
+         624: checkcast     #2                  // class Block
+         627: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+         630: bipush        16
+         632: aload         39
+         634: aastore
+         635: new           #82                 // class ocaml_fn_12
+         638: dup
+         639: invokespecial #83                 // Method ocaml_fn_12."<init>":()V
+         642: astore        40
+         644: aload         18
+         646: checkcast     #2                  // class Block
+         649: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+         652: bipush        17
+         654: aload         40
+         656: aastore
+         657: new           #85                 // class ocaml_fn_13
+         660: dup
+         661: invokespecial #86                 // Method ocaml_fn_13."<init>":()V
+         664: astore        41
+         666: aload         18
+         668: checkcast     #2                  // class Block
+         671: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+         674: bipush        20
+         676: aload         41
+         678: aastore
+         679: ldc2_w        #87                 // long 4611686018427387903l
+         682: lstore        42
+         684: aload         18
+         686: checkcast     #2                  // class Block
+         689: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+         692: bipush        18
+         694: lload         42
+         696: invokestatic  #61                 // Method java/lang/Long.valueOf:(J)Ljava/lang/Long;
+         699: aastore
+         700: ldc2_w        #89                 // long -4611686018427387904l
+         703: lstore        44
+         705: aload         18
+         707: checkcast     #2                  // class Block
+         710: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+         713: bipush        19
+         715: lload         44
+         717: invokestatic  #61                 // Method java/lang/Long.valueOf:(J)Ljava/lang/Long;
+         720: aastore
+         721: getstatic     #25                 // Field GLOBALS:[Ljava/lang/Object;
+         724: bipush        38
+         726: aaload
+         727: astore        46
+         729: aload         46
+         731: invokestatic  #94                 // Method Block.asLong:(Ljava/lang/Object;)J
+         734: invokestatic  #100                // Method java/lang/Double.longBitsToDouble:(J)D
+         737: invokestatic  #103                // Method java/lang/Double.valueOf:(D)Ljava/lang/Double;
+         740: astore        47
+         742: aload         18
+         744: checkcast     #2                  // class Block
+         747: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+         750: bipush        21
+         752: aload         47
+         754: aastore
+         755: getstatic     #25                 // Field GLOBALS:[Ljava/lang/Object;
+         758: bipush        39
+         760: aaload
+         761: astore        48
+         763: aload         48
+         765: invokestatic  #94                 // Method Block.asLong:(Ljava/lang/Object;)J
+         768: invokestatic  #100                // Method java/lang/Double.longBitsToDouble:(J)D
+         771: invokestatic  #103                // Method java/lang/Double.valueOf:(D)Ljava/lang/Double;
+         774: astore        49
+         776: aload         18
+         778: checkcast     #2                  // class Block
+         781: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+         784: bipush        22
+         786: aload         49
+         788: aastore
+         789: getstatic     #25                 // Field GLOBALS:[Ljava/lang/Object;
+         792: bipush        40
+         794: aaload
+         795: astore        50
+         797: aload         50
+         799: invokestatic  #94                 // Method Block.asLong:(Ljava/lang/Object;)J
+         802: invokestatic  #100                // Method java/lang/Double.longBitsToDouble:(J)D
+         805: invokestatic  #103                // Method java/lang/Double.valueOf:(D)Ljava/lang/Double;
+         808: astore        51
+         810: aload         18
+         812: checkcast     #2                  // class Block
+         815: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+         818: bipush        23
+         820: aload         51
+         822: aastore
+         823: getstatic     #25                 // Field GLOBALS:[Ljava/lang/Object;
+         826: bipush        41
+         828: aaload
+         829: astore        52
+         831: aload         52
+         833: invokestatic  #94                 // Method Block.asLong:(Ljava/lang/Object;)J
+         836: invokestatic  #100                // Method java/lang/Double.longBitsToDouble:(J)D
+         839: invokestatic  #103                // Method java/lang/Double.valueOf:(D)Ljava/lang/Double;
+         842: astore        53
+         844: aload         18
+         846: checkcast     #2                  // class Block
+         849: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+         852: bipush        24
+         854: aload         53
+         856: aastore
+         857: getstatic     #25                 // Field GLOBALS:[Ljava/lang/Object;
+         860: bipush        42
+         862: aaload
+         863: astore        54
+         865: aload         54
+         867: invokestatic  #94                 // Method Block.asLong:(Ljava/lang/Object;)J
+         870: invokestatic  #100                // Method java/lang/Double.longBitsToDouble:(J)D
+         873: invokestatic  #103                // Method java/lang/Double.valueOf:(D)Ljava/lang/Double;
+         876: astore        55
+         878: aload         18
+         880: checkcast     #2                  // class Block
+         883: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+         886: bipush        25
+         888: aload         55
+         890: aastore
+         891: getstatic     #25                 // Field GLOBALS:[Ljava/lang/Object;
+         894: bipush        43
+         896: aaload
+         897: astore        56
+         899: aload         56
+         901: invokestatic  #94                 // Method Block.asLong:(Ljava/lang/Object;)J
+         904: invokestatic  #100                // Method java/lang/Double.longBitsToDouble:(J)D
+         907: invokestatic  #103                // Method java/lang/Double.valueOf:(D)Ljava/lang/Double;
+         910: astore        57
+         912: aload         18
+         914: checkcast     #2                  // class Block
+         917: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+         920: bipush        26
+         922: aload         57
+         924: aastore
+         925: new           #105                // class ocaml_fn_14
+         928: dup
+         929: invokespecial #106                // Method ocaml_fn_14."<init>":()V
+         932: astore        58
+         934: aload         18
+         936: checkcast     #2                  // class Block
+         939: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+         942: bipush        27
+         944: aload         58
+         946: aastore
+         947: new           #108                // class ocaml_fn_15
+         950: dup
+         951: aload         20
+         953: invokespecial #111                // Method ocaml_fn_15."<init>":(Ljava/lang/Object;)V
+         956: astore        59
+         958: aload         18
+         960: checkcast     #2                  // class Block
+         963: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+         966: bipush        28
+         968: aload         59
+         970: aastore
+         971: new           #113                // class ocaml_fn_16
+         974: dup
+         975: invokespecial #114                // Method ocaml_fn_16."<init>":()V
+         978: astore        60
+         980: aload         18
+         982: checkcast     #2                  // class Block
+         985: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+         988: bipush        29
+         990: aload         60
+         992: aastore
+         993: new           #116                // class ocaml_fn_17
+         996: dup
+         997: aload         20
+         999: invokespecial #117                // Method ocaml_fn_17."<init>":(Ljava/lang/Object;)V
+        1002: astore        61
+        1004: aload         18
+        1006: checkcast     #2                  // class Block
+        1009: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        1012: bipush        31
+        1014: aload         61
+        1016: aastore
+        1017: new           #119                // class ocaml_fn_18
+        1020: dup
+        1021: invokespecial #120                // Method ocaml_fn_18."<init>":()V
+        1024: astore        62
+        1026: aload         18
+        1028: checkcast     #2                  // class Block
+        1031: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        1034: bipush        30
+        1036: aload         62
+        1038: aastore
+        1039: new           #122                // class ocaml_fn_19
+        1042: dup
+        1043: invokespecial #123                // Method ocaml_fn_19."<init>":()V
+        1046: astore        63
+        1048: aload         18
+        1050: checkcast     #2                  // class Block
+        1053: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        1056: bipush        32
+        1058: aload         63
+        1060: aastore
+        1061: new           #125                // class ocaml_fn_20
+        1064: dup
+        1065: aload         29
+        1067: invokespecial #126                // Method ocaml_fn_20."<init>":(Ljava/lang/Object;)V
+        1070: astore        64
+        1072: aload         18
+        1074: checkcast     #2                  // class Block
+        1077: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        1080: bipush        33
+        1082: aload         64
+        1084: aastore
+        1085: new           #128                // class ocaml_fn_21
+        1088: dup
+        1089: aload         58
+        1091: invokespecial #129                // Method ocaml_fn_21."<init>":(Ljava/lang/Object;)V
+        1094: astore        65
+        1096: aload         18
+        1098: checkcast     #2                  // class Block
+        1101: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        1104: bipush        100
+        1106: aload         65
+        1108: aastore
+        1109: new           #131                // class ocaml_fn_22
+        1112: dup
+        1113: aload         65
+        1115: invokespecial #132                // Method ocaml_fn_22."<init>":(Ljava/lang/Object;)V
+        1118: astore        66
+        1120: aload         18
+        1122: checkcast     #2                  // class Block
+        1125: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        1128: bipush        34
+        1130: aload         66
+        1132: aastore
+        1133: new           #134                // class ocaml_fn_23
+        1136: dup
+        1137: aload         29
+        1139: invokespecial #135                // Method ocaml_fn_23."<init>":(Ljava/lang/Object;)V
+        1142: astore        67
+        1144: aload         18
+        1146: checkcast     #2                  // class Block
+        1149: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        1152: bipush        35
+        1154: aload         67
+        1156: aastore
+        1157: new           #137                // class ocaml_fn_24
+        1160: dup
+        1161: invokespecial #138                // Method ocaml_fn_24."<init>":()V
+        1164: astore        68
+        1166: aload         18
+        1168: checkcast     #2                  // class Block
+        1171: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        1174: bipush        36
+        1176: aload         68
+        1178: aastore
+        1179: new           #140                // class ocaml_fn_25
+        1182: dup
+        1183: invokespecial #141                // Method ocaml_fn_25."<init>":()V
+        1186: astore        69
         1188: aload         68
-        1190: checkcast     #139                // class Closure
-        1193: putfield      #143                // Field ocaml_fn_24.sibling_0:LClosure;
-        1196: iconst_0
-        1197: i2l
-        1198: invokestatic  #61                 // Method java/lang/Long.valueOf:(J)Ljava/lang/Long;
-        1201: astore        70
-        1203: aload         68
-        1205: checkcast     #133                // class ocaml_fn_24
-        1208: aload         69
-        1210: checkcast     #139                // class Closure
-        1213: putfield      #146                // Field ocaml_fn_24.sibling_1:LClosure;
-        1216: iconst_0
-        1217: i2l
-        1218: invokestatic  #61                 // Method java/lang/Long.valueOf:(J)Ljava/lang/Long;
-        1221: astore        71
-        1223: aload         69
-        1225: checkcast     #136                // class ocaml_fn_25
-        1228: aload         68
-        1230: checkcast     #139                // class Closure
-        1233: putfield      #147                // Field ocaml_fn_25.sibling_0:LClosure;
-        1236: iconst_0
-        1237: i2l
-        1238: invokestatic  #61                 // Method java/lang/Long.valueOf:(J)Ljava/lang/Long;
-        1241: astore        72
-        1243: aload         69
-        1245: checkcast     #136                // class ocaml_fn_25
+        1190: checkcast     #137                // class ocaml_fn_24
+        1193: aload         68
+        1195: checkcast     #143                // class Closure
+        1198: putfield      #147                // Field ocaml_fn_24.sibling_0:LClosure;
+        1201: iconst_0
+        1202: i2l
+        1203: invokestatic  #61                 // Method java/lang/Long.valueOf:(J)Ljava/lang/Long;
+        1206: astore        70
+        1208: aload         68
+        1210: checkcast     #137                // class ocaml_fn_24
+        1213: aload         69
+        1215: checkcast     #143                // class Closure
+        1218: putfield      #150                // Field ocaml_fn_24.sibling_1:LClosure;
+        1221: iconst_0
+        1222: i2l
+        1223: invokestatic  #61                 // Method java/lang/Long.valueOf:(J)Ljava/lang/Long;
+        1226: astore        71
+        1228: aload         69
+        1230: checkcast     #140                // class ocaml_fn_25
+        1233: aload         68
+        1235: checkcast     #143                // class Closure
+        1238: putfield      #151                // Field ocaml_fn_25.sibling_0:LClosure;
+        1241: iconst_0
+        1242: i2l
+        1243: invokestatic  #61                 // Method java/lang/Long.valueOf:(J)Ljava/lang/Long;
+        1246: astore        72
         1248: aload         69
-        1250: checkcast     #139                // class Closure
-        1253: putfield      #148                // Field ocaml_fn_25.sibling_1:LClosure;
-        1256: iconst_0
-        1257: i2l
-        1258: invokestatic  #61                 // Method java/lang/Long.valueOf:(J)Ljava/lang/Long;
-        1261: astore        73
-        1263: iconst_0
-        1264: i2l
-        1265: lstore        74
-        1267: lload         74
-        1269: l2i
-        1270: invokestatic  #152                // Method Channel.forDescriptor:(I)LChannel;
-        1273: astore        76
-        1275: aload         18
-        1277: checkcast     #2                  // class Block
-        1280: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        1283: bipush        37
-        1285: aload         76
-        1287: aastore
-        1288: iconst_1
-        1289: i2l
-        1290: lstore        77
-        1292: lload         77
-        1294: l2i
-        1295: invokestatic  #152                // Method Channel.forDescriptor:(I)LChannel;
-        1298: astore        79
-        1300: aload         18
-        1302: checkcast     #2                  // class Block
-        1305: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        1308: bipush        38
-        1310: aload         79
-        1312: aastore
-        1313: iconst_2
-        1314: i2l
-        1315: lstore        80
-        1317: lload         80
-        1319: l2i
-        1320: invokestatic  #152                // Method Channel.forDescriptor:(I)LChannel;
-        1323: astore        82
-        1325: aload         18
-        1327: checkcast     #2                  // class Block
-        1330: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        1333: bipush        39
-        1335: aload         82
-        1337: aastore
-        1338: new           #154                // class ocaml_fn_26
-        1341: dup
-        1342: invokespecial #155                // Method ocaml_fn_26."<init>":()V
-        1345: astore        83
-        1347: aload         18
-        1349: checkcast     #2                  // class Block
-        1352: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        1355: bipush        61
-        1357: aload         83
-        1359: aastore
-        1360: new           #157                // class ocaml_fn_27
-        1363: dup
-        1364: aload         83
-        1366: invokespecial #158                // Method ocaml_fn_27."<init>":(Ljava/lang/Object;)V
-        1369: astore        84
-        1371: aload         18
-        1373: checkcast     #2                  // class Block
-        1376: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        1379: bipush        59
-        1381: aload         84
-        1383: aastore
-        1384: new           #160                // class ocaml_fn_28
-        1387: dup
-        1388: aload         83
-        1390: invokespecial #161                // Method ocaml_fn_28."<init>":(Ljava/lang/Object;)V
-        1393: astore        85
-        1395: aload         18
-        1397: checkcast     #2                  // class Block
-        1400: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        1403: bipush        60
-        1405: aload         85
-        1407: aastore
-        1408: new           #163                // class ocaml_fn_29
-        1411: dup
-        1412: aload         33
-        1414: invokespecial #164                // Method ocaml_fn_29."<init>":(Ljava/lang/Object;)V
-        1417: astore        86
-        1419: aload         18
-        1421: checkcast     #2                  // class Block
-        1424: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        1427: bipush        63
-        1429: aload         86
-        1431: aastore
-        1432: new           #166                // class ocaml_fn_30
-        1435: dup
-        1436: invokespecial #167                // Method ocaml_fn_30."<init>":()V
-        1439: astore        87
-        1441: aload         18
-        1443: checkcast     #2                  // class Block
-        1446: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        1449: bipush        66
-        1451: aload         87
-        1453: aastore
-        1454: new           #169                // class ocaml_fn_31
-        1457: dup
-        1458: invokespecial #170                // Method ocaml_fn_31."<init>":()V
-        1461: astore        88
-        1463: aload         18
-        1465: checkcast     #2                  // class Block
-        1468: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        1471: bipush        65
-        1473: aload         88
-        1475: aastore
-        1476: new           #172                // class ocaml_fn_32
-        1479: dup
-        1480: aload         20
-        1482: invokespecial #173                // Method ocaml_fn_32."<init>":(Ljava/lang/Object;)V
-        1485: astore        89
-        1487: aload         18
-        1489: checkcast     #2                  // class Block
-        1492: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        1495: bipush        67
-        1497: aload         89
-        1499: aastore
-        1500: new           #175                // class ocaml_fn_33
-        1503: dup
-        1504: aload         20
-        1506: invokespecial #176                // Method ocaml_fn_33."<init>":(Ljava/lang/Object;)V
-        1509: astore        90
-        1511: aload         18
-        1513: checkcast     #2                  // class Block
-        1516: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        1519: bipush        68
-        1521: aload         90
-        1523: aastore
-        1524: new           #178                // class ocaml_fn_34
-        1527: dup
-        1528: invokespecial #179                // Method ocaml_fn_34."<init>":()V
-        1531: astore        91
-        1533: aload         18
-        1535: checkcast     #2                  // class Block
-        1538: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        1541: bipush        71
-        1543: aload         91
-        1545: aastore
-        1546: new           #181                // class ocaml_fn_35
-        1549: dup
-        1550: invokespecial #182                // Method ocaml_fn_35."<init>":()V
-        1553: astore        92
-        1555: aload         18
-        1557: checkcast     #2                  // class Block
-        1560: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        1563: bipush        75
-        1565: aload         92
-        1567: aastore
-        1568: new           #184                // class ocaml_fn_36
-        1571: dup
-        1572: invokespecial #185                // Method ocaml_fn_36."<init>":()V
-        1575: astore        93
-        1577: aload         18
-        1579: checkcast     #2                  // class Block
-        1582: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        1585: bipush        76
-        1587: aload         93
-        1589: aastore
-        1590: new           #187                // class ocaml_fn_37
-        1593: dup
-        1594: invokespecial #188                // Method ocaml_fn_37."<init>":()V
-        1597: astore        94
-        1599: aload         18
-        1601: checkcast     #2                  // class Block
-        1604: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        1607: bipush        80
-        1609: aload         94
-        1611: aastore
-        1612: new           #190                // class ocaml_fn_38
-        1615: dup
-        1616: aload         94
-        1618: invokespecial #191                // Method ocaml_fn_38."<init>":(Ljava/lang/Object;)V
-        1621: astore        95
-        1623: aload         18
-        1625: checkcast     #2                  // class Block
-        1628: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        1631: bipush        78
-        1633: aload         95
-        1635: aastore
-        1636: new           #193                // class ocaml_fn_39
-        1639: dup
-        1640: aload         94
-        1642: invokespecial #194                // Method ocaml_fn_39."<init>":(Ljava/lang/Object;)V
-        1645: astore        96
-        1647: aload         18
-        1649: checkcast     #2                  // class Block
-        1652: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        1655: bipush        79
-        1657: aload         96
-        1659: aastore
-        1660: new           #196                // class ocaml_fn_40
-        1663: dup
-        1664: aload         20
-        1666: invokespecial #197                // Method ocaml_fn_40."<init>":(Ljava/lang/Object;)V
-        1669: astore        97
-        1671: aload         18
-        1673: checkcast     #2                  // class Block
-        1676: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        1679: bipush        83
-        1681: aload         97
-        1683: aastore
-        1684: new           #199                // class ocaml_fn_41
-        1687: dup
-        1688: aload         34
-        1690: invokespecial #200                // Method ocaml_fn_41."<init>":(Ljava/lang/Object;)V
-        1693: astore        98
-        1695: aload         18
-        1697: checkcast     #2                  // class Block
-        1700: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        1703: bipush        101
-        1705: aload         98
-        1707: aastore
-        1708: new           #202                // class ocaml_fn_42
-        1711: dup
-        1712: aload         20
-        1714: aload         98
-        1716: invokespecial #205                // Method ocaml_fn_42."<init>":(Ljava/lang/Object;Ljava/lang/Object;)V
-        1719: astore        99
-        1721: aload         18
-        1723: checkcast     #2                  // class Block
-        1726: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        1729: bipush        84
-        1731: aload         99
-        1733: aastore
-        1734: new           #207                // class ocaml_fn_43
-        1737: dup
-        1738: aload         99
-        1740: invokespecial #208                // Method ocaml_fn_43."<init>":(Ljava/lang/Object;)V
-        1743: astore        100
-        1745: aload         18
-        1747: checkcast     #2                  // class Block
-        1750: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        1753: bipush        85
-        1755: aload         100
-        1757: aastore
-        1758: new           #210                // class ocaml_fn_44
-        1761: dup
-        1762: aload         34
-        1764: invokespecial #211                // Method ocaml_fn_44."<init>":(Ljava/lang/Object;)V
-        1767: astore        101
-        1769: aload         18
-        1771: checkcast     #2                  // class Block
-        1774: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        1777: bipush        82
-        1779: aload         101
-        1781: aastore
-        1782: new           #213                // class ocaml_fn_45
-        1785: dup
-        1786: invokespecial #214                // Method ocaml_fn_45."<init>":()V
-        1789: astore        102
-        1791: aload         18
-        1793: checkcast     #2                  // class Block
-        1796: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        1799: bipush        93
-        1801: aload         102
-        1803: aastore
-        1804: new           #216                // class ocaml_fn_46
-        1807: dup
-        1808: aload         79
-        1810: invokespecial #217                // Method ocaml_fn_46."<init>":(Ljava/lang/Object;)V
-        1813: astore        103
-        1815: aload         18
-        1817: checkcast     #2                  // class Block
-        1820: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        1823: bipush        40
-        1825: aload         103
-        1827: aastore
-        1828: new           #219                // class ocaml_fn_47
-        1831: dup
-        1832: aload         79
-        1834: aload         88
-        1836: invokespecial #220                // Method ocaml_fn_47."<init>":(Ljava/lang/Object;Ljava/lang/Object;)V
-        1839: astore        104
-        1841: aload         18
-        1843: checkcast     #2                  // class Block
-        1846: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        1849: bipush        41
-        1851: aload         104
-        1853: aastore
-        1854: new           #222                // class ocaml_fn_48
-        1857: dup
-        1858: aload         79
-        1860: aload         87
-        1862: invokespecial #223                // Method ocaml_fn_48."<init>":(Ljava/lang/Object;Ljava/lang/Object;)V
-        1865: astore        105
-        1867: aload         18
-        1869: checkcast     #2                  // class Block
-        1872: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        1875: bipush        42
-        1877: aload         105
-        1879: aastore
-        1880: new           #225                // class ocaml_fn_49
-        1883: dup
-        1884: aload         63
-        1886: aload         79
-        1888: aload         88
-        1890: invokespecial #228                // Method ocaml_fn_49."<init>":(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)V
-        1893: astore        106
-        1895: aload         18
-        1897: checkcast     #2                  // class Block
-        1900: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        1903: bipush        43
-        1905: aload         106
-        1907: aastore
-        1908: new           #230                // class ocaml_fn_50
-        1911: dup
-        1912: aload         66
-        1914: aload         79
-        1916: aload         88
-        1918: invokespecial #231                // Method ocaml_fn_50."<init>":(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)V
-        1921: astore        107
-        1923: aload         18
-        1925: checkcast     #2                  // class Block
-        1928: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        1931: bipush        44
-        1933: aload         107
-        1935: aastore
-        1936: new           #233                // class ocaml_fn_51
-        1939: dup
-        1940: aload         79
-        1942: aload         88
-        1944: invokespecial #234                // Method ocaml_fn_51."<init>":(Ljava/lang/Object;Ljava/lang/Object;)V
-        1947: astore        108
-        1949: aload         18
-        1951: checkcast     #2                  // class Block
-        1954: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        1957: bipush        45
-        1959: aload         108
-        1961: aastore
-        1962: new           #236                // class ocaml_fn_52
-        1965: dup
-        1966: aload         79
-        1968: invokespecial #237                // Method ocaml_fn_52."<init>":(Ljava/lang/Object;)V
-        1971: astore        109
-        1973: aload         18
-        1975: checkcast     #2                  // class Block
-        1978: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        1981: bipush        46
-        1983: aload         109
-        1985: aastore
-        1986: new           #239                // class ocaml_fn_53
-        1989: dup
-        1990: aload         82
-        1992: invokespecial #240                // Method ocaml_fn_53."<init>":(Ljava/lang/Object;)V
-        1995: astore        110
-        1997: aload         18
-        1999: checkcast     #2                  // class Block
-        2002: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        2005: bipush        47
-        2007: aload         110
-        2009: aastore
-        2010: new           #242                // class ocaml_fn_54
-        2013: dup
-        2014: aload         82
-        2016: aload         88
-        2018: invokespecial #243                // Method ocaml_fn_54."<init>":(Ljava/lang/Object;Ljava/lang/Object;)V
-        2021: astore        111
-        2023: aload         18
-        2025: checkcast     #2                  // class Block
-        2028: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        2031: bipush        48
-        2033: aload         111
-        2035: aastore
-        2036: new           #245                // class ocaml_fn_55
-        2039: dup
-        2040: aload         82
-        2042: aload         87
-        2044: invokespecial #246                // Method ocaml_fn_55."<init>":(Ljava/lang/Object;Ljava/lang/Object;)V
-        2047: astore        112
-        2049: aload         18
-        2051: checkcast     #2                  // class Block
-        2054: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        2057: bipush        49
-        2059: aload         112
-        2061: aastore
-        2062: new           #248                // class ocaml_fn_56
-        2065: dup
-        2066: aload         63
-        2068: aload         82
-        2070: aload         88
-        2072: invokespecial #249                // Method ocaml_fn_56."<init>":(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)V
-        2075: astore        113
-        2077: aload         18
-        2079: checkcast     #2                  // class Block
-        2082: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        2085: bipush        50
-        2087: aload         113
-        2089: aastore
-        2090: new           #251                // class ocaml_fn_57
-        2093: dup
-        2094: aload         66
-        2096: aload         82
-        2098: aload         88
-        2100: invokespecial #252                // Method ocaml_fn_57."<init>":(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)V
-        2103: astore        114
-        2105: aload         18
-        2107: checkcast     #2                  // class Block
-        2110: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        2113: bipush        51
-        2115: aload         114
-        2117: aastore
-        2118: new           #254                // class ocaml_fn_58
-        2121: dup
-        2122: aload         82
-        2124: aload         88
-        2126: invokespecial #255                // Method ocaml_fn_58."<init>":(Ljava/lang/Object;Ljava/lang/Object;)V
-        2129: astore        115
-        2131: aload         18
-        2133: checkcast     #2                  // class Block
-        2136: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        2139: bipush        52
-        2141: aload         115
-        2143: aastore
-        2144: new           #257                // class ocaml_fn_59
-        2147: dup
-        2148: aload         82
-        2150: invokespecial #258                // Method ocaml_fn_59."<init>":(Ljava/lang/Object;)V
-        2153: astore        116
-        2155: aload         18
-        2157: checkcast     #2                  // class Block
-        2160: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        2163: bipush        53
-        2165: aload         116
-        2167: aastore
-        2168: new           #260                // class ocaml_fn_60
-        2171: dup
-        2172: aload         76
-        2174: aload         79
-        2176: aload         101
-        2178: invokespecial #261                // Method ocaml_fn_60."<init>":(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)V
-        2181: astore        117
-        2183: aload         18
-        2185: checkcast     #2                  // class Block
-        2188: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        2191: bipush        54
-        2193: aload         117
-        2195: aastore
-        2196: new           #263                // class ocaml_fn_61
-        2199: dup
-        2200: aload         117
-        2202: invokespecial #264                // Method ocaml_fn_61."<init>":(Ljava/lang/Object;)V
-        2205: astore        118
-        2207: aload         18
-        2209: checkcast     #2                  // class Block
-        2212: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        2215: bipush        56
-        2217: aload         118
-        2219: aastore
-        2220: new           #266                // class ocaml_fn_62
-        2223: dup
-        2224: aload         64
-        2226: aload         117
-        2228: invokespecial #267                // Method ocaml_fn_62."<init>":(Ljava/lang/Object;Ljava/lang/Object;)V
-        2231: astore        119
-        2233: aload         18
-        2235: checkcast     #2                  // class Block
-        2238: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        2241: bipush        55
-        2243: aload         119
-        2245: aastore
-        2246: new           #269                // class ocaml_fn_63
-        2249: dup
-        2250: aload         117
-        2252: invokespecial #270                // Method ocaml_fn_63."<init>":(Ljava/lang/Object;)V
-        2255: astore        120
-        2257: aload         18
-        2259: checkcast     #2                  // class Block
-        2262: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        2265: bipush        58
-        2267: aload         120
-        2269: aastore
-        2270: new           #272                // class ocaml_fn_64
-        2273: dup
-        2274: aload         67
-        2276: aload         117
-        2278: invokespecial #273                // Method ocaml_fn_64."<init>":(Ljava/lang/Object;Ljava/lang/Object;)V
-        2281: astore        121
-        2283: aload         18
-        2285: checkcast     #2                  // class Block
-        2288: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        2291: bipush        57
-        2293: aload         121
-        2295: aastore
-        2296: new           #275                // class ocaml_fn_65
-        2299: dup
-        2300: invokespecial #276                // Method ocaml_fn_65."<init>":()V
-        2303: astore        122
-        2305: aload         18
-        2307: checkcast     #2                  // class Block
-        2310: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        2313: bipush        96
-        2315: aload         122
-        2317: aastore
-        2318: new           #278                // class ocaml_fn_66
-        2321: dup
-        2322: aload         58
-        2324: invokespecial #279                // Method ocaml_fn_66."<init>":(Ljava/lang/Object;)V
-        2327: astore        123
-        2329: aload         18
-        2331: checkcast     #2                  // class Block
-        2334: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        2337: bipush        97
-        2339: aload         123
-        2341: aastore
-        2342: new           #2                  // class Block
-        2345: dup
-        2346: iconst_0
-        2347: iconst_1
-        2348: anewarray     #4                  // class java/lang/Object
-        2351: dup
-        2352: iconst_0
-        2353: aload         86
-        2355: aastore
-        2356: invokespecial #16                 // Method Block."<init>":(I[Ljava/lang/Object;)V
-        2359: astore        124
-        2361: new           #281                // class ocaml_fn_67
-        2364: dup
-        2365: aload         124
-        2367: invokespecial #282                // Method ocaml_fn_67."<init>":(Ljava/lang/Object;)V
-        2370: astore        125
-        2372: aload         18
-        2374: checkcast     #2                  // class Block
-        2377: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        2380: bipush        99
-        2382: aload         125
-        2384: aastore
-        2385: new           #284                // class ocaml_fn_68
-        2388: dup
-        2389: invokespecial #285                // Method ocaml_fn_68."<init>":()V
-        2392: astore        126
-        2394: new           #2                  // class Block
-        2397: dup
-        2398: iconst_0
-        2399: iconst_1
-        2400: anewarray     #4                  // class java/lang/Object
-        2403: dup
-        2404: iconst_0
-        2405: aload         126
-        2407: aastore
-        2408: invokespecial #16                 // Method Block."<init>":(I[Ljava/lang/Object;)V
-        2411: astore        127
-        2413: aload         18
-        2415: checkcast     #2                  // class Block
-        2418: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        2421: bipush        103
-        2423: aload         127
-        2425: aastore
-        2426: new           #287                // class ocaml_fn_69
-        2429: dup
-        2430: aload         124
-        2432: aload         127
-        2434: invokespecial #288                // Method ocaml_fn_69."<init>":(Ljava/lang/Object;Ljava/lang/Object;)V
-        2437: astore        128
-        2439: aload         18
-        2441: checkcast     #2                  // class Block
-        2444: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        2447: bipush        102
-        2449: aload         128
-        2451: aastore
-        2452: new           #290                // class ocaml_fn_70
-        2455: dup
-        2456: aload         128
-        2458: invokespecial #291                // Method ocaml_fn_70."<init>":(Ljava/lang/Object;)V
-        2461: astore        129
-        2463: aload         18
-        2465: checkcast     #2                  // class Block
-        2468: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        2471: bipush        98
-        2473: aload         129
-        2475: aastore
-        2476: getstatic     #25                 // Field GLOBALS:[Ljava/lang/Object;
-        2479: bipush        44
-        2481: aaload
-        2482: astore        130
-        2484: iconst_0
-        2485: i2l
-        2486: invokestatic  #61                 // Method java/lang/Long.valueOf:(J)Ljava/lang/Long;
-        2489: astore        131
-        2491: new           #2                  // class Block
-        2494: dup
-        2495: iconst_0
-        2496: bipush        6
-        2498: anewarray     #4                  // class java/lang/Object
-        2501: invokespecial #16                 // Method Block."<init>":(I[Ljava/lang/Object;)V
-        2504: astore        132
-        2506: new           #293                // class ocaml_fn_71
-        2509: dup
-        2510: invokespecial #294                // Method ocaml_fn_71."<init>":()V
-        2513: astore        133
-        2515: aload         132
-        2517: checkcast     #2                  // class Block
-        2520: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        2523: iconst_5
-        2524: aload         133
-        2526: aastore
-        2527: new           #296                // class ocaml_fn_72
-        2530: dup
-        2531: invokespecial #297                // Method ocaml_fn_72."<init>":()V
-        2534: astore        134
-        2536: aload         132
-        2538: checkcast     #2                  // class Block
-        2541: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        2544: iconst_4
-        2545: aload         134
-        2547: aastore
-        2548: new           #299                // class ocaml_fn_73
-        2551: dup
-        2552: invokespecial #300                // Method ocaml_fn_73."<init>":()V
-        2555: astore        135
-        2557: aload         132
-        2559: checkcast     #2                  // class Block
-        2562: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        2565: iconst_3
-        2566: aload         135
-        2568: aastore
-        2569: new           #302                // class ocaml_fn_74
-        2572: dup
-        2573: invokespecial #303                // Method ocaml_fn_74."<init>":()V
-        2576: astore        136
-        2578: aload         132
-        2580: checkcast     #2                  // class Block
-        2583: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        2586: iconst_2
-        2587: aload         136
-        2589: aastore
-        2590: new           #305                // class ocaml_fn_75
-        2593: dup
-        2594: invokespecial #306                // Method ocaml_fn_75."<init>":()V
-        2597: astore        137
-        2599: aload         132
-        2601: checkcast     #2                  // class Block
-        2604: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        2607: iconst_1
-        2608: aload         137
-        2610: aastore
-        2611: new           #308                // class ocaml_fn_76
-        2614: dup
-        2615: invokespecial #309                // Method ocaml_fn_76."<init>":()V
-        2618: astore        138
-        2620: aload         132
-        2622: checkcast     #2                  // class Block
-        2625: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        2628: iconst_0
-        2629: aload         138
-        2631: aastore
-        2632: aload         18
-        2634: checkcast     #2                  // class Block
-        2637: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        2640: bipush        95
-        2642: aload         132
-        2644: aastore
-        2645: new           #311                // class ocaml_fn_77
-        2648: dup
-        2649: invokespecial #312                // Method ocaml_fn_77."<init>":()V
-        2652: astore        139
-        2654: aload         18
-        2656: checkcast     #2                  // class Block
-        2659: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        2662: bipush        94
-        2664: aload         139
-        2666: aastore
-        2667: new           #314                // class ocaml_fn_78
-        2670: dup
-        2671: invokespecial #315                // Method ocaml_fn_78."<init>":()V
-        2674: astore        140
-        2676: aload         18
-        2678: checkcast     #2                  // class Block
-        2681: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        2684: bipush        92
-        2686: aload         140
-        2688: aastore
-        2689: new           #317                // class ocaml_fn_79
-        2692: dup
-        2693: invokespecial #318                // Method ocaml_fn_79."<init>":()V
-        2696: astore        141
-        2698: aload         18
-        2700: checkcast     #2                  // class Block
-        2703: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        2706: bipush        91
-        2708: aload         141
-        2710: aastore
-        2711: new           #320                // class ocaml_fn_80
-        2714: dup
-        2715: invokespecial #321                // Method ocaml_fn_80."<init>":()V
-        2718: astore        142
-        2720: aload         18
-        2722: checkcast     #2                  // class Block
-        2725: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        2728: bipush        90
-        2730: aload         142
-        2732: aastore
-        2733: new           #323                // class ocaml_fn_81
-        2736: dup
-        2737: invokespecial #324                // Method ocaml_fn_81."<init>":()V
-        2740: astore        143
-        2742: aload         18
-        2744: checkcast     #2                  // class Block
-        2747: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        2750: bipush        89
-        2752: aload         143
-        2754: aastore
-        2755: new           #326                // class ocaml_fn_82
-        2758: dup
-        2759: invokespecial #327                // Method ocaml_fn_82."<init>":()V
-        2762: astore        144
-        2764: aload         18
-        2766: checkcast     #2                  // class Block
-        2769: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        2772: bipush        88
-        2774: aload         144
-        2776: aastore
-        2777: new           #329                // class ocaml_fn_83
-        2780: dup
-        2781: invokespecial #330                // Method ocaml_fn_83."<init>":()V
-        2784: astore        145
-        2786: aload         18
-        2788: checkcast     #2                  // class Block
-        2791: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        2794: bipush        87
-        2796: aload         145
-        2798: aastore
-        2799: new           #332                // class ocaml_fn_84
-        2802: dup
-        2803: invokespecial #333                // Method ocaml_fn_84."<init>":()V
-        2806: astore        146
-        2808: aload         18
-        2810: checkcast     #2                  // class Block
-        2813: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        2816: bipush        86
-        2818: aload         146
-        2820: aastore
-        2821: new           #335                // class ocaml_fn_85
-        2824: dup
-        2825: invokespecial #336                // Method ocaml_fn_85."<init>":()V
-        2828: astore        147
-        2830: aload         18
-        2832: checkcast     #2                  // class Block
-        2835: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        2838: bipush        81
-        2840: aload         147
-        2842: aastore
-        2843: new           #338                // class ocaml_fn_86
-        2846: dup
-        2847: invokespecial #339                // Method ocaml_fn_86."<init>":()V
-        2850: astore        148
-        2852: aload         18
-        2854: checkcast     #2                  // class Block
-        2857: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        2860: bipush        77
-        2862: aload         148
-        2864: aastore
-        2865: new           #341                // class ocaml_fn_87
-        2868: dup
-        2869: invokespecial #342                // Method ocaml_fn_87."<init>":()V
-        2872: astore        149
-        2874: aload         18
-        2876: checkcast     #2                  // class Block
-        2879: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        2882: bipush        74
-        2884: aload         149
-        2886: aastore
-        2887: new           #344                // class ocaml_fn_88
-        2890: dup
-        2891: invokespecial #345                // Method ocaml_fn_88."<init>":()V
-        2894: astore        150
-        2896: aload         18
-        2898: checkcast     #2                  // class Block
-        2901: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        2904: bipush        73
-        2906: aload         150
-        2908: aastore
-        2909: new           #347                // class ocaml_fn_89
-        2912: dup
-        2913: invokespecial #348                // Method ocaml_fn_89."<init>":()V
-        2916: astore        151
-        2918: aload         18
-        2920: checkcast     #2                  // class Block
-        2923: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        2926: bipush        72
-        2928: aload         151
-        2930: aastore
-        2931: new           #350                // class ocaml_fn_90
-        2934: dup
-        2935: invokespecial #351                // Method ocaml_fn_90."<init>":()V
-        2938: astore        152
-        2940: aload         18
-        2942: checkcast     #2                  // class Block
-        2945: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        2948: bipush        70
-        2950: aload         152
-        2952: aastore
-        2953: new           #353                // class ocaml_fn_91
-        2956: dup
-        2957: invokespecial #354                // Method ocaml_fn_91."<init>":()V
-        2960: astore        153
-        2962: aload         18
-        2964: checkcast     #2                  // class Block
-        2967: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        2970: bipush        69
-        2972: aload         153
-        2974: aastore
-        2975: new           #356                // class ocaml_fn_92
-        2978: dup
-        2979: invokespecial #357                // Method ocaml_fn_92."<init>":()V
-        2982: astore        154
-        2984: aload         18
-        2986: checkcast     #2                  // class Block
-        2989: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        2992: bipush        64
-        2994: aload         154
-        2996: aastore
-        2997: new           #359                // class ocaml_fn_93
-        3000: dup
-        3001: invokespecial #360                // Method ocaml_fn_93."<init>":()V
-        3004: astore        155
-        3006: aload         18
-        3008: checkcast     #2                  // class Block
-        3011: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        3014: bipush        62
-        3016: aload         155
-        3018: aastore
-        3019: getstatic     #25                 // Field GLOBALS:[Ljava/lang/Object;
-        3022: bipush        45
-        3024: aload         18
-        3026: aastore
-        3027: iconst_0
-        3028: i2l
-        3029: invokestatic  #61                 // Method java/lang/Long.valueOf:(J)Ljava/lang/Long;
-        3032: astore        156
-        3034: iconst_0
-        3035: i2l
-        3036: lstore        157
-        3038: lload         157
-        3040: invokestatic  #61                 // Method java/lang/Long.valueOf:(J)Ljava/lang/Long;
-        3043: astore        159
-        3045: goto_w        3050
-        3050: new           #362                // class ocaml_fn_95
-        3053: dup
-        3054: invokespecial #363                // Method ocaml_fn_95."<init>":()V
-        3057: astore        160
-        3059: bipush        10
-        3061: i2l
-        3062: lstore        161
-        3064: aload         160
-        3066: lload         161
-        3068: invokestatic  #61                 // Method java/lang/Long.valueOf:(J)Ljava/lang/Long;
-        3071: invokevirtual #367                // Method Closure.apply1:(Ljava/lang/Object;)Ljava/lang/Object;
-        3074: astore        163
-        3076: bipush        32
-        3078: i2l
-        3079: lstore        164
-        3081: aload         163
-        3083: checkcast     #139                // class Closure
-        3086: lload         164
-        3088: invokestatic  #61                 // Method java/lang/Long.valueOf:(J)Ljava/lang/Long;
-        3091: invokevirtual #367                // Method Closure.apply1:(Ljava/lang/Object;)Ljava/lang/Object;
-        3094: astore        166
-        3096: getstatic     #371                // Field java/lang/System.out:Ljava/io/PrintStream;
-        3099: aload         166
-        3101: invokestatic  #90                 // Method Block.asLong:(Ljava/lang/Object;)J
-        3104: l2i
-        3105: invokevirtual #377                // Method java/io/PrintStream.println:(I)V
-        3108: iconst_0
-        3109: i2l
-        3110: invokestatic  #61                 // Method java/lang/Long.valueOf:(J)Ljava/lang/Long;
-        3113: astore        167
-        3115: new           #2                  // class Block
-        3118: dup
-        3119: iconst_0
-        3120: iconst_1
-        3121: anewarray     #4                  // class java/lang/Object
-        3124: dup
-        3125: iconst_0
-        3126: aload         160
-        3128: aastore
-        3129: invokespecial #16                 // Method Block."<init>":(I[Ljava/lang/Object;)V
-        3132: astore        168
-        3134: getstatic     #25                 // Field GLOBALS:[Ljava/lang/Object;
-        3137: bipush        46
-        3139: aload         168
-        3141: aastore
-        3142: iconst_0
-        3143: i2l
-        3144: invokestatic  #61                 // Method java/lang/Long.valueOf:(J)Ljava/lang/Long;
-        3147: astore        169
-        3149: iconst_0
-        3150: i2l
-        3151: lstore        170
-        3153: getstatic     #25                 // Field GLOBALS:[Ljava/lang/Object;
-        3156: bipush        45
-        3158: aaload
-        3159: checkcast     #2                  // class Block
-        3162: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        3165: bipush        102
-        3167: aaload
-        3168: astore        172
-        3170: aload         172
-        3172: checkcast     #139                // class Closure
-        3175: lload         170
-        3177: invokestatic  #61                 // Method java/lang/Long.valueOf:(J)Ljava/lang/Long;
-        3180: invokevirtual #367                // Method Closure.apply1:(Ljava/lang/Object;)Ljava/lang/Object;
-        3183: astore        173
-        3185: new           #2                  // class Block
-        3188: dup
-        3189: iconst_0
-        3190: iconst_0
-        3191: anewarray     #4                  // class java/lang/Object
-        3194: invokespecial #16                 // Method Block."<init>":(I[Ljava/lang/Object;)V
-        3197: astore        174
-        3199: getstatic     #25                 // Field GLOBALS:[Ljava/lang/Object;
-        3202: bipush        47
-        3204: aload         174
-        3206: aastore
-        3207: iconst_0
-        3208: i2l
-        3209: invokestatic  #61                 // Method java/lang/Long.valueOf:(J)Ljava/lang/Long;
-        3212: astore        175
-        3214: return
+        1250: checkcast     #140                // class ocaml_fn_25
+        1253: aload         69
+        1255: checkcast     #143                // class Closure
+        1258: putfield      #152                // Field ocaml_fn_25.sibling_1:LClosure;
+        1261: iconst_0
+        1262: i2l
+        1263: invokestatic  #61                 // Method java/lang/Long.valueOf:(J)Ljava/lang/Long;
+        1266: astore        73
+        1268: iconst_0
+        1269: i2l
+        1270: lstore        74
+        1272: lload         74
+        1274: l2i
+        1275: invokestatic  #156                // Method Channel.forDescriptor:(I)LChannel;
+        1278: astore        76
+        1280: aload         18
+        1282: checkcast     #2                  // class Block
+        1285: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        1288: bipush        37
+        1290: aload         76
+        1292: aastore
+        1293: iconst_1
+        1294: i2l
+        1295: lstore        77
+        1297: lload         77
+        1299: l2i
+        1300: invokestatic  #156                // Method Channel.forDescriptor:(I)LChannel;
+        1303: astore        79
+        1305: aload         18
+        1307: checkcast     #2                  // class Block
+        1310: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        1313: bipush        38
+        1315: aload         79
+        1317: aastore
+        1318: iconst_2
+        1319: i2l
+        1320: lstore        80
+        1322: lload         80
+        1324: l2i
+        1325: invokestatic  #156                // Method Channel.forDescriptor:(I)LChannel;
+        1328: astore        82
+        1330: aload         18
+        1332: checkcast     #2                  // class Block
+        1335: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        1338: bipush        39
+        1340: aload         82
+        1342: aastore
+        1343: new           #158                // class ocaml_fn_26
+        1346: dup
+        1347: invokespecial #159                // Method ocaml_fn_26."<init>":()V
+        1350: astore        83
+        1352: aload         18
+        1354: checkcast     #2                  // class Block
+        1357: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        1360: bipush        61
+        1362: aload         83
+        1364: aastore
+        1365: new           #161                // class ocaml_fn_27
+        1368: dup
+        1369: aload         83
+        1371: invokespecial #162                // Method ocaml_fn_27."<init>":(Ljava/lang/Object;)V
+        1374: astore        84
+        1376: aload         18
+        1378: checkcast     #2                  // class Block
+        1381: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        1384: bipush        59
+        1386: aload         84
+        1388: aastore
+        1389: new           #164                // class ocaml_fn_28
+        1392: dup
+        1393: aload         83
+        1395: invokespecial #165                // Method ocaml_fn_28."<init>":(Ljava/lang/Object;)V
+        1398: astore        85
+        1400: aload         18
+        1402: checkcast     #2                  // class Block
+        1405: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        1408: bipush        60
+        1410: aload         85
+        1412: aastore
+        1413: new           #167                // class ocaml_fn_29
+        1416: dup
+        1417: aload         33
+        1419: invokespecial #168                // Method ocaml_fn_29."<init>":(Ljava/lang/Object;)V
+        1422: astore        86
+        1424: aload         18
+        1426: checkcast     #2                  // class Block
+        1429: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        1432: bipush        63
+        1434: aload         86
+        1436: aastore
+        1437: new           #170                // class ocaml_fn_30
+        1440: dup
+        1441: invokespecial #171                // Method ocaml_fn_30."<init>":()V
+        1444: astore        87
+        1446: aload         18
+        1448: checkcast     #2                  // class Block
+        1451: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        1454: bipush        66
+        1456: aload         87
+        1458: aastore
+        1459: new           #173                // class ocaml_fn_31
+        1462: dup
+        1463: invokespecial #174                // Method ocaml_fn_31."<init>":()V
+        1466: astore        88
+        1468: aload         18
+        1470: checkcast     #2                  // class Block
+        1473: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        1476: bipush        65
+        1478: aload         88
+        1480: aastore
+        1481: new           #176                // class ocaml_fn_32
+        1484: dup
+        1485: aload         20
+        1487: invokespecial #177                // Method ocaml_fn_32."<init>":(Ljava/lang/Object;)V
+        1490: astore        89
+        1492: aload         18
+        1494: checkcast     #2                  // class Block
+        1497: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        1500: bipush        67
+        1502: aload         89
+        1504: aastore
+        1505: new           #179                // class ocaml_fn_33
+        1508: dup
+        1509: aload         20
+        1511: invokespecial #180                // Method ocaml_fn_33."<init>":(Ljava/lang/Object;)V
+        1514: astore        90
+        1516: aload         18
+        1518: checkcast     #2                  // class Block
+        1521: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        1524: bipush        68
+        1526: aload         90
+        1528: aastore
+        1529: new           #182                // class ocaml_fn_34
+        1532: dup
+        1533: invokespecial #183                // Method ocaml_fn_34."<init>":()V
+        1536: astore        91
+        1538: aload         18
+        1540: checkcast     #2                  // class Block
+        1543: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        1546: bipush        71
+        1548: aload         91
+        1550: aastore
+        1551: new           #185                // class ocaml_fn_35
+        1554: dup
+        1555: invokespecial #186                // Method ocaml_fn_35."<init>":()V
+        1558: astore        92
+        1560: aload         18
+        1562: checkcast     #2                  // class Block
+        1565: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        1568: bipush        75
+        1570: aload         92
+        1572: aastore
+        1573: new           #188                // class ocaml_fn_36
+        1576: dup
+        1577: invokespecial #189                // Method ocaml_fn_36."<init>":()V
+        1580: astore        93
+        1582: aload         18
+        1584: checkcast     #2                  // class Block
+        1587: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        1590: bipush        76
+        1592: aload         93
+        1594: aastore
+        1595: new           #191                // class ocaml_fn_37
+        1598: dup
+        1599: invokespecial #192                // Method ocaml_fn_37."<init>":()V
+        1602: astore        94
+        1604: aload         18
+        1606: checkcast     #2                  // class Block
+        1609: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        1612: bipush        80
+        1614: aload         94
+        1616: aastore
+        1617: new           #194                // class ocaml_fn_38
+        1620: dup
+        1621: aload         94
+        1623: invokespecial #195                // Method ocaml_fn_38."<init>":(Ljava/lang/Object;)V
+        1626: astore        95
+        1628: aload         18
+        1630: checkcast     #2                  // class Block
+        1633: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        1636: bipush        78
+        1638: aload         95
+        1640: aastore
+        1641: new           #197                // class ocaml_fn_39
+        1644: dup
+        1645: aload         94
+        1647: invokespecial #198                // Method ocaml_fn_39."<init>":(Ljava/lang/Object;)V
+        1650: astore        96
+        1652: aload         18
+        1654: checkcast     #2                  // class Block
+        1657: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        1660: bipush        79
+        1662: aload         96
+        1664: aastore
+        1665: new           #200                // class ocaml_fn_40
+        1668: dup
+        1669: aload         20
+        1671: invokespecial #201                // Method ocaml_fn_40."<init>":(Ljava/lang/Object;)V
+        1674: astore        97
+        1676: aload         18
+        1678: checkcast     #2                  // class Block
+        1681: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        1684: bipush        83
+        1686: aload         97
+        1688: aastore
+        1689: new           #203                // class ocaml_fn_41
+        1692: dup
+        1693: aload         34
+        1695: invokespecial #204                // Method ocaml_fn_41."<init>":(Ljava/lang/Object;)V
+        1698: astore        98
+        1700: aload         18
+        1702: checkcast     #2                  // class Block
+        1705: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        1708: bipush        101
+        1710: aload         98
+        1712: aastore
+        1713: new           #206                // class ocaml_fn_42
+        1716: dup
+        1717: aload         20
+        1719: aload         98
+        1721: invokespecial #209                // Method ocaml_fn_42."<init>":(Ljava/lang/Object;Ljava/lang/Object;)V
+        1724: astore        99
+        1726: aload         18
+        1728: checkcast     #2                  // class Block
+        1731: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        1734: bipush        84
+        1736: aload         99
+        1738: aastore
+        1739: new           #211                // class ocaml_fn_43
+        1742: dup
+        1743: aload         99
+        1745: invokespecial #212                // Method ocaml_fn_43."<init>":(Ljava/lang/Object;)V
+        1748: astore        100
+        1750: aload         18
+        1752: checkcast     #2                  // class Block
+        1755: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        1758: bipush        85
+        1760: aload         100
+        1762: aastore
+        1763: new           #214                // class ocaml_fn_44
+        1766: dup
+        1767: aload         34
+        1769: invokespecial #215                // Method ocaml_fn_44."<init>":(Ljava/lang/Object;)V
+        1772: astore        101
+        1774: aload         18
+        1776: checkcast     #2                  // class Block
+        1779: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        1782: bipush        82
+        1784: aload         101
+        1786: aastore
+        1787: new           #217                // class ocaml_fn_45
+        1790: dup
+        1791: invokespecial #218                // Method ocaml_fn_45."<init>":()V
+        1794: astore        102
+        1796: aload         18
+        1798: checkcast     #2                  // class Block
+        1801: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        1804: bipush        93
+        1806: aload         102
+        1808: aastore
+        1809: new           #220                // class ocaml_fn_46
+        1812: dup
+        1813: aload         79
+        1815: invokespecial #221                // Method ocaml_fn_46."<init>":(Ljava/lang/Object;)V
+        1818: astore        103
+        1820: aload         18
+        1822: checkcast     #2                  // class Block
+        1825: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        1828: bipush        40
+        1830: aload         103
+        1832: aastore
+        1833: new           #223                // class ocaml_fn_47
+        1836: dup
+        1837: aload         79
+        1839: aload         88
+        1841: invokespecial #224                // Method ocaml_fn_47."<init>":(Ljava/lang/Object;Ljava/lang/Object;)V
+        1844: astore        104
+        1846: aload         18
+        1848: checkcast     #2                  // class Block
+        1851: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        1854: bipush        41
+        1856: aload         104
+        1858: aastore
+        1859: new           #226                // class ocaml_fn_48
+        1862: dup
+        1863: aload         79
+        1865: aload         87
+        1867: invokespecial #227                // Method ocaml_fn_48."<init>":(Ljava/lang/Object;Ljava/lang/Object;)V
+        1870: astore        105
+        1872: aload         18
+        1874: checkcast     #2                  // class Block
+        1877: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        1880: bipush        42
+        1882: aload         105
+        1884: aastore
+        1885: new           #229                // class ocaml_fn_49
+        1888: dup
+        1889: aload         63
+        1891: aload         79
+        1893: aload         88
+        1895: invokespecial #232                // Method ocaml_fn_49."<init>":(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)V
+        1898: astore        106
+        1900: aload         18
+        1902: checkcast     #2                  // class Block
+        1905: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        1908: bipush        43
+        1910: aload         106
+        1912: aastore
+        1913: new           #234                // class ocaml_fn_50
+        1916: dup
+        1917: aload         66
+        1919: aload         79
+        1921: aload         88
+        1923: invokespecial #235                // Method ocaml_fn_50."<init>":(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)V
+        1926: astore        107
+        1928: aload         18
+        1930: checkcast     #2                  // class Block
+        1933: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        1936: bipush        44
+        1938: aload         107
+        1940: aastore
+        1941: new           #237                // class ocaml_fn_51
+        1944: dup
+        1945: aload         79
+        1947: aload         88
+        1949: invokespecial #238                // Method ocaml_fn_51."<init>":(Ljava/lang/Object;Ljava/lang/Object;)V
+        1952: astore        108
+        1954: aload         18
+        1956: checkcast     #2                  // class Block
+        1959: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        1962: bipush        45
+        1964: aload         108
+        1966: aastore
+        1967: new           #240                // class ocaml_fn_52
+        1970: dup
+        1971: aload         79
+        1973: invokespecial #241                // Method ocaml_fn_52."<init>":(Ljava/lang/Object;)V
+        1976: astore        109
+        1978: aload         18
+        1980: checkcast     #2                  // class Block
+        1983: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        1986: bipush        46
+        1988: aload         109
+        1990: aastore
+        1991: new           #243                // class ocaml_fn_53
+        1994: dup
+        1995: aload         82
+        1997: invokespecial #244                // Method ocaml_fn_53."<init>":(Ljava/lang/Object;)V
+        2000: astore        110
+        2002: aload         18
+        2004: checkcast     #2                  // class Block
+        2007: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        2010: bipush        47
+        2012: aload         110
+        2014: aastore
+        2015: new           #246                // class ocaml_fn_54
+        2018: dup
+        2019: aload         82
+        2021: aload         88
+        2023: invokespecial #247                // Method ocaml_fn_54."<init>":(Ljava/lang/Object;Ljava/lang/Object;)V
+        2026: astore        111
+        2028: aload         18
+        2030: checkcast     #2                  // class Block
+        2033: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        2036: bipush        48
+        2038: aload         111
+        2040: aastore
+        2041: new           #249                // class ocaml_fn_55
+        2044: dup
+        2045: aload         82
+        2047: aload         87
+        2049: invokespecial #250                // Method ocaml_fn_55."<init>":(Ljava/lang/Object;Ljava/lang/Object;)V
+        2052: astore        112
+        2054: aload         18
+        2056: checkcast     #2                  // class Block
+        2059: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        2062: bipush        49
+        2064: aload         112
+        2066: aastore
+        2067: new           #252                // class ocaml_fn_56
+        2070: dup
+        2071: aload         63
+        2073: aload         82
+        2075: aload         88
+        2077: invokespecial #253                // Method ocaml_fn_56."<init>":(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)V
+        2080: astore        113
+        2082: aload         18
+        2084: checkcast     #2                  // class Block
+        2087: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        2090: bipush        50
+        2092: aload         113
+        2094: aastore
+        2095: new           #255                // class ocaml_fn_57
+        2098: dup
+        2099: aload         66
+        2101: aload         82
+        2103: aload         88
+        2105: invokespecial #256                // Method ocaml_fn_57."<init>":(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)V
+        2108: astore        114
+        2110: aload         18
+        2112: checkcast     #2                  // class Block
+        2115: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        2118: bipush        51
+        2120: aload         114
+        2122: aastore
+        2123: new           #258                // class ocaml_fn_58
+        2126: dup
+        2127: aload         82
+        2129: aload         88
+        2131: invokespecial #259                // Method ocaml_fn_58."<init>":(Ljava/lang/Object;Ljava/lang/Object;)V
+        2134: astore        115
+        2136: aload         18
+        2138: checkcast     #2                  // class Block
+        2141: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        2144: bipush        52
+        2146: aload         115
+        2148: aastore
+        2149: new           #261                // class ocaml_fn_59
+        2152: dup
+        2153: aload         82
+        2155: invokespecial #262                // Method ocaml_fn_59."<init>":(Ljava/lang/Object;)V
+        2158: astore        116
+        2160: aload         18
+        2162: checkcast     #2                  // class Block
+        2165: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        2168: bipush        53
+        2170: aload         116
+        2172: aastore
+        2173: new           #264                // class ocaml_fn_60
+        2176: dup
+        2177: aload         76
+        2179: aload         79
+        2181: aload         101
+        2183: invokespecial #265                // Method ocaml_fn_60."<init>":(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)V
+        2186: astore        117
+        2188: aload         18
+        2190: checkcast     #2                  // class Block
+        2193: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        2196: bipush        54
+        2198: aload         117
+        2200: aastore
+        2201: new           #267                // class ocaml_fn_61
+        2204: dup
+        2205: aload         117
+        2207: invokespecial #268                // Method ocaml_fn_61."<init>":(Ljava/lang/Object;)V
+        2210: astore        118
+        2212: aload         18
+        2214: checkcast     #2                  // class Block
+        2217: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        2220: bipush        56
+        2222: aload         118
+        2224: aastore
+        2225: new           #270                // class ocaml_fn_62
+        2228: dup
+        2229: aload         64
+        2231: aload         117
+        2233: invokespecial #271                // Method ocaml_fn_62."<init>":(Ljava/lang/Object;Ljava/lang/Object;)V
+        2236: astore        119
+        2238: aload         18
+        2240: checkcast     #2                  // class Block
+        2243: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        2246: bipush        55
+        2248: aload         119
+        2250: aastore
+        2251: new           #273                // class ocaml_fn_63
+        2254: dup
+        2255: aload         117
+        2257: invokespecial #274                // Method ocaml_fn_63."<init>":(Ljava/lang/Object;)V
+        2260: astore        120
+        2262: aload         18
+        2264: checkcast     #2                  // class Block
+        2267: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        2270: bipush        58
+        2272: aload         120
+        2274: aastore
+        2275: new           #276                // class ocaml_fn_64
+        2278: dup
+        2279: aload         67
+        2281: aload         117
+        2283: invokespecial #277                // Method ocaml_fn_64."<init>":(Ljava/lang/Object;Ljava/lang/Object;)V
+        2286: astore        121
+        2288: aload         18
+        2290: checkcast     #2                  // class Block
+        2293: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        2296: bipush        57
+        2298: aload         121
+        2300: aastore
+        2301: new           #279                // class ocaml_fn_65
+        2304: dup
+        2305: invokespecial #280                // Method ocaml_fn_65."<init>":()V
+        2308: astore        122
+        2310: aload         18
+        2312: checkcast     #2                  // class Block
+        2315: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        2318: bipush        96
+        2320: aload         122
+        2322: aastore
+        2323: new           #282                // class ocaml_fn_66
+        2326: dup
+        2327: aload         58
+        2329: invokespecial #283                // Method ocaml_fn_66."<init>":(Ljava/lang/Object;)V
+        2332: astore        123
+        2334: aload         18
+        2336: checkcast     #2                  // class Block
+        2339: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        2342: bipush        97
+        2344: aload         123
+        2346: aastore
+        2347: new           #2                  // class Block
+        2350: dup
+        2351: iconst_0
+        2352: iconst_1
+        2353: anewarray     #4                  // class java/lang/Object
+        2356: dup
+        2357: iconst_0
+        2358: aload         86
+        2360: aastore
+        2361: invokespecial #16                 // Method Block."<init>":(I[Ljava/lang/Object;)V
+        2364: astore        124
+        2366: new           #285                // class ocaml_fn_67
+        2369: dup
+        2370: aload         124
+        2372: invokespecial #286                // Method ocaml_fn_67."<init>":(Ljava/lang/Object;)V
+        2375: astore        125
+        2377: aload         18
+        2379: checkcast     #2                  // class Block
+        2382: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        2385: bipush        99
+        2387: aload         125
+        2389: aastore
+        2390: new           #288                // class ocaml_fn_68
+        2393: dup
+        2394: invokespecial #289                // Method ocaml_fn_68."<init>":()V
+        2397: astore        126
+        2399: new           #2                  // class Block
+        2402: dup
+        2403: iconst_0
+        2404: iconst_1
+        2405: anewarray     #4                  // class java/lang/Object
+        2408: dup
+        2409: iconst_0
+        2410: aload         126
+        2412: aastore
+        2413: invokespecial #16                 // Method Block."<init>":(I[Ljava/lang/Object;)V
+        2416: astore        127
+        2418: aload         18
+        2420: checkcast     #2                  // class Block
+        2423: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        2426: bipush        103
+        2428: aload         127
+        2430: aastore
+        2431: new           #291                // class ocaml_fn_69
+        2434: dup
+        2435: aload         124
+        2437: aload         127
+        2439: invokespecial #292                // Method ocaml_fn_69."<init>":(Ljava/lang/Object;Ljava/lang/Object;)V
+        2442: astore        128
+        2444: aload         18
+        2446: checkcast     #2                  // class Block
+        2449: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        2452: bipush        102
+        2454: aload         128
+        2456: aastore
+        2457: new           #294                // class ocaml_fn_70
+        2460: dup
+        2461: aload         128
+        2463: invokespecial #295                // Method ocaml_fn_70."<init>":(Ljava/lang/Object;)V
+        2466: astore        129
+        2468: aload         18
+        2470: checkcast     #2                  // class Block
+        2473: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        2476: bipush        98
+        2478: aload         129
+        2480: aastore
+        2481: getstatic     #25                 // Field GLOBALS:[Ljava/lang/Object;
+        2484: bipush        44
+        2486: aaload
+        2487: astore        130
+        2489: aload         130
+        2491: aload         128
+        2493: invokestatic  #65                 // Method Ocaml.registerNamedValue:(Ljava/lang/Object;Ljava/lang/Object;)J
+        2496: invokestatic  #61                 // Method java/lang/Long.valueOf:(J)Ljava/lang/Long;
+        2499: astore        131
+        2501: new           #2                  // class Block
+        2504: dup
+        2505: iconst_0
+        2506: bipush        6
+        2508: anewarray     #4                  // class java/lang/Object
+        2511: invokespecial #16                 // Method Block."<init>":(I[Ljava/lang/Object;)V
+        2514: astore        132
+        2516: new           #297                // class ocaml_fn_71
+        2519: dup
+        2520: invokespecial #298                // Method ocaml_fn_71."<init>":()V
+        2523: astore        133
+        2525: aload         132
+        2527: checkcast     #2                  // class Block
+        2530: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        2533: iconst_5
+        2534: aload         133
+        2536: aastore
+        2537: new           #300                // class ocaml_fn_72
+        2540: dup
+        2541: invokespecial #301                // Method ocaml_fn_72."<init>":()V
+        2544: astore        134
+        2546: aload         132
+        2548: checkcast     #2                  // class Block
+        2551: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        2554: iconst_4
+        2555: aload         134
+        2557: aastore
+        2558: new           #303                // class ocaml_fn_73
+        2561: dup
+        2562: invokespecial #304                // Method ocaml_fn_73."<init>":()V
+        2565: astore        135
+        2567: aload         132
+        2569: checkcast     #2                  // class Block
+        2572: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        2575: iconst_3
+        2576: aload         135
+        2578: aastore
+        2579: new           #306                // class ocaml_fn_74
+        2582: dup
+        2583: invokespecial #307                // Method ocaml_fn_74."<init>":()V
+        2586: astore        136
+        2588: aload         132
+        2590: checkcast     #2                  // class Block
+        2593: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        2596: iconst_2
+        2597: aload         136
+        2599: aastore
+        2600: new           #309                // class ocaml_fn_75
+        2603: dup
+        2604: invokespecial #310                // Method ocaml_fn_75."<init>":()V
+        2607: astore        137
+        2609: aload         132
+        2611: checkcast     #2                  // class Block
+        2614: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        2617: iconst_1
+        2618: aload         137
+        2620: aastore
+        2621: new           #312                // class ocaml_fn_76
+        2624: dup
+        2625: invokespecial #313                // Method ocaml_fn_76."<init>":()V
+        2628: astore        138
+        2630: aload         132
+        2632: checkcast     #2                  // class Block
+        2635: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        2638: iconst_0
+        2639: aload         138
+        2641: aastore
+        2642: aload         18
+        2644: checkcast     #2                  // class Block
+        2647: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        2650: bipush        95
+        2652: aload         132
+        2654: aastore
+        2655: new           #315                // class ocaml_fn_77
+        2658: dup
+        2659: invokespecial #316                // Method ocaml_fn_77."<init>":()V
+        2662: astore        139
+        2664: aload         18
+        2666: checkcast     #2                  // class Block
+        2669: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        2672: bipush        94
+        2674: aload         139
+        2676: aastore
+        2677: new           #318                // class ocaml_fn_78
+        2680: dup
+        2681: invokespecial #319                // Method ocaml_fn_78."<init>":()V
+        2684: astore        140
+        2686: aload         18
+        2688: checkcast     #2                  // class Block
+        2691: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        2694: bipush        92
+        2696: aload         140
+        2698: aastore
+        2699: new           #321                // class ocaml_fn_79
+        2702: dup
+        2703: invokespecial #322                // Method ocaml_fn_79."<init>":()V
+        2706: astore        141
+        2708: aload         18
+        2710: checkcast     #2                  // class Block
+        2713: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        2716: bipush        91
+        2718: aload         141
+        2720: aastore
+        2721: new           #324                // class ocaml_fn_80
+        2724: dup
+        2725: invokespecial #325                // Method ocaml_fn_80."<init>":()V
+        2728: astore        142
+        2730: aload         18
+        2732: checkcast     #2                  // class Block
+        2735: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        2738: bipush        90
+        2740: aload         142
+        2742: aastore
+        2743: new           #327                // class ocaml_fn_81
+        2746: dup
+        2747: invokespecial #328                // Method ocaml_fn_81."<init>":()V
+        2750: astore        143
+        2752: aload         18
+        2754: checkcast     #2                  // class Block
+        2757: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        2760: bipush        89
+        2762: aload         143
+        2764: aastore
+        2765: new           #330                // class ocaml_fn_82
+        2768: dup
+        2769: invokespecial #331                // Method ocaml_fn_82."<init>":()V
+        2772: astore        144
+        2774: aload         18
+        2776: checkcast     #2                  // class Block
+        2779: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        2782: bipush        88
+        2784: aload         144
+        2786: aastore
+        2787: new           #333                // class ocaml_fn_83
+        2790: dup
+        2791: invokespecial #334                // Method ocaml_fn_83."<init>":()V
+        2794: astore        145
+        2796: aload         18
+        2798: checkcast     #2                  // class Block
+        2801: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        2804: bipush        87
+        2806: aload         145
+        2808: aastore
+        2809: new           #336                // class ocaml_fn_84
+        2812: dup
+        2813: invokespecial #337                // Method ocaml_fn_84."<init>":()V
+        2816: astore        146
+        2818: aload         18
+        2820: checkcast     #2                  // class Block
+        2823: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        2826: bipush        86
+        2828: aload         146
+        2830: aastore
+        2831: new           #339                // class ocaml_fn_85
+        2834: dup
+        2835: invokespecial #340                // Method ocaml_fn_85."<init>":()V
+        2838: astore        147
+        2840: aload         18
+        2842: checkcast     #2                  // class Block
+        2845: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        2848: bipush        81
+        2850: aload         147
+        2852: aastore
+        2853: new           #342                // class ocaml_fn_86
+        2856: dup
+        2857: invokespecial #343                // Method ocaml_fn_86."<init>":()V
+        2860: astore        148
+        2862: aload         18
+        2864: checkcast     #2                  // class Block
+        2867: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        2870: bipush        77
+        2872: aload         148
+        2874: aastore
+        2875: new           #345                // class ocaml_fn_87
+        2878: dup
+        2879: invokespecial #346                // Method ocaml_fn_87."<init>":()V
+        2882: astore        149
+        2884: aload         18
+        2886: checkcast     #2                  // class Block
+        2889: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        2892: bipush        74
+        2894: aload         149
+        2896: aastore
+        2897: new           #348                // class ocaml_fn_88
+        2900: dup
+        2901: invokespecial #349                // Method ocaml_fn_88."<init>":()V
+        2904: astore        150
+        2906: aload         18
+        2908: checkcast     #2                  // class Block
+        2911: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        2914: bipush        73
+        2916: aload         150
+        2918: aastore
+        2919: new           #351                // class ocaml_fn_89
+        2922: dup
+        2923: invokespecial #352                // Method ocaml_fn_89."<init>":()V
+        2926: astore        151
+        2928: aload         18
+        2930: checkcast     #2                  // class Block
+        2933: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        2936: bipush        72
+        2938: aload         151
+        2940: aastore
+        2941: new           #354                // class ocaml_fn_90
+        2944: dup
+        2945: invokespecial #355                // Method ocaml_fn_90."<init>":()V
+        2948: astore        152
+        2950: aload         18
+        2952: checkcast     #2                  // class Block
+        2955: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        2958: bipush        70
+        2960: aload         152
+        2962: aastore
+        2963: new           #357                // class ocaml_fn_91
+        2966: dup
+        2967: invokespecial #358                // Method ocaml_fn_91."<init>":()V
+        2970: astore        153
+        2972: aload         18
+        2974: checkcast     #2                  // class Block
+        2977: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        2980: bipush        69
+        2982: aload         153
+        2984: aastore
+        2985: new           #360                // class ocaml_fn_92
+        2988: dup
+        2989: invokespecial #361                // Method ocaml_fn_92."<init>":()V
+        2992: astore        154
+        2994: aload         18
+        2996: checkcast     #2                  // class Block
+        2999: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        3002: bipush        64
+        3004: aload         154
+        3006: aastore
+        3007: new           #363                // class ocaml_fn_93
+        3010: dup
+        3011: invokespecial #364                // Method ocaml_fn_93."<init>":()V
+        3014: astore        155
+        3016: aload         18
+        3018: checkcast     #2                  // class Block
+        3021: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        3024: bipush        62
+        3026: aload         155
+        3028: aastore
+        3029: getstatic     #25                 // Field GLOBALS:[Ljava/lang/Object;
+        3032: bipush        45
+        3034: aload         18
+        3036: aastore
+        3037: iconst_0
+        3038: i2l
+        3039: invokestatic  #61                 // Method java/lang/Long.valueOf:(J)Ljava/lang/Long;
+        3042: astore        156
+        3044: iconst_0
+        3045: i2l
+        3046: lstore        157
+        3048: lload         157
+        3050: invokestatic  #61                 // Method java/lang/Long.valueOf:(J)Ljava/lang/Long;
+        3053: astore        159
+        3055: goto_w        3060
+        3060: new           #366                // class ocaml_fn_95
+        3063: dup
+        3064: invokespecial #367                // Method ocaml_fn_95."<init>":()V
+        3067: astore        160
+        3069: bipush        10
+        3071: i2l
+        3072: lstore        161
+        3074: aload         160
+        3076: lload         161
+        3078: invokestatic  #61                 // Method java/lang/Long.valueOf:(J)Ljava/lang/Long;
+        3081: invokevirtual #371                // Method Closure.apply1:(Ljava/lang/Object;)Ljava/lang/Object;
+        3084: astore        163
+        3086: bipush        32
+        3088: i2l
+        3089: lstore        164
+        3091: aload         163
+        3093: checkcast     #143                // class Closure
+        3096: lload         164
+        3098: invokestatic  #61                 // Method java/lang/Long.valueOf:(J)Ljava/lang/Long;
+        3101: invokevirtual #371                // Method Closure.apply1:(Ljava/lang/Object;)Ljava/lang/Object;
+        3104: astore        166
+        3106: getstatic     #375                // Field java/lang/System.out:Ljava/io/PrintStream;
+        3109: aload         166
+        3111: invokestatic  #94                 // Method Block.asLong:(Ljava/lang/Object;)J
+        3114: l2i
+        3115: invokevirtual #381                // Method java/io/PrintStream.println:(I)V
+        3118: iconst_0
+        3119: i2l
+        3120: invokestatic  #61                 // Method java/lang/Long.valueOf:(J)Ljava/lang/Long;
+        3123: astore        167
+        3125: new           #2                  // class Block
+        3128: dup
+        3129: iconst_0
+        3130: iconst_1
+        3131: anewarray     #4                  // class java/lang/Object
+        3134: dup
+        3135: iconst_0
+        3136: aload         160
+        3138: aastore
+        3139: invokespecial #16                 // Method Block."<init>":(I[Ljava/lang/Object;)V
+        3142: astore        168
+        3144: getstatic     #25                 // Field GLOBALS:[Ljava/lang/Object;
+        3147: bipush        46
+        3149: aload         168
+        3151: aastore
+        3152: iconst_0
+        3153: i2l
+        3154: invokestatic  #61                 // Method java/lang/Long.valueOf:(J)Ljava/lang/Long;
+        3157: astore        169
+        3159: iconst_0
+        3160: i2l
+        3161: lstore        170
+        3163: getstatic     #25                 // Field GLOBALS:[Ljava/lang/Object;
+        3166: bipush        45
+        3168: aaload
+        3169: checkcast     #2                  // class Block
+        3172: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        3175: bipush        102
+        3177: aaload
+        3178: astore        172
+        3180: aload         172
+        3182: checkcast     #143                // class Closure
+        3185: lload         170
+        3187: invokestatic  #61                 // Method java/lang/Long.valueOf:(J)Ljava/lang/Long;
+        3190: invokevirtual #371                // Method Closure.apply1:(Ljava/lang/Object;)Ljava/lang/Object;
+        3193: astore        173
+        3195: new           #2                  // class Block
+        3198: dup
+        3199: iconst_0
+        3200: iconst_0
+        3201: anewarray     #4                  // class java/lang/Object
+        3204: invokespecial #16                 // Method Block."<init>":(I[Ljava/lang/Object;)V
+        3207: astore        174
+        3209: getstatic     #25                 // Field GLOBALS:[Ljava/lang/Object;
+        3212: bipush        47
+        3214: aload         174
+        3216: aastore
+        3217: iconst_0
+        3218: i2l
+        3219: invokestatic  #61                 // Method java/lang/Long.valueOf:(J)Ljava/lang/Long;
+        3222: astore        175
+        3224: return
     }
     |}]
 
@@ -4724,1398 +4730,1400 @@ let%expect_test "emission: variant match via switch" =
          217: bipush        36
          219: aaload
          220: astore        16
-         222: iconst_0
-         223: i2l
-         224: invokestatic  #61                 // Method java/lang/Long.valueOf:(J)Ljava/lang/Long;
-         227: astore        17
-         229: new           #2                  // class Block
-         232: dup
-         233: iconst_0
-         234: bipush        104
-         236: anewarray     #4                  // class java/lang/Object
-         239: invokespecial #16                 // Method Block."<init>":(I[Ljava/lang/Object;)V
-         242: astore        18
-         244: new           #63                 // class ocaml_fn_8
-         247: dup
-         248: invokespecial #64                 // Method ocaml_fn_8."<init>":()V
-         251: astore        19
-         253: aload         18
-         255: checkcast     #2                  // class Block
-         258: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-         261: iconst_1
-         262: aload         19
-         264: aastore
-         265: new           #69                 // class ocaml_fn_9
-         268: dup
-         269: invokespecial #70                 // Method ocaml_fn_9."<init>":()V
-         272: astore        20
-         274: aload         18
-         276: checkcast     #2                  // class Block
-         279: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-         282: iconst_0
-         283: aload         20
-         285: aastore
-         286: iconst_0
-         287: i2l
-         288: lstore        21
-         290: iconst_0
-         291: i2l
-         292: invokestatic  #61                 // Method java/lang/Long.valueOf:(J)Ljava/lang/Long;
-         295: astore        23
-         297: getstatic     #25                 // Field GLOBALS:[Ljava/lang/Object;
-         300: bipush        37
-         302: aaload
-         303: astore        24
-         305: new           #2                  // class Block
-         308: dup
-         309: sipush        248
-         312: iconst_2
-         313: anewarray     #4                  // class java/lang/Object
-         316: dup
-         317: iconst_0
-         318: aload         24
-         320: aastore
+         222: aload         16
+         224: aload         15
+         226: invokestatic  #65                 // Method Ocaml.registerNamedValue:(Ljava/lang/Object;Ljava/lang/Object;)J
+         229: invokestatic  #61                 // Method java/lang/Long.valueOf:(J)Ljava/lang/Long;
+         232: astore        17
+         234: new           #2                  // class Block
+         237: dup
+         238: iconst_0
+         239: bipush        104
+         241: anewarray     #4                  // class java/lang/Object
+         244: invokespecial #16                 // Method Block."<init>":(I[Ljava/lang/Object;)V
+         247: astore        18
+         249: new           #67                 // class ocaml_fn_8
+         252: dup
+         253: invokespecial #68                 // Method ocaml_fn_8."<init>":()V
+         256: astore        19
+         258: aload         18
+         260: checkcast     #2                  // class Block
+         263: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+         266: iconst_1
+         267: aload         19
+         269: aastore
+         270: new           #73                 // class ocaml_fn_9
+         273: dup
+         274: invokespecial #74                 // Method ocaml_fn_9."<init>":()V
+         277: astore        20
+         279: aload         18
+         281: checkcast     #2                  // class Block
+         284: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+         287: iconst_0
+         288: aload         20
+         290: aastore
+         291: iconst_0
+         292: i2l
+         293: lstore        21
+         295: iconst_0
+         296: i2l
+         297: invokestatic  #61                 // Method java/lang/Long.valueOf:(J)Ljava/lang/Long;
+         300: astore        23
+         302: getstatic     #25                 // Field GLOBALS:[Ljava/lang/Object;
+         305: bipush        37
+         307: aaload
+         308: astore        24
+         310: new           #2                  // class Block
+         313: dup
+         314: sipush        248
+         317: iconst_2
+         318: anewarray     #4                  // class java/lang/Object
          321: dup
-         322: iconst_1
-         323: aload         23
+         322: iconst_0
+         323: aload         24
          325: aastore
-         326: invokespecial #16                 // Method Block."<init>":(I[Ljava/lang/Object;)V
-         329: astore        25
-         331: aload         18
-         333: checkcast     #2                  // class Block
-         336: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-         339: iconst_2
-         340: aload         25
-         342: aastore
-         343: getstatic     #25                 // Field GLOBALS:[Ljava/lang/Object;
-         346: bipush        7
-         348: aaload
-         349: astore        26
-         351: aload         18
-         353: checkcast     #2                  // class Block
-         356: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-         359: iconst_3
-         360: aload         26
-         362: aastore
-         363: getstatic     #25                 // Field GLOBALS:[Ljava/lang/Object;
-         366: bipush        10
-         368: aaload
-         369: astore        27
-         371: aload         18
-         373: checkcast     #2                  // class Block
-         376: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-         379: iconst_4
-         380: aload         27
-         382: aastore
-         383: getstatic     #25                 // Field GLOBALS:[Ljava/lang/Object;
-         386: iconst_3
-         387: aaload
-         388: astore        28
-         390: aload         18
-         392: checkcast     #2                  // class Block
-         395: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-         398: iconst_5
-         399: aload         28
-         401: aastore
-         402: getstatic     #25                 // Field GLOBALS:[Ljava/lang/Object;
-         405: iconst_2
-         406: aaload
-         407: astore        29
-         409: aload         18
-         411: checkcast     #2                  // class Block
-         414: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-         417: bipush        6
-         419: aload         29
-         421: aastore
-         422: getstatic     #25                 // Field GLOBALS:[Ljava/lang/Object;
-         425: bipush        6
-         427: aaload
-         428: astore        30
-         430: aload         18
-         432: checkcast     #2                  // class Block
-         435: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-         438: bipush        7
-         440: aload         30
-         442: aastore
-         443: getstatic     #25                 // Field GLOBALS:[Ljava/lang/Object;
-         446: iconst_0
-         447: aaload
-         448: astore        31
-         450: aload         18
-         452: checkcast     #2                  // class Block
-         455: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-         458: bipush        8
-         460: aload         31
-         462: aastore
-         463: getstatic     #25                 // Field GLOBALS:[Ljava/lang/Object;
-         466: bipush        8
-         468: aaload
-         469: astore        32
-         471: aload         18
-         473: checkcast     #2                  // class Block
-         476: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-         479: bipush        9
-         481: aload         32
-         483: aastore
-         484: getstatic     #25                 // Field GLOBALS:[Ljava/lang/Object;
-         487: iconst_1
-         488: aaload
-         489: astore        33
-         491: aload         18
-         493: checkcast     #2                  // class Block
-         496: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-         499: bipush        10
-         501: aload         33
-         503: aastore
-         504: getstatic     #25                 // Field GLOBALS:[Ljava/lang/Object;
-         507: iconst_4
-         508: aaload
-         509: astore        34
-         511: aload         18
-         513: checkcast     #2                  // class Block
-         516: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-         519: bipush        11
-         521: aload         34
-         523: aastore
-         524: getstatic     #25                 // Field GLOBALS:[Ljava/lang/Object;
-         527: iconst_5
-         528: aaload
-         529: astore        35
-         531: aload         18
-         533: checkcast     #2                  // class Block
-         536: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-         539: bipush        12
-         541: aload         35
-         543: aastore
-         544: getstatic     #25                 // Field GLOBALS:[Ljava/lang/Object;
-         547: bipush        9
-         549: aaload
-         550: astore        36
-         552: aload         18
-         554: checkcast     #2                  // class Block
-         557: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-         560: bipush        13
-         562: aload         36
-         564: aastore
-         565: getstatic     #25                 // Field GLOBALS:[Ljava/lang/Object;
-         568: bipush        11
-         570: aaload
-         571: astore        37
-         573: aload         18
-         575: checkcast     #2                  // class Block
-         578: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-         581: bipush        14
-         583: aload         37
-         585: aastore
-         586: new           #72                 // class ocaml_fn_10
-         589: dup
-         590: invokespecial #73                 // Method ocaml_fn_10."<init>":()V
-         593: astore        38
-         595: aload         18
-         597: checkcast     #2                  // class Block
-         600: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-         603: bipush        15
-         605: aload         38
-         607: aastore
-         608: new           #75                 // class ocaml_fn_11
-         611: dup
-         612: invokespecial #76                 // Method ocaml_fn_11."<init>":()V
-         615: astore        39
-         617: aload         18
-         619: checkcast     #2                  // class Block
-         622: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-         625: bipush        16
-         627: aload         39
-         629: aastore
-         630: new           #78                 // class ocaml_fn_12
-         633: dup
-         634: invokespecial #79                 // Method ocaml_fn_12."<init>":()V
-         637: astore        40
-         639: aload         18
-         641: checkcast     #2                  // class Block
-         644: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-         647: bipush        17
-         649: aload         40
-         651: aastore
-         652: new           #81                 // class ocaml_fn_13
-         655: dup
-         656: invokespecial #82                 // Method ocaml_fn_13."<init>":()V
-         659: astore        41
-         661: aload         18
-         663: checkcast     #2                  // class Block
-         666: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-         669: bipush        20
-         671: aload         41
-         673: aastore
-         674: ldc2_w        #83                 // long 4611686018427387903l
-         677: lstore        42
-         679: aload         18
-         681: checkcast     #2                  // class Block
-         684: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-         687: bipush        18
-         689: lload         42
-         691: invokestatic  #61                 // Method java/lang/Long.valueOf:(J)Ljava/lang/Long;
-         694: aastore
-         695: ldc2_w        #85                 // long -4611686018427387904l
-         698: lstore        44
-         700: aload         18
-         702: checkcast     #2                  // class Block
-         705: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-         708: bipush        19
-         710: lload         44
-         712: invokestatic  #61                 // Method java/lang/Long.valueOf:(J)Ljava/lang/Long;
-         715: aastore
-         716: getstatic     #25                 // Field GLOBALS:[Ljava/lang/Object;
-         719: bipush        38
-         721: aaload
-         722: astore        46
-         724: aload         46
-         726: invokestatic  #90                 // Method Block.asLong:(Ljava/lang/Object;)J
-         729: invokestatic  #96                 // Method java/lang/Double.longBitsToDouble:(J)D
-         732: invokestatic  #99                 // Method java/lang/Double.valueOf:(D)Ljava/lang/Double;
-         735: astore        47
-         737: aload         18
-         739: checkcast     #2                  // class Block
-         742: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-         745: bipush        21
-         747: aload         47
-         749: aastore
-         750: getstatic     #25                 // Field GLOBALS:[Ljava/lang/Object;
-         753: bipush        39
-         755: aaload
-         756: astore        48
-         758: aload         48
-         760: invokestatic  #90                 // Method Block.asLong:(Ljava/lang/Object;)J
-         763: invokestatic  #96                 // Method java/lang/Double.longBitsToDouble:(J)D
-         766: invokestatic  #99                 // Method java/lang/Double.valueOf:(D)Ljava/lang/Double;
-         769: astore        49
-         771: aload         18
-         773: checkcast     #2                  // class Block
-         776: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-         779: bipush        22
-         781: aload         49
-         783: aastore
-         784: getstatic     #25                 // Field GLOBALS:[Ljava/lang/Object;
-         787: bipush        40
-         789: aaload
-         790: astore        50
-         792: aload         50
-         794: invokestatic  #90                 // Method Block.asLong:(Ljava/lang/Object;)J
-         797: invokestatic  #96                 // Method java/lang/Double.longBitsToDouble:(J)D
-         800: invokestatic  #99                 // Method java/lang/Double.valueOf:(D)Ljava/lang/Double;
-         803: astore        51
-         805: aload         18
-         807: checkcast     #2                  // class Block
-         810: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-         813: bipush        23
-         815: aload         51
-         817: aastore
-         818: getstatic     #25                 // Field GLOBALS:[Ljava/lang/Object;
-         821: bipush        41
-         823: aaload
-         824: astore        52
-         826: aload         52
-         828: invokestatic  #90                 // Method Block.asLong:(Ljava/lang/Object;)J
-         831: invokestatic  #96                 // Method java/lang/Double.longBitsToDouble:(J)D
-         834: invokestatic  #99                 // Method java/lang/Double.valueOf:(D)Ljava/lang/Double;
-         837: astore        53
-         839: aload         18
-         841: checkcast     #2                  // class Block
-         844: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-         847: bipush        24
-         849: aload         53
-         851: aastore
-         852: getstatic     #25                 // Field GLOBALS:[Ljava/lang/Object;
-         855: bipush        42
-         857: aaload
-         858: astore        54
-         860: aload         54
-         862: invokestatic  #90                 // Method Block.asLong:(Ljava/lang/Object;)J
-         865: invokestatic  #96                 // Method java/lang/Double.longBitsToDouble:(J)D
-         868: invokestatic  #99                 // Method java/lang/Double.valueOf:(D)Ljava/lang/Double;
-         871: astore        55
-         873: aload         18
-         875: checkcast     #2                  // class Block
-         878: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-         881: bipush        25
-         883: aload         55
-         885: aastore
-         886: getstatic     #25                 // Field GLOBALS:[Ljava/lang/Object;
-         889: bipush        43
-         891: aaload
-         892: astore        56
-         894: aload         56
-         896: invokestatic  #90                 // Method Block.asLong:(Ljava/lang/Object;)J
-         899: invokestatic  #96                 // Method java/lang/Double.longBitsToDouble:(J)D
-         902: invokestatic  #99                 // Method java/lang/Double.valueOf:(D)Ljava/lang/Double;
-         905: astore        57
-         907: aload         18
-         909: checkcast     #2                  // class Block
-         912: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-         915: bipush        26
-         917: aload         57
-         919: aastore
-         920: new           #101                // class ocaml_fn_14
-         923: dup
-         924: invokespecial #102                // Method ocaml_fn_14."<init>":()V
-         927: astore        58
-         929: aload         18
-         931: checkcast     #2                  // class Block
-         934: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-         937: bipush        27
-         939: aload         58
-         941: aastore
-         942: new           #104                // class ocaml_fn_15
-         945: dup
-         946: aload         20
-         948: invokespecial #107                // Method ocaml_fn_15."<init>":(Ljava/lang/Object;)V
-         951: astore        59
-         953: aload         18
-         955: checkcast     #2                  // class Block
-         958: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-         961: bipush        28
-         963: aload         59
-         965: aastore
-         966: new           #109                // class ocaml_fn_16
-         969: dup
-         970: invokespecial #110                // Method ocaml_fn_16."<init>":()V
-         973: astore        60
-         975: aload         18
-         977: checkcast     #2                  // class Block
-         980: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-         983: bipush        29
-         985: aload         60
-         987: aastore
-         988: new           #112                // class ocaml_fn_17
-         991: dup
-         992: aload         20
-         994: invokespecial #113                // Method ocaml_fn_17."<init>":(Ljava/lang/Object;)V
-         997: astore        61
-         999: aload         18
-        1001: checkcast     #2                  // class Block
-        1004: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        1007: bipush        31
-        1009: aload         61
-        1011: aastore
-        1012: new           #115                // class ocaml_fn_18
-        1015: dup
-        1016: invokespecial #116                // Method ocaml_fn_18."<init>":()V
-        1019: astore        62
-        1021: aload         18
-        1023: checkcast     #2                  // class Block
-        1026: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        1029: bipush        30
-        1031: aload         62
-        1033: aastore
-        1034: new           #118                // class ocaml_fn_19
-        1037: dup
-        1038: invokespecial #119                // Method ocaml_fn_19."<init>":()V
-        1041: astore        63
-        1043: aload         18
-        1045: checkcast     #2                  // class Block
-        1048: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        1051: bipush        32
-        1053: aload         63
-        1055: aastore
-        1056: new           #121                // class ocaml_fn_20
-        1059: dup
-        1060: aload         29
-        1062: invokespecial #122                // Method ocaml_fn_20."<init>":(Ljava/lang/Object;)V
-        1065: astore        64
-        1067: aload         18
-        1069: checkcast     #2                  // class Block
-        1072: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        1075: bipush        33
-        1077: aload         64
-        1079: aastore
-        1080: new           #124                // class ocaml_fn_21
-        1083: dup
-        1084: aload         58
-        1086: invokespecial #125                // Method ocaml_fn_21."<init>":(Ljava/lang/Object;)V
-        1089: astore        65
-        1091: aload         18
-        1093: checkcast     #2                  // class Block
-        1096: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        1099: bipush        100
-        1101: aload         65
-        1103: aastore
-        1104: new           #127                // class ocaml_fn_22
-        1107: dup
-        1108: aload         65
-        1110: invokespecial #128                // Method ocaml_fn_22."<init>":(Ljava/lang/Object;)V
-        1113: astore        66
-        1115: aload         18
-        1117: checkcast     #2                  // class Block
-        1120: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        1123: bipush        34
-        1125: aload         66
-        1127: aastore
-        1128: new           #130                // class ocaml_fn_23
-        1131: dup
-        1132: aload         29
-        1134: invokespecial #131                // Method ocaml_fn_23."<init>":(Ljava/lang/Object;)V
-        1137: astore        67
-        1139: aload         18
-        1141: checkcast     #2                  // class Block
-        1144: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        1147: bipush        35
-        1149: aload         67
-        1151: aastore
-        1152: new           #133                // class ocaml_fn_24
-        1155: dup
-        1156: invokespecial #134                // Method ocaml_fn_24."<init>":()V
-        1159: astore        68
-        1161: aload         18
-        1163: checkcast     #2                  // class Block
-        1166: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        1169: bipush        36
-        1171: aload         68
-        1173: aastore
-        1174: new           #136                // class ocaml_fn_25
-        1177: dup
-        1178: invokespecial #137                // Method ocaml_fn_25."<init>":()V
-        1181: astore        69
-        1183: aload         68
-        1185: checkcast     #133                // class ocaml_fn_24
+         326: dup
+         327: iconst_1
+         328: aload         23
+         330: aastore
+         331: invokespecial #16                 // Method Block."<init>":(I[Ljava/lang/Object;)V
+         334: astore        25
+         336: aload         18
+         338: checkcast     #2                  // class Block
+         341: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+         344: iconst_2
+         345: aload         25
+         347: aastore
+         348: getstatic     #25                 // Field GLOBALS:[Ljava/lang/Object;
+         351: bipush        7
+         353: aaload
+         354: astore        26
+         356: aload         18
+         358: checkcast     #2                  // class Block
+         361: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+         364: iconst_3
+         365: aload         26
+         367: aastore
+         368: getstatic     #25                 // Field GLOBALS:[Ljava/lang/Object;
+         371: bipush        10
+         373: aaload
+         374: astore        27
+         376: aload         18
+         378: checkcast     #2                  // class Block
+         381: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+         384: iconst_4
+         385: aload         27
+         387: aastore
+         388: getstatic     #25                 // Field GLOBALS:[Ljava/lang/Object;
+         391: iconst_3
+         392: aaload
+         393: astore        28
+         395: aload         18
+         397: checkcast     #2                  // class Block
+         400: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+         403: iconst_5
+         404: aload         28
+         406: aastore
+         407: getstatic     #25                 // Field GLOBALS:[Ljava/lang/Object;
+         410: iconst_2
+         411: aaload
+         412: astore        29
+         414: aload         18
+         416: checkcast     #2                  // class Block
+         419: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+         422: bipush        6
+         424: aload         29
+         426: aastore
+         427: getstatic     #25                 // Field GLOBALS:[Ljava/lang/Object;
+         430: bipush        6
+         432: aaload
+         433: astore        30
+         435: aload         18
+         437: checkcast     #2                  // class Block
+         440: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+         443: bipush        7
+         445: aload         30
+         447: aastore
+         448: getstatic     #25                 // Field GLOBALS:[Ljava/lang/Object;
+         451: iconst_0
+         452: aaload
+         453: astore        31
+         455: aload         18
+         457: checkcast     #2                  // class Block
+         460: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+         463: bipush        8
+         465: aload         31
+         467: aastore
+         468: getstatic     #25                 // Field GLOBALS:[Ljava/lang/Object;
+         471: bipush        8
+         473: aaload
+         474: astore        32
+         476: aload         18
+         478: checkcast     #2                  // class Block
+         481: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+         484: bipush        9
+         486: aload         32
+         488: aastore
+         489: getstatic     #25                 // Field GLOBALS:[Ljava/lang/Object;
+         492: iconst_1
+         493: aaload
+         494: astore        33
+         496: aload         18
+         498: checkcast     #2                  // class Block
+         501: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+         504: bipush        10
+         506: aload         33
+         508: aastore
+         509: getstatic     #25                 // Field GLOBALS:[Ljava/lang/Object;
+         512: iconst_4
+         513: aaload
+         514: astore        34
+         516: aload         18
+         518: checkcast     #2                  // class Block
+         521: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+         524: bipush        11
+         526: aload         34
+         528: aastore
+         529: getstatic     #25                 // Field GLOBALS:[Ljava/lang/Object;
+         532: iconst_5
+         533: aaload
+         534: astore        35
+         536: aload         18
+         538: checkcast     #2                  // class Block
+         541: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+         544: bipush        12
+         546: aload         35
+         548: aastore
+         549: getstatic     #25                 // Field GLOBALS:[Ljava/lang/Object;
+         552: bipush        9
+         554: aaload
+         555: astore        36
+         557: aload         18
+         559: checkcast     #2                  // class Block
+         562: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+         565: bipush        13
+         567: aload         36
+         569: aastore
+         570: getstatic     #25                 // Field GLOBALS:[Ljava/lang/Object;
+         573: bipush        11
+         575: aaload
+         576: astore        37
+         578: aload         18
+         580: checkcast     #2                  // class Block
+         583: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+         586: bipush        14
+         588: aload         37
+         590: aastore
+         591: new           #76                 // class ocaml_fn_10
+         594: dup
+         595: invokespecial #77                 // Method ocaml_fn_10."<init>":()V
+         598: astore        38
+         600: aload         18
+         602: checkcast     #2                  // class Block
+         605: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+         608: bipush        15
+         610: aload         38
+         612: aastore
+         613: new           #79                 // class ocaml_fn_11
+         616: dup
+         617: invokespecial #80                 // Method ocaml_fn_11."<init>":()V
+         620: astore        39
+         622: aload         18
+         624: checkcast     #2                  // class Block
+         627: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+         630: bipush        16
+         632: aload         39
+         634: aastore
+         635: new           #82                 // class ocaml_fn_12
+         638: dup
+         639: invokespecial #83                 // Method ocaml_fn_12."<init>":()V
+         642: astore        40
+         644: aload         18
+         646: checkcast     #2                  // class Block
+         649: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+         652: bipush        17
+         654: aload         40
+         656: aastore
+         657: new           #85                 // class ocaml_fn_13
+         660: dup
+         661: invokespecial #86                 // Method ocaml_fn_13."<init>":()V
+         664: astore        41
+         666: aload         18
+         668: checkcast     #2                  // class Block
+         671: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+         674: bipush        20
+         676: aload         41
+         678: aastore
+         679: ldc2_w        #87                 // long 4611686018427387903l
+         682: lstore        42
+         684: aload         18
+         686: checkcast     #2                  // class Block
+         689: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+         692: bipush        18
+         694: lload         42
+         696: invokestatic  #61                 // Method java/lang/Long.valueOf:(J)Ljava/lang/Long;
+         699: aastore
+         700: ldc2_w        #89                 // long -4611686018427387904l
+         703: lstore        44
+         705: aload         18
+         707: checkcast     #2                  // class Block
+         710: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+         713: bipush        19
+         715: lload         44
+         717: invokestatic  #61                 // Method java/lang/Long.valueOf:(J)Ljava/lang/Long;
+         720: aastore
+         721: getstatic     #25                 // Field GLOBALS:[Ljava/lang/Object;
+         724: bipush        38
+         726: aaload
+         727: astore        46
+         729: aload         46
+         731: invokestatic  #94                 // Method Block.asLong:(Ljava/lang/Object;)J
+         734: invokestatic  #100                // Method java/lang/Double.longBitsToDouble:(J)D
+         737: invokestatic  #103                // Method java/lang/Double.valueOf:(D)Ljava/lang/Double;
+         740: astore        47
+         742: aload         18
+         744: checkcast     #2                  // class Block
+         747: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+         750: bipush        21
+         752: aload         47
+         754: aastore
+         755: getstatic     #25                 // Field GLOBALS:[Ljava/lang/Object;
+         758: bipush        39
+         760: aaload
+         761: astore        48
+         763: aload         48
+         765: invokestatic  #94                 // Method Block.asLong:(Ljava/lang/Object;)J
+         768: invokestatic  #100                // Method java/lang/Double.longBitsToDouble:(J)D
+         771: invokestatic  #103                // Method java/lang/Double.valueOf:(D)Ljava/lang/Double;
+         774: astore        49
+         776: aload         18
+         778: checkcast     #2                  // class Block
+         781: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+         784: bipush        22
+         786: aload         49
+         788: aastore
+         789: getstatic     #25                 // Field GLOBALS:[Ljava/lang/Object;
+         792: bipush        40
+         794: aaload
+         795: astore        50
+         797: aload         50
+         799: invokestatic  #94                 // Method Block.asLong:(Ljava/lang/Object;)J
+         802: invokestatic  #100                // Method java/lang/Double.longBitsToDouble:(J)D
+         805: invokestatic  #103                // Method java/lang/Double.valueOf:(D)Ljava/lang/Double;
+         808: astore        51
+         810: aload         18
+         812: checkcast     #2                  // class Block
+         815: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+         818: bipush        23
+         820: aload         51
+         822: aastore
+         823: getstatic     #25                 // Field GLOBALS:[Ljava/lang/Object;
+         826: bipush        41
+         828: aaload
+         829: astore        52
+         831: aload         52
+         833: invokestatic  #94                 // Method Block.asLong:(Ljava/lang/Object;)J
+         836: invokestatic  #100                // Method java/lang/Double.longBitsToDouble:(J)D
+         839: invokestatic  #103                // Method java/lang/Double.valueOf:(D)Ljava/lang/Double;
+         842: astore        53
+         844: aload         18
+         846: checkcast     #2                  // class Block
+         849: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+         852: bipush        24
+         854: aload         53
+         856: aastore
+         857: getstatic     #25                 // Field GLOBALS:[Ljava/lang/Object;
+         860: bipush        42
+         862: aaload
+         863: astore        54
+         865: aload         54
+         867: invokestatic  #94                 // Method Block.asLong:(Ljava/lang/Object;)J
+         870: invokestatic  #100                // Method java/lang/Double.longBitsToDouble:(J)D
+         873: invokestatic  #103                // Method java/lang/Double.valueOf:(D)Ljava/lang/Double;
+         876: astore        55
+         878: aload         18
+         880: checkcast     #2                  // class Block
+         883: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+         886: bipush        25
+         888: aload         55
+         890: aastore
+         891: getstatic     #25                 // Field GLOBALS:[Ljava/lang/Object;
+         894: bipush        43
+         896: aaload
+         897: astore        56
+         899: aload         56
+         901: invokestatic  #94                 // Method Block.asLong:(Ljava/lang/Object;)J
+         904: invokestatic  #100                // Method java/lang/Double.longBitsToDouble:(J)D
+         907: invokestatic  #103                // Method java/lang/Double.valueOf:(D)Ljava/lang/Double;
+         910: astore        57
+         912: aload         18
+         914: checkcast     #2                  // class Block
+         917: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+         920: bipush        26
+         922: aload         57
+         924: aastore
+         925: new           #105                // class ocaml_fn_14
+         928: dup
+         929: invokespecial #106                // Method ocaml_fn_14."<init>":()V
+         932: astore        58
+         934: aload         18
+         936: checkcast     #2                  // class Block
+         939: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+         942: bipush        27
+         944: aload         58
+         946: aastore
+         947: new           #108                // class ocaml_fn_15
+         950: dup
+         951: aload         20
+         953: invokespecial #111                // Method ocaml_fn_15."<init>":(Ljava/lang/Object;)V
+         956: astore        59
+         958: aload         18
+         960: checkcast     #2                  // class Block
+         963: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+         966: bipush        28
+         968: aload         59
+         970: aastore
+         971: new           #113                // class ocaml_fn_16
+         974: dup
+         975: invokespecial #114                // Method ocaml_fn_16."<init>":()V
+         978: astore        60
+         980: aload         18
+         982: checkcast     #2                  // class Block
+         985: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+         988: bipush        29
+         990: aload         60
+         992: aastore
+         993: new           #116                // class ocaml_fn_17
+         996: dup
+         997: aload         20
+         999: invokespecial #117                // Method ocaml_fn_17."<init>":(Ljava/lang/Object;)V
+        1002: astore        61
+        1004: aload         18
+        1006: checkcast     #2                  // class Block
+        1009: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        1012: bipush        31
+        1014: aload         61
+        1016: aastore
+        1017: new           #119                // class ocaml_fn_18
+        1020: dup
+        1021: invokespecial #120                // Method ocaml_fn_18."<init>":()V
+        1024: astore        62
+        1026: aload         18
+        1028: checkcast     #2                  // class Block
+        1031: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        1034: bipush        30
+        1036: aload         62
+        1038: aastore
+        1039: new           #122                // class ocaml_fn_19
+        1042: dup
+        1043: invokespecial #123                // Method ocaml_fn_19."<init>":()V
+        1046: astore        63
+        1048: aload         18
+        1050: checkcast     #2                  // class Block
+        1053: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        1056: bipush        32
+        1058: aload         63
+        1060: aastore
+        1061: new           #125                // class ocaml_fn_20
+        1064: dup
+        1065: aload         29
+        1067: invokespecial #126                // Method ocaml_fn_20."<init>":(Ljava/lang/Object;)V
+        1070: astore        64
+        1072: aload         18
+        1074: checkcast     #2                  // class Block
+        1077: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        1080: bipush        33
+        1082: aload         64
+        1084: aastore
+        1085: new           #128                // class ocaml_fn_21
+        1088: dup
+        1089: aload         58
+        1091: invokespecial #129                // Method ocaml_fn_21."<init>":(Ljava/lang/Object;)V
+        1094: astore        65
+        1096: aload         18
+        1098: checkcast     #2                  // class Block
+        1101: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        1104: bipush        100
+        1106: aload         65
+        1108: aastore
+        1109: new           #131                // class ocaml_fn_22
+        1112: dup
+        1113: aload         65
+        1115: invokespecial #132                // Method ocaml_fn_22."<init>":(Ljava/lang/Object;)V
+        1118: astore        66
+        1120: aload         18
+        1122: checkcast     #2                  // class Block
+        1125: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        1128: bipush        34
+        1130: aload         66
+        1132: aastore
+        1133: new           #134                // class ocaml_fn_23
+        1136: dup
+        1137: aload         29
+        1139: invokespecial #135                // Method ocaml_fn_23."<init>":(Ljava/lang/Object;)V
+        1142: astore        67
+        1144: aload         18
+        1146: checkcast     #2                  // class Block
+        1149: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        1152: bipush        35
+        1154: aload         67
+        1156: aastore
+        1157: new           #137                // class ocaml_fn_24
+        1160: dup
+        1161: invokespecial #138                // Method ocaml_fn_24."<init>":()V
+        1164: astore        68
+        1166: aload         18
+        1168: checkcast     #2                  // class Block
+        1171: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        1174: bipush        36
+        1176: aload         68
+        1178: aastore
+        1179: new           #140                // class ocaml_fn_25
+        1182: dup
+        1183: invokespecial #141                // Method ocaml_fn_25."<init>":()V
+        1186: astore        69
         1188: aload         68
-        1190: checkcast     #139                // class Closure
-        1193: putfield      #143                // Field ocaml_fn_24.sibling_0:LClosure;
-        1196: iconst_0
-        1197: i2l
-        1198: invokestatic  #61                 // Method java/lang/Long.valueOf:(J)Ljava/lang/Long;
-        1201: astore        70
-        1203: aload         68
-        1205: checkcast     #133                // class ocaml_fn_24
-        1208: aload         69
-        1210: checkcast     #139                // class Closure
-        1213: putfield      #146                // Field ocaml_fn_24.sibling_1:LClosure;
-        1216: iconst_0
-        1217: i2l
-        1218: invokestatic  #61                 // Method java/lang/Long.valueOf:(J)Ljava/lang/Long;
-        1221: astore        71
-        1223: aload         69
-        1225: checkcast     #136                // class ocaml_fn_25
-        1228: aload         68
-        1230: checkcast     #139                // class Closure
-        1233: putfield      #147                // Field ocaml_fn_25.sibling_0:LClosure;
-        1236: iconst_0
-        1237: i2l
-        1238: invokestatic  #61                 // Method java/lang/Long.valueOf:(J)Ljava/lang/Long;
-        1241: astore        72
-        1243: aload         69
-        1245: checkcast     #136                // class ocaml_fn_25
+        1190: checkcast     #137                // class ocaml_fn_24
+        1193: aload         68
+        1195: checkcast     #143                // class Closure
+        1198: putfield      #147                // Field ocaml_fn_24.sibling_0:LClosure;
+        1201: iconst_0
+        1202: i2l
+        1203: invokestatic  #61                 // Method java/lang/Long.valueOf:(J)Ljava/lang/Long;
+        1206: astore        70
+        1208: aload         68
+        1210: checkcast     #137                // class ocaml_fn_24
+        1213: aload         69
+        1215: checkcast     #143                // class Closure
+        1218: putfield      #150                // Field ocaml_fn_24.sibling_1:LClosure;
+        1221: iconst_0
+        1222: i2l
+        1223: invokestatic  #61                 // Method java/lang/Long.valueOf:(J)Ljava/lang/Long;
+        1226: astore        71
+        1228: aload         69
+        1230: checkcast     #140                // class ocaml_fn_25
+        1233: aload         68
+        1235: checkcast     #143                // class Closure
+        1238: putfield      #151                // Field ocaml_fn_25.sibling_0:LClosure;
+        1241: iconst_0
+        1242: i2l
+        1243: invokestatic  #61                 // Method java/lang/Long.valueOf:(J)Ljava/lang/Long;
+        1246: astore        72
         1248: aload         69
-        1250: checkcast     #139                // class Closure
-        1253: putfield      #148                // Field ocaml_fn_25.sibling_1:LClosure;
-        1256: iconst_0
-        1257: i2l
-        1258: invokestatic  #61                 // Method java/lang/Long.valueOf:(J)Ljava/lang/Long;
-        1261: astore        73
-        1263: iconst_0
-        1264: i2l
-        1265: lstore        74
-        1267: lload         74
-        1269: l2i
-        1270: invokestatic  #152                // Method Channel.forDescriptor:(I)LChannel;
-        1273: astore        76
-        1275: aload         18
-        1277: checkcast     #2                  // class Block
-        1280: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        1283: bipush        37
-        1285: aload         76
-        1287: aastore
-        1288: iconst_1
-        1289: i2l
-        1290: lstore        77
-        1292: lload         77
-        1294: l2i
-        1295: invokestatic  #152                // Method Channel.forDescriptor:(I)LChannel;
-        1298: astore        79
-        1300: aload         18
-        1302: checkcast     #2                  // class Block
-        1305: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        1308: bipush        38
-        1310: aload         79
-        1312: aastore
-        1313: iconst_2
-        1314: i2l
-        1315: lstore        80
-        1317: lload         80
-        1319: l2i
-        1320: invokestatic  #152                // Method Channel.forDescriptor:(I)LChannel;
-        1323: astore        82
-        1325: aload         18
-        1327: checkcast     #2                  // class Block
-        1330: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        1333: bipush        39
-        1335: aload         82
-        1337: aastore
-        1338: new           #154                // class ocaml_fn_26
-        1341: dup
-        1342: invokespecial #155                // Method ocaml_fn_26."<init>":()V
-        1345: astore        83
-        1347: aload         18
-        1349: checkcast     #2                  // class Block
-        1352: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        1355: bipush        61
-        1357: aload         83
-        1359: aastore
-        1360: new           #157                // class ocaml_fn_27
-        1363: dup
-        1364: aload         83
-        1366: invokespecial #158                // Method ocaml_fn_27."<init>":(Ljava/lang/Object;)V
-        1369: astore        84
-        1371: aload         18
-        1373: checkcast     #2                  // class Block
-        1376: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        1379: bipush        59
-        1381: aload         84
-        1383: aastore
-        1384: new           #160                // class ocaml_fn_28
-        1387: dup
-        1388: aload         83
-        1390: invokespecial #161                // Method ocaml_fn_28."<init>":(Ljava/lang/Object;)V
-        1393: astore        85
-        1395: aload         18
-        1397: checkcast     #2                  // class Block
-        1400: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        1403: bipush        60
-        1405: aload         85
-        1407: aastore
-        1408: new           #163                // class ocaml_fn_29
-        1411: dup
-        1412: aload         33
-        1414: invokespecial #164                // Method ocaml_fn_29."<init>":(Ljava/lang/Object;)V
-        1417: astore        86
-        1419: aload         18
-        1421: checkcast     #2                  // class Block
-        1424: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        1427: bipush        63
-        1429: aload         86
-        1431: aastore
-        1432: new           #166                // class ocaml_fn_30
-        1435: dup
-        1436: invokespecial #167                // Method ocaml_fn_30."<init>":()V
-        1439: astore        87
-        1441: aload         18
-        1443: checkcast     #2                  // class Block
-        1446: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        1449: bipush        66
-        1451: aload         87
-        1453: aastore
-        1454: new           #169                // class ocaml_fn_31
-        1457: dup
-        1458: invokespecial #170                // Method ocaml_fn_31."<init>":()V
-        1461: astore        88
-        1463: aload         18
-        1465: checkcast     #2                  // class Block
-        1468: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        1471: bipush        65
-        1473: aload         88
-        1475: aastore
-        1476: new           #172                // class ocaml_fn_32
-        1479: dup
-        1480: aload         20
-        1482: invokespecial #173                // Method ocaml_fn_32."<init>":(Ljava/lang/Object;)V
-        1485: astore        89
-        1487: aload         18
-        1489: checkcast     #2                  // class Block
-        1492: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        1495: bipush        67
-        1497: aload         89
-        1499: aastore
-        1500: new           #175                // class ocaml_fn_33
-        1503: dup
-        1504: aload         20
-        1506: invokespecial #176                // Method ocaml_fn_33."<init>":(Ljava/lang/Object;)V
-        1509: astore        90
-        1511: aload         18
-        1513: checkcast     #2                  // class Block
-        1516: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        1519: bipush        68
-        1521: aload         90
-        1523: aastore
-        1524: new           #178                // class ocaml_fn_34
-        1527: dup
-        1528: invokespecial #179                // Method ocaml_fn_34."<init>":()V
-        1531: astore        91
-        1533: aload         18
-        1535: checkcast     #2                  // class Block
-        1538: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        1541: bipush        71
-        1543: aload         91
-        1545: aastore
-        1546: new           #181                // class ocaml_fn_35
-        1549: dup
-        1550: invokespecial #182                // Method ocaml_fn_35."<init>":()V
-        1553: astore        92
-        1555: aload         18
-        1557: checkcast     #2                  // class Block
-        1560: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        1563: bipush        75
-        1565: aload         92
-        1567: aastore
-        1568: new           #184                // class ocaml_fn_36
-        1571: dup
-        1572: invokespecial #185                // Method ocaml_fn_36."<init>":()V
-        1575: astore        93
-        1577: aload         18
-        1579: checkcast     #2                  // class Block
-        1582: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        1585: bipush        76
-        1587: aload         93
-        1589: aastore
-        1590: new           #187                // class ocaml_fn_37
-        1593: dup
-        1594: invokespecial #188                // Method ocaml_fn_37."<init>":()V
-        1597: astore        94
-        1599: aload         18
-        1601: checkcast     #2                  // class Block
-        1604: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        1607: bipush        80
-        1609: aload         94
-        1611: aastore
-        1612: new           #190                // class ocaml_fn_38
-        1615: dup
-        1616: aload         94
-        1618: invokespecial #191                // Method ocaml_fn_38."<init>":(Ljava/lang/Object;)V
-        1621: astore        95
-        1623: aload         18
-        1625: checkcast     #2                  // class Block
-        1628: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        1631: bipush        78
-        1633: aload         95
-        1635: aastore
-        1636: new           #193                // class ocaml_fn_39
-        1639: dup
-        1640: aload         94
-        1642: invokespecial #194                // Method ocaml_fn_39."<init>":(Ljava/lang/Object;)V
-        1645: astore        96
-        1647: aload         18
-        1649: checkcast     #2                  // class Block
-        1652: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        1655: bipush        79
-        1657: aload         96
-        1659: aastore
-        1660: new           #196                // class ocaml_fn_40
-        1663: dup
-        1664: aload         20
-        1666: invokespecial #197                // Method ocaml_fn_40."<init>":(Ljava/lang/Object;)V
-        1669: astore        97
-        1671: aload         18
-        1673: checkcast     #2                  // class Block
-        1676: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        1679: bipush        83
-        1681: aload         97
-        1683: aastore
-        1684: new           #199                // class ocaml_fn_41
-        1687: dup
-        1688: aload         34
-        1690: invokespecial #200                // Method ocaml_fn_41."<init>":(Ljava/lang/Object;)V
-        1693: astore        98
-        1695: aload         18
-        1697: checkcast     #2                  // class Block
-        1700: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        1703: bipush        101
-        1705: aload         98
-        1707: aastore
-        1708: new           #202                // class ocaml_fn_42
-        1711: dup
-        1712: aload         20
-        1714: aload         98
-        1716: invokespecial #205                // Method ocaml_fn_42."<init>":(Ljava/lang/Object;Ljava/lang/Object;)V
-        1719: astore        99
-        1721: aload         18
-        1723: checkcast     #2                  // class Block
-        1726: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        1729: bipush        84
-        1731: aload         99
-        1733: aastore
-        1734: new           #207                // class ocaml_fn_43
-        1737: dup
-        1738: aload         99
-        1740: invokespecial #208                // Method ocaml_fn_43."<init>":(Ljava/lang/Object;)V
-        1743: astore        100
-        1745: aload         18
-        1747: checkcast     #2                  // class Block
-        1750: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        1753: bipush        85
-        1755: aload         100
-        1757: aastore
-        1758: new           #210                // class ocaml_fn_44
-        1761: dup
-        1762: aload         34
-        1764: invokespecial #211                // Method ocaml_fn_44."<init>":(Ljava/lang/Object;)V
-        1767: astore        101
-        1769: aload         18
-        1771: checkcast     #2                  // class Block
-        1774: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        1777: bipush        82
-        1779: aload         101
-        1781: aastore
-        1782: new           #213                // class ocaml_fn_45
-        1785: dup
-        1786: invokespecial #214                // Method ocaml_fn_45."<init>":()V
-        1789: astore        102
-        1791: aload         18
-        1793: checkcast     #2                  // class Block
-        1796: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        1799: bipush        93
-        1801: aload         102
-        1803: aastore
-        1804: new           #216                // class ocaml_fn_46
-        1807: dup
-        1808: aload         79
-        1810: invokespecial #217                // Method ocaml_fn_46."<init>":(Ljava/lang/Object;)V
-        1813: astore        103
-        1815: aload         18
-        1817: checkcast     #2                  // class Block
-        1820: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        1823: bipush        40
-        1825: aload         103
-        1827: aastore
-        1828: new           #219                // class ocaml_fn_47
-        1831: dup
-        1832: aload         79
-        1834: aload         88
-        1836: invokespecial #220                // Method ocaml_fn_47."<init>":(Ljava/lang/Object;Ljava/lang/Object;)V
-        1839: astore        104
-        1841: aload         18
-        1843: checkcast     #2                  // class Block
-        1846: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        1849: bipush        41
-        1851: aload         104
-        1853: aastore
-        1854: new           #222                // class ocaml_fn_48
-        1857: dup
-        1858: aload         79
-        1860: aload         87
-        1862: invokespecial #223                // Method ocaml_fn_48."<init>":(Ljava/lang/Object;Ljava/lang/Object;)V
-        1865: astore        105
-        1867: aload         18
-        1869: checkcast     #2                  // class Block
-        1872: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        1875: bipush        42
-        1877: aload         105
-        1879: aastore
-        1880: new           #225                // class ocaml_fn_49
-        1883: dup
-        1884: aload         63
-        1886: aload         79
-        1888: aload         88
-        1890: invokespecial #228                // Method ocaml_fn_49."<init>":(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)V
-        1893: astore        106
-        1895: aload         18
-        1897: checkcast     #2                  // class Block
-        1900: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        1903: bipush        43
-        1905: aload         106
-        1907: aastore
-        1908: new           #230                // class ocaml_fn_50
-        1911: dup
-        1912: aload         66
-        1914: aload         79
-        1916: aload         88
-        1918: invokespecial #231                // Method ocaml_fn_50."<init>":(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)V
-        1921: astore        107
-        1923: aload         18
-        1925: checkcast     #2                  // class Block
-        1928: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        1931: bipush        44
-        1933: aload         107
-        1935: aastore
-        1936: new           #233                // class ocaml_fn_51
-        1939: dup
-        1940: aload         79
-        1942: aload         88
-        1944: invokespecial #234                // Method ocaml_fn_51."<init>":(Ljava/lang/Object;Ljava/lang/Object;)V
-        1947: astore        108
-        1949: aload         18
-        1951: checkcast     #2                  // class Block
-        1954: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        1957: bipush        45
-        1959: aload         108
-        1961: aastore
-        1962: new           #236                // class ocaml_fn_52
-        1965: dup
-        1966: aload         79
-        1968: invokespecial #237                // Method ocaml_fn_52."<init>":(Ljava/lang/Object;)V
-        1971: astore        109
-        1973: aload         18
-        1975: checkcast     #2                  // class Block
-        1978: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        1981: bipush        46
-        1983: aload         109
-        1985: aastore
-        1986: new           #239                // class ocaml_fn_53
-        1989: dup
-        1990: aload         82
-        1992: invokespecial #240                // Method ocaml_fn_53."<init>":(Ljava/lang/Object;)V
-        1995: astore        110
-        1997: aload         18
-        1999: checkcast     #2                  // class Block
-        2002: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        2005: bipush        47
-        2007: aload         110
-        2009: aastore
-        2010: new           #242                // class ocaml_fn_54
-        2013: dup
-        2014: aload         82
-        2016: aload         88
-        2018: invokespecial #243                // Method ocaml_fn_54."<init>":(Ljava/lang/Object;Ljava/lang/Object;)V
-        2021: astore        111
-        2023: aload         18
-        2025: checkcast     #2                  // class Block
-        2028: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        2031: bipush        48
-        2033: aload         111
-        2035: aastore
-        2036: new           #245                // class ocaml_fn_55
-        2039: dup
-        2040: aload         82
-        2042: aload         87
-        2044: invokespecial #246                // Method ocaml_fn_55."<init>":(Ljava/lang/Object;Ljava/lang/Object;)V
-        2047: astore        112
-        2049: aload         18
-        2051: checkcast     #2                  // class Block
-        2054: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        2057: bipush        49
-        2059: aload         112
-        2061: aastore
-        2062: new           #248                // class ocaml_fn_56
-        2065: dup
-        2066: aload         63
-        2068: aload         82
-        2070: aload         88
-        2072: invokespecial #249                // Method ocaml_fn_56."<init>":(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)V
-        2075: astore        113
-        2077: aload         18
-        2079: checkcast     #2                  // class Block
-        2082: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        2085: bipush        50
-        2087: aload         113
-        2089: aastore
-        2090: new           #251                // class ocaml_fn_57
-        2093: dup
-        2094: aload         66
-        2096: aload         82
-        2098: aload         88
-        2100: invokespecial #252                // Method ocaml_fn_57."<init>":(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)V
-        2103: astore        114
-        2105: aload         18
-        2107: checkcast     #2                  // class Block
-        2110: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        2113: bipush        51
-        2115: aload         114
-        2117: aastore
-        2118: new           #254                // class ocaml_fn_58
-        2121: dup
-        2122: aload         82
-        2124: aload         88
-        2126: invokespecial #255                // Method ocaml_fn_58."<init>":(Ljava/lang/Object;Ljava/lang/Object;)V
-        2129: astore        115
-        2131: aload         18
-        2133: checkcast     #2                  // class Block
-        2136: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        2139: bipush        52
-        2141: aload         115
-        2143: aastore
-        2144: new           #257                // class ocaml_fn_59
-        2147: dup
-        2148: aload         82
-        2150: invokespecial #258                // Method ocaml_fn_59."<init>":(Ljava/lang/Object;)V
-        2153: astore        116
-        2155: aload         18
-        2157: checkcast     #2                  // class Block
-        2160: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        2163: bipush        53
-        2165: aload         116
-        2167: aastore
-        2168: new           #260                // class ocaml_fn_60
-        2171: dup
-        2172: aload         76
-        2174: aload         79
-        2176: aload         101
-        2178: invokespecial #261                // Method ocaml_fn_60."<init>":(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)V
-        2181: astore        117
-        2183: aload         18
-        2185: checkcast     #2                  // class Block
-        2188: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        2191: bipush        54
-        2193: aload         117
-        2195: aastore
-        2196: new           #263                // class ocaml_fn_61
-        2199: dup
-        2200: aload         117
-        2202: invokespecial #264                // Method ocaml_fn_61."<init>":(Ljava/lang/Object;)V
-        2205: astore        118
-        2207: aload         18
-        2209: checkcast     #2                  // class Block
-        2212: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        2215: bipush        56
-        2217: aload         118
-        2219: aastore
-        2220: new           #266                // class ocaml_fn_62
-        2223: dup
-        2224: aload         64
-        2226: aload         117
-        2228: invokespecial #267                // Method ocaml_fn_62."<init>":(Ljava/lang/Object;Ljava/lang/Object;)V
-        2231: astore        119
-        2233: aload         18
-        2235: checkcast     #2                  // class Block
-        2238: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        2241: bipush        55
-        2243: aload         119
-        2245: aastore
-        2246: new           #269                // class ocaml_fn_63
-        2249: dup
-        2250: aload         117
-        2252: invokespecial #270                // Method ocaml_fn_63."<init>":(Ljava/lang/Object;)V
-        2255: astore        120
-        2257: aload         18
-        2259: checkcast     #2                  // class Block
-        2262: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        2265: bipush        58
-        2267: aload         120
-        2269: aastore
-        2270: new           #272                // class ocaml_fn_64
-        2273: dup
-        2274: aload         67
-        2276: aload         117
-        2278: invokespecial #273                // Method ocaml_fn_64."<init>":(Ljava/lang/Object;Ljava/lang/Object;)V
-        2281: astore        121
-        2283: aload         18
-        2285: checkcast     #2                  // class Block
-        2288: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        2291: bipush        57
-        2293: aload         121
-        2295: aastore
-        2296: new           #275                // class ocaml_fn_65
-        2299: dup
-        2300: invokespecial #276                // Method ocaml_fn_65."<init>":()V
-        2303: astore        122
-        2305: aload         18
-        2307: checkcast     #2                  // class Block
-        2310: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        2313: bipush        96
-        2315: aload         122
-        2317: aastore
-        2318: new           #278                // class ocaml_fn_66
-        2321: dup
-        2322: aload         58
-        2324: invokespecial #279                // Method ocaml_fn_66."<init>":(Ljava/lang/Object;)V
-        2327: astore        123
-        2329: aload         18
-        2331: checkcast     #2                  // class Block
-        2334: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        2337: bipush        97
-        2339: aload         123
-        2341: aastore
-        2342: new           #2                  // class Block
-        2345: dup
-        2346: iconst_0
-        2347: iconst_1
-        2348: anewarray     #4                  // class java/lang/Object
-        2351: dup
-        2352: iconst_0
-        2353: aload         86
-        2355: aastore
-        2356: invokespecial #16                 // Method Block."<init>":(I[Ljava/lang/Object;)V
-        2359: astore        124
-        2361: new           #281                // class ocaml_fn_67
-        2364: dup
-        2365: aload         124
-        2367: invokespecial #282                // Method ocaml_fn_67."<init>":(Ljava/lang/Object;)V
-        2370: astore        125
-        2372: aload         18
-        2374: checkcast     #2                  // class Block
-        2377: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        2380: bipush        99
-        2382: aload         125
-        2384: aastore
-        2385: new           #284                // class ocaml_fn_68
-        2388: dup
-        2389: invokespecial #285                // Method ocaml_fn_68."<init>":()V
-        2392: astore        126
-        2394: new           #2                  // class Block
-        2397: dup
-        2398: iconst_0
-        2399: iconst_1
-        2400: anewarray     #4                  // class java/lang/Object
-        2403: dup
-        2404: iconst_0
-        2405: aload         126
-        2407: aastore
-        2408: invokespecial #16                 // Method Block."<init>":(I[Ljava/lang/Object;)V
-        2411: astore        127
-        2413: aload         18
-        2415: checkcast     #2                  // class Block
-        2418: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        2421: bipush        103
-        2423: aload         127
-        2425: aastore
-        2426: new           #287                // class ocaml_fn_69
-        2429: dup
-        2430: aload         124
-        2432: aload         127
-        2434: invokespecial #288                // Method ocaml_fn_69."<init>":(Ljava/lang/Object;Ljava/lang/Object;)V
-        2437: astore        128
-        2439: aload         18
-        2441: checkcast     #2                  // class Block
-        2444: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        2447: bipush        102
-        2449: aload         128
-        2451: aastore
-        2452: new           #290                // class ocaml_fn_70
-        2455: dup
-        2456: aload         128
-        2458: invokespecial #291                // Method ocaml_fn_70."<init>":(Ljava/lang/Object;)V
-        2461: astore        129
-        2463: aload         18
-        2465: checkcast     #2                  // class Block
-        2468: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        2471: bipush        98
-        2473: aload         129
-        2475: aastore
-        2476: getstatic     #25                 // Field GLOBALS:[Ljava/lang/Object;
-        2479: bipush        44
-        2481: aaload
-        2482: astore        130
-        2484: iconst_0
-        2485: i2l
-        2486: invokestatic  #61                 // Method java/lang/Long.valueOf:(J)Ljava/lang/Long;
-        2489: astore        131
-        2491: new           #2                  // class Block
-        2494: dup
-        2495: iconst_0
-        2496: bipush        6
-        2498: anewarray     #4                  // class java/lang/Object
-        2501: invokespecial #16                 // Method Block."<init>":(I[Ljava/lang/Object;)V
-        2504: astore        132
-        2506: new           #293                // class ocaml_fn_71
-        2509: dup
-        2510: invokespecial #294                // Method ocaml_fn_71."<init>":()V
-        2513: astore        133
-        2515: aload         132
-        2517: checkcast     #2                  // class Block
-        2520: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        2523: iconst_5
-        2524: aload         133
-        2526: aastore
-        2527: new           #296                // class ocaml_fn_72
-        2530: dup
-        2531: invokespecial #297                // Method ocaml_fn_72."<init>":()V
-        2534: astore        134
-        2536: aload         132
-        2538: checkcast     #2                  // class Block
-        2541: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        2544: iconst_4
-        2545: aload         134
-        2547: aastore
-        2548: new           #299                // class ocaml_fn_73
-        2551: dup
-        2552: invokespecial #300                // Method ocaml_fn_73."<init>":()V
-        2555: astore        135
-        2557: aload         132
-        2559: checkcast     #2                  // class Block
-        2562: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        2565: iconst_3
-        2566: aload         135
-        2568: aastore
-        2569: new           #302                // class ocaml_fn_74
-        2572: dup
-        2573: invokespecial #303                // Method ocaml_fn_74."<init>":()V
-        2576: astore        136
-        2578: aload         132
-        2580: checkcast     #2                  // class Block
-        2583: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        2586: iconst_2
-        2587: aload         136
-        2589: aastore
-        2590: new           #305                // class ocaml_fn_75
-        2593: dup
-        2594: invokespecial #306                // Method ocaml_fn_75."<init>":()V
-        2597: astore        137
-        2599: aload         132
-        2601: checkcast     #2                  // class Block
-        2604: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        2607: iconst_1
-        2608: aload         137
-        2610: aastore
-        2611: new           #308                // class ocaml_fn_76
-        2614: dup
-        2615: invokespecial #309                // Method ocaml_fn_76."<init>":()V
-        2618: astore        138
-        2620: aload         132
-        2622: checkcast     #2                  // class Block
-        2625: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        2628: iconst_0
-        2629: aload         138
-        2631: aastore
-        2632: aload         18
-        2634: checkcast     #2                  // class Block
-        2637: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        2640: bipush        95
-        2642: aload         132
-        2644: aastore
-        2645: new           #311                // class ocaml_fn_77
-        2648: dup
-        2649: invokespecial #312                // Method ocaml_fn_77."<init>":()V
-        2652: astore        139
-        2654: aload         18
-        2656: checkcast     #2                  // class Block
-        2659: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        2662: bipush        94
-        2664: aload         139
-        2666: aastore
-        2667: new           #314                // class ocaml_fn_78
-        2670: dup
-        2671: invokespecial #315                // Method ocaml_fn_78."<init>":()V
-        2674: astore        140
-        2676: aload         18
-        2678: checkcast     #2                  // class Block
-        2681: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        2684: bipush        92
-        2686: aload         140
-        2688: aastore
-        2689: new           #317                // class ocaml_fn_79
-        2692: dup
-        2693: invokespecial #318                // Method ocaml_fn_79."<init>":()V
-        2696: astore        141
-        2698: aload         18
-        2700: checkcast     #2                  // class Block
-        2703: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        2706: bipush        91
-        2708: aload         141
-        2710: aastore
-        2711: new           #320                // class ocaml_fn_80
-        2714: dup
-        2715: invokespecial #321                // Method ocaml_fn_80."<init>":()V
-        2718: astore        142
-        2720: aload         18
-        2722: checkcast     #2                  // class Block
-        2725: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        2728: bipush        90
-        2730: aload         142
-        2732: aastore
-        2733: new           #323                // class ocaml_fn_81
-        2736: dup
-        2737: invokespecial #324                // Method ocaml_fn_81."<init>":()V
-        2740: astore        143
-        2742: aload         18
-        2744: checkcast     #2                  // class Block
-        2747: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        2750: bipush        89
-        2752: aload         143
-        2754: aastore
-        2755: new           #326                // class ocaml_fn_82
-        2758: dup
-        2759: invokespecial #327                // Method ocaml_fn_82."<init>":()V
-        2762: astore        144
-        2764: aload         18
-        2766: checkcast     #2                  // class Block
-        2769: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        2772: bipush        88
-        2774: aload         144
-        2776: aastore
-        2777: new           #329                // class ocaml_fn_83
-        2780: dup
-        2781: invokespecial #330                // Method ocaml_fn_83."<init>":()V
-        2784: astore        145
-        2786: aload         18
-        2788: checkcast     #2                  // class Block
-        2791: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        2794: bipush        87
-        2796: aload         145
-        2798: aastore
-        2799: new           #332                // class ocaml_fn_84
-        2802: dup
-        2803: invokespecial #333                // Method ocaml_fn_84."<init>":()V
-        2806: astore        146
-        2808: aload         18
-        2810: checkcast     #2                  // class Block
-        2813: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        2816: bipush        86
-        2818: aload         146
-        2820: aastore
-        2821: new           #335                // class ocaml_fn_85
-        2824: dup
-        2825: invokespecial #336                // Method ocaml_fn_85."<init>":()V
-        2828: astore        147
-        2830: aload         18
-        2832: checkcast     #2                  // class Block
-        2835: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        2838: bipush        81
-        2840: aload         147
-        2842: aastore
-        2843: new           #338                // class ocaml_fn_86
-        2846: dup
-        2847: invokespecial #339                // Method ocaml_fn_86."<init>":()V
-        2850: astore        148
-        2852: aload         18
-        2854: checkcast     #2                  // class Block
-        2857: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        2860: bipush        77
-        2862: aload         148
-        2864: aastore
-        2865: new           #341                // class ocaml_fn_87
-        2868: dup
-        2869: invokespecial #342                // Method ocaml_fn_87."<init>":()V
-        2872: astore        149
-        2874: aload         18
-        2876: checkcast     #2                  // class Block
-        2879: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        2882: bipush        74
-        2884: aload         149
-        2886: aastore
-        2887: new           #344                // class ocaml_fn_88
-        2890: dup
-        2891: invokespecial #345                // Method ocaml_fn_88."<init>":()V
-        2894: astore        150
-        2896: aload         18
-        2898: checkcast     #2                  // class Block
-        2901: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        2904: bipush        73
-        2906: aload         150
-        2908: aastore
-        2909: new           #347                // class ocaml_fn_89
-        2912: dup
-        2913: invokespecial #348                // Method ocaml_fn_89."<init>":()V
-        2916: astore        151
-        2918: aload         18
-        2920: checkcast     #2                  // class Block
-        2923: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        2926: bipush        72
-        2928: aload         151
-        2930: aastore
-        2931: new           #350                // class ocaml_fn_90
-        2934: dup
-        2935: invokespecial #351                // Method ocaml_fn_90."<init>":()V
-        2938: astore        152
-        2940: aload         18
-        2942: checkcast     #2                  // class Block
-        2945: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        2948: bipush        70
-        2950: aload         152
-        2952: aastore
-        2953: new           #353                // class ocaml_fn_91
-        2956: dup
-        2957: invokespecial #354                // Method ocaml_fn_91."<init>":()V
-        2960: astore        153
-        2962: aload         18
-        2964: checkcast     #2                  // class Block
-        2967: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        2970: bipush        69
-        2972: aload         153
-        2974: aastore
-        2975: new           #356                // class ocaml_fn_92
-        2978: dup
-        2979: invokespecial #357                // Method ocaml_fn_92."<init>":()V
-        2982: astore        154
-        2984: aload         18
-        2986: checkcast     #2                  // class Block
-        2989: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        2992: bipush        64
-        2994: aload         154
-        2996: aastore
-        2997: new           #359                // class ocaml_fn_93
-        3000: dup
-        3001: invokespecial #360                // Method ocaml_fn_93."<init>":()V
-        3004: astore        155
-        3006: aload         18
-        3008: checkcast     #2                  // class Block
-        3011: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        3014: bipush        62
-        3016: aload         155
-        3018: aastore
-        3019: getstatic     #25                 // Field GLOBALS:[Ljava/lang/Object;
-        3022: bipush        45
-        3024: aload         18
-        3026: aastore
-        3027: iconst_0
-        3028: i2l
-        3029: invokestatic  #61                 // Method java/lang/Long.valueOf:(J)Ljava/lang/Long;
-        3032: astore        156
-        3034: iconst_0
-        3035: i2l
-        3036: lstore        157
-        3038: lload         157
-        3040: invokestatic  #61                 // Method java/lang/Long.valueOf:(J)Ljava/lang/Long;
-        3043: astore        159
-        3045: goto_w        3050
-        3050: new           #362                // class ocaml_fn_94
-        3053: dup
-        3054: invokespecial #363                // Method ocaml_fn_94."<init>":()V
-        3057: astore        160
-        3059: getstatic     #25                 // Field GLOBALS:[Ljava/lang/Object;
-        3062: bipush        46
-        3064: aaload
-        3065: astore        161
-        3067: aload         160
-        3069: aload         161
-        3071: invokevirtual #367                // Method Closure.apply1:(Ljava/lang/Object;)Ljava/lang/Object;
-        3074: astore        162
-        3076: getstatic     #371                // Field java/lang/System.out:Ljava/io/PrintStream;
-        3079: aload         162
-        3081: invokestatic  #90                 // Method Block.asLong:(Ljava/lang/Object;)J
-        3084: l2i
-        3085: invokevirtual #377                // Method java/io/PrintStream.println:(I)V
-        3088: iconst_0
-        3089: i2l
-        3090: invokestatic  #61                 // Method java/lang/Long.valueOf:(J)Ljava/lang/Long;
-        3093: astore        163
-        3095: new           #2                  // class Block
-        3098: dup
-        3099: iconst_0
-        3100: iconst_1
-        3101: anewarray     #4                  // class java/lang/Object
-        3104: dup
-        3105: iconst_0
-        3106: aload         160
-        3108: aastore
-        3109: invokespecial #16                 // Method Block."<init>":(I[Ljava/lang/Object;)V
-        3112: astore        164
-        3114: getstatic     #25                 // Field GLOBALS:[Ljava/lang/Object;
-        3117: bipush        47
-        3119: aload         164
-        3121: aastore
-        3122: iconst_0
-        3123: i2l
-        3124: invokestatic  #61                 // Method java/lang/Long.valueOf:(J)Ljava/lang/Long;
-        3127: astore        165
-        3129: iconst_0
-        3130: i2l
-        3131: lstore        166
-        3133: getstatic     #25                 // Field GLOBALS:[Ljava/lang/Object;
-        3136: bipush        45
-        3138: aaload
-        3139: checkcast     #2                  // class Block
-        3142: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        3145: bipush        102
-        3147: aaload
-        3148: astore        168
-        3150: aload         168
-        3152: checkcast     #139                // class Closure
-        3155: lload         166
-        3157: invokestatic  #61                 // Method java/lang/Long.valueOf:(J)Ljava/lang/Long;
-        3160: invokevirtual #367                // Method Closure.apply1:(Ljava/lang/Object;)Ljava/lang/Object;
-        3163: astore        169
-        3165: new           #2                  // class Block
-        3168: dup
-        3169: iconst_0
-        3170: iconst_0
-        3171: anewarray     #4                  // class java/lang/Object
-        3174: invokespecial #16                 // Method Block."<init>":(I[Ljava/lang/Object;)V
-        3177: astore        170
-        3179: getstatic     #25                 // Field GLOBALS:[Ljava/lang/Object;
-        3182: bipush        48
-        3184: aload         170
-        3186: aastore
-        3187: iconst_0
-        3188: i2l
-        3189: invokestatic  #61                 // Method java/lang/Long.valueOf:(J)Ljava/lang/Long;
-        3192: astore        171
-        3194: return
+        1250: checkcast     #140                // class ocaml_fn_25
+        1253: aload         69
+        1255: checkcast     #143                // class Closure
+        1258: putfield      #152                // Field ocaml_fn_25.sibling_1:LClosure;
+        1261: iconst_0
+        1262: i2l
+        1263: invokestatic  #61                 // Method java/lang/Long.valueOf:(J)Ljava/lang/Long;
+        1266: astore        73
+        1268: iconst_0
+        1269: i2l
+        1270: lstore        74
+        1272: lload         74
+        1274: l2i
+        1275: invokestatic  #156                // Method Channel.forDescriptor:(I)LChannel;
+        1278: astore        76
+        1280: aload         18
+        1282: checkcast     #2                  // class Block
+        1285: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        1288: bipush        37
+        1290: aload         76
+        1292: aastore
+        1293: iconst_1
+        1294: i2l
+        1295: lstore        77
+        1297: lload         77
+        1299: l2i
+        1300: invokestatic  #156                // Method Channel.forDescriptor:(I)LChannel;
+        1303: astore        79
+        1305: aload         18
+        1307: checkcast     #2                  // class Block
+        1310: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        1313: bipush        38
+        1315: aload         79
+        1317: aastore
+        1318: iconst_2
+        1319: i2l
+        1320: lstore        80
+        1322: lload         80
+        1324: l2i
+        1325: invokestatic  #156                // Method Channel.forDescriptor:(I)LChannel;
+        1328: astore        82
+        1330: aload         18
+        1332: checkcast     #2                  // class Block
+        1335: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        1338: bipush        39
+        1340: aload         82
+        1342: aastore
+        1343: new           #158                // class ocaml_fn_26
+        1346: dup
+        1347: invokespecial #159                // Method ocaml_fn_26."<init>":()V
+        1350: astore        83
+        1352: aload         18
+        1354: checkcast     #2                  // class Block
+        1357: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        1360: bipush        61
+        1362: aload         83
+        1364: aastore
+        1365: new           #161                // class ocaml_fn_27
+        1368: dup
+        1369: aload         83
+        1371: invokespecial #162                // Method ocaml_fn_27."<init>":(Ljava/lang/Object;)V
+        1374: astore        84
+        1376: aload         18
+        1378: checkcast     #2                  // class Block
+        1381: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        1384: bipush        59
+        1386: aload         84
+        1388: aastore
+        1389: new           #164                // class ocaml_fn_28
+        1392: dup
+        1393: aload         83
+        1395: invokespecial #165                // Method ocaml_fn_28."<init>":(Ljava/lang/Object;)V
+        1398: astore        85
+        1400: aload         18
+        1402: checkcast     #2                  // class Block
+        1405: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        1408: bipush        60
+        1410: aload         85
+        1412: aastore
+        1413: new           #167                // class ocaml_fn_29
+        1416: dup
+        1417: aload         33
+        1419: invokespecial #168                // Method ocaml_fn_29."<init>":(Ljava/lang/Object;)V
+        1422: astore        86
+        1424: aload         18
+        1426: checkcast     #2                  // class Block
+        1429: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        1432: bipush        63
+        1434: aload         86
+        1436: aastore
+        1437: new           #170                // class ocaml_fn_30
+        1440: dup
+        1441: invokespecial #171                // Method ocaml_fn_30."<init>":()V
+        1444: astore        87
+        1446: aload         18
+        1448: checkcast     #2                  // class Block
+        1451: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        1454: bipush        66
+        1456: aload         87
+        1458: aastore
+        1459: new           #173                // class ocaml_fn_31
+        1462: dup
+        1463: invokespecial #174                // Method ocaml_fn_31."<init>":()V
+        1466: astore        88
+        1468: aload         18
+        1470: checkcast     #2                  // class Block
+        1473: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        1476: bipush        65
+        1478: aload         88
+        1480: aastore
+        1481: new           #176                // class ocaml_fn_32
+        1484: dup
+        1485: aload         20
+        1487: invokespecial #177                // Method ocaml_fn_32."<init>":(Ljava/lang/Object;)V
+        1490: astore        89
+        1492: aload         18
+        1494: checkcast     #2                  // class Block
+        1497: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        1500: bipush        67
+        1502: aload         89
+        1504: aastore
+        1505: new           #179                // class ocaml_fn_33
+        1508: dup
+        1509: aload         20
+        1511: invokespecial #180                // Method ocaml_fn_33."<init>":(Ljava/lang/Object;)V
+        1514: astore        90
+        1516: aload         18
+        1518: checkcast     #2                  // class Block
+        1521: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        1524: bipush        68
+        1526: aload         90
+        1528: aastore
+        1529: new           #182                // class ocaml_fn_34
+        1532: dup
+        1533: invokespecial #183                // Method ocaml_fn_34."<init>":()V
+        1536: astore        91
+        1538: aload         18
+        1540: checkcast     #2                  // class Block
+        1543: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        1546: bipush        71
+        1548: aload         91
+        1550: aastore
+        1551: new           #185                // class ocaml_fn_35
+        1554: dup
+        1555: invokespecial #186                // Method ocaml_fn_35."<init>":()V
+        1558: astore        92
+        1560: aload         18
+        1562: checkcast     #2                  // class Block
+        1565: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        1568: bipush        75
+        1570: aload         92
+        1572: aastore
+        1573: new           #188                // class ocaml_fn_36
+        1576: dup
+        1577: invokespecial #189                // Method ocaml_fn_36."<init>":()V
+        1580: astore        93
+        1582: aload         18
+        1584: checkcast     #2                  // class Block
+        1587: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        1590: bipush        76
+        1592: aload         93
+        1594: aastore
+        1595: new           #191                // class ocaml_fn_37
+        1598: dup
+        1599: invokespecial #192                // Method ocaml_fn_37."<init>":()V
+        1602: astore        94
+        1604: aload         18
+        1606: checkcast     #2                  // class Block
+        1609: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        1612: bipush        80
+        1614: aload         94
+        1616: aastore
+        1617: new           #194                // class ocaml_fn_38
+        1620: dup
+        1621: aload         94
+        1623: invokespecial #195                // Method ocaml_fn_38."<init>":(Ljava/lang/Object;)V
+        1626: astore        95
+        1628: aload         18
+        1630: checkcast     #2                  // class Block
+        1633: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        1636: bipush        78
+        1638: aload         95
+        1640: aastore
+        1641: new           #197                // class ocaml_fn_39
+        1644: dup
+        1645: aload         94
+        1647: invokespecial #198                // Method ocaml_fn_39."<init>":(Ljava/lang/Object;)V
+        1650: astore        96
+        1652: aload         18
+        1654: checkcast     #2                  // class Block
+        1657: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        1660: bipush        79
+        1662: aload         96
+        1664: aastore
+        1665: new           #200                // class ocaml_fn_40
+        1668: dup
+        1669: aload         20
+        1671: invokespecial #201                // Method ocaml_fn_40."<init>":(Ljava/lang/Object;)V
+        1674: astore        97
+        1676: aload         18
+        1678: checkcast     #2                  // class Block
+        1681: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        1684: bipush        83
+        1686: aload         97
+        1688: aastore
+        1689: new           #203                // class ocaml_fn_41
+        1692: dup
+        1693: aload         34
+        1695: invokespecial #204                // Method ocaml_fn_41."<init>":(Ljava/lang/Object;)V
+        1698: astore        98
+        1700: aload         18
+        1702: checkcast     #2                  // class Block
+        1705: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        1708: bipush        101
+        1710: aload         98
+        1712: aastore
+        1713: new           #206                // class ocaml_fn_42
+        1716: dup
+        1717: aload         20
+        1719: aload         98
+        1721: invokespecial #209                // Method ocaml_fn_42."<init>":(Ljava/lang/Object;Ljava/lang/Object;)V
+        1724: astore        99
+        1726: aload         18
+        1728: checkcast     #2                  // class Block
+        1731: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        1734: bipush        84
+        1736: aload         99
+        1738: aastore
+        1739: new           #211                // class ocaml_fn_43
+        1742: dup
+        1743: aload         99
+        1745: invokespecial #212                // Method ocaml_fn_43."<init>":(Ljava/lang/Object;)V
+        1748: astore        100
+        1750: aload         18
+        1752: checkcast     #2                  // class Block
+        1755: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        1758: bipush        85
+        1760: aload         100
+        1762: aastore
+        1763: new           #214                // class ocaml_fn_44
+        1766: dup
+        1767: aload         34
+        1769: invokespecial #215                // Method ocaml_fn_44."<init>":(Ljava/lang/Object;)V
+        1772: astore        101
+        1774: aload         18
+        1776: checkcast     #2                  // class Block
+        1779: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        1782: bipush        82
+        1784: aload         101
+        1786: aastore
+        1787: new           #217                // class ocaml_fn_45
+        1790: dup
+        1791: invokespecial #218                // Method ocaml_fn_45."<init>":()V
+        1794: astore        102
+        1796: aload         18
+        1798: checkcast     #2                  // class Block
+        1801: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        1804: bipush        93
+        1806: aload         102
+        1808: aastore
+        1809: new           #220                // class ocaml_fn_46
+        1812: dup
+        1813: aload         79
+        1815: invokespecial #221                // Method ocaml_fn_46."<init>":(Ljava/lang/Object;)V
+        1818: astore        103
+        1820: aload         18
+        1822: checkcast     #2                  // class Block
+        1825: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        1828: bipush        40
+        1830: aload         103
+        1832: aastore
+        1833: new           #223                // class ocaml_fn_47
+        1836: dup
+        1837: aload         79
+        1839: aload         88
+        1841: invokespecial #224                // Method ocaml_fn_47."<init>":(Ljava/lang/Object;Ljava/lang/Object;)V
+        1844: astore        104
+        1846: aload         18
+        1848: checkcast     #2                  // class Block
+        1851: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        1854: bipush        41
+        1856: aload         104
+        1858: aastore
+        1859: new           #226                // class ocaml_fn_48
+        1862: dup
+        1863: aload         79
+        1865: aload         87
+        1867: invokespecial #227                // Method ocaml_fn_48."<init>":(Ljava/lang/Object;Ljava/lang/Object;)V
+        1870: astore        105
+        1872: aload         18
+        1874: checkcast     #2                  // class Block
+        1877: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        1880: bipush        42
+        1882: aload         105
+        1884: aastore
+        1885: new           #229                // class ocaml_fn_49
+        1888: dup
+        1889: aload         63
+        1891: aload         79
+        1893: aload         88
+        1895: invokespecial #232                // Method ocaml_fn_49."<init>":(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)V
+        1898: astore        106
+        1900: aload         18
+        1902: checkcast     #2                  // class Block
+        1905: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        1908: bipush        43
+        1910: aload         106
+        1912: aastore
+        1913: new           #234                // class ocaml_fn_50
+        1916: dup
+        1917: aload         66
+        1919: aload         79
+        1921: aload         88
+        1923: invokespecial #235                // Method ocaml_fn_50."<init>":(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)V
+        1926: astore        107
+        1928: aload         18
+        1930: checkcast     #2                  // class Block
+        1933: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        1936: bipush        44
+        1938: aload         107
+        1940: aastore
+        1941: new           #237                // class ocaml_fn_51
+        1944: dup
+        1945: aload         79
+        1947: aload         88
+        1949: invokespecial #238                // Method ocaml_fn_51."<init>":(Ljava/lang/Object;Ljava/lang/Object;)V
+        1952: astore        108
+        1954: aload         18
+        1956: checkcast     #2                  // class Block
+        1959: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        1962: bipush        45
+        1964: aload         108
+        1966: aastore
+        1967: new           #240                // class ocaml_fn_52
+        1970: dup
+        1971: aload         79
+        1973: invokespecial #241                // Method ocaml_fn_52."<init>":(Ljava/lang/Object;)V
+        1976: astore        109
+        1978: aload         18
+        1980: checkcast     #2                  // class Block
+        1983: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        1986: bipush        46
+        1988: aload         109
+        1990: aastore
+        1991: new           #243                // class ocaml_fn_53
+        1994: dup
+        1995: aload         82
+        1997: invokespecial #244                // Method ocaml_fn_53."<init>":(Ljava/lang/Object;)V
+        2000: astore        110
+        2002: aload         18
+        2004: checkcast     #2                  // class Block
+        2007: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        2010: bipush        47
+        2012: aload         110
+        2014: aastore
+        2015: new           #246                // class ocaml_fn_54
+        2018: dup
+        2019: aload         82
+        2021: aload         88
+        2023: invokespecial #247                // Method ocaml_fn_54."<init>":(Ljava/lang/Object;Ljava/lang/Object;)V
+        2026: astore        111
+        2028: aload         18
+        2030: checkcast     #2                  // class Block
+        2033: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        2036: bipush        48
+        2038: aload         111
+        2040: aastore
+        2041: new           #249                // class ocaml_fn_55
+        2044: dup
+        2045: aload         82
+        2047: aload         87
+        2049: invokespecial #250                // Method ocaml_fn_55."<init>":(Ljava/lang/Object;Ljava/lang/Object;)V
+        2052: astore        112
+        2054: aload         18
+        2056: checkcast     #2                  // class Block
+        2059: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        2062: bipush        49
+        2064: aload         112
+        2066: aastore
+        2067: new           #252                // class ocaml_fn_56
+        2070: dup
+        2071: aload         63
+        2073: aload         82
+        2075: aload         88
+        2077: invokespecial #253                // Method ocaml_fn_56."<init>":(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)V
+        2080: astore        113
+        2082: aload         18
+        2084: checkcast     #2                  // class Block
+        2087: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        2090: bipush        50
+        2092: aload         113
+        2094: aastore
+        2095: new           #255                // class ocaml_fn_57
+        2098: dup
+        2099: aload         66
+        2101: aload         82
+        2103: aload         88
+        2105: invokespecial #256                // Method ocaml_fn_57."<init>":(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)V
+        2108: astore        114
+        2110: aload         18
+        2112: checkcast     #2                  // class Block
+        2115: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        2118: bipush        51
+        2120: aload         114
+        2122: aastore
+        2123: new           #258                // class ocaml_fn_58
+        2126: dup
+        2127: aload         82
+        2129: aload         88
+        2131: invokespecial #259                // Method ocaml_fn_58."<init>":(Ljava/lang/Object;Ljava/lang/Object;)V
+        2134: astore        115
+        2136: aload         18
+        2138: checkcast     #2                  // class Block
+        2141: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        2144: bipush        52
+        2146: aload         115
+        2148: aastore
+        2149: new           #261                // class ocaml_fn_59
+        2152: dup
+        2153: aload         82
+        2155: invokespecial #262                // Method ocaml_fn_59."<init>":(Ljava/lang/Object;)V
+        2158: astore        116
+        2160: aload         18
+        2162: checkcast     #2                  // class Block
+        2165: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        2168: bipush        53
+        2170: aload         116
+        2172: aastore
+        2173: new           #264                // class ocaml_fn_60
+        2176: dup
+        2177: aload         76
+        2179: aload         79
+        2181: aload         101
+        2183: invokespecial #265                // Method ocaml_fn_60."<init>":(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)V
+        2186: astore        117
+        2188: aload         18
+        2190: checkcast     #2                  // class Block
+        2193: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        2196: bipush        54
+        2198: aload         117
+        2200: aastore
+        2201: new           #267                // class ocaml_fn_61
+        2204: dup
+        2205: aload         117
+        2207: invokespecial #268                // Method ocaml_fn_61."<init>":(Ljava/lang/Object;)V
+        2210: astore        118
+        2212: aload         18
+        2214: checkcast     #2                  // class Block
+        2217: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        2220: bipush        56
+        2222: aload         118
+        2224: aastore
+        2225: new           #270                // class ocaml_fn_62
+        2228: dup
+        2229: aload         64
+        2231: aload         117
+        2233: invokespecial #271                // Method ocaml_fn_62."<init>":(Ljava/lang/Object;Ljava/lang/Object;)V
+        2236: astore        119
+        2238: aload         18
+        2240: checkcast     #2                  // class Block
+        2243: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        2246: bipush        55
+        2248: aload         119
+        2250: aastore
+        2251: new           #273                // class ocaml_fn_63
+        2254: dup
+        2255: aload         117
+        2257: invokespecial #274                // Method ocaml_fn_63."<init>":(Ljava/lang/Object;)V
+        2260: astore        120
+        2262: aload         18
+        2264: checkcast     #2                  // class Block
+        2267: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        2270: bipush        58
+        2272: aload         120
+        2274: aastore
+        2275: new           #276                // class ocaml_fn_64
+        2278: dup
+        2279: aload         67
+        2281: aload         117
+        2283: invokespecial #277                // Method ocaml_fn_64."<init>":(Ljava/lang/Object;Ljava/lang/Object;)V
+        2286: astore        121
+        2288: aload         18
+        2290: checkcast     #2                  // class Block
+        2293: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        2296: bipush        57
+        2298: aload         121
+        2300: aastore
+        2301: new           #279                // class ocaml_fn_65
+        2304: dup
+        2305: invokespecial #280                // Method ocaml_fn_65."<init>":()V
+        2308: astore        122
+        2310: aload         18
+        2312: checkcast     #2                  // class Block
+        2315: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        2318: bipush        96
+        2320: aload         122
+        2322: aastore
+        2323: new           #282                // class ocaml_fn_66
+        2326: dup
+        2327: aload         58
+        2329: invokespecial #283                // Method ocaml_fn_66."<init>":(Ljava/lang/Object;)V
+        2332: astore        123
+        2334: aload         18
+        2336: checkcast     #2                  // class Block
+        2339: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        2342: bipush        97
+        2344: aload         123
+        2346: aastore
+        2347: new           #2                  // class Block
+        2350: dup
+        2351: iconst_0
+        2352: iconst_1
+        2353: anewarray     #4                  // class java/lang/Object
+        2356: dup
+        2357: iconst_0
+        2358: aload         86
+        2360: aastore
+        2361: invokespecial #16                 // Method Block."<init>":(I[Ljava/lang/Object;)V
+        2364: astore        124
+        2366: new           #285                // class ocaml_fn_67
+        2369: dup
+        2370: aload         124
+        2372: invokespecial #286                // Method ocaml_fn_67."<init>":(Ljava/lang/Object;)V
+        2375: astore        125
+        2377: aload         18
+        2379: checkcast     #2                  // class Block
+        2382: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        2385: bipush        99
+        2387: aload         125
+        2389: aastore
+        2390: new           #288                // class ocaml_fn_68
+        2393: dup
+        2394: invokespecial #289                // Method ocaml_fn_68."<init>":()V
+        2397: astore        126
+        2399: new           #2                  // class Block
+        2402: dup
+        2403: iconst_0
+        2404: iconst_1
+        2405: anewarray     #4                  // class java/lang/Object
+        2408: dup
+        2409: iconst_0
+        2410: aload         126
+        2412: aastore
+        2413: invokespecial #16                 // Method Block."<init>":(I[Ljava/lang/Object;)V
+        2416: astore        127
+        2418: aload         18
+        2420: checkcast     #2                  // class Block
+        2423: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        2426: bipush        103
+        2428: aload         127
+        2430: aastore
+        2431: new           #291                // class ocaml_fn_69
+        2434: dup
+        2435: aload         124
+        2437: aload         127
+        2439: invokespecial #292                // Method ocaml_fn_69."<init>":(Ljava/lang/Object;Ljava/lang/Object;)V
+        2442: astore        128
+        2444: aload         18
+        2446: checkcast     #2                  // class Block
+        2449: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        2452: bipush        102
+        2454: aload         128
+        2456: aastore
+        2457: new           #294                // class ocaml_fn_70
+        2460: dup
+        2461: aload         128
+        2463: invokespecial #295                // Method ocaml_fn_70."<init>":(Ljava/lang/Object;)V
+        2466: astore        129
+        2468: aload         18
+        2470: checkcast     #2                  // class Block
+        2473: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        2476: bipush        98
+        2478: aload         129
+        2480: aastore
+        2481: getstatic     #25                 // Field GLOBALS:[Ljava/lang/Object;
+        2484: bipush        44
+        2486: aaload
+        2487: astore        130
+        2489: aload         130
+        2491: aload         128
+        2493: invokestatic  #65                 // Method Ocaml.registerNamedValue:(Ljava/lang/Object;Ljava/lang/Object;)J
+        2496: invokestatic  #61                 // Method java/lang/Long.valueOf:(J)Ljava/lang/Long;
+        2499: astore        131
+        2501: new           #2                  // class Block
+        2504: dup
+        2505: iconst_0
+        2506: bipush        6
+        2508: anewarray     #4                  // class java/lang/Object
+        2511: invokespecial #16                 // Method Block."<init>":(I[Ljava/lang/Object;)V
+        2514: astore        132
+        2516: new           #297                // class ocaml_fn_71
+        2519: dup
+        2520: invokespecial #298                // Method ocaml_fn_71."<init>":()V
+        2523: astore        133
+        2525: aload         132
+        2527: checkcast     #2                  // class Block
+        2530: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        2533: iconst_5
+        2534: aload         133
+        2536: aastore
+        2537: new           #300                // class ocaml_fn_72
+        2540: dup
+        2541: invokespecial #301                // Method ocaml_fn_72."<init>":()V
+        2544: astore        134
+        2546: aload         132
+        2548: checkcast     #2                  // class Block
+        2551: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        2554: iconst_4
+        2555: aload         134
+        2557: aastore
+        2558: new           #303                // class ocaml_fn_73
+        2561: dup
+        2562: invokespecial #304                // Method ocaml_fn_73."<init>":()V
+        2565: astore        135
+        2567: aload         132
+        2569: checkcast     #2                  // class Block
+        2572: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        2575: iconst_3
+        2576: aload         135
+        2578: aastore
+        2579: new           #306                // class ocaml_fn_74
+        2582: dup
+        2583: invokespecial #307                // Method ocaml_fn_74."<init>":()V
+        2586: astore        136
+        2588: aload         132
+        2590: checkcast     #2                  // class Block
+        2593: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        2596: iconst_2
+        2597: aload         136
+        2599: aastore
+        2600: new           #309                // class ocaml_fn_75
+        2603: dup
+        2604: invokespecial #310                // Method ocaml_fn_75."<init>":()V
+        2607: astore        137
+        2609: aload         132
+        2611: checkcast     #2                  // class Block
+        2614: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        2617: iconst_1
+        2618: aload         137
+        2620: aastore
+        2621: new           #312                // class ocaml_fn_76
+        2624: dup
+        2625: invokespecial #313                // Method ocaml_fn_76."<init>":()V
+        2628: astore        138
+        2630: aload         132
+        2632: checkcast     #2                  // class Block
+        2635: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        2638: iconst_0
+        2639: aload         138
+        2641: aastore
+        2642: aload         18
+        2644: checkcast     #2                  // class Block
+        2647: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        2650: bipush        95
+        2652: aload         132
+        2654: aastore
+        2655: new           #315                // class ocaml_fn_77
+        2658: dup
+        2659: invokespecial #316                // Method ocaml_fn_77."<init>":()V
+        2662: astore        139
+        2664: aload         18
+        2666: checkcast     #2                  // class Block
+        2669: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        2672: bipush        94
+        2674: aload         139
+        2676: aastore
+        2677: new           #318                // class ocaml_fn_78
+        2680: dup
+        2681: invokespecial #319                // Method ocaml_fn_78."<init>":()V
+        2684: astore        140
+        2686: aload         18
+        2688: checkcast     #2                  // class Block
+        2691: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        2694: bipush        92
+        2696: aload         140
+        2698: aastore
+        2699: new           #321                // class ocaml_fn_79
+        2702: dup
+        2703: invokespecial #322                // Method ocaml_fn_79."<init>":()V
+        2706: astore        141
+        2708: aload         18
+        2710: checkcast     #2                  // class Block
+        2713: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        2716: bipush        91
+        2718: aload         141
+        2720: aastore
+        2721: new           #324                // class ocaml_fn_80
+        2724: dup
+        2725: invokespecial #325                // Method ocaml_fn_80."<init>":()V
+        2728: astore        142
+        2730: aload         18
+        2732: checkcast     #2                  // class Block
+        2735: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        2738: bipush        90
+        2740: aload         142
+        2742: aastore
+        2743: new           #327                // class ocaml_fn_81
+        2746: dup
+        2747: invokespecial #328                // Method ocaml_fn_81."<init>":()V
+        2750: astore        143
+        2752: aload         18
+        2754: checkcast     #2                  // class Block
+        2757: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        2760: bipush        89
+        2762: aload         143
+        2764: aastore
+        2765: new           #330                // class ocaml_fn_82
+        2768: dup
+        2769: invokespecial #331                // Method ocaml_fn_82."<init>":()V
+        2772: astore        144
+        2774: aload         18
+        2776: checkcast     #2                  // class Block
+        2779: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        2782: bipush        88
+        2784: aload         144
+        2786: aastore
+        2787: new           #333                // class ocaml_fn_83
+        2790: dup
+        2791: invokespecial #334                // Method ocaml_fn_83."<init>":()V
+        2794: astore        145
+        2796: aload         18
+        2798: checkcast     #2                  // class Block
+        2801: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        2804: bipush        87
+        2806: aload         145
+        2808: aastore
+        2809: new           #336                // class ocaml_fn_84
+        2812: dup
+        2813: invokespecial #337                // Method ocaml_fn_84."<init>":()V
+        2816: astore        146
+        2818: aload         18
+        2820: checkcast     #2                  // class Block
+        2823: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        2826: bipush        86
+        2828: aload         146
+        2830: aastore
+        2831: new           #339                // class ocaml_fn_85
+        2834: dup
+        2835: invokespecial #340                // Method ocaml_fn_85."<init>":()V
+        2838: astore        147
+        2840: aload         18
+        2842: checkcast     #2                  // class Block
+        2845: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        2848: bipush        81
+        2850: aload         147
+        2852: aastore
+        2853: new           #342                // class ocaml_fn_86
+        2856: dup
+        2857: invokespecial #343                // Method ocaml_fn_86."<init>":()V
+        2860: astore        148
+        2862: aload         18
+        2864: checkcast     #2                  // class Block
+        2867: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        2870: bipush        77
+        2872: aload         148
+        2874: aastore
+        2875: new           #345                // class ocaml_fn_87
+        2878: dup
+        2879: invokespecial #346                // Method ocaml_fn_87."<init>":()V
+        2882: astore        149
+        2884: aload         18
+        2886: checkcast     #2                  // class Block
+        2889: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        2892: bipush        74
+        2894: aload         149
+        2896: aastore
+        2897: new           #348                // class ocaml_fn_88
+        2900: dup
+        2901: invokespecial #349                // Method ocaml_fn_88."<init>":()V
+        2904: astore        150
+        2906: aload         18
+        2908: checkcast     #2                  // class Block
+        2911: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        2914: bipush        73
+        2916: aload         150
+        2918: aastore
+        2919: new           #351                // class ocaml_fn_89
+        2922: dup
+        2923: invokespecial #352                // Method ocaml_fn_89."<init>":()V
+        2926: astore        151
+        2928: aload         18
+        2930: checkcast     #2                  // class Block
+        2933: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        2936: bipush        72
+        2938: aload         151
+        2940: aastore
+        2941: new           #354                // class ocaml_fn_90
+        2944: dup
+        2945: invokespecial #355                // Method ocaml_fn_90."<init>":()V
+        2948: astore        152
+        2950: aload         18
+        2952: checkcast     #2                  // class Block
+        2955: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        2958: bipush        70
+        2960: aload         152
+        2962: aastore
+        2963: new           #357                // class ocaml_fn_91
+        2966: dup
+        2967: invokespecial #358                // Method ocaml_fn_91."<init>":()V
+        2970: astore        153
+        2972: aload         18
+        2974: checkcast     #2                  // class Block
+        2977: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        2980: bipush        69
+        2982: aload         153
+        2984: aastore
+        2985: new           #360                // class ocaml_fn_92
+        2988: dup
+        2989: invokespecial #361                // Method ocaml_fn_92."<init>":()V
+        2992: astore        154
+        2994: aload         18
+        2996: checkcast     #2                  // class Block
+        2999: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        3002: bipush        64
+        3004: aload         154
+        3006: aastore
+        3007: new           #363                // class ocaml_fn_93
+        3010: dup
+        3011: invokespecial #364                // Method ocaml_fn_93."<init>":()V
+        3014: astore        155
+        3016: aload         18
+        3018: checkcast     #2                  // class Block
+        3021: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        3024: bipush        62
+        3026: aload         155
+        3028: aastore
+        3029: getstatic     #25                 // Field GLOBALS:[Ljava/lang/Object;
+        3032: bipush        45
+        3034: aload         18
+        3036: aastore
+        3037: iconst_0
+        3038: i2l
+        3039: invokestatic  #61                 // Method java/lang/Long.valueOf:(J)Ljava/lang/Long;
+        3042: astore        156
+        3044: iconst_0
+        3045: i2l
+        3046: lstore        157
+        3048: lload         157
+        3050: invokestatic  #61                 // Method java/lang/Long.valueOf:(J)Ljava/lang/Long;
+        3053: astore        159
+        3055: goto_w        3060
+        3060: new           #366                // class ocaml_fn_94
+        3063: dup
+        3064: invokespecial #367                // Method ocaml_fn_94."<init>":()V
+        3067: astore        160
+        3069: getstatic     #25                 // Field GLOBALS:[Ljava/lang/Object;
+        3072: bipush        46
+        3074: aaload
+        3075: astore        161
+        3077: aload         160
+        3079: aload         161
+        3081: invokevirtual #371                // Method Closure.apply1:(Ljava/lang/Object;)Ljava/lang/Object;
+        3084: astore        162
+        3086: getstatic     #375                // Field java/lang/System.out:Ljava/io/PrintStream;
+        3089: aload         162
+        3091: invokestatic  #94                 // Method Block.asLong:(Ljava/lang/Object;)J
+        3094: l2i
+        3095: invokevirtual #381                // Method java/io/PrintStream.println:(I)V
+        3098: iconst_0
+        3099: i2l
+        3100: invokestatic  #61                 // Method java/lang/Long.valueOf:(J)Ljava/lang/Long;
+        3103: astore        163
+        3105: new           #2                  // class Block
+        3108: dup
+        3109: iconst_0
+        3110: iconst_1
+        3111: anewarray     #4                  // class java/lang/Object
+        3114: dup
+        3115: iconst_0
+        3116: aload         160
+        3118: aastore
+        3119: invokespecial #16                 // Method Block."<init>":(I[Ljava/lang/Object;)V
+        3122: astore        164
+        3124: getstatic     #25                 // Field GLOBALS:[Ljava/lang/Object;
+        3127: bipush        47
+        3129: aload         164
+        3131: aastore
+        3132: iconst_0
+        3133: i2l
+        3134: invokestatic  #61                 // Method java/lang/Long.valueOf:(J)Ljava/lang/Long;
+        3137: astore        165
+        3139: iconst_0
+        3140: i2l
+        3141: lstore        166
+        3143: getstatic     #25                 // Field GLOBALS:[Ljava/lang/Object;
+        3146: bipush        45
+        3148: aaload
+        3149: checkcast     #2                  // class Block
+        3152: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        3155: bipush        102
+        3157: aaload
+        3158: astore        168
+        3160: aload         168
+        3162: checkcast     #143                // class Closure
+        3165: lload         166
+        3167: invokestatic  #61                 // Method java/lang/Long.valueOf:(J)Ljava/lang/Long;
+        3170: invokevirtual #371                // Method Closure.apply1:(Ljava/lang/Object;)Ljava/lang/Object;
+        3173: astore        169
+        3175: new           #2                  // class Block
+        3178: dup
+        3179: iconst_0
+        3180: iconst_0
+        3181: anewarray     #4                  // class java/lang/Object
+        3184: invokespecial #16                 // Method Block."<init>":(I[Ljava/lang/Object;)V
+        3187: astore        170
+        3189: getstatic     #25                 // Field GLOBALS:[Ljava/lang/Object;
+        3192: bipush        48
+        3194: aload         170
+        3196: aastore
+        3197: iconst_0
+        3198: i2l
+        3199: invokestatic  #61                 // Method java/lang/Long.valueOf:(J)Ljava/lang/Long;
+        3202: astore        171
+        3204: return
     }
     |}]
 
@@ -6259,1429 +6267,1431 @@ let%expect_test "emission: try/with catchall" =
          217: bipush        36
          219: aaload
          220: astore        16
-         222: iconst_0
-         223: i2l
-         224: invokestatic  #61                 // Method java/lang/Long.valueOf:(J)Ljava/lang/Long;
-         227: astore        17
-         229: new           #2                  // class Block
-         232: dup
-         233: iconst_0
-         234: bipush        104
-         236: anewarray     #4                  // class java/lang/Object
-         239: invokespecial #16                 // Method Block."<init>":(I[Ljava/lang/Object;)V
-         242: astore        18
-         244: new           #63                 // class ocaml_fn_8
-         247: dup
-         248: invokespecial #64                 // Method ocaml_fn_8."<init>":()V
-         251: astore        19
-         253: aload         18
-         255: checkcast     #2                  // class Block
-         258: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-         261: iconst_1
-         262: aload         19
-         264: aastore
-         265: new           #69                 // class ocaml_fn_9
-         268: dup
-         269: invokespecial #70                 // Method ocaml_fn_9."<init>":()V
-         272: astore        20
-         274: aload         18
-         276: checkcast     #2                  // class Block
-         279: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-         282: iconst_0
-         283: aload         20
-         285: aastore
-         286: iconst_0
-         287: i2l
-         288: lstore        21
-         290: iconst_0
-         291: i2l
-         292: invokestatic  #61                 // Method java/lang/Long.valueOf:(J)Ljava/lang/Long;
-         295: astore        23
-         297: getstatic     #25                 // Field GLOBALS:[Ljava/lang/Object;
-         300: bipush        37
-         302: aaload
-         303: astore        24
-         305: new           #2                  // class Block
-         308: dup
-         309: sipush        248
-         312: iconst_2
-         313: anewarray     #4                  // class java/lang/Object
-         316: dup
-         317: iconst_0
-         318: aload         24
-         320: aastore
+         222: aload         16
+         224: aload         15
+         226: invokestatic  #65                 // Method Ocaml.registerNamedValue:(Ljava/lang/Object;Ljava/lang/Object;)J
+         229: invokestatic  #61                 // Method java/lang/Long.valueOf:(J)Ljava/lang/Long;
+         232: astore        17
+         234: new           #2                  // class Block
+         237: dup
+         238: iconst_0
+         239: bipush        104
+         241: anewarray     #4                  // class java/lang/Object
+         244: invokespecial #16                 // Method Block."<init>":(I[Ljava/lang/Object;)V
+         247: astore        18
+         249: new           #67                 // class ocaml_fn_8
+         252: dup
+         253: invokespecial #68                 // Method ocaml_fn_8."<init>":()V
+         256: astore        19
+         258: aload         18
+         260: checkcast     #2                  // class Block
+         263: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+         266: iconst_1
+         267: aload         19
+         269: aastore
+         270: new           #73                 // class ocaml_fn_9
+         273: dup
+         274: invokespecial #74                 // Method ocaml_fn_9."<init>":()V
+         277: astore        20
+         279: aload         18
+         281: checkcast     #2                  // class Block
+         284: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+         287: iconst_0
+         288: aload         20
+         290: aastore
+         291: iconst_0
+         292: i2l
+         293: lstore        21
+         295: iconst_0
+         296: i2l
+         297: invokestatic  #61                 // Method java/lang/Long.valueOf:(J)Ljava/lang/Long;
+         300: astore        23
+         302: getstatic     #25                 // Field GLOBALS:[Ljava/lang/Object;
+         305: bipush        37
+         307: aaload
+         308: astore        24
+         310: new           #2                  // class Block
+         313: dup
+         314: sipush        248
+         317: iconst_2
+         318: anewarray     #4                  // class java/lang/Object
          321: dup
-         322: iconst_1
-         323: aload         23
+         322: iconst_0
+         323: aload         24
          325: aastore
-         326: invokespecial #16                 // Method Block."<init>":(I[Ljava/lang/Object;)V
-         329: astore        25
-         331: aload         18
-         333: checkcast     #2                  // class Block
-         336: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-         339: iconst_2
-         340: aload         25
-         342: aastore
-         343: getstatic     #25                 // Field GLOBALS:[Ljava/lang/Object;
-         346: bipush        7
-         348: aaload
-         349: astore        26
-         351: aload         18
-         353: checkcast     #2                  // class Block
-         356: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-         359: iconst_3
-         360: aload         26
-         362: aastore
-         363: getstatic     #25                 // Field GLOBALS:[Ljava/lang/Object;
-         366: bipush        10
-         368: aaload
-         369: astore        27
-         371: aload         18
-         373: checkcast     #2                  // class Block
-         376: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-         379: iconst_4
-         380: aload         27
-         382: aastore
-         383: getstatic     #25                 // Field GLOBALS:[Ljava/lang/Object;
-         386: iconst_3
-         387: aaload
-         388: astore        28
-         390: aload         18
-         392: checkcast     #2                  // class Block
-         395: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-         398: iconst_5
-         399: aload         28
-         401: aastore
-         402: getstatic     #25                 // Field GLOBALS:[Ljava/lang/Object;
-         405: iconst_2
-         406: aaload
-         407: astore        29
-         409: aload         18
-         411: checkcast     #2                  // class Block
-         414: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-         417: bipush        6
-         419: aload         29
-         421: aastore
-         422: getstatic     #25                 // Field GLOBALS:[Ljava/lang/Object;
-         425: bipush        6
-         427: aaload
-         428: astore        30
-         430: aload         18
-         432: checkcast     #2                  // class Block
-         435: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-         438: bipush        7
-         440: aload         30
-         442: aastore
-         443: getstatic     #25                 // Field GLOBALS:[Ljava/lang/Object;
-         446: iconst_0
-         447: aaload
-         448: astore        31
-         450: aload         18
-         452: checkcast     #2                  // class Block
-         455: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-         458: bipush        8
-         460: aload         31
-         462: aastore
-         463: getstatic     #25                 // Field GLOBALS:[Ljava/lang/Object;
-         466: bipush        8
-         468: aaload
-         469: astore        32
-         471: aload         18
-         473: checkcast     #2                  // class Block
-         476: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-         479: bipush        9
-         481: aload         32
-         483: aastore
-         484: getstatic     #25                 // Field GLOBALS:[Ljava/lang/Object;
-         487: iconst_1
-         488: aaload
-         489: astore        33
-         491: aload         18
-         493: checkcast     #2                  // class Block
-         496: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-         499: bipush        10
-         501: aload         33
-         503: aastore
-         504: getstatic     #25                 // Field GLOBALS:[Ljava/lang/Object;
-         507: iconst_4
-         508: aaload
-         509: astore        34
-         511: aload         18
-         513: checkcast     #2                  // class Block
-         516: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-         519: bipush        11
-         521: aload         34
-         523: aastore
-         524: getstatic     #25                 // Field GLOBALS:[Ljava/lang/Object;
-         527: iconst_5
-         528: aaload
-         529: astore        35
-         531: aload         18
-         533: checkcast     #2                  // class Block
-         536: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-         539: bipush        12
-         541: aload         35
-         543: aastore
-         544: getstatic     #25                 // Field GLOBALS:[Ljava/lang/Object;
-         547: bipush        9
-         549: aaload
-         550: astore        36
-         552: aload         18
-         554: checkcast     #2                  // class Block
-         557: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-         560: bipush        13
-         562: aload         36
-         564: aastore
-         565: getstatic     #25                 // Field GLOBALS:[Ljava/lang/Object;
-         568: bipush        11
-         570: aaload
-         571: astore        37
-         573: aload         18
-         575: checkcast     #2                  // class Block
-         578: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-         581: bipush        14
-         583: aload         37
-         585: aastore
-         586: new           #72                 // class ocaml_fn_10
-         589: dup
-         590: invokespecial #73                 // Method ocaml_fn_10."<init>":()V
-         593: astore        38
-         595: aload         18
-         597: checkcast     #2                  // class Block
-         600: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-         603: bipush        15
-         605: aload         38
-         607: aastore
-         608: new           #75                 // class ocaml_fn_11
-         611: dup
-         612: invokespecial #76                 // Method ocaml_fn_11."<init>":()V
-         615: astore        39
-         617: aload         18
-         619: checkcast     #2                  // class Block
-         622: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-         625: bipush        16
-         627: aload         39
-         629: aastore
-         630: new           #78                 // class ocaml_fn_12
-         633: dup
-         634: invokespecial #79                 // Method ocaml_fn_12."<init>":()V
-         637: astore        40
-         639: aload         18
-         641: checkcast     #2                  // class Block
-         644: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-         647: bipush        17
-         649: aload         40
-         651: aastore
-         652: new           #81                 // class ocaml_fn_13
-         655: dup
-         656: invokespecial #82                 // Method ocaml_fn_13."<init>":()V
-         659: astore        41
-         661: aload         18
-         663: checkcast     #2                  // class Block
-         666: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-         669: bipush        20
-         671: aload         41
-         673: aastore
-         674: ldc2_w        #83                 // long 4611686018427387903l
-         677: lstore        42
-         679: aload         18
-         681: checkcast     #2                  // class Block
-         684: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-         687: bipush        18
-         689: lload         42
-         691: invokestatic  #61                 // Method java/lang/Long.valueOf:(J)Ljava/lang/Long;
-         694: aastore
-         695: ldc2_w        #85                 // long -4611686018427387904l
-         698: lstore        44
-         700: aload         18
-         702: checkcast     #2                  // class Block
-         705: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-         708: bipush        19
-         710: lload         44
-         712: invokestatic  #61                 // Method java/lang/Long.valueOf:(J)Ljava/lang/Long;
-         715: aastore
-         716: getstatic     #25                 // Field GLOBALS:[Ljava/lang/Object;
-         719: bipush        38
-         721: aaload
-         722: astore        46
-         724: aload         46
-         726: invokestatic  #90                 // Method Block.asLong:(Ljava/lang/Object;)J
-         729: invokestatic  #96                 // Method java/lang/Double.longBitsToDouble:(J)D
-         732: invokestatic  #99                 // Method java/lang/Double.valueOf:(D)Ljava/lang/Double;
-         735: astore        47
-         737: aload         18
-         739: checkcast     #2                  // class Block
-         742: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-         745: bipush        21
-         747: aload         47
-         749: aastore
-         750: getstatic     #25                 // Field GLOBALS:[Ljava/lang/Object;
-         753: bipush        39
-         755: aaload
-         756: astore        48
-         758: aload         48
-         760: invokestatic  #90                 // Method Block.asLong:(Ljava/lang/Object;)J
-         763: invokestatic  #96                 // Method java/lang/Double.longBitsToDouble:(J)D
-         766: invokestatic  #99                 // Method java/lang/Double.valueOf:(D)Ljava/lang/Double;
-         769: astore        49
-         771: aload         18
-         773: checkcast     #2                  // class Block
-         776: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-         779: bipush        22
-         781: aload         49
-         783: aastore
-         784: getstatic     #25                 // Field GLOBALS:[Ljava/lang/Object;
-         787: bipush        40
-         789: aaload
-         790: astore        50
-         792: aload         50
-         794: invokestatic  #90                 // Method Block.asLong:(Ljava/lang/Object;)J
-         797: invokestatic  #96                 // Method java/lang/Double.longBitsToDouble:(J)D
-         800: invokestatic  #99                 // Method java/lang/Double.valueOf:(D)Ljava/lang/Double;
-         803: astore        51
-         805: aload         18
-         807: checkcast     #2                  // class Block
-         810: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-         813: bipush        23
-         815: aload         51
-         817: aastore
-         818: getstatic     #25                 // Field GLOBALS:[Ljava/lang/Object;
-         821: bipush        41
-         823: aaload
-         824: astore        52
-         826: aload         52
-         828: invokestatic  #90                 // Method Block.asLong:(Ljava/lang/Object;)J
-         831: invokestatic  #96                 // Method java/lang/Double.longBitsToDouble:(J)D
-         834: invokestatic  #99                 // Method java/lang/Double.valueOf:(D)Ljava/lang/Double;
-         837: astore        53
-         839: aload         18
-         841: checkcast     #2                  // class Block
-         844: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-         847: bipush        24
-         849: aload         53
-         851: aastore
-         852: getstatic     #25                 // Field GLOBALS:[Ljava/lang/Object;
-         855: bipush        42
-         857: aaload
-         858: astore        54
-         860: aload         54
-         862: invokestatic  #90                 // Method Block.asLong:(Ljava/lang/Object;)J
-         865: invokestatic  #96                 // Method java/lang/Double.longBitsToDouble:(J)D
-         868: invokestatic  #99                 // Method java/lang/Double.valueOf:(D)Ljava/lang/Double;
-         871: astore        55
-         873: aload         18
-         875: checkcast     #2                  // class Block
-         878: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-         881: bipush        25
-         883: aload         55
-         885: aastore
-         886: getstatic     #25                 // Field GLOBALS:[Ljava/lang/Object;
-         889: bipush        43
-         891: aaload
-         892: astore        56
-         894: aload         56
-         896: invokestatic  #90                 // Method Block.asLong:(Ljava/lang/Object;)J
-         899: invokestatic  #96                 // Method java/lang/Double.longBitsToDouble:(J)D
-         902: invokestatic  #99                 // Method java/lang/Double.valueOf:(D)Ljava/lang/Double;
-         905: astore        57
-         907: aload         18
-         909: checkcast     #2                  // class Block
-         912: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-         915: bipush        26
-         917: aload         57
-         919: aastore
-         920: new           #101                // class ocaml_fn_14
-         923: dup
-         924: invokespecial #102                // Method ocaml_fn_14."<init>":()V
-         927: astore        58
-         929: aload         18
-         931: checkcast     #2                  // class Block
-         934: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-         937: bipush        27
-         939: aload         58
-         941: aastore
-         942: new           #104                // class ocaml_fn_15
-         945: dup
-         946: aload         20
-         948: invokespecial #107                // Method ocaml_fn_15."<init>":(Ljava/lang/Object;)V
-         951: astore        59
-         953: aload         18
-         955: checkcast     #2                  // class Block
-         958: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-         961: bipush        28
-         963: aload         59
-         965: aastore
-         966: new           #109                // class ocaml_fn_16
-         969: dup
-         970: invokespecial #110                // Method ocaml_fn_16."<init>":()V
-         973: astore        60
-         975: aload         18
-         977: checkcast     #2                  // class Block
-         980: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-         983: bipush        29
-         985: aload         60
-         987: aastore
-         988: new           #112                // class ocaml_fn_17
-         991: dup
-         992: aload         20
-         994: invokespecial #113                // Method ocaml_fn_17."<init>":(Ljava/lang/Object;)V
-         997: astore        61
-         999: aload         18
-        1001: checkcast     #2                  // class Block
-        1004: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        1007: bipush        31
-        1009: aload         61
-        1011: aastore
-        1012: new           #115                // class ocaml_fn_18
-        1015: dup
-        1016: invokespecial #116                // Method ocaml_fn_18."<init>":()V
-        1019: astore        62
-        1021: aload         18
-        1023: checkcast     #2                  // class Block
-        1026: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        1029: bipush        30
-        1031: aload         62
-        1033: aastore
-        1034: new           #118                // class ocaml_fn_19
-        1037: dup
-        1038: invokespecial #119                // Method ocaml_fn_19."<init>":()V
-        1041: astore        63
-        1043: aload         18
-        1045: checkcast     #2                  // class Block
-        1048: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        1051: bipush        32
-        1053: aload         63
-        1055: aastore
-        1056: new           #121                // class ocaml_fn_20
-        1059: dup
-        1060: aload         29
-        1062: invokespecial #122                // Method ocaml_fn_20."<init>":(Ljava/lang/Object;)V
-        1065: astore        64
-        1067: aload         18
-        1069: checkcast     #2                  // class Block
-        1072: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        1075: bipush        33
-        1077: aload         64
-        1079: aastore
-        1080: new           #124                // class ocaml_fn_21
-        1083: dup
-        1084: aload         58
-        1086: invokespecial #125                // Method ocaml_fn_21."<init>":(Ljava/lang/Object;)V
-        1089: astore        65
-        1091: aload         18
-        1093: checkcast     #2                  // class Block
-        1096: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        1099: bipush        100
-        1101: aload         65
-        1103: aastore
-        1104: new           #127                // class ocaml_fn_22
-        1107: dup
-        1108: aload         65
-        1110: invokespecial #128                // Method ocaml_fn_22."<init>":(Ljava/lang/Object;)V
-        1113: astore        66
-        1115: aload         18
-        1117: checkcast     #2                  // class Block
-        1120: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        1123: bipush        34
-        1125: aload         66
-        1127: aastore
-        1128: new           #130                // class ocaml_fn_23
-        1131: dup
-        1132: aload         29
-        1134: invokespecial #131                // Method ocaml_fn_23."<init>":(Ljava/lang/Object;)V
-        1137: astore        67
-        1139: aload         18
-        1141: checkcast     #2                  // class Block
-        1144: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        1147: bipush        35
-        1149: aload         67
-        1151: aastore
-        1152: new           #133                // class ocaml_fn_24
-        1155: dup
-        1156: invokespecial #134                // Method ocaml_fn_24."<init>":()V
-        1159: astore        68
-        1161: aload         18
-        1163: checkcast     #2                  // class Block
-        1166: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        1169: bipush        36
-        1171: aload         68
-        1173: aastore
-        1174: new           #136                // class ocaml_fn_25
-        1177: dup
-        1178: invokespecial #137                // Method ocaml_fn_25."<init>":()V
-        1181: astore        69
-        1183: aload         68
-        1185: checkcast     #133                // class ocaml_fn_24
+         326: dup
+         327: iconst_1
+         328: aload         23
+         330: aastore
+         331: invokespecial #16                 // Method Block."<init>":(I[Ljava/lang/Object;)V
+         334: astore        25
+         336: aload         18
+         338: checkcast     #2                  // class Block
+         341: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+         344: iconst_2
+         345: aload         25
+         347: aastore
+         348: getstatic     #25                 // Field GLOBALS:[Ljava/lang/Object;
+         351: bipush        7
+         353: aaload
+         354: astore        26
+         356: aload         18
+         358: checkcast     #2                  // class Block
+         361: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+         364: iconst_3
+         365: aload         26
+         367: aastore
+         368: getstatic     #25                 // Field GLOBALS:[Ljava/lang/Object;
+         371: bipush        10
+         373: aaload
+         374: astore        27
+         376: aload         18
+         378: checkcast     #2                  // class Block
+         381: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+         384: iconst_4
+         385: aload         27
+         387: aastore
+         388: getstatic     #25                 // Field GLOBALS:[Ljava/lang/Object;
+         391: iconst_3
+         392: aaload
+         393: astore        28
+         395: aload         18
+         397: checkcast     #2                  // class Block
+         400: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+         403: iconst_5
+         404: aload         28
+         406: aastore
+         407: getstatic     #25                 // Field GLOBALS:[Ljava/lang/Object;
+         410: iconst_2
+         411: aaload
+         412: astore        29
+         414: aload         18
+         416: checkcast     #2                  // class Block
+         419: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+         422: bipush        6
+         424: aload         29
+         426: aastore
+         427: getstatic     #25                 // Field GLOBALS:[Ljava/lang/Object;
+         430: bipush        6
+         432: aaload
+         433: astore        30
+         435: aload         18
+         437: checkcast     #2                  // class Block
+         440: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+         443: bipush        7
+         445: aload         30
+         447: aastore
+         448: getstatic     #25                 // Field GLOBALS:[Ljava/lang/Object;
+         451: iconst_0
+         452: aaload
+         453: astore        31
+         455: aload         18
+         457: checkcast     #2                  // class Block
+         460: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+         463: bipush        8
+         465: aload         31
+         467: aastore
+         468: getstatic     #25                 // Field GLOBALS:[Ljava/lang/Object;
+         471: bipush        8
+         473: aaload
+         474: astore        32
+         476: aload         18
+         478: checkcast     #2                  // class Block
+         481: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+         484: bipush        9
+         486: aload         32
+         488: aastore
+         489: getstatic     #25                 // Field GLOBALS:[Ljava/lang/Object;
+         492: iconst_1
+         493: aaload
+         494: astore        33
+         496: aload         18
+         498: checkcast     #2                  // class Block
+         501: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+         504: bipush        10
+         506: aload         33
+         508: aastore
+         509: getstatic     #25                 // Field GLOBALS:[Ljava/lang/Object;
+         512: iconst_4
+         513: aaload
+         514: astore        34
+         516: aload         18
+         518: checkcast     #2                  // class Block
+         521: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+         524: bipush        11
+         526: aload         34
+         528: aastore
+         529: getstatic     #25                 // Field GLOBALS:[Ljava/lang/Object;
+         532: iconst_5
+         533: aaload
+         534: astore        35
+         536: aload         18
+         538: checkcast     #2                  // class Block
+         541: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+         544: bipush        12
+         546: aload         35
+         548: aastore
+         549: getstatic     #25                 // Field GLOBALS:[Ljava/lang/Object;
+         552: bipush        9
+         554: aaload
+         555: astore        36
+         557: aload         18
+         559: checkcast     #2                  // class Block
+         562: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+         565: bipush        13
+         567: aload         36
+         569: aastore
+         570: getstatic     #25                 // Field GLOBALS:[Ljava/lang/Object;
+         573: bipush        11
+         575: aaload
+         576: astore        37
+         578: aload         18
+         580: checkcast     #2                  // class Block
+         583: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+         586: bipush        14
+         588: aload         37
+         590: aastore
+         591: new           #76                 // class ocaml_fn_10
+         594: dup
+         595: invokespecial #77                 // Method ocaml_fn_10."<init>":()V
+         598: astore        38
+         600: aload         18
+         602: checkcast     #2                  // class Block
+         605: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+         608: bipush        15
+         610: aload         38
+         612: aastore
+         613: new           #79                 // class ocaml_fn_11
+         616: dup
+         617: invokespecial #80                 // Method ocaml_fn_11."<init>":()V
+         620: astore        39
+         622: aload         18
+         624: checkcast     #2                  // class Block
+         627: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+         630: bipush        16
+         632: aload         39
+         634: aastore
+         635: new           #82                 // class ocaml_fn_12
+         638: dup
+         639: invokespecial #83                 // Method ocaml_fn_12."<init>":()V
+         642: astore        40
+         644: aload         18
+         646: checkcast     #2                  // class Block
+         649: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+         652: bipush        17
+         654: aload         40
+         656: aastore
+         657: new           #85                 // class ocaml_fn_13
+         660: dup
+         661: invokespecial #86                 // Method ocaml_fn_13."<init>":()V
+         664: astore        41
+         666: aload         18
+         668: checkcast     #2                  // class Block
+         671: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+         674: bipush        20
+         676: aload         41
+         678: aastore
+         679: ldc2_w        #87                 // long 4611686018427387903l
+         682: lstore        42
+         684: aload         18
+         686: checkcast     #2                  // class Block
+         689: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+         692: bipush        18
+         694: lload         42
+         696: invokestatic  #61                 // Method java/lang/Long.valueOf:(J)Ljava/lang/Long;
+         699: aastore
+         700: ldc2_w        #89                 // long -4611686018427387904l
+         703: lstore        44
+         705: aload         18
+         707: checkcast     #2                  // class Block
+         710: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+         713: bipush        19
+         715: lload         44
+         717: invokestatic  #61                 // Method java/lang/Long.valueOf:(J)Ljava/lang/Long;
+         720: aastore
+         721: getstatic     #25                 // Field GLOBALS:[Ljava/lang/Object;
+         724: bipush        38
+         726: aaload
+         727: astore        46
+         729: aload         46
+         731: invokestatic  #94                 // Method Block.asLong:(Ljava/lang/Object;)J
+         734: invokestatic  #100                // Method java/lang/Double.longBitsToDouble:(J)D
+         737: invokestatic  #103                // Method java/lang/Double.valueOf:(D)Ljava/lang/Double;
+         740: astore        47
+         742: aload         18
+         744: checkcast     #2                  // class Block
+         747: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+         750: bipush        21
+         752: aload         47
+         754: aastore
+         755: getstatic     #25                 // Field GLOBALS:[Ljava/lang/Object;
+         758: bipush        39
+         760: aaload
+         761: astore        48
+         763: aload         48
+         765: invokestatic  #94                 // Method Block.asLong:(Ljava/lang/Object;)J
+         768: invokestatic  #100                // Method java/lang/Double.longBitsToDouble:(J)D
+         771: invokestatic  #103                // Method java/lang/Double.valueOf:(D)Ljava/lang/Double;
+         774: astore        49
+         776: aload         18
+         778: checkcast     #2                  // class Block
+         781: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+         784: bipush        22
+         786: aload         49
+         788: aastore
+         789: getstatic     #25                 // Field GLOBALS:[Ljava/lang/Object;
+         792: bipush        40
+         794: aaload
+         795: astore        50
+         797: aload         50
+         799: invokestatic  #94                 // Method Block.asLong:(Ljava/lang/Object;)J
+         802: invokestatic  #100                // Method java/lang/Double.longBitsToDouble:(J)D
+         805: invokestatic  #103                // Method java/lang/Double.valueOf:(D)Ljava/lang/Double;
+         808: astore        51
+         810: aload         18
+         812: checkcast     #2                  // class Block
+         815: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+         818: bipush        23
+         820: aload         51
+         822: aastore
+         823: getstatic     #25                 // Field GLOBALS:[Ljava/lang/Object;
+         826: bipush        41
+         828: aaload
+         829: astore        52
+         831: aload         52
+         833: invokestatic  #94                 // Method Block.asLong:(Ljava/lang/Object;)J
+         836: invokestatic  #100                // Method java/lang/Double.longBitsToDouble:(J)D
+         839: invokestatic  #103                // Method java/lang/Double.valueOf:(D)Ljava/lang/Double;
+         842: astore        53
+         844: aload         18
+         846: checkcast     #2                  // class Block
+         849: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+         852: bipush        24
+         854: aload         53
+         856: aastore
+         857: getstatic     #25                 // Field GLOBALS:[Ljava/lang/Object;
+         860: bipush        42
+         862: aaload
+         863: astore        54
+         865: aload         54
+         867: invokestatic  #94                 // Method Block.asLong:(Ljava/lang/Object;)J
+         870: invokestatic  #100                // Method java/lang/Double.longBitsToDouble:(J)D
+         873: invokestatic  #103                // Method java/lang/Double.valueOf:(D)Ljava/lang/Double;
+         876: astore        55
+         878: aload         18
+         880: checkcast     #2                  // class Block
+         883: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+         886: bipush        25
+         888: aload         55
+         890: aastore
+         891: getstatic     #25                 // Field GLOBALS:[Ljava/lang/Object;
+         894: bipush        43
+         896: aaload
+         897: astore        56
+         899: aload         56
+         901: invokestatic  #94                 // Method Block.asLong:(Ljava/lang/Object;)J
+         904: invokestatic  #100                // Method java/lang/Double.longBitsToDouble:(J)D
+         907: invokestatic  #103                // Method java/lang/Double.valueOf:(D)Ljava/lang/Double;
+         910: astore        57
+         912: aload         18
+         914: checkcast     #2                  // class Block
+         917: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+         920: bipush        26
+         922: aload         57
+         924: aastore
+         925: new           #105                // class ocaml_fn_14
+         928: dup
+         929: invokespecial #106                // Method ocaml_fn_14."<init>":()V
+         932: astore        58
+         934: aload         18
+         936: checkcast     #2                  // class Block
+         939: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+         942: bipush        27
+         944: aload         58
+         946: aastore
+         947: new           #108                // class ocaml_fn_15
+         950: dup
+         951: aload         20
+         953: invokespecial #111                // Method ocaml_fn_15."<init>":(Ljava/lang/Object;)V
+         956: astore        59
+         958: aload         18
+         960: checkcast     #2                  // class Block
+         963: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+         966: bipush        28
+         968: aload         59
+         970: aastore
+         971: new           #113                // class ocaml_fn_16
+         974: dup
+         975: invokespecial #114                // Method ocaml_fn_16."<init>":()V
+         978: astore        60
+         980: aload         18
+         982: checkcast     #2                  // class Block
+         985: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+         988: bipush        29
+         990: aload         60
+         992: aastore
+         993: new           #116                // class ocaml_fn_17
+         996: dup
+         997: aload         20
+         999: invokespecial #117                // Method ocaml_fn_17."<init>":(Ljava/lang/Object;)V
+        1002: astore        61
+        1004: aload         18
+        1006: checkcast     #2                  // class Block
+        1009: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        1012: bipush        31
+        1014: aload         61
+        1016: aastore
+        1017: new           #119                // class ocaml_fn_18
+        1020: dup
+        1021: invokespecial #120                // Method ocaml_fn_18."<init>":()V
+        1024: astore        62
+        1026: aload         18
+        1028: checkcast     #2                  // class Block
+        1031: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        1034: bipush        30
+        1036: aload         62
+        1038: aastore
+        1039: new           #122                // class ocaml_fn_19
+        1042: dup
+        1043: invokespecial #123                // Method ocaml_fn_19."<init>":()V
+        1046: astore        63
+        1048: aload         18
+        1050: checkcast     #2                  // class Block
+        1053: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        1056: bipush        32
+        1058: aload         63
+        1060: aastore
+        1061: new           #125                // class ocaml_fn_20
+        1064: dup
+        1065: aload         29
+        1067: invokespecial #126                // Method ocaml_fn_20."<init>":(Ljava/lang/Object;)V
+        1070: astore        64
+        1072: aload         18
+        1074: checkcast     #2                  // class Block
+        1077: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        1080: bipush        33
+        1082: aload         64
+        1084: aastore
+        1085: new           #128                // class ocaml_fn_21
+        1088: dup
+        1089: aload         58
+        1091: invokespecial #129                // Method ocaml_fn_21."<init>":(Ljava/lang/Object;)V
+        1094: astore        65
+        1096: aload         18
+        1098: checkcast     #2                  // class Block
+        1101: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        1104: bipush        100
+        1106: aload         65
+        1108: aastore
+        1109: new           #131                // class ocaml_fn_22
+        1112: dup
+        1113: aload         65
+        1115: invokespecial #132                // Method ocaml_fn_22."<init>":(Ljava/lang/Object;)V
+        1118: astore        66
+        1120: aload         18
+        1122: checkcast     #2                  // class Block
+        1125: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        1128: bipush        34
+        1130: aload         66
+        1132: aastore
+        1133: new           #134                // class ocaml_fn_23
+        1136: dup
+        1137: aload         29
+        1139: invokespecial #135                // Method ocaml_fn_23."<init>":(Ljava/lang/Object;)V
+        1142: astore        67
+        1144: aload         18
+        1146: checkcast     #2                  // class Block
+        1149: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        1152: bipush        35
+        1154: aload         67
+        1156: aastore
+        1157: new           #137                // class ocaml_fn_24
+        1160: dup
+        1161: invokespecial #138                // Method ocaml_fn_24."<init>":()V
+        1164: astore        68
+        1166: aload         18
+        1168: checkcast     #2                  // class Block
+        1171: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        1174: bipush        36
+        1176: aload         68
+        1178: aastore
+        1179: new           #140                // class ocaml_fn_25
+        1182: dup
+        1183: invokespecial #141                // Method ocaml_fn_25."<init>":()V
+        1186: astore        69
         1188: aload         68
-        1190: checkcast     #139                // class Closure
-        1193: putfield      #143                // Field ocaml_fn_24.sibling_0:LClosure;
-        1196: iconst_0
-        1197: i2l
-        1198: invokestatic  #61                 // Method java/lang/Long.valueOf:(J)Ljava/lang/Long;
-        1201: astore        70
-        1203: aload         68
-        1205: checkcast     #133                // class ocaml_fn_24
-        1208: aload         69
-        1210: checkcast     #139                // class Closure
-        1213: putfield      #146                // Field ocaml_fn_24.sibling_1:LClosure;
-        1216: iconst_0
-        1217: i2l
-        1218: invokestatic  #61                 // Method java/lang/Long.valueOf:(J)Ljava/lang/Long;
-        1221: astore        71
-        1223: aload         69
-        1225: checkcast     #136                // class ocaml_fn_25
-        1228: aload         68
-        1230: checkcast     #139                // class Closure
-        1233: putfield      #147                // Field ocaml_fn_25.sibling_0:LClosure;
-        1236: iconst_0
-        1237: i2l
-        1238: invokestatic  #61                 // Method java/lang/Long.valueOf:(J)Ljava/lang/Long;
-        1241: astore        72
-        1243: aload         69
-        1245: checkcast     #136                // class ocaml_fn_25
+        1190: checkcast     #137                // class ocaml_fn_24
+        1193: aload         68
+        1195: checkcast     #143                // class Closure
+        1198: putfield      #147                // Field ocaml_fn_24.sibling_0:LClosure;
+        1201: iconst_0
+        1202: i2l
+        1203: invokestatic  #61                 // Method java/lang/Long.valueOf:(J)Ljava/lang/Long;
+        1206: astore        70
+        1208: aload         68
+        1210: checkcast     #137                // class ocaml_fn_24
+        1213: aload         69
+        1215: checkcast     #143                // class Closure
+        1218: putfield      #150                // Field ocaml_fn_24.sibling_1:LClosure;
+        1221: iconst_0
+        1222: i2l
+        1223: invokestatic  #61                 // Method java/lang/Long.valueOf:(J)Ljava/lang/Long;
+        1226: astore        71
+        1228: aload         69
+        1230: checkcast     #140                // class ocaml_fn_25
+        1233: aload         68
+        1235: checkcast     #143                // class Closure
+        1238: putfield      #151                // Field ocaml_fn_25.sibling_0:LClosure;
+        1241: iconst_0
+        1242: i2l
+        1243: invokestatic  #61                 // Method java/lang/Long.valueOf:(J)Ljava/lang/Long;
+        1246: astore        72
         1248: aload         69
-        1250: checkcast     #139                // class Closure
-        1253: putfield      #148                // Field ocaml_fn_25.sibling_1:LClosure;
-        1256: iconst_0
-        1257: i2l
-        1258: invokestatic  #61                 // Method java/lang/Long.valueOf:(J)Ljava/lang/Long;
-        1261: astore        73
-        1263: iconst_0
-        1264: i2l
-        1265: lstore        74
-        1267: lload         74
-        1269: l2i
-        1270: invokestatic  #152                // Method Channel.forDescriptor:(I)LChannel;
-        1273: astore        76
-        1275: aload         18
-        1277: checkcast     #2                  // class Block
-        1280: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        1283: bipush        37
-        1285: aload         76
-        1287: aastore
-        1288: iconst_1
-        1289: i2l
-        1290: lstore        77
-        1292: lload         77
-        1294: l2i
-        1295: invokestatic  #152                // Method Channel.forDescriptor:(I)LChannel;
-        1298: astore        79
-        1300: aload         18
-        1302: checkcast     #2                  // class Block
-        1305: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        1308: bipush        38
-        1310: aload         79
-        1312: aastore
-        1313: iconst_2
-        1314: i2l
-        1315: lstore        80
-        1317: lload         80
-        1319: l2i
-        1320: invokestatic  #152                // Method Channel.forDescriptor:(I)LChannel;
-        1323: astore        82
-        1325: aload         18
-        1327: checkcast     #2                  // class Block
-        1330: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        1333: bipush        39
-        1335: aload         82
-        1337: aastore
-        1338: new           #154                // class ocaml_fn_26
-        1341: dup
-        1342: invokespecial #155                // Method ocaml_fn_26."<init>":()V
-        1345: astore        83
-        1347: aload         18
-        1349: checkcast     #2                  // class Block
-        1352: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        1355: bipush        61
-        1357: aload         83
-        1359: aastore
-        1360: new           #157                // class ocaml_fn_27
-        1363: dup
-        1364: aload         83
-        1366: invokespecial #158                // Method ocaml_fn_27."<init>":(Ljava/lang/Object;)V
-        1369: astore        84
-        1371: aload         18
-        1373: checkcast     #2                  // class Block
-        1376: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        1379: bipush        59
-        1381: aload         84
-        1383: aastore
-        1384: new           #160                // class ocaml_fn_28
-        1387: dup
-        1388: aload         83
-        1390: invokespecial #161                // Method ocaml_fn_28."<init>":(Ljava/lang/Object;)V
-        1393: astore        85
-        1395: aload         18
-        1397: checkcast     #2                  // class Block
-        1400: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        1403: bipush        60
-        1405: aload         85
-        1407: aastore
-        1408: new           #163                // class ocaml_fn_29
-        1411: dup
-        1412: aload         33
-        1414: invokespecial #164                // Method ocaml_fn_29."<init>":(Ljava/lang/Object;)V
-        1417: astore        86
-        1419: aload         18
-        1421: checkcast     #2                  // class Block
-        1424: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        1427: bipush        63
-        1429: aload         86
-        1431: aastore
-        1432: new           #166                // class ocaml_fn_30
-        1435: dup
-        1436: invokespecial #167                // Method ocaml_fn_30."<init>":()V
-        1439: astore        87
-        1441: aload         18
-        1443: checkcast     #2                  // class Block
-        1446: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        1449: bipush        66
-        1451: aload         87
-        1453: aastore
-        1454: new           #169                // class ocaml_fn_31
-        1457: dup
-        1458: invokespecial #170                // Method ocaml_fn_31."<init>":()V
-        1461: astore        88
-        1463: aload         18
-        1465: checkcast     #2                  // class Block
-        1468: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        1471: bipush        65
-        1473: aload         88
-        1475: aastore
-        1476: new           #172                // class ocaml_fn_32
-        1479: dup
-        1480: aload         20
-        1482: invokespecial #173                // Method ocaml_fn_32."<init>":(Ljava/lang/Object;)V
-        1485: astore        89
-        1487: aload         18
-        1489: checkcast     #2                  // class Block
-        1492: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        1495: bipush        67
-        1497: aload         89
-        1499: aastore
-        1500: new           #175                // class ocaml_fn_33
-        1503: dup
-        1504: aload         20
-        1506: invokespecial #176                // Method ocaml_fn_33."<init>":(Ljava/lang/Object;)V
-        1509: astore        90
-        1511: aload         18
-        1513: checkcast     #2                  // class Block
-        1516: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        1519: bipush        68
-        1521: aload         90
-        1523: aastore
-        1524: new           #178                // class ocaml_fn_34
-        1527: dup
-        1528: invokespecial #179                // Method ocaml_fn_34."<init>":()V
-        1531: astore        91
-        1533: aload         18
-        1535: checkcast     #2                  // class Block
-        1538: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        1541: bipush        71
-        1543: aload         91
-        1545: aastore
-        1546: new           #181                // class ocaml_fn_35
-        1549: dup
-        1550: invokespecial #182                // Method ocaml_fn_35."<init>":()V
-        1553: astore        92
-        1555: aload         18
-        1557: checkcast     #2                  // class Block
-        1560: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        1563: bipush        75
-        1565: aload         92
-        1567: aastore
-        1568: new           #184                // class ocaml_fn_36
-        1571: dup
-        1572: invokespecial #185                // Method ocaml_fn_36."<init>":()V
-        1575: astore        93
-        1577: aload         18
-        1579: checkcast     #2                  // class Block
-        1582: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        1585: bipush        76
-        1587: aload         93
-        1589: aastore
-        1590: new           #187                // class ocaml_fn_37
-        1593: dup
-        1594: invokespecial #188                // Method ocaml_fn_37."<init>":()V
-        1597: astore        94
-        1599: aload         18
-        1601: checkcast     #2                  // class Block
-        1604: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        1607: bipush        80
-        1609: aload         94
-        1611: aastore
-        1612: new           #190                // class ocaml_fn_38
-        1615: dup
-        1616: aload         94
-        1618: invokespecial #191                // Method ocaml_fn_38."<init>":(Ljava/lang/Object;)V
-        1621: astore        95
-        1623: aload         18
-        1625: checkcast     #2                  // class Block
-        1628: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        1631: bipush        78
-        1633: aload         95
-        1635: aastore
-        1636: new           #193                // class ocaml_fn_39
-        1639: dup
-        1640: aload         94
-        1642: invokespecial #194                // Method ocaml_fn_39."<init>":(Ljava/lang/Object;)V
-        1645: astore        96
-        1647: aload         18
-        1649: checkcast     #2                  // class Block
-        1652: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        1655: bipush        79
-        1657: aload         96
-        1659: aastore
-        1660: new           #196                // class ocaml_fn_40
-        1663: dup
-        1664: aload         20
-        1666: invokespecial #197                // Method ocaml_fn_40."<init>":(Ljava/lang/Object;)V
-        1669: astore        97
-        1671: aload         18
-        1673: checkcast     #2                  // class Block
-        1676: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        1679: bipush        83
-        1681: aload         97
-        1683: aastore
-        1684: new           #199                // class ocaml_fn_41
-        1687: dup
-        1688: aload         34
-        1690: invokespecial #200                // Method ocaml_fn_41."<init>":(Ljava/lang/Object;)V
-        1693: astore        98
-        1695: aload         18
-        1697: checkcast     #2                  // class Block
-        1700: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        1703: bipush        101
-        1705: aload         98
-        1707: aastore
-        1708: new           #202                // class ocaml_fn_42
-        1711: dup
-        1712: aload         20
-        1714: aload         98
-        1716: invokespecial #205                // Method ocaml_fn_42."<init>":(Ljava/lang/Object;Ljava/lang/Object;)V
-        1719: astore        99
-        1721: aload         18
-        1723: checkcast     #2                  // class Block
-        1726: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        1729: bipush        84
-        1731: aload         99
-        1733: aastore
-        1734: new           #207                // class ocaml_fn_43
-        1737: dup
-        1738: aload         99
-        1740: invokespecial #208                // Method ocaml_fn_43."<init>":(Ljava/lang/Object;)V
-        1743: astore        100
-        1745: aload         18
-        1747: checkcast     #2                  // class Block
-        1750: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        1753: bipush        85
-        1755: aload         100
-        1757: aastore
-        1758: new           #210                // class ocaml_fn_44
-        1761: dup
-        1762: aload         34
-        1764: invokespecial #211                // Method ocaml_fn_44."<init>":(Ljava/lang/Object;)V
-        1767: astore        101
-        1769: aload         18
-        1771: checkcast     #2                  // class Block
-        1774: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        1777: bipush        82
-        1779: aload         101
-        1781: aastore
-        1782: new           #213                // class ocaml_fn_45
-        1785: dup
-        1786: invokespecial #214                // Method ocaml_fn_45."<init>":()V
-        1789: astore        102
-        1791: aload         18
-        1793: checkcast     #2                  // class Block
-        1796: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        1799: bipush        93
-        1801: aload         102
-        1803: aastore
-        1804: new           #216                // class ocaml_fn_46
-        1807: dup
-        1808: aload         79
-        1810: invokespecial #217                // Method ocaml_fn_46."<init>":(Ljava/lang/Object;)V
-        1813: astore        103
-        1815: aload         18
-        1817: checkcast     #2                  // class Block
-        1820: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        1823: bipush        40
-        1825: aload         103
-        1827: aastore
-        1828: new           #219                // class ocaml_fn_47
-        1831: dup
-        1832: aload         79
-        1834: aload         88
-        1836: invokespecial #220                // Method ocaml_fn_47."<init>":(Ljava/lang/Object;Ljava/lang/Object;)V
-        1839: astore        104
-        1841: aload         18
-        1843: checkcast     #2                  // class Block
-        1846: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        1849: bipush        41
-        1851: aload         104
-        1853: aastore
-        1854: new           #222                // class ocaml_fn_48
-        1857: dup
-        1858: aload         79
-        1860: aload         87
-        1862: invokespecial #223                // Method ocaml_fn_48."<init>":(Ljava/lang/Object;Ljava/lang/Object;)V
-        1865: astore        105
-        1867: aload         18
-        1869: checkcast     #2                  // class Block
-        1872: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        1875: bipush        42
-        1877: aload         105
-        1879: aastore
-        1880: new           #225                // class ocaml_fn_49
-        1883: dup
-        1884: aload         63
-        1886: aload         79
-        1888: aload         88
-        1890: invokespecial #228                // Method ocaml_fn_49."<init>":(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)V
-        1893: astore        106
-        1895: aload         18
-        1897: checkcast     #2                  // class Block
-        1900: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        1903: bipush        43
-        1905: aload         106
-        1907: aastore
-        1908: new           #230                // class ocaml_fn_50
-        1911: dup
-        1912: aload         66
-        1914: aload         79
-        1916: aload         88
-        1918: invokespecial #231                // Method ocaml_fn_50."<init>":(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)V
-        1921: astore        107
-        1923: aload         18
-        1925: checkcast     #2                  // class Block
-        1928: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        1931: bipush        44
-        1933: aload         107
-        1935: aastore
-        1936: new           #233                // class ocaml_fn_51
-        1939: dup
-        1940: aload         79
-        1942: aload         88
-        1944: invokespecial #234                // Method ocaml_fn_51."<init>":(Ljava/lang/Object;Ljava/lang/Object;)V
-        1947: astore        108
-        1949: aload         18
-        1951: checkcast     #2                  // class Block
-        1954: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        1957: bipush        45
-        1959: aload         108
-        1961: aastore
-        1962: new           #236                // class ocaml_fn_52
-        1965: dup
-        1966: aload         79
-        1968: invokespecial #237                // Method ocaml_fn_52."<init>":(Ljava/lang/Object;)V
-        1971: astore        109
-        1973: aload         18
-        1975: checkcast     #2                  // class Block
-        1978: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        1981: bipush        46
-        1983: aload         109
-        1985: aastore
-        1986: new           #239                // class ocaml_fn_53
-        1989: dup
-        1990: aload         82
-        1992: invokespecial #240                // Method ocaml_fn_53."<init>":(Ljava/lang/Object;)V
-        1995: astore        110
-        1997: aload         18
-        1999: checkcast     #2                  // class Block
-        2002: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        2005: bipush        47
-        2007: aload         110
-        2009: aastore
-        2010: new           #242                // class ocaml_fn_54
-        2013: dup
-        2014: aload         82
-        2016: aload         88
-        2018: invokespecial #243                // Method ocaml_fn_54."<init>":(Ljava/lang/Object;Ljava/lang/Object;)V
-        2021: astore        111
-        2023: aload         18
-        2025: checkcast     #2                  // class Block
-        2028: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        2031: bipush        48
-        2033: aload         111
-        2035: aastore
-        2036: new           #245                // class ocaml_fn_55
-        2039: dup
-        2040: aload         82
-        2042: aload         87
-        2044: invokespecial #246                // Method ocaml_fn_55."<init>":(Ljava/lang/Object;Ljava/lang/Object;)V
-        2047: astore        112
-        2049: aload         18
-        2051: checkcast     #2                  // class Block
-        2054: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        2057: bipush        49
-        2059: aload         112
-        2061: aastore
-        2062: new           #248                // class ocaml_fn_56
-        2065: dup
-        2066: aload         63
-        2068: aload         82
-        2070: aload         88
-        2072: invokespecial #249                // Method ocaml_fn_56."<init>":(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)V
-        2075: astore        113
-        2077: aload         18
-        2079: checkcast     #2                  // class Block
-        2082: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        2085: bipush        50
-        2087: aload         113
-        2089: aastore
-        2090: new           #251                // class ocaml_fn_57
-        2093: dup
-        2094: aload         66
-        2096: aload         82
-        2098: aload         88
-        2100: invokespecial #252                // Method ocaml_fn_57."<init>":(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)V
-        2103: astore        114
-        2105: aload         18
-        2107: checkcast     #2                  // class Block
-        2110: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        2113: bipush        51
-        2115: aload         114
-        2117: aastore
-        2118: new           #254                // class ocaml_fn_58
-        2121: dup
-        2122: aload         82
-        2124: aload         88
-        2126: invokespecial #255                // Method ocaml_fn_58."<init>":(Ljava/lang/Object;Ljava/lang/Object;)V
-        2129: astore        115
-        2131: aload         18
-        2133: checkcast     #2                  // class Block
-        2136: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        2139: bipush        52
-        2141: aload         115
-        2143: aastore
-        2144: new           #257                // class ocaml_fn_59
-        2147: dup
-        2148: aload         82
-        2150: invokespecial #258                // Method ocaml_fn_59."<init>":(Ljava/lang/Object;)V
-        2153: astore        116
-        2155: aload         18
-        2157: checkcast     #2                  // class Block
-        2160: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        2163: bipush        53
-        2165: aload         116
-        2167: aastore
-        2168: new           #260                // class ocaml_fn_60
-        2171: dup
-        2172: aload         76
-        2174: aload         79
-        2176: aload         101
-        2178: invokespecial #261                // Method ocaml_fn_60."<init>":(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)V
-        2181: astore        117
-        2183: aload         18
-        2185: checkcast     #2                  // class Block
-        2188: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        2191: bipush        54
-        2193: aload         117
-        2195: aastore
-        2196: new           #263                // class ocaml_fn_61
-        2199: dup
-        2200: aload         117
-        2202: invokespecial #264                // Method ocaml_fn_61."<init>":(Ljava/lang/Object;)V
-        2205: astore        118
-        2207: aload         18
-        2209: checkcast     #2                  // class Block
-        2212: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        2215: bipush        56
-        2217: aload         118
-        2219: aastore
-        2220: new           #266                // class ocaml_fn_62
-        2223: dup
-        2224: aload         64
-        2226: aload         117
-        2228: invokespecial #267                // Method ocaml_fn_62."<init>":(Ljava/lang/Object;Ljava/lang/Object;)V
-        2231: astore        119
-        2233: aload         18
-        2235: checkcast     #2                  // class Block
-        2238: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        2241: bipush        55
-        2243: aload         119
-        2245: aastore
-        2246: new           #269                // class ocaml_fn_63
-        2249: dup
-        2250: aload         117
-        2252: invokespecial #270                // Method ocaml_fn_63."<init>":(Ljava/lang/Object;)V
-        2255: astore        120
-        2257: aload         18
-        2259: checkcast     #2                  // class Block
-        2262: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        2265: bipush        58
-        2267: aload         120
-        2269: aastore
-        2270: new           #272                // class ocaml_fn_64
-        2273: dup
-        2274: aload         67
-        2276: aload         117
-        2278: invokespecial #273                // Method ocaml_fn_64."<init>":(Ljava/lang/Object;Ljava/lang/Object;)V
-        2281: astore        121
-        2283: aload         18
-        2285: checkcast     #2                  // class Block
-        2288: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        2291: bipush        57
-        2293: aload         121
-        2295: aastore
-        2296: new           #275                // class ocaml_fn_65
-        2299: dup
-        2300: invokespecial #276                // Method ocaml_fn_65."<init>":()V
-        2303: astore        122
-        2305: aload         18
-        2307: checkcast     #2                  // class Block
-        2310: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        2313: bipush        96
-        2315: aload         122
-        2317: aastore
-        2318: new           #278                // class ocaml_fn_66
-        2321: dup
-        2322: aload         58
-        2324: invokespecial #279                // Method ocaml_fn_66."<init>":(Ljava/lang/Object;)V
-        2327: astore        123
-        2329: aload         18
-        2331: checkcast     #2                  // class Block
-        2334: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        2337: bipush        97
-        2339: aload         123
-        2341: aastore
-        2342: new           #2                  // class Block
-        2345: dup
-        2346: iconst_0
-        2347: iconst_1
-        2348: anewarray     #4                  // class java/lang/Object
-        2351: dup
-        2352: iconst_0
-        2353: aload         86
-        2355: aastore
-        2356: invokespecial #16                 // Method Block."<init>":(I[Ljava/lang/Object;)V
-        2359: astore        124
-        2361: new           #281                // class ocaml_fn_67
-        2364: dup
-        2365: aload         124
-        2367: invokespecial #282                // Method ocaml_fn_67."<init>":(Ljava/lang/Object;)V
-        2370: astore        125
-        2372: aload         18
-        2374: checkcast     #2                  // class Block
-        2377: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        2380: bipush        99
-        2382: aload         125
-        2384: aastore
-        2385: new           #284                // class ocaml_fn_68
-        2388: dup
-        2389: invokespecial #285                // Method ocaml_fn_68."<init>":()V
-        2392: astore        126
-        2394: new           #2                  // class Block
-        2397: dup
-        2398: iconst_0
-        2399: iconst_1
-        2400: anewarray     #4                  // class java/lang/Object
-        2403: dup
-        2404: iconst_0
-        2405: aload         126
-        2407: aastore
-        2408: invokespecial #16                 // Method Block."<init>":(I[Ljava/lang/Object;)V
-        2411: astore        127
-        2413: aload         18
-        2415: checkcast     #2                  // class Block
-        2418: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        2421: bipush        103
-        2423: aload         127
-        2425: aastore
-        2426: new           #287                // class ocaml_fn_69
-        2429: dup
-        2430: aload         124
-        2432: aload         127
-        2434: invokespecial #288                // Method ocaml_fn_69."<init>":(Ljava/lang/Object;Ljava/lang/Object;)V
-        2437: astore        128
-        2439: aload         18
-        2441: checkcast     #2                  // class Block
-        2444: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        2447: bipush        102
-        2449: aload         128
-        2451: aastore
-        2452: new           #290                // class ocaml_fn_70
-        2455: dup
-        2456: aload         128
-        2458: invokespecial #291                // Method ocaml_fn_70."<init>":(Ljava/lang/Object;)V
-        2461: astore        129
-        2463: aload         18
-        2465: checkcast     #2                  // class Block
-        2468: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        2471: bipush        98
-        2473: aload         129
-        2475: aastore
-        2476: getstatic     #25                 // Field GLOBALS:[Ljava/lang/Object;
-        2479: bipush        44
-        2481: aaload
-        2482: astore        130
-        2484: iconst_0
-        2485: i2l
-        2486: invokestatic  #61                 // Method java/lang/Long.valueOf:(J)Ljava/lang/Long;
-        2489: astore        131
-        2491: new           #2                  // class Block
-        2494: dup
-        2495: iconst_0
-        2496: bipush        6
-        2498: anewarray     #4                  // class java/lang/Object
-        2501: invokespecial #16                 // Method Block."<init>":(I[Ljava/lang/Object;)V
-        2504: astore        132
-        2506: new           #293                // class ocaml_fn_71
-        2509: dup
-        2510: invokespecial #294                // Method ocaml_fn_71."<init>":()V
-        2513: astore        133
-        2515: aload         132
-        2517: checkcast     #2                  // class Block
-        2520: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        2523: iconst_5
-        2524: aload         133
-        2526: aastore
-        2527: new           #296                // class ocaml_fn_72
-        2530: dup
-        2531: invokespecial #297                // Method ocaml_fn_72."<init>":()V
-        2534: astore        134
-        2536: aload         132
-        2538: checkcast     #2                  // class Block
-        2541: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        2544: iconst_4
-        2545: aload         134
-        2547: aastore
-        2548: new           #299                // class ocaml_fn_73
-        2551: dup
-        2552: invokespecial #300                // Method ocaml_fn_73."<init>":()V
-        2555: astore        135
-        2557: aload         132
-        2559: checkcast     #2                  // class Block
-        2562: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        2565: iconst_3
-        2566: aload         135
-        2568: aastore
-        2569: new           #302                // class ocaml_fn_74
-        2572: dup
-        2573: invokespecial #303                // Method ocaml_fn_74."<init>":()V
-        2576: astore        136
-        2578: aload         132
-        2580: checkcast     #2                  // class Block
-        2583: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        2586: iconst_2
-        2587: aload         136
-        2589: aastore
-        2590: new           #305                // class ocaml_fn_75
-        2593: dup
-        2594: invokespecial #306                // Method ocaml_fn_75."<init>":()V
-        2597: astore        137
-        2599: aload         132
-        2601: checkcast     #2                  // class Block
-        2604: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        2607: iconst_1
-        2608: aload         137
-        2610: aastore
-        2611: new           #308                // class ocaml_fn_76
-        2614: dup
-        2615: invokespecial #309                // Method ocaml_fn_76."<init>":()V
-        2618: astore        138
-        2620: aload         132
-        2622: checkcast     #2                  // class Block
-        2625: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        2628: iconst_0
-        2629: aload         138
-        2631: aastore
-        2632: aload         18
-        2634: checkcast     #2                  // class Block
-        2637: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        2640: bipush        95
-        2642: aload         132
-        2644: aastore
-        2645: new           #311                // class ocaml_fn_77
-        2648: dup
-        2649: invokespecial #312                // Method ocaml_fn_77."<init>":()V
-        2652: astore        139
-        2654: aload         18
-        2656: checkcast     #2                  // class Block
-        2659: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        2662: bipush        94
-        2664: aload         139
-        2666: aastore
-        2667: new           #314                // class ocaml_fn_78
-        2670: dup
-        2671: invokespecial #315                // Method ocaml_fn_78."<init>":()V
-        2674: astore        140
-        2676: aload         18
-        2678: checkcast     #2                  // class Block
-        2681: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        2684: bipush        92
-        2686: aload         140
-        2688: aastore
-        2689: new           #317                // class ocaml_fn_79
-        2692: dup
-        2693: invokespecial #318                // Method ocaml_fn_79."<init>":()V
-        2696: astore        141
-        2698: aload         18
-        2700: checkcast     #2                  // class Block
-        2703: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        2706: bipush        91
-        2708: aload         141
-        2710: aastore
-        2711: new           #320                // class ocaml_fn_80
-        2714: dup
-        2715: invokespecial #321                // Method ocaml_fn_80."<init>":()V
-        2718: astore        142
-        2720: aload         18
-        2722: checkcast     #2                  // class Block
-        2725: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        2728: bipush        90
-        2730: aload         142
-        2732: aastore
-        2733: new           #323                // class ocaml_fn_81
-        2736: dup
-        2737: invokespecial #324                // Method ocaml_fn_81."<init>":()V
-        2740: astore        143
-        2742: aload         18
-        2744: checkcast     #2                  // class Block
-        2747: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        2750: bipush        89
-        2752: aload         143
-        2754: aastore
-        2755: new           #326                // class ocaml_fn_82
-        2758: dup
-        2759: invokespecial #327                // Method ocaml_fn_82."<init>":()V
-        2762: astore        144
-        2764: aload         18
-        2766: checkcast     #2                  // class Block
-        2769: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        2772: bipush        88
-        2774: aload         144
-        2776: aastore
-        2777: new           #329                // class ocaml_fn_83
-        2780: dup
-        2781: invokespecial #330                // Method ocaml_fn_83."<init>":()V
-        2784: astore        145
-        2786: aload         18
-        2788: checkcast     #2                  // class Block
-        2791: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        2794: bipush        87
-        2796: aload         145
-        2798: aastore
-        2799: new           #332                // class ocaml_fn_84
-        2802: dup
-        2803: invokespecial #333                // Method ocaml_fn_84."<init>":()V
-        2806: astore        146
-        2808: aload         18
-        2810: checkcast     #2                  // class Block
-        2813: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        2816: bipush        86
-        2818: aload         146
-        2820: aastore
-        2821: new           #335                // class ocaml_fn_85
-        2824: dup
-        2825: invokespecial #336                // Method ocaml_fn_85."<init>":()V
-        2828: astore        147
-        2830: aload         18
-        2832: checkcast     #2                  // class Block
-        2835: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        2838: bipush        81
-        2840: aload         147
-        2842: aastore
-        2843: new           #338                // class ocaml_fn_86
-        2846: dup
-        2847: invokespecial #339                // Method ocaml_fn_86."<init>":()V
-        2850: astore        148
-        2852: aload         18
-        2854: checkcast     #2                  // class Block
-        2857: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        2860: bipush        77
-        2862: aload         148
-        2864: aastore
-        2865: new           #341                // class ocaml_fn_87
-        2868: dup
-        2869: invokespecial #342                // Method ocaml_fn_87."<init>":()V
-        2872: astore        149
-        2874: aload         18
-        2876: checkcast     #2                  // class Block
-        2879: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        2882: bipush        74
-        2884: aload         149
-        2886: aastore
-        2887: new           #344                // class ocaml_fn_88
-        2890: dup
-        2891: invokespecial #345                // Method ocaml_fn_88."<init>":()V
-        2894: astore        150
-        2896: aload         18
-        2898: checkcast     #2                  // class Block
-        2901: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        2904: bipush        73
-        2906: aload         150
-        2908: aastore
-        2909: new           #347                // class ocaml_fn_89
-        2912: dup
-        2913: invokespecial #348                // Method ocaml_fn_89."<init>":()V
-        2916: astore        151
-        2918: aload         18
-        2920: checkcast     #2                  // class Block
-        2923: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        2926: bipush        72
-        2928: aload         151
-        2930: aastore
-        2931: new           #350                // class ocaml_fn_90
-        2934: dup
-        2935: invokespecial #351                // Method ocaml_fn_90."<init>":()V
-        2938: astore        152
-        2940: aload         18
-        2942: checkcast     #2                  // class Block
-        2945: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        2948: bipush        70
-        2950: aload         152
-        2952: aastore
-        2953: new           #353                // class ocaml_fn_91
-        2956: dup
-        2957: invokespecial #354                // Method ocaml_fn_91."<init>":()V
-        2960: astore        153
-        2962: aload         18
-        2964: checkcast     #2                  // class Block
-        2967: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        2970: bipush        69
-        2972: aload         153
-        2974: aastore
-        2975: new           #356                // class ocaml_fn_92
-        2978: dup
-        2979: invokespecial #357                // Method ocaml_fn_92."<init>":()V
-        2982: astore        154
-        2984: aload         18
-        2986: checkcast     #2                  // class Block
-        2989: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        2992: bipush        64
-        2994: aload         154
-        2996: aastore
-        2997: new           #359                // class ocaml_fn_93
-        3000: dup
-        3001: invokespecial #360                // Method ocaml_fn_93."<init>":()V
-        3004: astore        155
-        3006: aload         18
-        3008: checkcast     #2                  // class Block
-        3011: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        3014: bipush        62
-        3016: aload         155
-        3018: aastore
-        3019: getstatic     #25                 // Field GLOBALS:[Ljava/lang/Object;
-        3022: bipush        45
-        3024: aload         18
-        3026: aastore
-        3027: iconst_0
-        3028: i2l
-        3029: invokestatic  #61                 // Method java/lang/Long.valueOf:(J)Ljava/lang/Long;
-        3032: astore        156
-        3034: iconst_0
-        3035: i2l
-        3036: lstore        157
-        3038: lload         157
-        3040: invokestatic  #61                 // Method java/lang/Long.valueOf:(J)Ljava/lang/Long;
-        3043: astore        159
-        3045: goto_w        3050
-        3050: iconst_0
-        3051: i2l
-        3052: lstore        160
-        3054: iconst_1
-        3055: i2l
-        3056: invokestatic  #61                 // Method java/lang/Long.valueOf:(J)Ljava/lang/Long;
-        3059: astore        162
-        3061: getstatic     #25                 // Field GLOBALS:[Ljava/lang/Object;
-        3064: bipush        46
-        3066: aaload
-        3067: astore        163
-        3069: new           #2                  // class Block
-        3072: dup
-        3073: sipush        248
-        3076: iconst_2
-        3077: anewarray     #4                  // class java/lang/Object
-        3080: dup
-        3081: iconst_0
-        3082: aload         163
-        3084: aastore
-        3085: dup
-        3086: iconst_1
-        3087: aload         162
-        3089: aastore
-        3090: invokespecial #16                 // Method Block."<init>":(I[Ljava/lang/Object;)V
-        3093: astore        164
-        3095: new           #362                // class ocaml_fn_94
-        3098: dup
-        3099: aload         164
-        3101: invokespecial #363                // Method ocaml_fn_94."<init>":(Ljava/lang/Object;)V
-        3104: astore        165
-        3106: iconst_0
-        3107: i2l
-        3108: lstore        166
-        3110: aload         165
-        3112: lload         166
-        3114: invokestatic  #61                 // Method java/lang/Long.valueOf:(J)Ljava/lang/Long;
-        3117: invokevirtual #367                // Method Closure.apply1:(Ljava/lang/Object;)Ljava/lang/Object;
-        3120: astore        168
-        3122: getstatic     #371                // Field java/lang/System.out:Ljava/io/PrintStream;
-        3125: aload         168
-        3127: invokestatic  #90                 // Method Block.asLong:(Ljava/lang/Object;)J
-        3130: l2i
-        3131: invokevirtual #377                // Method java/io/PrintStream.println:(I)V
-        3134: iconst_0
-        3135: i2l
-        3136: invokestatic  #61                 // Method java/lang/Long.valueOf:(J)Ljava/lang/Long;
-        3139: astore        169
-        3141: new           #2                  // class Block
-        3144: dup
-        3145: iconst_0
-        3146: iconst_2
-        3147: anewarray     #4                  // class java/lang/Object
-        3150: dup
-        3151: iconst_0
-        3152: aload         164
-        3154: aastore
-        3155: dup
-        3156: iconst_1
-        3157: aload         165
-        3159: aastore
-        3160: invokespecial #16                 // Method Block."<init>":(I[Ljava/lang/Object;)V
-        3163: astore        170
-        3165: getstatic     #25                 // Field GLOBALS:[Ljava/lang/Object;
-        3168: bipush        47
-        3170: aload         170
-        3172: aastore
-        3173: iconst_0
-        3174: i2l
-        3175: invokestatic  #61                 // Method java/lang/Long.valueOf:(J)Ljava/lang/Long;
-        3178: astore        171
-        3180: iconst_0
-        3181: i2l
-        3182: lstore        172
-        3184: getstatic     #25                 // Field GLOBALS:[Ljava/lang/Object;
-        3187: bipush        45
-        3189: aaload
-        3190: checkcast     #2                  // class Block
-        3193: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        3196: bipush        102
-        3198: aaload
-        3199: astore        174
-        3201: aload         174
-        3203: checkcast     #139                // class Closure
-        3206: lload         172
-        3208: invokestatic  #61                 // Method java/lang/Long.valueOf:(J)Ljava/lang/Long;
-        3211: invokevirtual #367                // Method Closure.apply1:(Ljava/lang/Object;)Ljava/lang/Object;
-        3214: astore        175
-        3216: new           #2                  // class Block
-        3219: dup
-        3220: iconst_0
-        3221: iconst_0
-        3222: anewarray     #4                  // class java/lang/Object
-        3225: invokespecial #16                 // Method Block."<init>":(I[Ljava/lang/Object;)V
-        3228: astore        176
-        3230: getstatic     #25                 // Field GLOBALS:[Ljava/lang/Object;
-        3233: bipush        48
-        3235: aload         176
-        3237: aastore
-        3238: iconst_0
-        3239: i2l
-        3240: invokestatic  #61                 // Method java/lang/Long.valueOf:(J)Ljava/lang/Long;
-        3243: astore        177
-        3245: return
+        1250: checkcast     #140                // class ocaml_fn_25
+        1253: aload         69
+        1255: checkcast     #143                // class Closure
+        1258: putfield      #152                // Field ocaml_fn_25.sibling_1:LClosure;
+        1261: iconst_0
+        1262: i2l
+        1263: invokestatic  #61                 // Method java/lang/Long.valueOf:(J)Ljava/lang/Long;
+        1266: astore        73
+        1268: iconst_0
+        1269: i2l
+        1270: lstore        74
+        1272: lload         74
+        1274: l2i
+        1275: invokestatic  #156                // Method Channel.forDescriptor:(I)LChannel;
+        1278: astore        76
+        1280: aload         18
+        1282: checkcast     #2                  // class Block
+        1285: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        1288: bipush        37
+        1290: aload         76
+        1292: aastore
+        1293: iconst_1
+        1294: i2l
+        1295: lstore        77
+        1297: lload         77
+        1299: l2i
+        1300: invokestatic  #156                // Method Channel.forDescriptor:(I)LChannel;
+        1303: astore        79
+        1305: aload         18
+        1307: checkcast     #2                  // class Block
+        1310: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        1313: bipush        38
+        1315: aload         79
+        1317: aastore
+        1318: iconst_2
+        1319: i2l
+        1320: lstore        80
+        1322: lload         80
+        1324: l2i
+        1325: invokestatic  #156                // Method Channel.forDescriptor:(I)LChannel;
+        1328: astore        82
+        1330: aload         18
+        1332: checkcast     #2                  // class Block
+        1335: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        1338: bipush        39
+        1340: aload         82
+        1342: aastore
+        1343: new           #158                // class ocaml_fn_26
+        1346: dup
+        1347: invokespecial #159                // Method ocaml_fn_26."<init>":()V
+        1350: astore        83
+        1352: aload         18
+        1354: checkcast     #2                  // class Block
+        1357: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        1360: bipush        61
+        1362: aload         83
+        1364: aastore
+        1365: new           #161                // class ocaml_fn_27
+        1368: dup
+        1369: aload         83
+        1371: invokespecial #162                // Method ocaml_fn_27."<init>":(Ljava/lang/Object;)V
+        1374: astore        84
+        1376: aload         18
+        1378: checkcast     #2                  // class Block
+        1381: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        1384: bipush        59
+        1386: aload         84
+        1388: aastore
+        1389: new           #164                // class ocaml_fn_28
+        1392: dup
+        1393: aload         83
+        1395: invokespecial #165                // Method ocaml_fn_28."<init>":(Ljava/lang/Object;)V
+        1398: astore        85
+        1400: aload         18
+        1402: checkcast     #2                  // class Block
+        1405: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        1408: bipush        60
+        1410: aload         85
+        1412: aastore
+        1413: new           #167                // class ocaml_fn_29
+        1416: dup
+        1417: aload         33
+        1419: invokespecial #168                // Method ocaml_fn_29."<init>":(Ljava/lang/Object;)V
+        1422: astore        86
+        1424: aload         18
+        1426: checkcast     #2                  // class Block
+        1429: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        1432: bipush        63
+        1434: aload         86
+        1436: aastore
+        1437: new           #170                // class ocaml_fn_30
+        1440: dup
+        1441: invokespecial #171                // Method ocaml_fn_30."<init>":()V
+        1444: astore        87
+        1446: aload         18
+        1448: checkcast     #2                  // class Block
+        1451: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        1454: bipush        66
+        1456: aload         87
+        1458: aastore
+        1459: new           #173                // class ocaml_fn_31
+        1462: dup
+        1463: invokespecial #174                // Method ocaml_fn_31."<init>":()V
+        1466: astore        88
+        1468: aload         18
+        1470: checkcast     #2                  // class Block
+        1473: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        1476: bipush        65
+        1478: aload         88
+        1480: aastore
+        1481: new           #176                // class ocaml_fn_32
+        1484: dup
+        1485: aload         20
+        1487: invokespecial #177                // Method ocaml_fn_32."<init>":(Ljava/lang/Object;)V
+        1490: astore        89
+        1492: aload         18
+        1494: checkcast     #2                  // class Block
+        1497: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        1500: bipush        67
+        1502: aload         89
+        1504: aastore
+        1505: new           #179                // class ocaml_fn_33
+        1508: dup
+        1509: aload         20
+        1511: invokespecial #180                // Method ocaml_fn_33."<init>":(Ljava/lang/Object;)V
+        1514: astore        90
+        1516: aload         18
+        1518: checkcast     #2                  // class Block
+        1521: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        1524: bipush        68
+        1526: aload         90
+        1528: aastore
+        1529: new           #182                // class ocaml_fn_34
+        1532: dup
+        1533: invokespecial #183                // Method ocaml_fn_34."<init>":()V
+        1536: astore        91
+        1538: aload         18
+        1540: checkcast     #2                  // class Block
+        1543: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        1546: bipush        71
+        1548: aload         91
+        1550: aastore
+        1551: new           #185                // class ocaml_fn_35
+        1554: dup
+        1555: invokespecial #186                // Method ocaml_fn_35."<init>":()V
+        1558: astore        92
+        1560: aload         18
+        1562: checkcast     #2                  // class Block
+        1565: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        1568: bipush        75
+        1570: aload         92
+        1572: aastore
+        1573: new           #188                // class ocaml_fn_36
+        1576: dup
+        1577: invokespecial #189                // Method ocaml_fn_36."<init>":()V
+        1580: astore        93
+        1582: aload         18
+        1584: checkcast     #2                  // class Block
+        1587: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        1590: bipush        76
+        1592: aload         93
+        1594: aastore
+        1595: new           #191                // class ocaml_fn_37
+        1598: dup
+        1599: invokespecial #192                // Method ocaml_fn_37."<init>":()V
+        1602: astore        94
+        1604: aload         18
+        1606: checkcast     #2                  // class Block
+        1609: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        1612: bipush        80
+        1614: aload         94
+        1616: aastore
+        1617: new           #194                // class ocaml_fn_38
+        1620: dup
+        1621: aload         94
+        1623: invokespecial #195                // Method ocaml_fn_38."<init>":(Ljava/lang/Object;)V
+        1626: astore        95
+        1628: aload         18
+        1630: checkcast     #2                  // class Block
+        1633: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        1636: bipush        78
+        1638: aload         95
+        1640: aastore
+        1641: new           #197                // class ocaml_fn_39
+        1644: dup
+        1645: aload         94
+        1647: invokespecial #198                // Method ocaml_fn_39."<init>":(Ljava/lang/Object;)V
+        1650: astore        96
+        1652: aload         18
+        1654: checkcast     #2                  // class Block
+        1657: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        1660: bipush        79
+        1662: aload         96
+        1664: aastore
+        1665: new           #200                // class ocaml_fn_40
+        1668: dup
+        1669: aload         20
+        1671: invokespecial #201                // Method ocaml_fn_40."<init>":(Ljava/lang/Object;)V
+        1674: astore        97
+        1676: aload         18
+        1678: checkcast     #2                  // class Block
+        1681: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        1684: bipush        83
+        1686: aload         97
+        1688: aastore
+        1689: new           #203                // class ocaml_fn_41
+        1692: dup
+        1693: aload         34
+        1695: invokespecial #204                // Method ocaml_fn_41."<init>":(Ljava/lang/Object;)V
+        1698: astore        98
+        1700: aload         18
+        1702: checkcast     #2                  // class Block
+        1705: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        1708: bipush        101
+        1710: aload         98
+        1712: aastore
+        1713: new           #206                // class ocaml_fn_42
+        1716: dup
+        1717: aload         20
+        1719: aload         98
+        1721: invokespecial #209                // Method ocaml_fn_42."<init>":(Ljava/lang/Object;Ljava/lang/Object;)V
+        1724: astore        99
+        1726: aload         18
+        1728: checkcast     #2                  // class Block
+        1731: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        1734: bipush        84
+        1736: aload         99
+        1738: aastore
+        1739: new           #211                // class ocaml_fn_43
+        1742: dup
+        1743: aload         99
+        1745: invokespecial #212                // Method ocaml_fn_43."<init>":(Ljava/lang/Object;)V
+        1748: astore        100
+        1750: aload         18
+        1752: checkcast     #2                  // class Block
+        1755: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        1758: bipush        85
+        1760: aload         100
+        1762: aastore
+        1763: new           #214                // class ocaml_fn_44
+        1766: dup
+        1767: aload         34
+        1769: invokespecial #215                // Method ocaml_fn_44."<init>":(Ljava/lang/Object;)V
+        1772: astore        101
+        1774: aload         18
+        1776: checkcast     #2                  // class Block
+        1779: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        1782: bipush        82
+        1784: aload         101
+        1786: aastore
+        1787: new           #217                // class ocaml_fn_45
+        1790: dup
+        1791: invokespecial #218                // Method ocaml_fn_45."<init>":()V
+        1794: astore        102
+        1796: aload         18
+        1798: checkcast     #2                  // class Block
+        1801: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        1804: bipush        93
+        1806: aload         102
+        1808: aastore
+        1809: new           #220                // class ocaml_fn_46
+        1812: dup
+        1813: aload         79
+        1815: invokespecial #221                // Method ocaml_fn_46."<init>":(Ljava/lang/Object;)V
+        1818: astore        103
+        1820: aload         18
+        1822: checkcast     #2                  // class Block
+        1825: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        1828: bipush        40
+        1830: aload         103
+        1832: aastore
+        1833: new           #223                // class ocaml_fn_47
+        1836: dup
+        1837: aload         79
+        1839: aload         88
+        1841: invokespecial #224                // Method ocaml_fn_47."<init>":(Ljava/lang/Object;Ljava/lang/Object;)V
+        1844: astore        104
+        1846: aload         18
+        1848: checkcast     #2                  // class Block
+        1851: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        1854: bipush        41
+        1856: aload         104
+        1858: aastore
+        1859: new           #226                // class ocaml_fn_48
+        1862: dup
+        1863: aload         79
+        1865: aload         87
+        1867: invokespecial #227                // Method ocaml_fn_48."<init>":(Ljava/lang/Object;Ljava/lang/Object;)V
+        1870: astore        105
+        1872: aload         18
+        1874: checkcast     #2                  // class Block
+        1877: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        1880: bipush        42
+        1882: aload         105
+        1884: aastore
+        1885: new           #229                // class ocaml_fn_49
+        1888: dup
+        1889: aload         63
+        1891: aload         79
+        1893: aload         88
+        1895: invokespecial #232                // Method ocaml_fn_49."<init>":(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)V
+        1898: astore        106
+        1900: aload         18
+        1902: checkcast     #2                  // class Block
+        1905: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        1908: bipush        43
+        1910: aload         106
+        1912: aastore
+        1913: new           #234                // class ocaml_fn_50
+        1916: dup
+        1917: aload         66
+        1919: aload         79
+        1921: aload         88
+        1923: invokespecial #235                // Method ocaml_fn_50."<init>":(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)V
+        1926: astore        107
+        1928: aload         18
+        1930: checkcast     #2                  // class Block
+        1933: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        1936: bipush        44
+        1938: aload         107
+        1940: aastore
+        1941: new           #237                // class ocaml_fn_51
+        1944: dup
+        1945: aload         79
+        1947: aload         88
+        1949: invokespecial #238                // Method ocaml_fn_51."<init>":(Ljava/lang/Object;Ljava/lang/Object;)V
+        1952: astore        108
+        1954: aload         18
+        1956: checkcast     #2                  // class Block
+        1959: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        1962: bipush        45
+        1964: aload         108
+        1966: aastore
+        1967: new           #240                // class ocaml_fn_52
+        1970: dup
+        1971: aload         79
+        1973: invokespecial #241                // Method ocaml_fn_52."<init>":(Ljava/lang/Object;)V
+        1976: astore        109
+        1978: aload         18
+        1980: checkcast     #2                  // class Block
+        1983: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        1986: bipush        46
+        1988: aload         109
+        1990: aastore
+        1991: new           #243                // class ocaml_fn_53
+        1994: dup
+        1995: aload         82
+        1997: invokespecial #244                // Method ocaml_fn_53."<init>":(Ljava/lang/Object;)V
+        2000: astore        110
+        2002: aload         18
+        2004: checkcast     #2                  // class Block
+        2007: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        2010: bipush        47
+        2012: aload         110
+        2014: aastore
+        2015: new           #246                // class ocaml_fn_54
+        2018: dup
+        2019: aload         82
+        2021: aload         88
+        2023: invokespecial #247                // Method ocaml_fn_54."<init>":(Ljava/lang/Object;Ljava/lang/Object;)V
+        2026: astore        111
+        2028: aload         18
+        2030: checkcast     #2                  // class Block
+        2033: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        2036: bipush        48
+        2038: aload         111
+        2040: aastore
+        2041: new           #249                // class ocaml_fn_55
+        2044: dup
+        2045: aload         82
+        2047: aload         87
+        2049: invokespecial #250                // Method ocaml_fn_55."<init>":(Ljava/lang/Object;Ljava/lang/Object;)V
+        2052: astore        112
+        2054: aload         18
+        2056: checkcast     #2                  // class Block
+        2059: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        2062: bipush        49
+        2064: aload         112
+        2066: aastore
+        2067: new           #252                // class ocaml_fn_56
+        2070: dup
+        2071: aload         63
+        2073: aload         82
+        2075: aload         88
+        2077: invokespecial #253                // Method ocaml_fn_56."<init>":(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)V
+        2080: astore        113
+        2082: aload         18
+        2084: checkcast     #2                  // class Block
+        2087: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        2090: bipush        50
+        2092: aload         113
+        2094: aastore
+        2095: new           #255                // class ocaml_fn_57
+        2098: dup
+        2099: aload         66
+        2101: aload         82
+        2103: aload         88
+        2105: invokespecial #256                // Method ocaml_fn_57."<init>":(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)V
+        2108: astore        114
+        2110: aload         18
+        2112: checkcast     #2                  // class Block
+        2115: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        2118: bipush        51
+        2120: aload         114
+        2122: aastore
+        2123: new           #258                // class ocaml_fn_58
+        2126: dup
+        2127: aload         82
+        2129: aload         88
+        2131: invokespecial #259                // Method ocaml_fn_58."<init>":(Ljava/lang/Object;Ljava/lang/Object;)V
+        2134: astore        115
+        2136: aload         18
+        2138: checkcast     #2                  // class Block
+        2141: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        2144: bipush        52
+        2146: aload         115
+        2148: aastore
+        2149: new           #261                // class ocaml_fn_59
+        2152: dup
+        2153: aload         82
+        2155: invokespecial #262                // Method ocaml_fn_59."<init>":(Ljava/lang/Object;)V
+        2158: astore        116
+        2160: aload         18
+        2162: checkcast     #2                  // class Block
+        2165: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        2168: bipush        53
+        2170: aload         116
+        2172: aastore
+        2173: new           #264                // class ocaml_fn_60
+        2176: dup
+        2177: aload         76
+        2179: aload         79
+        2181: aload         101
+        2183: invokespecial #265                // Method ocaml_fn_60."<init>":(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)V
+        2186: astore        117
+        2188: aload         18
+        2190: checkcast     #2                  // class Block
+        2193: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        2196: bipush        54
+        2198: aload         117
+        2200: aastore
+        2201: new           #267                // class ocaml_fn_61
+        2204: dup
+        2205: aload         117
+        2207: invokespecial #268                // Method ocaml_fn_61."<init>":(Ljava/lang/Object;)V
+        2210: astore        118
+        2212: aload         18
+        2214: checkcast     #2                  // class Block
+        2217: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        2220: bipush        56
+        2222: aload         118
+        2224: aastore
+        2225: new           #270                // class ocaml_fn_62
+        2228: dup
+        2229: aload         64
+        2231: aload         117
+        2233: invokespecial #271                // Method ocaml_fn_62."<init>":(Ljava/lang/Object;Ljava/lang/Object;)V
+        2236: astore        119
+        2238: aload         18
+        2240: checkcast     #2                  // class Block
+        2243: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        2246: bipush        55
+        2248: aload         119
+        2250: aastore
+        2251: new           #273                // class ocaml_fn_63
+        2254: dup
+        2255: aload         117
+        2257: invokespecial #274                // Method ocaml_fn_63."<init>":(Ljava/lang/Object;)V
+        2260: astore        120
+        2262: aload         18
+        2264: checkcast     #2                  // class Block
+        2267: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        2270: bipush        58
+        2272: aload         120
+        2274: aastore
+        2275: new           #276                // class ocaml_fn_64
+        2278: dup
+        2279: aload         67
+        2281: aload         117
+        2283: invokespecial #277                // Method ocaml_fn_64."<init>":(Ljava/lang/Object;Ljava/lang/Object;)V
+        2286: astore        121
+        2288: aload         18
+        2290: checkcast     #2                  // class Block
+        2293: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        2296: bipush        57
+        2298: aload         121
+        2300: aastore
+        2301: new           #279                // class ocaml_fn_65
+        2304: dup
+        2305: invokespecial #280                // Method ocaml_fn_65."<init>":()V
+        2308: astore        122
+        2310: aload         18
+        2312: checkcast     #2                  // class Block
+        2315: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        2318: bipush        96
+        2320: aload         122
+        2322: aastore
+        2323: new           #282                // class ocaml_fn_66
+        2326: dup
+        2327: aload         58
+        2329: invokespecial #283                // Method ocaml_fn_66."<init>":(Ljava/lang/Object;)V
+        2332: astore        123
+        2334: aload         18
+        2336: checkcast     #2                  // class Block
+        2339: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        2342: bipush        97
+        2344: aload         123
+        2346: aastore
+        2347: new           #2                  // class Block
+        2350: dup
+        2351: iconst_0
+        2352: iconst_1
+        2353: anewarray     #4                  // class java/lang/Object
+        2356: dup
+        2357: iconst_0
+        2358: aload         86
+        2360: aastore
+        2361: invokespecial #16                 // Method Block."<init>":(I[Ljava/lang/Object;)V
+        2364: astore        124
+        2366: new           #285                // class ocaml_fn_67
+        2369: dup
+        2370: aload         124
+        2372: invokespecial #286                // Method ocaml_fn_67."<init>":(Ljava/lang/Object;)V
+        2375: astore        125
+        2377: aload         18
+        2379: checkcast     #2                  // class Block
+        2382: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        2385: bipush        99
+        2387: aload         125
+        2389: aastore
+        2390: new           #288                // class ocaml_fn_68
+        2393: dup
+        2394: invokespecial #289                // Method ocaml_fn_68."<init>":()V
+        2397: astore        126
+        2399: new           #2                  // class Block
+        2402: dup
+        2403: iconst_0
+        2404: iconst_1
+        2405: anewarray     #4                  // class java/lang/Object
+        2408: dup
+        2409: iconst_0
+        2410: aload         126
+        2412: aastore
+        2413: invokespecial #16                 // Method Block."<init>":(I[Ljava/lang/Object;)V
+        2416: astore        127
+        2418: aload         18
+        2420: checkcast     #2                  // class Block
+        2423: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        2426: bipush        103
+        2428: aload         127
+        2430: aastore
+        2431: new           #291                // class ocaml_fn_69
+        2434: dup
+        2435: aload         124
+        2437: aload         127
+        2439: invokespecial #292                // Method ocaml_fn_69."<init>":(Ljava/lang/Object;Ljava/lang/Object;)V
+        2442: astore        128
+        2444: aload         18
+        2446: checkcast     #2                  // class Block
+        2449: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        2452: bipush        102
+        2454: aload         128
+        2456: aastore
+        2457: new           #294                // class ocaml_fn_70
+        2460: dup
+        2461: aload         128
+        2463: invokespecial #295                // Method ocaml_fn_70."<init>":(Ljava/lang/Object;)V
+        2466: astore        129
+        2468: aload         18
+        2470: checkcast     #2                  // class Block
+        2473: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        2476: bipush        98
+        2478: aload         129
+        2480: aastore
+        2481: getstatic     #25                 // Field GLOBALS:[Ljava/lang/Object;
+        2484: bipush        44
+        2486: aaload
+        2487: astore        130
+        2489: aload         130
+        2491: aload         128
+        2493: invokestatic  #65                 // Method Ocaml.registerNamedValue:(Ljava/lang/Object;Ljava/lang/Object;)J
+        2496: invokestatic  #61                 // Method java/lang/Long.valueOf:(J)Ljava/lang/Long;
+        2499: astore        131
+        2501: new           #2                  // class Block
+        2504: dup
+        2505: iconst_0
+        2506: bipush        6
+        2508: anewarray     #4                  // class java/lang/Object
+        2511: invokespecial #16                 // Method Block."<init>":(I[Ljava/lang/Object;)V
+        2514: astore        132
+        2516: new           #297                // class ocaml_fn_71
+        2519: dup
+        2520: invokespecial #298                // Method ocaml_fn_71."<init>":()V
+        2523: astore        133
+        2525: aload         132
+        2527: checkcast     #2                  // class Block
+        2530: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        2533: iconst_5
+        2534: aload         133
+        2536: aastore
+        2537: new           #300                // class ocaml_fn_72
+        2540: dup
+        2541: invokespecial #301                // Method ocaml_fn_72."<init>":()V
+        2544: astore        134
+        2546: aload         132
+        2548: checkcast     #2                  // class Block
+        2551: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        2554: iconst_4
+        2555: aload         134
+        2557: aastore
+        2558: new           #303                // class ocaml_fn_73
+        2561: dup
+        2562: invokespecial #304                // Method ocaml_fn_73."<init>":()V
+        2565: astore        135
+        2567: aload         132
+        2569: checkcast     #2                  // class Block
+        2572: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        2575: iconst_3
+        2576: aload         135
+        2578: aastore
+        2579: new           #306                // class ocaml_fn_74
+        2582: dup
+        2583: invokespecial #307                // Method ocaml_fn_74."<init>":()V
+        2586: astore        136
+        2588: aload         132
+        2590: checkcast     #2                  // class Block
+        2593: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        2596: iconst_2
+        2597: aload         136
+        2599: aastore
+        2600: new           #309                // class ocaml_fn_75
+        2603: dup
+        2604: invokespecial #310                // Method ocaml_fn_75."<init>":()V
+        2607: astore        137
+        2609: aload         132
+        2611: checkcast     #2                  // class Block
+        2614: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        2617: iconst_1
+        2618: aload         137
+        2620: aastore
+        2621: new           #312                // class ocaml_fn_76
+        2624: dup
+        2625: invokespecial #313                // Method ocaml_fn_76."<init>":()V
+        2628: astore        138
+        2630: aload         132
+        2632: checkcast     #2                  // class Block
+        2635: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        2638: iconst_0
+        2639: aload         138
+        2641: aastore
+        2642: aload         18
+        2644: checkcast     #2                  // class Block
+        2647: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        2650: bipush        95
+        2652: aload         132
+        2654: aastore
+        2655: new           #315                // class ocaml_fn_77
+        2658: dup
+        2659: invokespecial #316                // Method ocaml_fn_77."<init>":()V
+        2662: astore        139
+        2664: aload         18
+        2666: checkcast     #2                  // class Block
+        2669: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        2672: bipush        94
+        2674: aload         139
+        2676: aastore
+        2677: new           #318                // class ocaml_fn_78
+        2680: dup
+        2681: invokespecial #319                // Method ocaml_fn_78."<init>":()V
+        2684: astore        140
+        2686: aload         18
+        2688: checkcast     #2                  // class Block
+        2691: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        2694: bipush        92
+        2696: aload         140
+        2698: aastore
+        2699: new           #321                // class ocaml_fn_79
+        2702: dup
+        2703: invokespecial #322                // Method ocaml_fn_79."<init>":()V
+        2706: astore        141
+        2708: aload         18
+        2710: checkcast     #2                  // class Block
+        2713: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        2716: bipush        91
+        2718: aload         141
+        2720: aastore
+        2721: new           #324                // class ocaml_fn_80
+        2724: dup
+        2725: invokespecial #325                // Method ocaml_fn_80."<init>":()V
+        2728: astore        142
+        2730: aload         18
+        2732: checkcast     #2                  // class Block
+        2735: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        2738: bipush        90
+        2740: aload         142
+        2742: aastore
+        2743: new           #327                // class ocaml_fn_81
+        2746: dup
+        2747: invokespecial #328                // Method ocaml_fn_81."<init>":()V
+        2750: astore        143
+        2752: aload         18
+        2754: checkcast     #2                  // class Block
+        2757: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        2760: bipush        89
+        2762: aload         143
+        2764: aastore
+        2765: new           #330                // class ocaml_fn_82
+        2768: dup
+        2769: invokespecial #331                // Method ocaml_fn_82."<init>":()V
+        2772: astore        144
+        2774: aload         18
+        2776: checkcast     #2                  // class Block
+        2779: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        2782: bipush        88
+        2784: aload         144
+        2786: aastore
+        2787: new           #333                // class ocaml_fn_83
+        2790: dup
+        2791: invokespecial #334                // Method ocaml_fn_83."<init>":()V
+        2794: astore        145
+        2796: aload         18
+        2798: checkcast     #2                  // class Block
+        2801: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        2804: bipush        87
+        2806: aload         145
+        2808: aastore
+        2809: new           #336                // class ocaml_fn_84
+        2812: dup
+        2813: invokespecial #337                // Method ocaml_fn_84."<init>":()V
+        2816: astore        146
+        2818: aload         18
+        2820: checkcast     #2                  // class Block
+        2823: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        2826: bipush        86
+        2828: aload         146
+        2830: aastore
+        2831: new           #339                // class ocaml_fn_85
+        2834: dup
+        2835: invokespecial #340                // Method ocaml_fn_85."<init>":()V
+        2838: astore        147
+        2840: aload         18
+        2842: checkcast     #2                  // class Block
+        2845: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        2848: bipush        81
+        2850: aload         147
+        2852: aastore
+        2853: new           #342                // class ocaml_fn_86
+        2856: dup
+        2857: invokespecial #343                // Method ocaml_fn_86."<init>":()V
+        2860: astore        148
+        2862: aload         18
+        2864: checkcast     #2                  // class Block
+        2867: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        2870: bipush        77
+        2872: aload         148
+        2874: aastore
+        2875: new           #345                // class ocaml_fn_87
+        2878: dup
+        2879: invokespecial #346                // Method ocaml_fn_87."<init>":()V
+        2882: astore        149
+        2884: aload         18
+        2886: checkcast     #2                  // class Block
+        2889: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        2892: bipush        74
+        2894: aload         149
+        2896: aastore
+        2897: new           #348                // class ocaml_fn_88
+        2900: dup
+        2901: invokespecial #349                // Method ocaml_fn_88."<init>":()V
+        2904: astore        150
+        2906: aload         18
+        2908: checkcast     #2                  // class Block
+        2911: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        2914: bipush        73
+        2916: aload         150
+        2918: aastore
+        2919: new           #351                // class ocaml_fn_89
+        2922: dup
+        2923: invokespecial #352                // Method ocaml_fn_89."<init>":()V
+        2926: astore        151
+        2928: aload         18
+        2930: checkcast     #2                  // class Block
+        2933: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        2936: bipush        72
+        2938: aload         151
+        2940: aastore
+        2941: new           #354                // class ocaml_fn_90
+        2944: dup
+        2945: invokespecial #355                // Method ocaml_fn_90."<init>":()V
+        2948: astore        152
+        2950: aload         18
+        2952: checkcast     #2                  // class Block
+        2955: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        2958: bipush        70
+        2960: aload         152
+        2962: aastore
+        2963: new           #357                // class ocaml_fn_91
+        2966: dup
+        2967: invokespecial #358                // Method ocaml_fn_91."<init>":()V
+        2970: astore        153
+        2972: aload         18
+        2974: checkcast     #2                  // class Block
+        2977: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        2980: bipush        69
+        2982: aload         153
+        2984: aastore
+        2985: new           #360                // class ocaml_fn_92
+        2988: dup
+        2989: invokespecial #361                // Method ocaml_fn_92."<init>":()V
+        2992: astore        154
+        2994: aload         18
+        2996: checkcast     #2                  // class Block
+        2999: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        3002: bipush        64
+        3004: aload         154
+        3006: aastore
+        3007: new           #363                // class ocaml_fn_93
+        3010: dup
+        3011: invokespecial #364                // Method ocaml_fn_93."<init>":()V
+        3014: astore        155
+        3016: aload         18
+        3018: checkcast     #2                  // class Block
+        3021: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        3024: bipush        62
+        3026: aload         155
+        3028: aastore
+        3029: getstatic     #25                 // Field GLOBALS:[Ljava/lang/Object;
+        3032: bipush        45
+        3034: aload         18
+        3036: aastore
+        3037: iconst_0
+        3038: i2l
+        3039: invokestatic  #61                 // Method java/lang/Long.valueOf:(J)Ljava/lang/Long;
+        3042: astore        156
+        3044: iconst_0
+        3045: i2l
+        3046: lstore        157
+        3048: lload         157
+        3050: invokestatic  #61                 // Method java/lang/Long.valueOf:(J)Ljava/lang/Long;
+        3053: astore        159
+        3055: goto_w        3060
+        3060: iconst_0
+        3061: i2l
+        3062: lstore        160
+        3064: iconst_1
+        3065: i2l
+        3066: invokestatic  #61                 // Method java/lang/Long.valueOf:(J)Ljava/lang/Long;
+        3069: astore        162
+        3071: getstatic     #25                 // Field GLOBALS:[Ljava/lang/Object;
+        3074: bipush        46
+        3076: aaload
+        3077: astore        163
+        3079: new           #2                  // class Block
+        3082: dup
+        3083: sipush        248
+        3086: iconst_2
+        3087: anewarray     #4                  // class java/lang/Object
+        3090: dup
+        3091: iconst_0
+        3092: aload         163
+        3094: aastore
+        3095: dup
+        3096: iconst_1
+        3097: aload         162
+        3099: aastore
+        3100: invokespecial #16                 // Method Block."<init>":(I[Ljava/lang/Object;)V
+        3103: astore        164
+        3105: new           #366                // class ocaml_fn_94
+        3108: dup
+        3109: aload         164
+        3111: invokespecial #367                // Method ocaml_fn_94."<init>":(Ljava/lang/Object;)V
+        3114: astore        165
+        3116: iconst_0
+        3117: i2l
+        3118: lstore        166
+        3120: aload         165
+        3122: lload         166
+        3124: invokestatic  #61                 // Method java/lang/Long.valueOf:(J)Ljava/lang/Long;
+        3127: invokevirtual #371                // Method Closure.apply1:(Ljava/lang/Object;)Ljava/lang/Object;
+        3130: astore        168
+        3132: getstatic     #375                // Field java/lang/System.out:Ljava/io/PrintStream;
+        3135: aload         168
+        3137: invokestatic  #94                 // Method Block.asLong:(Ljava/lang/Object;)J
+        3140: l2i
+        3141: invokevirtual #381                // Method java/io/PrintStream.println:(I)V
+        3144: iconst_0
+        3145: i2l
+        3146: invokestatic  #61                 // Method java/lang/Long.valueOf:(J)Ljava/lang/Long;
+        3149: astore        169
+        3151: new           #2                  // class Block
+        3154: dup
+        3155: iconst_0
+        3156: iconst_2
+        3157: anewarray     #4                  // class java/lang/Object
+        3160: dup
+        3161: iconst_0
+        3162: aload         164
+        3164: aastore
+        3165: dup
+        3166: iconst_1
+        3167: aload         165
+        3169: aastore
+        3170: invokespecial #16                 // Method Block."<init>":(I[Ljava/lang/Object;)V
+        3173: astore        170
+        3175: getstatic     #25                 // Field GLOBALS:[Ljava/lang/Object;
+        3178: bipush        47
+        3180: aload         170
+        3182: aastore
+        3183: iconst_0
+        3184: i2l
+        3185: invokestatic  #61                 // Method java/lang/Long.valueOf:(J)Ljava/lang/Long;
+        3188: astore        171
+        3190: iconst_0
+        3191: i2l
+        3192: lstore        172
+        3194: getstatic     #25                 // Field GLOBALS:[Ljava/lang/Object;
+        3197: bipush        45
+        3199: aaload
+        3200: checkcast     #2                  // class Block
+        3203: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        3206: bipush        102
+        3208: aaload
+        3209: astore        174
+        3211: aload         174
+        3213: checkcast     #143                // class Closure
+        3216: lload         172
+        3218: invokestatic  #61                 // Method java/lang/Long.valueOf:(J)Ljava/lang/Long;
+        3221: invokevirtual #371                // Method Closure.apply1:(Ljava/lang/Object;)Ljava/lang/Object;
+        3224: astore        175
+        3226: new           #2                  // class Block
+        3229: dup
+        3230: iconst_0
+        3231: iconst_0
+        3232: anewarray     #4                  // class java/lang/Object
+        3235: invokespecial #16                 // Method Block."<init>":(I[Ljava/lang/Object;)V
+        3238: astore        176
+        3240: getstatic     #25                 // Field GLOBALS:[Ljava/lang/Object;
+        3243: bipush        48
+        3245: aload         176
+        3247: aastore
+        3248: iconst_0
+        3249: i2l
+        3250: invokestatic  #61                 // Method java/lang/Long.valueOf:(J)Ljava/lang/Long;
+        3253: astore        177
+        3255: return
     }
     |}]
 
@@ -7824,1407 +7834,1409 @@ let%expect_test "emission: if/else with int compare" =
          217: bipush        36
          219: aaload
          220: astore        16
-         222: iconst_0
-         223: i2l
-         224: invokestatic  #61                 // Method java/lang/Long.valueOf:(J)Ljava/lang/Long;
-         227: astore        17
-         229: new           #2                  // class Block
-         232: dup
-         233: iconst_0
-         234: bipush        104
-         236: anewarray     #4                  // class java/lang/Object
-         239: invokespecial #16                 // Method Block."<init>":(I[Ljava/lang/Object;)V
-         242: astore        18
-         244: new           #63                 // class ocaml_fn_8
-         247: dup
-         248: invokespecial #64                 // Method ocaml_fn_8."<init>":()V
-         251: astore        19
-         253: aload         18
-         255: checkcast     #2                  // class Block
-         258: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-         261: iconst_1
-         262: aload         19
-         264: aastore
-         265: new           #69                 // class ocaml_fn_9
-         268: dup
-         269: invokespecial #70                 // Method ocaml_fn_9."<init>":()V
-         272: astore        20
-         274: aload         18
-         276: checkcast     #2                  // class Block
-         279: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-         282: iconst_0
-         283: aload         20
-         285: aastore
-         286: iconst_0
-         287: i2l
-         288: lstore        21
-         290: iconst_0
-         291: i2l
-         292: invokestatic  #61                 // Method java/lang/Long.valueOf:(J)Ljava/lang/Long;
-         295: astore        23
-         297: getstatic     #25                 // Field GLOBALS:[Ljava/lang/Object;
-         300: bipush        37
-         302: aaload
-         303: astore        24
-         305: new           #2                  // class Block
-         308: dup
-         309: sipush        248
-         312: iconst_2
-         313: anewarray     #4                  // class java/lang/Object
-         316: dup
-         317: iconst_0
-         318: aload         24
-         320: aastore
+         222: aload         16
+         224: aload         15
+         226: invokestatic  #65                 // Method Ocaml.registerNamedValue:(Ljava/lang/Object;Ljava/lang/Object;)J
+         229: invokestatic  #61                 // Method java/lang/Long.valueOf:(J)Ljava/lang/Long;
+         232: astore        17
+         234: new           #2                  // class Block
+         237: dup
+         238: iconst_0
+         239: bipush        104
+         241: anewarray     #4                  // class java/lang/Object
+         244: invokespecial #16                 // Method Block."<init>":(I[Ljava/lang/Object;)V
+         247: astore        18
+         249: new           #67                 // class ocaml_fn_8
+         252: dup
+         253: invokespecial #68                 // Method ocaml_fn_8."<init>":()V
+         256: astore        19
+         258: aload         18
+         260: checkcast     #2                  // class Block
+         263: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+         266: iconst_1
+         267: aload         19
+         269: aastore
+         270: new           #73                 // class ocaml_fn_9
+         273: dup
+         274: invokespecial #74                 // Method ocaml_fn_9."<init>":()V
+         277: astore        20
+         279: aload         18
+         281: checkcast     #2                  // class Block
+         284: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+         287: iconst_0
+         288: aload         20
+         290: aastore
+         291: iconst_0
+         292: i2l
+         293: lstore        21
+         295: iconst_0
+         296: i2l
+         297: invokestatic  #61                 // Method java/lang/Long.valueOf:(J)Ljava/lang/Long;
+         300: astore        23
+         302: getstatic     #25                 // Field GLOBALS:[Ljava/lang/Object;
+         305: bipush        37
+         307: aaload
+         308: astore        24
+         310: new           #2                  // class Block
+         313: dup
+         314: sipush        248
+         317: iconst_2
+         318: anewarray     #4                  // class java/lang/Object
          321: dup
-         322: iconst_1
-         323: aload         23
+         322: iconst_0
+         323: aload         24
          325: aastore
-         326: invokespecial #16                 // Method Block."<init>":(I[Ljava/lang/Object;)V
-         329: astore        25
-         331: aload         18
-         333: checkcast     #2                  // class Block
-         336: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-         339: iconst_2
-         340: aload         25
-         342: aastore
-         343: getstatic     #25                 // Field GLOBALS:[Ljava/lang/Object;
-         346: bipush        7
-         348: aaload
-         349: astore        26
-         351: aload         18
-         353: checkcast     #2                  // class Block
-         356: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-         359: iconst_3
-         360: aload         26
-         362: aastore
-         363: getstatic     #25                 // Field GLOBALS:[Ljava/lang/Object;
-         366: bipush        10
-         368: aaload
-         369: astore        27
-         371: aload         18
-         373: checkcast     #2                  // class Block
-         376: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-         379: iconst_4
-         380: aload         27
-         382: aastore
-         383: getstatic     #25                 // Field GLOBALS:[Ljava/lang/Object;
-         386: iconst_3
-         387: aaload
-         388: astore        28
-         390: aload         18
-         392: checkcast     #2                  // class Block
-         395: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-         398: iconst_5
-         399: aload         28
-         401: aastore
-         402: getstatic     #25                 // Field GLOBALS:[Ljava/lang/Object;
-         405: iconst_2
-         406: aaload
-         407: astore        29
-         409: aload         18
-         411: checkcast     #2                  // class Block
-         414: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-         417: bipush        6
-         419: aload         29
-         421: aastore
-         422: getstatic     #25                 // Field GLOBALS:[Ljava/lang/Object;
-         425: bipush        6
-         427: aaload
-         428: astore        30
-         430: aload         18
-         432: checkcast     #2                  // class Block
-         435: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-         438: bipush        7
-         440: aload         30
-         442: aastore
-         443: getstatic     #25                 // Field GLOBALS:[Ljava/lang/Object;
-         446: iconst_0
-         447: aaload
-         448: astore        31
-         450: aload         18
-         452: checkcast     #2                  // class Block
-         455: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-         458: bipush        8
-         460: aload         31
-         462: aastore
-         463: getstatic     #25                 // Field GLOBALS:[Ljava/lang/Object;
-         466: bipush        8
-         468: aaload
-         469: astore        32
-         471: aload         18
-         473: checkcast     #2                  // class Block
-         476: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-         479: bipush        9
-         481: aload         32
-         483: aastore
-         484: getstatic     #25                 // Field GLOBALS:[Ljava/lang/Object;
-         487: iconst_1
-         488: aaload
-         489: astore        33
-         491: aload         18
-         493: checkcast     #2                  // class Block
-         496: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-         499: bipush        10
-         501: aload         33
-         503: aastore
-         504: getstatic     #25                 // Field GLOBALS:[Ljava/lang/Object;
-         507: iconst_4
-         508: aaload
-         509: astore        34
-         511: aload         18
-         513: checkcast     #2                  // class Block
-         516: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-         519: bipush        11
-         521: aload         34
-         523: aastore
-         524: getstatic     #25                 // Field GLOBALS:[Ljava/lang/Object;
-         527: iconst_5
-         528: aaload
-         529: astore        35
-         531: aload         18
-         533: checkcast     #2                  // class Block
-         536: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-         539: bipush        12
-         541: aload         35
-         543: aastore
-         544: getstatic     #25                 // Field GLOBALS:[Ljava/lang/Object;
-         547: bipush        9
-         549: aaload
-         550: astore        36
-         552: aload         18
-         554: checkcast     #2                  // class Block
-         557: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-         560: bipush        13
-         562: aload         36
-         564: aastore
-         565: getstatic     #25                 // Field GLOBALS:[Ljava/lang/Object;
-         568: bipush        11
-         570: aaload
-         571: astore        37
-         573: aload         18
-         575: checkcast     #2                  // class Block
-         578: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-         581: bipush        14
-         583: aload         37
-         585: aastore
-         586: new           #72                 // class ocaml_fn_10
-         589: dup
-         590: invokespecial #73                 // Method ocaml_fn_10."<init>":()V
-         593: astore        38
-         595: aload         18
-         597: checkcast     #2                  // class Block
-         600: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-         603: bipush        15
-         605: aload         38
-         607: aastore
-         608: new           #75                 // class ocaml_fn_11
-         611: dup
-         612: invokespecial #76                 // Method ocaml_fn_11."<init>":()V
-         615: astore        39
-         617: aload         18
-         619: checkcast     #2                  // class Block
-         622: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-         625: bipush        16
-         627: aload         39
-         629: aastore
-         630: new           #78                 // class ocaml_fn_12
-         633: dup
-         634: invokespecial #79                 // Method ocaml_fn_12."<init>":()V
-         637: astore        40
-         639: aload         18
-         641: checkcast     #2                  // class Block
-         644: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-         647: bipush        17
-         649: aload         40
-         651: aastore
-         652: new           #81                 // class ocaml_fn_13
-         655: dup
-         656: invokespecial #82                 // Method ocaml_fn_13."<init>":()V
-         659: astore        41
-         661: aload         18
-         663: checkcast     #2                  // class Block
-         666: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-         669: bipush        20
-         671: aload         41
-         673: aastore
-         674: ldc2_w        #83                 // long 4611686018427387903l
-         677: lstore        42
-         679: aload         18
-         681: checkcast     #2                  // class Block
-         684: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-         687: bipush        18
-         689: lload         42
-         691: invokestatic  #61                 // Method java/lang/Long.valueOf:(J)Ljava/lang/Long;
-         694: aastore
-         695: ldc2_w        #85                 // long -4611686018427387904l
-         698: lstore        44
-         700: aload         18
-         702: checkcast     #2                  // class Block
-         705: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-         708: bipush        19
-         710: lload         44
-         712: invokestatic  #61                 // Method java/lang/Long.valueOf:(J)Ljava/lang/Long;
-         715: aastore
-         716: getstatic     #25                 // Field GLOBALS:[Ljava/lang/Object;
-         719: bipush        38
-         721: aaload
-         722: astore        46
-         724: aload         46
-         726: invokestatic  #90                 // Method Block.asLong:(Ljava/lang/Object;)J
-         729: invokestatic  #96                 // Method java/lang/Double.longBitsToDouble:(J)D
-         732: invokestatic  #99                 // Method java/lang/Double.valueOf:(D)Ljava/lang/Double;
-         735: astore        47
-         737: aload         18
-         739: checkcast     #2                  // class Block
-         742: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-         745: bipush        21
-         747: aload         47
-         749: aastore
-         750: getstatic     #25                 // Field GLOBALS:[Ljava/lang/Object;
-         753: bipush        39
-         755: aaload
-         756: astore        48
-         758: aload         48
-         760: invokestatic  #90                 // Method Block.asLong:(Ljava/lang/Object;)J
-         763: invokestatic  #96                 // Method java/lang/Double.longBitsToDouble:(J)D
-         766: invokestatic  #99                 // Method java/lang/Double.valueOf:(D)Ljava/lang/Double;
-         769: astore        49
-         771: aload         18
-         773: checkcast     #2                  // class Block
-         776: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-         779: bipush        22
-         781: aload         49
-         783: aastore
-         784: getstatic     #25                 // Field GLOBALS:[Ljava/lang/Object;
-         787: bipush        40
-         789: aaload
-         790: astore        50
-         792: aload         50
-         794: invokestatic  #90                 // Method Block.asLong:(Ljava/lang/Object;)J
-         797: invokestatic  #96                 // Method java/lang/Double.longBitsToDouble:(J)D
-         800: invokestatic  #99                 // Method java/lang/Double.valueOf:(D)Ljava/lang/Double;
-         803: astore        51
-         805: aload         18
-         807: checkcast     #2                  // class Block
-         810: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-         813: bipush        23
-         815: aload         51
-         817: aastore
-         818: getstatic     #25                 // Field GLOBALS:[Ljava/lang/Object;
-         821: bipush        41
-         823: aaload
-         824: astore        52
-         826: aload         52
-         828: invokestatic  #90                 // Method Block.asLong:(Ljava/lang/Object;)J
-         831: invokestatic  #96                 // Method java/lang/Double.longBitsToDouble:(J)D
-         834: invokestatic  #99                 // Method java/lang/Double.valueOf:(D)Ljava/lang/Double;
-         837: astore        53
-         839: aload         18
-         841: checkcast     #2                  // class Block
-         844: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-         847: bipush        24
-         849: aload         53
-         851: aastore
-         852: getstatic     #25                 // Field GLOBALS:[Ljava/lang/Object;
-         855: bipush        42
-         857: aaload
-         858: astore        54
-         860: aload         54
-         862: invokestatic  #90                 // Method Block.asLong:(Ljava/lang/Object;)J
-         865: invokestatic  #96                 // Method java/lang/Double.longBitsToDouble:(J)D
-         868: invokestatic  #99                 // Method java/lang/Double.valueOf:(D)Ljava/lang/Double;
-         871: astore        55
-         873: aload         18
-         875: checkcast     #2                  // class Block
-         878: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-         881: bipush        25
-         883: aload         55
-         885: aastore
-         886: getstatic     #25                 // Field GLOBALS:[Ljava/lang/Object;
-         889: bipush        43
-         891: aaload
-         892: astore        56
-         894: aload         56
-         896: invokestatic  #90                 // Method Block.asLong:(Ljava/lang/Object;)J
-         899: invokestatic  #96                 // Method java/lang/Double.longBitsToDouble:(J)D
-         902: invokestatic  #99                 // Method java/lang/Double.valueOf:(D)Ljava/lang/Double;
-         905: astore        57
-         907: aload         18
-         909: checkcast     #2                  // class Block
-         912: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-         915: bipush        26
-         917: aload         57
-         919: aastore
-         920: new           #101                // class ocaml_fn_14
-         923: dup
-         924: invokespecial #102                // Method ocaml_fn_14."<init>":()V
-         927: astore        58
-         929: aload         18
-         931: checkcast     #2                  // class Block
-         934: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-         937: bipush        27
-         939: aload         58
-         941: aastore
-         942: new           #104                // class ocaml_fn_15
-         945: dup
-         946: aload         20
-         948: invokespecial #107                // Method ocaml_fn_15."<init>":(Ljava/lang/Object;)V
-         951: astore        59
-         953: aload         18
-         955: checkcast     #2                  // class Block
-         958: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-         961: bipush        28
-         963: aload         59
-         965: aastore
-         966: new           #109                // class ocaml_fn_16
-         969: dup
-         970: invokespecial #110                // Method ocaml_fn_16."<init>":()V
-         973: astore        60
-         975: aload         18
-         977: checkcast     #2                  // class Block
-         980: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-         983: bipush        29
-         985: aload         60
-         987: aastore
-         988: new           #112                // class ocaml_fn_17
-         991: dup
-         992: aload         20
-         994: invokespecial #113                // Method ocaml_fn_17."<init>":(Ljava/lang/Object;)V
-         997: astore        61
-         999: aload         18
-        1001: checkcast     #2                  // class Block
-        1004: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        1007: bipush        31
-        1009: aload         61
-        1011: aastore
-        1012: new           #115                // class ocaml_fn_18
-        1015: dup
-        1016: invokespecial #116                // Method ocaml_fn_18."<init>":()V
-        1019: astore        62
-        1021: aload         18
-        1023: checkcast     #2                  // class Block
-        1026: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        1029: bipush        30
-        1031: aload         62
-        1033: aastore
-        1034: new           #118                // class ocaml_fn_19
-        1037: dup
-        1038: invokespecial #119                // Method ocaml_fn_19."<init>":()V
-        1041: astore        63
-        1043: aload         18
-        1045: checkcast     #2                  // class Block
-        1048: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        1051: bipush        32
-        1053: aload         63
-        1055: aastore
-        1056: new           #121                // class ocaml_fn_20
-        1059: dup
-        1060: aload         29
-        1062: invokespecial #122                // Method ocaml_fn_20."<init>":(Ljava/lang/Object;)V
-        1065: astore        64
-        1067: aload         18
-        1069: checkcast     #2                  // class Block
-        1072: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        1075: bipush        33
-        1077: aload         64
-        1079: aastore
-        1080: new           #124                // class ocaml_fn_21
-        1083: dup
-        1084: aload         58
-        1086: invokespecial #125                // Method ocaml_fn_21."<init>":(Ljava/lang/Object;)V
-        1089: astore        65
-        1091: aload         18
-        1093: checkcast     #2                  // class Block
-        1096: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        1099: bipush        100
-        1101: aload         65
-        1103: aastore
-        1104: new           #127                // class ocaml_fn_22
-        1107: dup
-        1108: aload         65
-        1110: invokespecial #128                // Method ocaml_fn_22."<init>":(Ljava/lang/Object;)V
-        1113: astore        66
-        1115: aload         18
-        1117: checkcast     #2                  // class Block
-        1120: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        1123: bipush        34
-        1125: aload         66
-        1127: aastore
-        1128: new           #130                // class ocaml_fn_23
-        1131: dup
-        1132: aload         29
-        1134: invokespecial #131                // Method ocaml_fn_23."<init>":(Ljava/lang/Object;)V
-        1137: astore        67
-        1139: aload         18
-        1141: checkcast     #2                  // class Block
-        1144: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        1147: bipush        35
-        1149: aload         67
-        1151: aastore
-        1152: new           #133                // class ocaml_fn_24
-        1155: dup
-        1156: invokespecial #134                // Method ocaml_fn_24."<init>":()V
-        1159: astore        68
-        1161: aload         18
-        1163: checkcast     #2                  // class Block
-        1166: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        1169: bipush        36
-        1171: aload         68
-        1173: aastore
-        1174: new           #136                // class ocaml_fn_25
-        1177: dup
-        1178: invokespecial #137                // Method ocaml_fn_25."<init>":()V
-        1181: astore        69
-        1183: aload         68
-        1185: checkcast     #133                // class ocaml_fn_24
+         326: dup
+         327: iconst_1
+         328: aload         23
+         330: aastore
+         331: invokespecial #16                 // Method Block."<init>":(I[Ljava/lang/Object;)V
+         334: astore        25
+         336: aload         18
+         338: checkcast     #2                  // class Block
+         341: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+         344: iconst_2
+         345: aload         25
+         347: aastore
+         348: getstatic     #25                 // Field GLOBALS:[Ljava/lang/Object;
+         351: bipush        7
+         353: aaload
+         354: astore        26
+         356: aload         18
+         358: checkcast     #2                  // class Block
+         361: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+         364: iconst_3
+         365: aload         26
+         367: aastore
+         368: getstatic     #25                 // Field GLOBALS:[Ljava/lang/Object;
+         371: bipush        10
+         373: aaload
+         374: astore        27
+         376: aload         18
+         378: checkcast     #2                  // class Block
+         381: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+         384: iconst_4
+         385: aload         27
+         387: aastore
+         388: getstatic     #25                 // Field GLOBALS:[Ljava/lang/Object;
+         391: iconst_3
+         392: aaload
+         393: astore        28
+         395: aload         18
+         397: checkcast     #2                  // class Block
+         400: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+         403: iconst_5
+         404: aload         28
+         406: aastore
+         407: getstatic     #25                 // Field GLOBALS:[Ljava/lang/Object;
+         410: iconst_2
+         411: aaload
+         412: astore        29
+         414: aload         18
+         416: checkcast     #2                  // class Block
+         419: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+         422: bipush        6
+         424: aload         29
+         426: aastore
+         427: getstatic     #25                 // Field GLOBALS:[Ljava/lang/Object;
+         430: bipush        6
+         432: aaload
+         433: astore        30
+         435: aload         18
+         437: checkcast     #2                  // class Block
+         440: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+         443: bipush        7
+         445: aload         30
+         447: aastore
+         448: getstatic     #25                 // Field GLOBALS:[Ljava/lang/Object;
+         451: iconst_0
+         452: aaload
+         453: astore        31
+         455: aload         18
+         457: checkcast     #2                  // class Block
+         460: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+         463: bipush        8
+         465: aload         31
+         467: aastore
+         468: getstatic     #25                 // Field GLOBALS:[Ljava/lang/Object;
+         471: bipush        8
+         473: aaload
+         474: astore        32
+         476: aload         18
+         478: checkcast     #2                  // class Block
+         481: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+         484: bipush        9
+         486: aload         32
+         488: aastore
+         489: getstatic     #25                 // Field GLOBALS:[Ljava/lang/Object;
+         492: iconst_1
+         493: aaload
+         494: astore        33
+         496: aload         18
+         498: checkcast     #2                  // class Block
+         501: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+         504: bipush        10
+         506: aload         33
+         508: aastore
+         509: getstatic     #25                 // Field GLOBALS:[Ljava/lang/Object;
+         512: iconst_4
+         513: aaload
+         514: astore        34
+         516: aload         18
+         518: checkcast     #2                  // class Block
+         521: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+         524: bipush        11
+         526: aload         34
+         528: aastore
+         529: getstatic     #25                 // Field GLOBALS:[Ljava/lang/Object;
+         532: iconst_5
+         533: aaload
+         534: astore        35
+         536: aload         18
+         538: checkcast     #2                  // class Block
+         541: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+         544: bipush        12
+         546: aload         35
+         548: aastore
+         549: getstatic     #25                 // Field GLOBALS:[Ljava/lang/Object;
+         552: bipush        9
+         554: aaload
+         555: astore        36
+         557: aload         18
+         559: checkcast     #2                  // class Block
+         562: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+         565: bipush        13
+         567: aload         36
+         569: aastore
+         570: getstatic     #25                 // Field GLOBALS:[Ljava/lang/Object;
+         573: bipush        11
+         575: aaload
+         576: astore        37
+         578: aload         18
+         580: checkcast     #2                  // class Block
+         583: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+         586: bipush        14
+         588: aload         37
+         590: aastore
+         591: new           #76                 // class ocaml_fn_10
+         594: dup
+         595: invokespecial #77                 // Method ocaml_fn_10."<init>":()V
+         598: astore        38
+         600: aload         18
+         602: checkcast     #2                  // class Block
+         605: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+         608: bipush        15
+         610: aload         38
+         612: aastore
+         613: new           #79                 // class ocaml_fn_11
+         616: dup
+         617: invokespecial #80                 // Method ocaml_fn_11."<init>":()V
+         620: astore        39
+         622: aload         18
+         624: checkcast     #2                  // class Block
+         627: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+         630: bipush        16
+         632: aload         39
+         634: aastore
+         635: new           #82                 // class ocaml_fn_12
+         638: dup
+         639: invokespecial #83                 // Method ocaml_fn_12."<init>":()V
+         642: astore        40
+         644: aload         18
+         646: checkcast     #2                  // class Block
+         649: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+         652: bipush        17
+         654: aload         40
+         656: aastore
+         657: new           #85                 // class ocaml_fn_13
+         660: dup
+         661: invokespecial #86                 // Method ocaml_fn_13."<init>":()V
+         664: astore        41
+         666: aload         18
+         668: checkcast     #2                  // class Block
+         671: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+         674: bipush        20
+         676: aload         41
+         678: aastore
+         679: ldc2_w        #87                 // long 4611686018427387903l
+         682: lstore        42
+         684: aload         18
+         686: checkcast     #2                  // class Block
+         689: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+         692: bipush        18
+         694: lload         42
+         696: invokestatic  #61                 // Method java/lang/Long.valueOf:(J)Ljava/lang/Long;
+         699: aastore
+         700: ldc2_w        #89                 // long -4611686018427387904l
+         703: lstore        44
+         705: aload         18
+         707: checkcast     #2                  // class Block
+         710: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+         713: bipush        19
+         715: lload         44
+         717: invokestatic  #61                 // Method java/lang/Long.valueOf:(J)Ljava/lang/Long;
+         720: aastore
+         721: getstatic     #25                 // Field GLOBALS:[Ljava/lang/Object;
+         724: bipush        38
+         726: aaload
+         727: astore        46
+         729: aload         46
+         731: invokestatic  #94                 // Method Block.asLong:(Ljava/lang/Object;)J
+         734: invokestatic  #100                // Method java/lang/Double.longBitsToDouble:(J)D
+         737: invokestatic  #103                // Method java/lang/Double.valueOf:(D)Ljava/lang/Double;
+         740: astore        47
+         742: aload         18
+         744: checkcast     #2                  // class Block
+         747: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+         750: bipush        21
+         752: aload         47
+         754: aastore
+         755: getstatic     #25                 // Field GLOBALS:[Ljava/lang/Object;
+         758: bipush        39
+         760: aaload
+         761: astore        48
+         763: aload         48
+         765: invokestatic  #94                 // Method Block.asLong:(Ljava/lang/Object;)J
+         768: invokestatic  #100                // Method java/lang/Double.longBitsToDouble:(J)D
+         771: invokestatic  #103                // Method java/lang/Double.valueOf:(D)Ljava/lang/Double;
+         774: astore        49
+         776: aload         18
+         778: checkcast     #2                  // class Block
+         781: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+         784: bipush        22
+         786: aload         49
+         788: aastore
+         789: getstatic     #25                 // Field GLOBALS:[Ljava/lang/Object;
+         792: bipush        40
+         794: aaload
+         795: astore        50
+         797: aload         50
+         799: invokestatic  #94                 // Method Block.asLong:(Ljava/lang/Object;)J
+         802: invokestatic  #100                // Method java/lang/Double.longBitsToDouble:(J)D
+         805: invokestatic  #103                // Method java/lang/Double.valueOf:(D)Ljava/lang/Double;
+         808: astore        51
+         810: aload         18
+         812: checkcast     #2                  // class Block
+         815: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+         818: bipush        23
+         820: aload         51
+         822: aastore
+         823: getstatic     #25                 // Field GLOBALS:[Ljava/lang/Object;
+         826: bipush        41
+         828: aaload
+         829: astore        52
+         831: aload         52
+         833: invokestatic  #94                 // Method Block.asLong:(Ljava/lang/Object;)J
+         836: invokestatic  #100                // Method java/lang/Double.longBitsToDouble:(J)D
+         839: invokestatic  #103                // Method java/lang/Double.valueOf:(D)Ljava/lang/Double;
+         842: astore        53
+         844: aload         18
+         846: checkcast     #2                  // class Block
+         849: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+         852: bipush        24
+         854: aload         53
+         856: aastore
+         857: getstatic     #25                 // Field GLOBALS:[Ljava/lang/Object;
+         860: bipush        42
+         862: aaload
+         863: astore        54
+         865: aload         54
+         867: invokestatic  #94                 // Method Block.asLong:(Ljava/lang/Object;)J
+         870: invokestatic  #100                // Method java/lang/Double.longBitsToDouble:(J)D
+         873: invokestatic  #103                // Method java/lang/Double.valueOf:(D)Ljava/lang/Double;
+         876: astore        55
+         878: aload         18
+         880: checkcast     #2                  // class Block
+         883: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+         886: bipush        25
+         888: aload         55
+         890: aastore
+         891: getstatic     #25                 // Field GLOBALS:[Ljava/lang/Object;
+         894: bipush        43
+         896: aaload
+         897: astore        56
+         899: aload         56
+         901: invokestatic  #94                 // Method Block.asLong:(Ljava/lang/Object;)J
+         904: invokestatic  #100                // Method java/lang/Double.longBitsToDouble:(J)D
+         907: invokestatic  #103                // Method java/lang/Double.valueOf:(D)Ljava/lang/Double;
+         910: astore        57
+         912: aload         18
+         914: checkcast     #2                  // class Block
+         917: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+         920: bipush        26
+         922: aload         57
+         924: aastore
+         925: new           #105                // class ocaml_fn_14
+         928: dup
+         929: invokespecial #106                // Method ocaml_fn_14."<init>":()V
+         932: astore        58
+         934: aload         18
+         936: checkcast     #2                  // class Block
+         939: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+         942: bipush        27
+         944: aload         58
+         946: aastore
+         947: new           #108                // class ocaml_fn_15
+         950: dup
+         951: aload         20
+         953: invokespecial #111                // Method ocaml_fn_15."<init>":(Ljava/lang/Object;)V
+         956: astore        59
+         958: aload         18
+         960: checkcast     #2                  // class Block
+         963: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+         966: bipush        28
+         968: aload         59
+         970: aastore
+         971: new           #113                // class ocaml_fn_16
+         974: dup
+         975: invokespecial #114                // Method ocaml_fn_16."<init>":()V
+         978: astore        60
+         980: aload         18
+         982: checkcast     #2                  // class Block
+         985: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+         988: bipush        29
+         990: aload         60
+         992: aastore
+         993: new           #116                // class ocaml_fn_17
+         996: dup
+         997: aload         20
+         999: invokespecial #117                // Method ocaml_fn_17."<init>":(Ljava/lang/Object;)V
+        1002: astore        61
+        1004: aload         18
+        1006: checkcast     #2                  // class Block
+        1009: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        1012: bipush        31
+        1014: aload         61
+        1016: aastore
+        1017: new           #119                // class ocaml_fn_18
+        1020: dup
+        1021: invokespecial #120                // Method ocaml_fn_18."<init>":()V
+        1024: astore        62
+        1026: aload         18
+        1028: checkcast     #2                  // class Block
+        1031: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        1034: bipush        30
+        1036: aload         62
+        1038: aastore
+        1039: new           #122                // class ocaml_fn_19
+        1042: dup
+        1043: invokespecial #123                // Method ocaml_fn_19."<init>":()V
+        1046: astore        63
+        1048: aload         18
+        1050: checkcast     #2                  // class Block
+        1053: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        1056: bipush        32
+        1058: aload         63
+        1060: aastore
+        1061: new           #125                // class ocaml_fn_20
+        1064: dup
+        1065: aload         29
+        1067: invokespecial #126                // Method ocaml_fn_20."<init>":(Ljava/lang/Object;)V
+        1070: astore        64
+        1072: aload         18
+        1074: checkcast     #2                  // class Block
+        1077: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        1080: bipush        33
+        1082: aload         64
+        1084: aastore
+        1085: new           #128                // class ocaml_fn_21
+        1088: dup
+        1089: aload         58
+        1091: invokespecial #129                // Method ocaml_fn_21."<init>":(Ljava/lang/Object;)V
+        1094: astore        65
+        1096: aload         18
+        1098: checkcast     #2                  // class Block
+        1101: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        1104: bipush        100
+        1106: aload         65
+        1108: aastore
+        1109: new           #131                // class ocaml_fn_22
+        1112: dup
+        1113: aload         65
+        1115: invokespecial #132                // Method ocaml_fn_22."<init>":(Ljava/lang/Object;)V
+        1118: astore        66
+        1120: aload         18
+        1122: checkcast     #2                  // class Block
+        1125: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        1128: bipush        34
+        1130: aload         66
+        1132: aastore
+        1133: new           #134                // class ocaml_fn_23
+        1136: dup
+        1137: aload         29
+        1139: invokespecial #135                // Method ocaml_fn_23."<init>":(Ljava/lang/Object;)V
+        1142: astore        67
+        1144: aload         18
+        1146: checkcast     #2                  // class Block
+        1149: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        1152: bipush        35
+        1154: aload         67
+        1156: aastore
+        1157: new           #137                // class ocaml_fn_24
+        1160: dup
+        1161: invokespecial #138                // Method ocaml_fn_24."<init>":()V
+        1164: astore        68
+        1166: aload         18
+        1168: checkcast     #2                  // class Block
+        1171: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        1174: bipush        36
+        1176: aload         68
+        1178: aastore
+        1179: new           #140                // class ocaml_fn_25
+        1182: dup
+        1183: invokespecial #141                // Method ocaml_fn_25."<init>":()V
+        1186: astore        69
         1188: aload         68
-        1190: checkcast     #139                // class Closure
-        1193: putfield      #143                // Field ocaml_fn_24.sibling_0:LClosure;
-        1196: iconst_0
-        1197: i2l
-        1198: invokestatic  #61                 // Method java/lang/Long.valueOf:(J)Ljava/lang/Long;
-        1201: astore        70
-        1203: aload         68
-        1205: checkcast     #133                // class ocaml_fn_24
-        1208: aload         69
-        1210: checkcast     #139                // class Closure
-        1213: putfield      #146                // Field ocaml_fn_24.sibling_1:LClosure;
-        1216: iconst_0
-        1217: i2l
-        1218: invokestatic  #61                 // Method java/lang/Long.valueOf:(J)Ljava/lang/Long;
-        1221: astore        71
-        1223: aload         69
-        1225: checkcast     #136                // class ocaml_fn_25
-        1228: aload         68
-        1230: checkcast     #139                // class Closure
-        1233: putfield      #147                // Field ocaml_fn_25.sibling_0:LClosure;
-        1236: iconst_0
-        1237: i2l
-        1238: invokestatic  #61                 // Method java/lang/Long.valueOf:(J)Ljava/lang/Long;
-        1241: astore        72
-        1243: aload         69
-        1245: checkcast     #136                // class ocaml_fn_25
+        1190: checkcast     #137                // class ocaml_fn_24
+        1193: aload         68
+        1195: checkcast     #143                // class Closure
+        1198: putfield      #147                // Field ocaml_fn_24.sibling_0:LClosure;
+        1201: iconst_0
+        1202: i2l
+        1203: invokestatic  #61                 // Method java/lang/Long.valueOf:(J)Ljava/lang/Long;
+        1206: astore        70
+        1208: aload         68
+        1210: checkcast     #137                // class ocaml_fn_24
+        1213: aload         69
+        1215: checkcast     #143                // class Closure
+        1218: putfield      #150                // Field ocaml_fn_24.sibling_1:LClosure;
+        1221: iconst_0
+        1222: i2l
+        1223: invokestatic  #61                 // Method java/lang/Long.valueOf:(J)Ljava/lang/Long;
+        1226: astore        71
+        1228: aload         69
+        1230: checkcast     #140                // class ocaml_fn_25
+        1233: aload         68
+        1235: checkcast     #143                // class Closure
+        1238: putfield      #151                // Field ocaml_fn_25.sibling_0:LClosure;
+        1241: iconst_0
+        1242: i2l
+        1243: invokestatic  #61                 // Method java/lang/Long.valueOf:(J)Ljava/lang/Long;
+        1246: astore        72
         1248: aload         69
-        1250: checkcast     #139                // class Closure
-        1253: putfield      #148                // Field ocaml_fn_25.sibling_1:LClosure;
-        1256: iconst_0
-        1257: i2l
-        1258: invokestatic  #61                 // Method java/lang/Long.valueOf:(J)Ljava/lang/Long;
-        1261: astore        73
-        1263: iconst_0
-        1264: i2l
-        1265: lstore        74
-        1267: lload         74
-        1269: l2i
-        1270: invokestatic  #152                // Method Channel.forDescriptor:(I)LChannel;
-        1273: astore        76
-        1275: aload         18
-        1277: checkcast     #2                  // class Block
-        1280: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        1283: bipush        37
-        1285: aload         76
-        1287: aastore
-        1288: iconst_1
-        1289: i2l
-        1290: lstore        77
-        1292: lload         77
-        1294: l2i
-        1295: invokestatic  #152                // Method Channel.forDescriptor:(I)LChannel;
-        1298: astore        79
-        1300: aload         18
-        1302: checkcast     #2                  // class Block
-        1305: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        1308: bipush        38
-        1310: aload         79
-        1312: aastore
-        1313: iconst_2
-        1314: i2l
-        1315: lstore        80
-        1317: lload         80
-        1319: l2i
-        1320: invokestatic  #152                // Method Channel.forDescriptor:(I)LChannel;
-        1323: astore        82
-        1325: aload         18
-        1327: checkcast     #2                  // class Block
-        1330: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        1333: bipush        39
-        1335: aload         82
-        1337: aastore
-        1338: new           #154                // class ocaml_fn_26
-        1341: dup
-        1342: invokespecial #155                // Method ocaml_fn_26."<init>":()V
-        1345: astore        83
-        1347: aload         18
-        1349: checkcast     #2                  // class Block
-        1352: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        1355: bipush        61
-        1357: aload         83
-        1359: aastore
-        1360: new           #157                // class ocaml_fn_27
-        1363: dup
-        1364: aload         83
-        1366: invokespecial #158                // Method ocaml_fn_27."<init>":(Ljava/lang/Object;)V
-        1369: astore        84
-        1371: aload         18
-        1373: checkcast     #2                  // class Block
-        1376: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        1379: bipush        59
-        1381: aload         84
-        1383: aastore
-        1384: new           #160                // class ocaml_fn_28
-        1387: dup
-        1388: aload         83
-        1390: invokespecial #161                // Method ocaml_fn_28."<init>":(Ljava/lang/Object;)V
-        1393: astore        85
-        1395: aload         18
-        1397: checkcast     #2                  // class Block
-        1400: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        1403: bipush        60
-        1405: aload         85
-        1407: aastore
-        1408: new           #163                // class ocaml_fn_29
-        1411: dup
-        1412: aload         33
-        1414: invokespecial #164                // Method ocaml_fn_29."<init>":(Ljava/lang/Object;)V
-        1417: astore        86
-        1419: aload         18
-        1421: checkcast     #2                  // class Block
-        1424: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        1427: bipush        63
-        1429: aload         86
-        1431: aastore
-        1432: new           #166                // class ocaml_fn_30
-        1435: dup
-        1436: invokespecial #167                // Method ocaml_fn_30."<init>":()V
-        1439: astore        87
-        1441: aload         18
-        1443: checkcast     #2                  // class Block
-        1446: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        1449: bipush        66
-        1451: aload         87
-        1453: aastore
-        1454: new           #169                // class ocaml_fn_31
-        1457: dup
-        1458: invokespecial #170                // Method ocaml_fn_31."<init>":()V
-        1461: astore        88
-        1463: aload         18
-        1465: checkcast     #2                  // class Block
-        1468: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        1471: bipush        65
-        1473: aload         88
-        1475: aastore
-        1476: new           #172                // class ocaml_fn_32
-        1479: dup
-        1480: aload         20
-        1482: invokespecial #173                // Method ocaml_fn_32."<init>":(Ljava/lang/Object;)V
-        1485: astore        89
-        1487: aload         18
-        1489: checkcast     #2                  // class Block
-        1492: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        1495: bipush        67
-        1497: aload         89
-        1499: aastore
-        1500: new           #175                // class ocaml_fn_33
-        1503: dup
-        1504: aload         20
-        1506: invokespecial #176                // Method ocaml_fn_33."<init>":(Ljava/lang/Object;)V
-        1509: astore        90
-        1511: aload         18
-        1513: checkcast     #2                  // class Block
-        1516: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        1519: bipush        68
-        1521: aload         90
-        1523: aastore
-        1524: new           #178                // class ocaml_fn_34
-        1527: dup
-        1528: invokespecial #179                // Method ocaml_fn_34."<init>":()V
-        1531: astore        91
-        1533: aload         18
-        1535: checkcast     #2                  // class Block
-        1538: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        1541: bipush        71
-        1543: aload         91
-        1545: aastore
-        1546: new           #181                // class ocaml_fn_35
-        1549: dup
-        1550: invokespecial #182                // Method ocaml_fn_35."<init>":()V
-        1553: astore        92
-        1555: aload         18
-        1557: checkcast     #2                  // class Block
-        1560: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        1563: bipush        75
-        1565: aload         92
-        1567: aastore
-        1568: new           #184                // class ocaml_fn_36
-        1571: dup
-        1572: invokespecial #185                // Method ocaml_fn_36."<init>":()V
-        1575: astore        93
-        1577: aload         18
-        1579: checkcast     #2                  // class Block
-        1582: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        1585: bipush        76
-        1587: aload         93
-        1589: aastore
-        1590: new           #187                // class ocaml_fn_37
-        1593: dup
-        1594: invokespecial #188                // Method ocaml_fn_37."<init>":()V
-        1597: astore        94
-        1599: aload         18
-        1601: checkcast     #2                  // class Block
-        1604: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        1607: bipush        80
-        1609: aload         94
-        1611: aastore
-        1612: new           #190                // class ocaml_fn_38
-        1615: dup
-        1616: aload         94
-        1618: invokespecial #191                // Method ocaml_fn_38."<init>":(Ljava/lang/Object;)V
-        1621: astore        95
-        1623: aload         18
-        1625: checkcast     #2                  // class Block
-        1628: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        1631: bipush        78
-        1633: aload         95
-        1635: aastore
-        1636: new           #193                // class ocaml_fn_39
-        1639: dup
-        1640: aload         94
-        1642: invokespecial #194                // Method ocaml_fn_39."<init>":(Ljava/lang/Object;)V
-        1645: astore        96
-        1647: aload         18
-        1649: checkcast     #2                  // class Block
-        1652: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        1655: bipush        79
-        1657: aload         96
-        1659: aastore
-        1660: new           #196                // class ocaml_fn_40
-        1663: dup
-        1664: aload         20
-        1666: invokespecial #197                // Method ocaml_fn_40."<init>":(Ljava/lang/Object;)V
-        1669: astore        97
-        1671: aload         18
-        1673: checkcast     #2                  // class Block
-        1676: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        1679: bipush        83
-        1681: aload         97
-        1683: aastore
-        1684: new           #199                // class ocaml_fn_41
-        1687: dup
-        1688: aload         34
-        1690: invokespecial #200                // Method ocaml_fn_41."<init>":(Ljava/lang/Object;)V
-        1693: astore        98
-        1695: aload         18
-        1697: checkcast     #2                  // class Block
-        1700: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        1703: bipush        101
-        1705: aload         98
-        1707: aastore
-        1708: new           #202                // class ocaml_fn_42
-        1711: dup
-        1712: aload         20
-        1714: aload         98
-        1716: invokespecial #205                // Method ocaml_fn_42."<init>":(Ljava/lang/Object;Ljava/lang/Object;)V
-        1719: astore        99
-        1721: aload         18
-        1723: checkcast     #2                  // class Block
-        1726: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        1729: bipush        84
-        1731: aload         99
-        1733: aastore
-        1734: new           #207                // class ocaml_fn_43
-        1737: dup
-        1738: aload         99
-        1740: invokespecial #208                // Method ocaml_fn_43."<init>":(Ljava/lang/Object;)V
-        1743: astore        100
-        1745: aload         18
-        1747: checkcast     #2                  // class Block
-        1750: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        1753: bipush        85
-        1755: aload         100
-        1757: aastore
-        1758: new           #210                // class ocaml_fn_44
-        1761: dup
-        1762: aload         34
-        1764: invokespecial #211                // Method ocaml_fn_44."<init>":(Ljava/lang/Object;)V
-        1767: astore        101
-        1769: aload         18
-        1771: checkcast     #2                  // class Block
-        1774: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        1777: bipush        82
-        1779: aload         101
-        1781: aastore
-        1782: new           #213                // class ocaml_fn_45
-        1785: dup
-        1786: invokespecial #214                // Method ocaml_fn_45."<init>":()V
-        1789: astore        102
-        1791: aload         18
-        1793: checkcast     #2                  // class Block
-        1796: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        1799: bipush        93
-        1801: aload         102
-        1803: aastore
-        1804: new           #216                // class ocaml_fn_46
-        1807: dup
-        1808: aload         79
-        1810: invokespecial #217                // Method ocaml_fn_46."<init>":(Ljava/lang/Object;)V
-        1813: astore        103
-        1815: aload         18
-        1817: checkcast     #2                  // class Block
-        1820: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        1823: bipush        40
-        1825: aload         103
-        1827: aastore
-        1828: new           #219                // class ocaml_fn_47
-        1831: dup
-        1832: aload         79
-        1834: aload         88
-        1836: invokespecial #220                // Method ocaml_fn_47."<init>":(Ljava/lang/Object;Ljava/lang/Object;)V
-        1839: astore        104
-        1841: aload         18
-        1843: checkcast     #2                  // class Block
-        1846: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        1849: bipush        41
-        1851: aload         104
-        1853: aastore
-        1854: new           #222                // class ocaml_fn_48
-        1857: dup
-        1858: aload         79
-        1860: aload         87
-        1862: invokespecial #223                // Method ocaml_fn_48."<init>":(Ljava/lang/Object;Ljava/lang/Object;)V
-        1865: astore        105
-        1867: aload         18
-        1869: checkcast     #2                  // class Block
-        1872: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        1875: bipush        42
-        1877: aload         105
-        1879: aastore
-        1880: new           #225                // class ocaml_fn_49
-        1883: dup
-        1884: aload         63
-        1886: aload         79
-        1888: aload         88
-        1890: invokespecial #228                // Method ocaml_fn_49."<init>":(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)V
-        1893: astore        106
-        1895: aload         18
-        1897: checkcast     #2                  // class Block
-        1900: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        1903: bipush        43
-        1905: aload         106
-        1907: aastore
-        1908: new           #230                // class ocaml_fn_50
-        1911: dup
-        1912: aload         66
-        1914: aload         79
-        1916: aload         88
-        1918: invokespecial #231                // Method ocaml_fn_50."<init>":(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)V
-        1921: astore        107
-        1923: aload         18
-        1925: checkcast     #2                  // class Block
-        1928: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        1931: bipush        44
-        1933: aload         107
-        1935: aastore
-        1936: new           #233                // class ocaml_fn_51
-        1939: dup
-        1940: aload         79
-        1942: aload         88
-        1944: invokespecial #234                // Method ocaml_fn_51."<init>":(Ljava/lang/Object;Ljava/lang/Object;)V
-        1947: astore        108
-        1949: aload         18
-        1951: checkcast     #2                  // class Block
-        1954: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        1957: bipush        45
-        1959: aload         108
-        1961: aastore
-        1962: new           #236                // class ocaml_fn_52
-        1965: dup
-        1966: aload         79
-        1968: invokespecial #237                // Method ocaml_fn_52."<init>":(Ljava/lang/Object;)V
-        1971: astore        109
-        1973: aload         18
-        1975: checkcast     #2                  // class Block
-        1978: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        1981: bipush        46
-        1983: aload         109
-        1985: aastore
-        1986: new           #239                // class ocaml_fn_53
-        1989: dup
-        1990: aload         82
-        1992: invokespecial #240                // Method ocaml_fn_53."<init>":(Ljava/lang/Object;)V
-        1995: astore        110
-        1997: aload         18
-        1999: checkcast     #2                  // class Block
-        2002: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        2005: bipush        47
-        2007: aload         110
-        2009: aastore
-        2010: new           #242                // class ocaml_fn_54
-        2013: dup
-        2014: aload         82
-        2016: aload         88
-        2018: invokespecial #243                // Method ocaml_fn_54."<init>":(Ljava/lang/Object;Ljava/lang/Object;)V
-        2021: astore        111
-        2023: aload         18
-        2025: checkcast     #2                  // class Block
-        2028: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        2031: bipush        48
-        2033: aload         111
-        2035: aastore
-        2036: new           #245                // class ocaml_fn_55
-        2039: dup
-        2040: aload         82
-        2042: aload         87
-        2044: invokespecial #246                // Method ocaml_fn_55."<init>":(Ljava/lang/Object;Ljava/lang/Object;)V
-        2047: astore        112
-        2049: aload         18
-        2051: checkcast     #2                  // class Block
-        2054: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        2057: bipush        49
-        2059: aload         112
-        2061: aastore
-        2062: new           #248                // class ocaml_fn_56
-        2065: dup
-        2066: aload         63
-        2068: aload         82
-        2070: aload         88
-        2072: invokespecial #249                // Method ocaml_fn_56."<init>":(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)V
-        2075: astore        113
-        2077: aload         18
-        2079: checkcast     #2                  // class Block
-        2082: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        2085: bipush        50
-        2087: aload         113
-        2089: aastore
-        2090: new           #251                // class ocaml_fn_57
-        2093: dup
-        2094: aload         66
-        2096: aload         82
-        2098: aload         88
-        2100: invokespecial #252                // Method ocaml_fn_57."<init>":(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)V
-        2103: astore        114
-        2105: aload         18
-        2107: checkcast     #2                  // class Block
-        2110: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        2113: bipush        51
-        2115: aload         114
-        2117: aastore
-        2118: new           #254                // class ocaml_fn_58
-        2121: dup
-        2122: aload         82
-        2124: aload         88
-        2126: invokespecial #255                // Method ocaml_fn_58."<init>":(Ljava/lang/Object;Ljava/lang/Object;)V
-        2129: astore        115
-        2131: aload         18
-        2133: checkcast     #2                  // class Block
-        2136: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        2139: bipush        52
-        2141: aload         115
-        2143: aastore
-        2144: new           #257                // class ocaml_fn_59
-        2147: dup
-        2148: aload         82
-        2150: invokespecial #258                // Method ocaml_fn_59."<init>":(Ljava/lang/Object;)V
-        2153: astore        116
-        2155: aload         18
-        2157: checkcast     #2                  // class Block
-        2160: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        2163: bipush        53
-        2165: aload         116
-        2167: aastore
-        2168: new           #260                // class ocaml_fn_60
-        2171: dup
-        2172: aload         76
-        2174: aload         79
-        2176: aload         101
-        2178: invokespecial #261                // Method ocaml_fn_60."<init>":(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)V
-        2181: astore        117
-        2183: aload         18
-        2185: checkcast     #2                  // class Block
-        2188: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        2191: bipush        54
-        2193: aload         117
-        2195: aastore
-        2196: new           #263                // class ocaml_fn_61
-        2199: dup
-        2200: aload         117
-        2202: invokespecial #264                // Method ocaml_fn_61."<init>":(Ljava/lang/Object;)V
-        2205: astore        118
-        2207: aload         18
-        2209: checkcast     #2                  // class Block
-        2212: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        2215: bipush        56
-        2217: aload         118
-        2219: aastore
-        2220: new           #266                // class ocaml_fn_62
-        2223: dup
-        2224: aload         64
-        2226: aload         117
-        2228: invokespecial #267                // Method ocaml_fn_62."<init>":(Ljava/lang/Object;Ljava/lang/Object;)V
-        2231: astore        119
-        2233: aload         18
-        2235: checkcast     #2                  // class Block
-        2238: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        2241: bipush        55
-        2243: aload         119
-        2245: aastore
-        2246: new           #269                // class ocaml_fn_63
-        2249: dup
-        2250: aload         117
-        2252: invokespecial #270                // Method ocaml_fn_63."<init>":(Ljava/lang/Object;)V
-        2255: astore        120
-        2257: aload         18
-        2259: checkcast     #2                  // class Block
-        2262: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        2265: bipush        58
-        2267: aload         120
-        2269: aastore
-        2270: new           #272                // class ocaml_fn_64
-        2273: dup
-        2274: aload         67
-        2276: aload         117
-        2278: invokespecial #273                // Method ocaml_fn_64."<init>":(Ljava/lang/Object;Ljava/lang/Object;)V
-        2281: astore        121
-        2283: aload         18
-        2285: checkcast     #2                  // class Block
-        2288: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        2291: bipush        57
-        2293: aload         121
-        2295: aastore
-        2296: new           #275                // class ocaml_fn_65
-        2299: dup
-        2300: invokespecial #276                // Method ocaml_fn_65."<init>":()V
-        2303: astore        122
-        2305: aload         18
-        2307: checkcast     #2                  // class Block
-        2310: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        2313: bipush        96
-        2315: aload         122
-        2317: aastore
-        2318: new           #278                // class ocaml_fn_66
-        2321: dup
-        2322: aload         58
-        2324: invokespecial #279                // Method ocaml_fn_66."<init>":(Ljava/lang/Object;)V
-        2327: astore        123
-        2329: aload         18
-        2331: checkcast     #2                  // class Block
-        2334: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        2337: bipush        97
-        2339: aload         123
-        2341: aastore
-        2342: new           #2                  // class Block
-        2345: dup
-        2346: iconst_0
-        2347: iconst_1
-        2348: anewarray     #4                  // class java/lang/Object
-        2351: dup
-        2352: iconst_0
-        2353: aload         86
-        2355: aastore
-        2356: invokespecial #16                 // Method Block."<init>":(I[Ljava/lang/Object;)V
-        2359: astore        124
-        2361: new           #281                // class ocaml_fn_67
-        2364: dup
-        2365: aload         124
-        2367: invokespecial #282                // Method ocaml_fn_67."<init>":(Ljava/lang/Object;)V
-        2370: astore        125
-        2372: aload         18
-        2374: checkcast     #2                  // class Block
-        2377: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        2380: bipush        99
-        2382: aload         125
-        2384: aastore
-        2385: new           #284                // class ocaml_fn_68
-        2388: dup
-        2389: invokespecial #285                // Method ocaml_fn_68."<init>":()V
-        2392: astore        126
-        2394: new           #2                  // class Block
-        2397: dup
-        2398: iconst_0
-        2399: iconst_1
-        2400: anewarray     #4                  // class java/lang/Object
-        2403: dup
-        2404: iconst_0
-        2405: aload         126
-        2407: aastore
-        2408: invokespecial #16                 // Method Block."<init>":(I[Ljava/lang/Object;)V
-        2411: astore        127
-        2413: aload         18
-        2415: checkcast     #2                  // class Block
-        2418: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        2421: bipush        103
-        2423: aload         127
-        2425: aastore
-        2426: new           #287                // class ocaml_fn_69
-        2429: dup
-        2430: aload         124
-        2432: aload         127
-        2434: invokespecial #288                // Method ocaml_fn_69."<init>":(Ljava/lang/Object;Ljava/lang/Object;)V
-        2437: astore        128
-        2439: aload         18
-        2441: checkcast     #2                  // class Block
-        2444: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        2447: bipush        102
-        2449: aload         128
-        2451: aastore
-        2452: new           #290                // class ocaml_fn_70
-        2455: dup
-        2456: aload         128
-        2458: invokespecial #291                // Method ocaml_fn_70."<init>":(Ljava/lang/Object;)V
-        2461: astore        129
-        2463: aload         18
-        2465: checkcast     #2                  // class Block
-        2468: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        2471: bipush        98
-        2473: aload         129
-        2475: aastore
-        2476: getstatic     #25                 // Field GLOBALS:[Ljava/lang/Object;
-        2479: bipush        44
-        2481: aaload
-        2482: astore        130
-        2484: iconst_0
-        2485: i2l
-        2486: invokestatic  #61                 // Method java/lang/Long.valueOf:(J)Ljava/lang/Long;
-        2489: astore        131
-        2491: new           #2                  // class Block
-        2494: dup
-        2495: iconst_0
-        2496: bipush        6
-        2498: anewarray     #4                  // class java/lang/Object
-        2501: invokespecial #16                 // Method Block."<init>":(I[Ljava/lang/Object;)V
-        2504: astore        132
-        2506: new           #293                // class ocaml_fn_71
-        2509: dup
-        2510: invokespecial #294                // Method ocaml_fn_71."<init>":()V
-        2513: astore        133
-        2515: aload         132
-        2517: checkcast     #2                  // class Block
-        2520: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        2523: iconst_5
-        2524: aload         133
-        2526: aastore
-        2527: new           #296                // class ocaml_fn_72
-        2530: dup
-        2531: invokespecial #297                // Method ocaml_fn_72."<init>":()V
-        2534: astore        134
-        2536: aload         132
-        2538: checkcast     #2                  // class Block
-        2541: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        2544: iconst_4
-        2545: aload         134
-        2547: aastore
-        2548: new           #299                // class ocaml_fn_73
-        2551: dup
-        2552: invokespecial #300                // Method ocaml_fn_73."<init>":()V
-        2555: astore        135
-        2557: aload         132
-        2559: checkcast     #2                  // class Block
-        2562: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        2565: iconst_3
-        2566: aload         135
-        2568: aastore
-        2569: new           #302                // class ocaml_fn_74
-        2572: dup
-        2573: invokespecial #303                // Method ocaml_fn_74."<init>":()V
-        2576: astore        136
-        2578: aload         132
-        2580: checkcast     #2                  // class Block
-        2583: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        2586: iconst_2
-        2587: aload         136
-        2589: aastore
-        2590: new           #305                // class ocaml_fn_75
-        2593: dup
-        2594: invokespecial #306                // Method ocaml_fn_75."<init>":()V
-        2597: astore        137
-        2599: aload         132
-        2601: checkcast     #2                  // class Block
-        2604: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        2607: iconst_1
-        2608: aload         137
-        2610: aastore
-        2611: new           #308                // class ocaml_fn_76
-        2614: dup
-        2615: invokespecial #309                // Method ocaml_fn_76."<init>":()V
-        2618: astore        138
-        2620: aload         132
-        2622: checkcast     #2                  // class Block
-        2625: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        2628: iconst_0
-        2629: aload         138
-        2631: aastore
-        2632: aload         18
-        2634: checkcast     #2                  // class Block
-        2637: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        2640: bipush        95
-        2642: aload         132
-        2644: aastore
-        2645: new           #311                // class ocaml_fn_77
-        2648: dup
-        2649: invokespecial #312                // Method ocaml_fn_77."<init>":()V
-        2652: astore        139
-        2654: aload         18
-        2656: checkcast     #2                  // class Block
-        2659: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        2662: bipush        94
-        2664: aload         139
-        2666: aastore
-        2667: new           #314                // class ocaml_fn_78
-        2670: dup
-        2671: invokespecial #315                // Method ocaml_fn_78."<init>":()V
-        2674: astore        140
-        2676: aload         18
-        2678: checkcast     #2                  // class Block
-        2681: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        2684: bipush        92
-        2686: aload         140
-        2688: aastore
-        2689: new           #317                // class ocaml_fn_79
-        2692: dup
-        2693: invokespecial #318                // Method ocaml_fn_79."<init>":()V
-        2696: astore        141
-        2698: aload         18
-        2700: checkcast     #2                  // class Block
-        2703: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        2706: bipush        91
-        2708: aload         141
-        2710: aastore
-        2711: new           #320                // class ocaml_fn_80
-        2714: dup
-        2715: invokespecial #321                // Method ocaml_fn_80."<init>":()V
-        2718: astore        142
-        2720: aload         18
-        2722: checkcast     #2                  // class Block
-        2725: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        2728: bipush        90
-        2730: aload         142
-        2732: aastore
-        2733: new           #323                // class ocaml_fn_81
-        2736: dup
-        2737: invokespecial #324                // Method ocaml_fn_81."<init>":()V
-        2740: astore        143
-        2742: aload         18
-        2744: checkcast     #2                  // class Block
-        2747: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        2750: bipush        89
-        2752: aload         143
-        2754: aastore
-        2755: new           #326                // class ocaml_fn_82
-        2758: dup
-        2759: invokespecial #327                // Method ocaml_fn_82."<init>":()V
-        2762: astore        144
-        2764: aload         18
-        2766: checkcast     #2                  // class Block
-        2769: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        2772: bipush        88
-        2774: aload         144
-        2776: aastore
-        2777: new           #329                // class ocaml_fn_83
-        2780: dup
-        2781: invokespecial #330                // Method ocaml_fn_83."<init>":()V
-        2784: astore        145
-        2786: aload         18
-        2788: checkcast     #2                  // class Block
-        2791: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        2794: bipush        87
-        2796: aload         145
-        2798: aastore
-        2799: new           #332                // class ocaml_fn_84
-        2802: dup
-        2803: invokespecial #333                // Method ocaml_fn_84."<init>":()V
-        2806: astore        146
-        2808: aload         18
-        2810: checkcast     #2                  // class Block
-        2813: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        2816: bipush        86
-        2818: aload         146
-        2820: aastore
-        2821: new           #335                // class ocaml_fn_85
-        2824: dup
-        2825: invokespecial #336                // Method ocaml_fn_85."<init>":()V
-        2828: astore        147
-        2830: aload         18
-        2832: checkcast     #2                  // class Block
-        2835: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        2838: bipush        81
-        2840: aload         147
-        2842: aastore
-        2843: new           #338                // class ocaml_fn_86
-        2846: dup
-        2847: invokespecial #339                // Method ocaml_fn_86."<init>":()V
-        2850: astore        148
-        2852: aload         18
-        2854: checkcast     #2                  // class Block
-        2857: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        2860: bipush        77
-        2862: aload         148
-        2864: aastore
-        2865: new           #341                // class ocaml_fn_87
-        2868: dup
-        2869: invokespecial #342                // Method ocaml_fn_87."<init>":()V
-        2872: astore        149
-        2874: aload         18
-        2876: checkcast     #2                  // class Block
-        2879: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        2882: bipush        74
-        2884: aload         149
-        2886: aastore
-        2887: new           #344                // class ocaml_fn_88
-        2890: dup
-        2891: invokespecial #345                // Method ocaml_fn_88."<init>":()V
-        2894: astore        150
-        2896: aload         18
-        2898: checkcast     #2                  // class Block
-        2901: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        2904: bipush        73
-        2906: aload         150
-        2908: aastore
-        2909: new           #347                // class ocaml_fn_89
-        2912: dup
-        2913: invokespecial #348                // Method ocaml_fn_89."<init>":()V
-        2916: astore        151
-        2918: aload         18
-        2920: checkcast     #2                  // class Block
-        2923: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        2926: bipush        72
-        2928: aload         151
-        2930: aastore
-        2931: new           #350                // class ocaml_fn_90
-        2934: dup
-        2935: invokespecial #351                // Method ocaml_fn_90."<init>":()V
-        2938: astore        152
-        2940: aload         18
-        2942: checkcast     #2                  // class Block
-        2945: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        2948: bipush        70
-        2950: aload         152
-        2952: aastore
-        2953: new           #353                // class ocaml_fn_91
-        2956: dup
-        2957: invokespecial #354                // Method ocaml_fn_91."<init>":()V
-        2960: astore        153
-        2962: aload         18
-        2964: checkcast     #2                  // class Block
-        2967: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        2970: bipush        69
-        2972: aload         153
-        2974: aastore
-        2975: new           #356                // class ocaml_fn_92
-        2978: dup
-        2979: invokespecial #357                // Method ocaml_fn_92."<init>":()V
-        2982: astore        154
-        2984: aload         18
-        2986: checkcast     #2                  // class Block
-        2989: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        2992: bipush        64
-        2994: aload         154
-        2996: aastore
-        2997: new           #359                // class ocaml_fn_93
-        3000: dup
-        3001: invokespecial #360                // Method ocaml_fn_93."<init>":()V
-        3004: astore        155
-        3006: aload         18
-        3008: checkcast     #2                  // class Block
-        3011: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        3014: bipush        62
-        3016: aload         155
-        3018: aastore
-        3019: getstatic     #25                 // Field GLOBALS:[Ljava/lang/Object;
-        3022: bipush        45
-        3024: aload         18
-        3026: aastore
-        3027: iconst_0
-        3028: i2l
-        3029: invokestatic  #61                 // Method java/lang/Long.valueOf:(J)Ljava/lang/Long;
-        3032: astore        156
-        3034: iconst_1
-        3035: i2l
-        3036: lstore        157
-        3038: iconst_0
-        3039: i2l
-        3040: lstore        159
-        3042: lload         159
-        3044: iconst_0
+        1250: checkcast     #140                // class ocaml_fn_25
+        1253: aload         69
+        1255: checkcast     #143                // class Closure
+        1258: putfield      #152                // Field ocaml_fn_25.sibling_1:LClosure;
+        1261: iconst_0
+        1262: i2l
+        1263: invokestatic  #61                 // Method java/lang/Long.valueOf:(J)Ljava/lang/Long;
+        1266: astore        73
+        1268: iconst_0
+        1269: i2l
+        1270: lstore        74
+        1272: lload         74
+        1274: l2i
+        1275: invokestatic  #156                // Method Channel.forDescriptor:(I)LChannel;
+        1278: astore        76
+        1280: aload         18
+        1282: checkcast     #2                  // class Block
+        1285: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        1288: bipush        37
+        1290: aload         76
+        1292: aastore
+        1293: iconst_1
+        1294: i2l
+        1295: lstore        77
+        1297: lload         77
+        1299: l2i
+        1300: invokestatic  #156                // Method Channel.forDescriptor:(I)LChannel;
+        1303: astore        79
+        1305: aload         18
+        1307: checkcast     #2                  // class Block
+        1310: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        1313: bipush        38
+        1315: aload         79
+        1317: aastore
+        1318: iconst_2
+        1319: i2l
+        1320: lstore        80
+        1322: lload         80
+        1324: l2i
+        1325: invokestatic  #156                // Method Channel.forDescriptor:(I)LChannel;
+        1328: astore        82
+        1330: aload         18
+        1332: checkcast     #2                  // class Block
+        1335: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        1338: bipush        39
+        1340: aload         82
+        1342: aastore
+        1343: new           #158                // class ocaml_fn_26
+        1346: dup
+        1347: invokespecial #159                // Method ocaml_fn_26."<init>":()V
+        1350: astore        83
+        1352: aload         18
+        1354: checkcast     #2                  // class Block
+        1357: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        1360: bipush        61
+        1362: aload         83
+        1364: aastore
+        1365: new           #161                // class ocaml_fn_27
+        1368: dup
+        1369: aload         83
+        1371: invokespecial #162                // Method ocaml_fn_27."<init>":(Ljava/lang/Object;)V
+        1374: astore        84
+        1376: aload         18
+        1378: checkcast     #2                  // class Block
+        1381: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        1384: bipush        59
+        1386: aload         84
+        1388: aastore
+        1389: new           #164                // class ocaml_fn_28
+        1392: dup
+        1393: aload         83
+        1395: invokespecial #165                // Method ocaml_fn_28."<init>":(Ljava/lang/Object;)V
+        1398: astore        85
+        1400: aload         18
+        1402: checkcast     #2                  // class Block
+        1405: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        1408: bipush        60
+        1410: aload         85
+        1412: aastore
+        1413: new           #167                // class ocaml_fn_29
+        1416: dup
+        1417: aload         33
+        1419: invokespecial #168                // Method ocaml_fn_29."<init>":(Ljava/lang/Object;)V
+        1422: astore        86
+        1424: aload         18
+        1426: checkcast     #2                  // class Block
+        1429: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        1432: bipush        63
+        1434: aload         86
+        1436: aastore
+        1437: new           #170                // class ocaml_fn_30
+        1440: dup
+        1441: invokespecial #171                // Method ocaml_fn_30."<init>":()V
+        1444: astore        87
+        1446: aload         18
+        1448: checkcast     #2                  // class Block
+        1451: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        1454: bipush        66
+        1456: aload         87
+        1458: aastore
+        1459: new           #173                // class ocaml_fn_31
+        1462: dup
+        1463: invokespecial #174                // Method ocaml_fn_31."<init>":()V
+        1466: astore        88
+        1468: aload         18
+        1470: checkcast     #2                  // class Block
+        1473: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        1476: bipush        65
+        1478: aload         88
+        1480: aastore
+        1481: new           #176                // class ocaml_fn_32
+        1484: dup
+        1485: aload         20
+        1487: invokespecial #177                // Method ocaml_fn_32."<init>":(Ljava/lang/Object;)V
+        1490: astore        89
+        1492: aload         18
+        1494: checkcast     #2                  // class Block
+        1497: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        1500: bipush        67
+        1502: aload         89
+        1504: aastore
+        1505: new           #179                // class ocaml_fn_33
+        1508: dup
+        1509: aload         20
+        1511: invokespecial #180                // Method ocaml_fn_33."<init>":(Ljava/lang/Object;)V
+        1514: astore        90
+        1516: aload         18
+        1518: checkcast     #2                  // class Block
+        1521: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        1524: bipush        68
+        1526: aload         90
+        1528: aastore
+        1529: new           #182                // class ocaml_fn_34
+        1532: dup
+        1533: invokespecial #183                // Method ocaml_fn_34."<init>":()V
+        1536: astore        91
+        1538: aload         18
+        1540: checkcast     #2                  // class Block
+        1543: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        1546: bipush        71
+        1548: aload         91
+        1550: aastore
+        1551: new           #185                // class ocaml_fn_35
+        1554: dup
+        1555: invokespecial #186                // Method ocaml_fn_35."<init>":()V
+        1558: astore        92
+        1560: aload         18
+        1562: checkcast     #2                  // class Block
+        1565: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        1568: bipush        75
+        1570: aload         92
+        1572: aastore
+        1573: new           #188                // class ocaml_fn_36
+        1576: dup
+        1577: invokespecial #189                // Method ocaml_fn_36."<init>":()V
+        1580: astore        93
+        1582: aload         18
+        1584: checkcast     #2                  // class Block
+        1587: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        1590: bipush        76
+        1592: aload         93
+        1594: aastore
+        1595: new           #191                // class ocaml_fn_37
+        1598: dup
+        1599: invokespecial #192                // Method ocaml_fn_37."<init>":()V
+        1602: astore        94
+        1604: aload         18
+        1606: checkcast     #2                  // class Block
+        1609: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        1612: bipush        80
+        1614: aload         94
+        1616: aastore
+        1617: new           #194                // class ocaml_fn_38
+        1620: dup
+        1621: aload         94
+        1623: invokespecial #195                // Method ocaml_fn_38."<init>":(Ljava/lang/Object;)V
+        1626: astore        95
+        1628: aload         18
+        1630: checkcast     #2                  // class Block
+        1633: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        1636: bipush        78
+        1638: aload         95
+        1640: aastore
+        1641: new           #197                // class ocaml_fn_39
+        1644: dup
+        1645: aload         94
+        1647: invokespecial #198                // Method ocaml_fn_39."<init>":(Ljava/lang/Object;)V
+        1650: astore        96
+        1652: aload         18
+        1654: checkcast     #2                  // class Block
+        1657: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        1660: bipush        79
+        1662: aload         96
+        1664: aastore
+        1665: new           #200                // class ocaml_fn_40
+        1668: dup
+        1669: aload         20
+        1671: invokespecial #201                // Method ocaml_fn_40."<init>":(Ljava/lang/Object;)V
+        1674: astore        97
+        1676: aload         18
+        1678: checkcast     #2                  // class Block
+        1681: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        1684: bipush        83
+        1686: aload         97
+        1688: aastore
+        1689: new           #203                // class ocaml_fn_41
+        1692: dup
+        1693: aload         34
+        1695: invokespecial #204                // Method ocaml_fn_41."<init>":(Ljava/lang/Object;)V
+        1698: astore        98
+        1700: aload         18
+        1702: checkcast     #2                  // class Block
+        1705: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        1708: bipush        101
+        1710: aload         98
+        1712: aastore
+        1713: new           #206                // class ocaml_fn_42
+        1716: dup
+        1717: aload         20
+        1719: aload         98
+        1721: invokespecial #209                // Method ocaml_fn_42."<init>":(Ljava/lang/Object;Ljava/lang/Object;)V
+        1724: astore        99
+        1726: aload         18
+        1728: checkcast     #2                  // class Block
+        1731: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        1734: bipush        84
+        1736: aload         99
+        1738: aastore
+        1739: new           #211                // class ocaml_fn_43
+        1742: dup
+        1743: aload         99
+        1745: invokespecial #212                // Method ocaml_fn_43."<init>":(Ljava/lang/Object;)V
+        1748: astore        100
+        1750: aload         18
+        1752: checkcast     #2                  // class Block
+        1755: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        1758: bipush        85
+        1760: aload         100
+        1762: aastore
+        1763: new           #214                // class ocaml_fn_44
+        1766: dup
+        1767: aload         34
+        1769: invokespecial #215                // Method ocaml_fn_44."<init>":(Ljava/lang/Object;)V
+        1772: astore        101
+        1774: aload         18
+        1776: checkcast     #2                  // class Block
+        1779: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        1782: bipush        82
+        1784: aload         101
+        1786: aastore
+        1787: new           #217                // class ocaml_fn_45
+        1790: dup
+        1791: invokespecial #218                // Method ocaml_fn_45."<init>":()V
+        1794: astore        102
+        1796: aload         18
+        1798: checkcast     #2                  // class Block
+        1801: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        1804: bipush        93
+        1806: aload         102
+        1808: aastore
+        1809: new           #220                // class ocaml_fn_46
+        1812: dup
+        1813: aload         79
+        1815: invokespecial #221                // Method ocaml_fn_46."<init>":(Ljava/lang/Object;)V
+        1818: astore        103
+        1820: aload         18
+        1822: checkcast     #2                  // class Block
+        1825: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        1828: bipush        40
+        1830: aload         103
+        1832: aastore
+        1833: new           #223                // class ocaml_fn_47
+        1836: dup
+        1837: aload         79
+        1839: aload         88
+        1841: invokespecial #224                // Method ocaml_fn_47."<init>":(Ljava/lang/Object;Ljava/lang/Object;)V
+        1844: astore        104
+        1846: aload         18
+        1848: checkcast     #2                  // class Block
+        1851: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        1854: bipush        41
+        1856: aload         104
+        1858: aastore
+        1859: new           #226                // class ocaml_fn_48
+        1862: dup
+        1863: aload         79
+        1865: aload         87
+        1867: invokespecial #227                // Method ocaml_fn_48."<init>":(Ljava/lang/Object;Ljava/lang/Object;)V
+        1870: astore        105
+        1872: aload         18
+        1874: checkcast     #2                  // class Block
+        1877: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        1880: bipush        42
+        1882: aload         105
+        1884: aastore
+        1885: new           #229                // class ocaml_fn_49
+        1888: dup
+        1889: aload         63
+        1891: aload         79
+        1893: aload         88
+        1895: invokespecial #232                // Method ocaml_fn_49."<init>":(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)V
+        1898: astore        106
+        1900: aload         18
+        1902: checkcast     #2                  // class Block
+        1905: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        1908: bipush        43
+        1910: aload         106
+        1912: aastore
+        1913: new           #234                // class ocaml_fn_50
+        1916: dup
+        1917: aload         66
+        1919: aload         79
+        1921: aload         88
+        1923: invokespecial #235                // Method ocaml_fn_50."<init>":(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)V
+        1926: astore        107
+        1928: aload         18
+        1930: checkcast     #2                  // class Block
+        1933: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        1936: bipush        44
+        1938: aload         107
+        1940: aastore
+        1941: new           #237                // class ocaml_fn_51
+        1944: dup
+        1945: aload         79
+        1947: aload         88
+        1949: invokespecial #238                // Method ocaml_fn_51."<init>":(Ljava/lang/Object;Ljava/lang/Object;)V
+        1952: astore        108
+        1954: aload         18
+        1956: checkcast     #2                  // class Block
+        1959: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        1962: bipush        45
+        1964: aload         108
+        1966: aastore
+        1967: new           #240                // class ocaml_fn_52
+        1970: dup
+        1971: aload         79
+        1973: invokespecial #241                // Method ocaml_fn_52."<init>":(Ljava/lang/Object;)V
+        1976: astore        109
+        1978: aload         18
+        1980: checkcast     #2                  // class Block
+        1983: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        1986: bipush        46
+        1988: aload         109
+        1990: aastore
+        1991: new           #243                // class ocaml_fn_53
+        1994: dup
+        1995: aload         82
+        1997: invokespecial #244                // Method ocaml_fn_53."<init>":(Ljava/lang/Object;)V
+        2000: astore        110
+        2002: aload         18
+        2004: checkcast     #2                  // class Block
+        2007: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        2010: bipush        47
+        2012: aload         110
+        2014: aastore
+        2015: new           #246                // class ocaml_fn_54
+        2018: dup
+        2019: aload         82
+        2021: aload         88
+        2023: invokespecial #247                // Method ocaml_fn_54."<init>":(Ljava/lang/Object;Ljava/lang/Object;)V
+        2026: astore        111
+        2028: aload         18
+        2030: checkcast     #2                  // class Block
+        2033: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        2036: bipush        48
+        2038: aload         111
+        2040: aastore
+        2041: new           #249                // class ocaml_fn_55
+        2044: dup
+        2045: aload         82
+        2047: aload         87
+        2049: invokespecial #250                // Method ocaml_fn_55."<init>":(Ljava/lang/Object;Ljava/lang/Object;)V
+        2052: astore        112
+        2054: aload         18
+        2056: checkcast     #2                  // class Block
+        2059: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        2062: bipush        49
+        2064: aload         112
+        2066: aastore
+        2067: new           #252                // class ocaml_fn_56
+        2070: dup
+        2071: aload         63
+        2073: aload         82
+        2075: aload         88
+        2077: invokespecial #253                // Method ocaml_fn_56."<init>":(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)V
+        2080: astore        113
+        2082: aload         18
+        2084: checkcast     #2                  // class Block
+        2087: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        2090: bipush        50
+        2092: aload         113
+        2094: aastore
+        2095: new           #255                // class ocaml_fn_57
+        2098: dup
+        2099: aload         66
+        2101: aload         82
+        2103: aload         88
+        2105: invokespecial #256                // Method ocaml_fn_57."<init>":(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)V
+        2108: astore        114
+        2110: aload         18
+        2112: checkcast     #2                  // class Block
+        2115: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        2118: bipush        51
+        2120: aload         114
+        2122: aastore
+        2123: new           #258                // class ocaml_fn_58
+        2126: dup
+        2127: aload         82
+        2129: aload         88
+        2131: invokespecial #259                // Method ocaml_fn_58."<init>":(Ljava/lang/Object;Ljava/lang/Object;)V
+        2134: astore        115
+        2136: aload         18
+        2138: checkcast     #2                  // class Block
+        2141: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        2144: bipush        52
+        2146: aload         115
+        2148: aastore
+        2149: new           #261                // class ocaml_fn_59
+        2152: dup
+        2153: aload         82
+        2155: invokespecial #262                // Method ocaml_fn_59."<init>":(Ljava/lang/Object;)V
+        2158: astore        116
+        2160: aload         18
+        2162: checkcast     #2                  // class Block
+        2165: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        2168: bipush        53
+        2170: aload         116
+        2172: aastore
+        2173: new           #264                // class ocaml_fn_60
+        2176: dup
+        2177: aload         76
+        2179: aload         79
+        2181: aload         101
+        2183: invokespecial #265                // Method ocaml_fn_60."<init>":(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)V
+        2186: astore        117
+        2188: aload         18
+        2190: checkcast     #2                  // class Block
+        2193: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        2196: bipush        54
+        2198: aload         117
+        2200: aastore
+        2201: new           #267                // class ocaml_fn_61
+        2204: dup
+        2205: aload         117
+        2207: invokespecial #268                // Method ocaml_fn_61."<init>":(Ljava/lang/Object;)V
+        2210: astore        118
+        2212: aload         18
+        2214: checkcast     #2                  // class Block
+        2217: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        2220: bipush        56
+        2222: aload         118
+        2224: aastore
+        2225: new           #270                // class ocaml_fn_62
+        2228: dup
+        2229: aload         64
+        2231: aload         117
+        2233: invokespecial #271                // Method ocaml_fn_62."<init>":(Ljava/lang/Object;Ljava/lang/Object;)V
+        2236: astore        119
+        2238: aload         18
+        2240: checkcast     #2                  // class Block
+        2243: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        2246: bipush        55
+        2248: aload         119
+        2250: aastore
+        2251: new           #273                // class ocaml_fn_63
+        2254: dup
+        2255: aload         117
+        2257: invokespecial #274                // Method ocaml_fn_63."<init>":(Ljava/lang/Object;)V
+        2260: astore        120
+        2262: aload         18
+        2264: checkcast     #2                  // class Block
+        2267: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        2270: bipush        58
+        2272: aload         120
+        2274: aastore
+        2275: new           #276                // class ocaml_fn_64
+        2278: dup
+        2279: aload         67
+        2281: aload         117
+        2283: invokespecial #277                // Method ocaml_fn_64."<init>":(Ljava/lang/Object;Ljava/lang/Object;)V
+        2286: astore        121
+        2288: aload         18
+        2290: checkcast     #2                  // class Block
+        2293: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        2296: bipush        57
+        2298: aload         121
+        2300: aastore
+        2301: new           #279                // class ocaml_fn_65
+        2304: dup
+        2305: invokespecial #280                // Method ocaml_fn_65."<init>":()V
+        2308: astore        122
+        2310: aload         18
+        2312: checkcast     #2                  // class Block
+        2315: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        2318: bipush        96
+        2320: aload         122
+        2322: aastore
+        2323: new           #282                // class ocaml_fn_66
+        2326: dup
+        2327: aload         58
+        2329: invokespecial #283                // Method ocaml_fn_66."<init>":(Ljava/lang/Object;)V
+        2332: astore        123
+        2334: aload         18
+        2336: checkcast     #2                  // class Block
+        2339: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        2342: bipush        97
+        2344: aload         123
+        2346: aastore
+        2347: new           #2                  // class Block
+        2350: dup
+        2351: iconst_0
+        2352: iconst_1
+        2353: anewarray     #4                  // class java/lang/Object
+        2356: dup
+        2357: iconst_0
+        2358: aload         86
+        2360: aastore
+        2361: invokespecial #16                 // Method Block."<init>":(I[Ljava/lang/Object;)V
+        2364: astore        124
+        2366: new           #285                // class ocaml_fn_67
+        2369: dup
+        2370: aload         124
+        2372: invokespecial #286                // Method ocaml_fn_67."<init>":(Ljava/lang/Object;)V
+        2375: astore        125
+        2377: aload         18
+        2379: checkcast     #2                  // class Block
+        2382: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        2385: bipush        99
+        2387: aload         125
+        2389: aastore
+        2390: new           #288                // class ocaml_fn_68
+        2393: dup
+        2394: invokespecial #289                // Method ocaml_fn_68."<init>":()V
+        2397: astore        126
+        2399: new           #2                  // class Block
+        2402: dup
+        2403: iconst_0
+        2404: iconst_1
+        2405: anewarray     #4                  // class java/lang/Object
+        2408: dup
+        2409: iconst_0
+        2410: aload         126
+        2412: aastore
+        2413: invokespecial #16                 // Method Block."<init>":(I[Ljava/lang/Object;)V
+        2416: astore        127
+        2418: aload         18
+        2420: checkcast     #2                  // class Block
+        2423: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        2426: bipush        103
+        2428: aload         127
+        2430: aastore
+        2431: new           #291                // class ocaml_fn_69
+        2434: dup
+        2435: aload         124
+        2437: aload         127
+        2439: invokespecial #292                // Method ocaml_fn_69."<init>":(Ljava/lang/Object;Ljava/lang/Object;)V
+        2442: astore        128
+        2444: aload         18
+        2446: checkcast     #2                  // class Block
+        2449: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        2452: bipush        102
+        2454: aload         128
+        2456: aastore
+        2457: new           #294                // class ocaml_fn_70
+        2460: dup
+        2461: aload         128
+        2463: invokespecial #295                // Method ocaml_fn_70."<init>":(Ljava/lang/Object;)V
+        2466: astore        129
+        2468: aload         18
+        2470: checkcast     #2                  // class Block
+        2473: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        2476: bipush        98
+        2478: aload         129
+        2480: aastore
+        2481: getstatic     #25                 // Field GLOBALS:[Ljava/lang/Object;
+        2484: bipush        44
+        2486: aaload
+        2487: astore        130
+        2489: aload         130
+        2491: aload         128
+        2493: invokestatic  #65                 // Method Ocaml.registerNamedValue:(Ljava/lang/Object;Ljava/lang/Object;)J
+        2496: invokestatic  #61                 // Method java/lang/Long.valueOf:(J)Ljava/lang/Long;
+        2499: astore        131
+        2501: new           #2                  // class Block
+        2504: dup
+        2505: iconst_0
+        2506: bipush        6
+        2508: anewarray     #4                  // class java/lang/Object
+        2511: invokespecial #16                 // Method Block."<init>":(I[Ljava/lang/Object;)V
+        2514: astore        132
+        2516: new           #297                // class ocaml_fn_71
+        2519: dup
+        2520: invokespecial #298                // Method ocaml_fn_71."<init>":()V
+        2523: astore        133
+        2525: aload         132
+        2527: checkcast     #2                  // class Block
+        2530: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        2533: iconst_5
+        2534: aload         133
+        2536: aastore
+        2537: new           #300                // class ocaml_fn_72
+        2540: dup
+        2541: invokespecial #301                // Method ocaml_fn_72."<init>":()V
+        2544: astore        134
+        2546: aload         132
+        2548: checkcast     #2                  // class Block
+        2551: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        2554: iconst_4
+        2555: aload         134
+        2557: aastore
+        2558: new           #303                // class ocaml_fn_73
+        2561: dup
+        2562: invokespecial #304                // Method ocaml_fn_73."<init>":()V
+        2565: astore        135
+        2567: aload         132
+        2569: checkcast     #2                  // class Block
+        2572: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        2575: iconst_3
+        2576: aload         135
+        2578: aastore
+        2579: new           #306                // class ocaml_fn_74
+        2582: dup
+        2583: invokespecial #307                // Method ocaml_fn_74."<init>":()V
+        2586: astore        136
+        2588: aload         132
+        2590: checkcast     #2                  // class Block
+        2593: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        2596: iconst_2
+        2597: aload         136
+        2599: aastore
+        2600: new           #309                // class ocaml_fn_75
+        2603: dup
+        2604: invokespecial #310                // Method ocaml_fn_75."<init>":()V
+        2607: astore        137
+        2609: aload         132
+        2611: checkcast     #2                  // class Block
+        2614: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        2617: iconst_1
+        2618: aload         137
+        2620: aastore
+        2621: new           #312                // class ocaml_fn_76
+        2624: dup
+        2625: invokespecial #313                // Method ocaml_fn_76."<init>":()V
+        2628: astore        138
+        2630: aload         132
+        2632: checkcast     #2                  // class Block
+        2635: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        2638: iconst_0
+        2639: aload         138
+        2641: aastore
+        2642: aload         18
+        2644: checkcast     #2                  // class Block
+        2647: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        2650: bipush        95
+        2652: aload         132
+        2654: aastore
+        2655: new           #315                // class ocaml_fn_77
+        2658: dup
+        2659: invokespecial #316                // Method ocaml_fn_77."<init>":()V
+        2662: astore        139
+        2664: aload         18
+        2666: checkcast     #2                  // class Block
+        2669: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        2672: bipush        94
+        2674: aload         139
+        2676: aastore
+        2677: new           #318                // class ocaml_fn_78
+        2680: dup
+        2681: invokespecial #319                // Method ocaml_fn_78."<init>":()V
+        2684: astore        140
+        2686: aload         18
+        2688: checkcast     #2                  // class Block
+        2691: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        2694: bipush        92
+        2696: aload         140
+        2698: aastore
+        2699: new           #321                // class ocaml_fn_79
+        2702: dup
+        2703: invokespecial #322                // Method ocaml_fn_79."<init>":()V
+        2706: astore        141
+        2708: aload         18
+        2710: checkcast     #2                  // class Block
+        2713: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        2716: bipush        91
+        2718: aload         141
+        2720: aastore
+        2721: new           #324                // class ocaml_fn_80
+        2724: dup
+        2725: invokespecial #325                // Method ocaml_fn_80."<init>":()V
+        2728: astore        142
+        2730: aload         18
+        2732: checkcast     #2                  // class Block
+        2735: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        2738: bipush        90
+        2740: aload         142
+        2742: aastore
+        2743: new           #327                // class ocaml_fn_81
+        2746: dup
+        2747: invokespecial #328                // Method ocaml_fn_81."<init>":()V
+        2750: astore        143
+        2752: aload         18
+        2754: checkcast     #2                  // class Block
+        2757: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        2760: bipush        89
+        2762: aload         143
+        2764: aastore
+        2765: new           #330                // class ocaml_fn_82
+        2768: dup
+        2769: invokespecial #331                // Method ocaml_fn_82."<init>":()V
+        2772: astore        144
+        2774: aload         18
+        2776: checkcast     #2                  // class Block
+        2779: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        2782: bipush        88
+        2784: aload         144
+        2786: aastore
+        2787: new           #333                // class ocaml_fn_83
+        2790: dup
+        2791: invokespecial #334                // Method ocaml_fn_83."<init>":()V
+        2794: astore        145
+        2796: aload         18
+        2798: checkcast     #2                  // class Block
+        2801: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        2804: bipush        87
+        2806: aload         145
+        2808: aastore
+        2809: new           #336                // class ocaml_fn_84
+        2812: dup
+        2813: invokespecial #337                // Method ocaml_fn_84."<init>":()V
+        2816: astore        146
+        2818: aload         18
+        2820: checkcast     #2                  // class Block
+        2823: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        2826: bipush        86
+        2828: aload         146
+        2830: aastore
+        2831: new           #339                // class ocaml_fn_85
+        2834: dup
+        2835: invokespecial #340                // Method ocaml_fn_85."<init>":()V
+        2838: astore        147
+        2840: aload         18
+        2842: checkcast     #2                  // class Block
+        2845: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        2848: bipush        81
+        2850: aload         147
+        2852: aastore
+        2853: new           #342                // class ocaml_fn_86
+        2856: dup
+        2857: invokespecial #343                // Method ocaml_fn_86."<init>":()V
+        2860: astore        148
+        2862: aload         18
+        2864: checkcast     #2                  // class Block
+        2867: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        2870: bipush        77
+        2872: aload         148
+        2874: aastore
+        2875: new           #345                // class ocaml_fn_87
+        2878: dup
+        2879: invokespecial #346                // Method ocaml_fn_87."<init>":()V
+        2882: astore        149
+        2884: aload         18
+        2886: checkcast     #2                  // class Block
+        2889: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        2892: bipush        74
+        2894: aload         149
+        2896: aastore
+        2897: new           #348                // class ocaml_fn_88
+        2900: dup
+        2901: invokespecial #349                // Method ocaml_fn_88."<init>":()V
+        2904: astore        150
+        2906: aload         18
+        2908: checkcast     #2                  // class Block
+        2911: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        2914: bipush        73
+        2916: aload         150
+        2918: aastore
+        2919: new           #351                // class ocaml_fn_89
+        2922: dup
+        2923: invokespecial #352                // Method ocaml_fn_89."<init>":()V
+        2926: astore        151
+        2928: aload         18
+        2930: checkcast     #2                  // class Block
+        2933: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        2936: bipush        72
+        2938: aload         151
+        2940: aastore
+        2941: new           #354                // class ocaml_fn_90
+        2944: dup
+        2945: invokespecial #355                // Method ocaml_fn_90."<init>":()V
+        2948: astore        152
+        2950: aload         18
+        2952: checkcast     #2                  // class Block
+        2955: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        2958: bipush        70
+        2960: aload         152
+        2962: aastore
+        2963: new           #357                // class ocaml_fn_91
+        2966: dup
+        2967: invokespecial #358                // Method ocaml_fn_91."<init>":()V
+        2970: astore        153
+        2972: aload         18
+        2974: checkcast     #2                  // class Block
+        2977: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        2980: bipush        69
+        2982: aload         153
+        2984: aastore
+        2985: new           #360                // class ocaml_fn_92
+        2988: dup
+        2989: invokespecial #361                // Method ocaml_fn_92."<init>":()V
+        2992: astore        154
+        2994: aload         18
+        2996: checkcast     #2                  // class Block
+        2999: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        3002: bipush        64
+        3004: aload         154
+        3006: aastore
+        3007: new           #363                // class ocaml_fn_93
+        3010: dup
+        3011: invokespecial #364                // Method ocaml_fn_93."<init>":()V
+        3014: astore        155
+        3016: aload         18
+        3018: checkcast     #2                  // class Block
+        3021: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        3024: bipush        62
+        3026: aload         155
+        3028: aastore
+        3029: getstatic     #25                 // Field GLOBALS:[Ljava/lang/Object;
+        3032: bipush        45
+        3034: aload         18
+        3036: aastore
+        3037: iconst_0
+        3038: i2l
+        3039: invokestatic  #61                 // Method java/lang/Long.valueOf:(J)Ljava/lang/Long;
+        3042: astore        156
+        3044: iconst_1
         3045: i2l
-        3046: lcmp
-        3047: ifeq          3062
-        3050: lload         157
-        3052: invokestatic  #61                 // Method java/lang/Long.valueOf:(J)Ljava/lang/Long;
-        3055: astore        161
-        3057: goto_w        3091
-        3062: lload         157
-        3064: invokestatic  #61                 // Method java/lang/Long.valueOf:(J)Ljava/lang/Long;
-        3067: astore        162
-        3069: goto_w        3074
-        3074: bipush        10
-        3076: i2l
-        3077: lstore        163
-        3079: lload         163
-        3081: invokestatic  #61                 // Method java/lang/Long.valueOf:(J)Ljava/lang/Long;
-        3084: astore        165
-        3086: goto_w        3108
-        3091: bipush        20
-        3093: i2l
-        3094: lstore        166
-        3096: lload         166
-        3098: invokestatic  #61                 // Method java/lang/Long.valueOf:(J)Ljava/lang/Long;
-        3101: astore        165
-        3103: goto_w        3108
-        3108: getstatic     #364                // Field java/lang/System.out:Ljava/io/PrintStream;
-        3111: aload         165
-        3113: invokestatic  #90                 // Method Block.asLong:(Ljava/lang/Object;)J
-        3116: l2i
-        3117: invokevirtual #370                // Method java/io/PrintStream.println:(I)V
-        3120: iconst_0
-        3121: i2l
-        3122: invokestatic  #61                 // Method java/lang/Long.valueOf:(J)Ljava/lang/Long;
-        3125: astore        168
-        3127: new           #2                  // class Block
-        3130: dup
-        3131: iconst_0
-        3132: iconst_0
-        3133: anewarray     #4                  // class java/lang/Object
-        3136: invokespecial #16                 // Method Block."<init>":(I[Ljava/lang/Object;)V
-        3139: astore        169
-        3141: getstatic     #25                 // Field GLOBALS:[Ljava/lang/Object;
-        3144: bipush        46
-        3146: aload         169
-        3148: aastore
-        3149: iconst_0
-        3150: i2l
-        3151: invokestatic  #61                 // Method java/lang/Long.valueOf:(J)Ljava/lang/Long;
-        3154: astore        170
-        3156: iconst_0
-        3157: i2l
-        3158: lstore        171
-        3160: getstatic     #25                 // Field GLOBALS:[Ljava/lang/Object;
-        3163: bipush        45
-        3165: aaload
-        3166: checkcast     #2                  // class Block
-        3169: getfield      #67                 // Field Block.fields:[Ljava/lang/Object;
-        3172: bipush        102
-        3174: aaload
-        3175: astore        173
-        3177: aload         173
-        3179: checkcast     #139                // class Closure
-        3182: lload         171
-        3184: invokestatic  #61                 // Method java/lang/Long.valueOf:(J)Ljava/lang/Long;
-        3187: invokevirtual #374                // Method Closure.apply1:(Ljava/lang/Object;)Ljava/lang/Object;
-        3190: astore        174
-        3192: new           #2                  // class Block
-        3195: dup
-        3196: iconst_0
-        3197: iconst_0
-        3198: anewarray     #4                  // class java/lang/Object
-        3201: invokespecial #16                 // Method Block."<init>":(I[Ljava/lang/Object;)V
-        3204: astore        175
-        3206: getstatic     #25                 // Field GLOBALS:[Ljava/lang/Object;
-        3209: bipush        47
-        3211: aload         175
-        3213: aastore
-        3214: iconst_0
-        3215: i2l
-        3216: invokestatic  #61                 // Method java/lang/Long.valueOf:(J)Ljava/lang/Long;
-        3219: astore        176
-        3221: return
+        3046: lstore        157
+        3048: iconst_0
+        3049: i2l
+        3050: lstore        159
+        3052: lload         159
+        3054: iconst_0
+        3055: i2l
+        3056: lcmp
+        3057: ifeq          3072
+        3060: lload         157
+        3062: invokestatic  #61                 // Method java/lang/Long.valueOf:(J)Ljava/lang/Long;
+        3065: astore        161
+        3067: goto_w        3101
+        3072: lload         157
+        3074: invokestatic  #61                 // Method java/lang/Long.valueOf:(J)Ljava/lang/Long;
+        3077: astore        162
+        3079: goto_w        3084
+        3084: bipush        10
+        3086: i2l
+        3087: lstore        163
+        3089: lload         163
+        3091: invokestatic  #61                 // Method java/lang/Long.valueOf:(J)Ljava/lang/Long;
+        3094: astore        165
+        3096: goto_w        3118
+        3101: bipush        20
+        3103: i2l
+        3104: lstore        166
+        3106: lload         166
+        3108: invokestatic  #61                 // Method java/lang/Long.valueOf:(J)Ljava/lang/Long;
+        3111: astore        165
+        3113: goto_w        3118
+        3118: getstatic     #368                // Field java/lang/System.out:Ljava/io/PrintStream;
+        3121: aload         165
+        3123: invokestatic  #94                 // Method Block.asLong:(Ljava/lang/Object;)J
+        3126: l2i
+        3127: invokevirtual #374                // Method java/io/PrintStream.println:(I)V
+        3130: iconst_0
+        3131: i2l
+        3132: invokestatic  #61                 // Method java/lang/Long.valueOf:(J)Ljava/lang/Long;
+        3135: astore        168
+        3137: new           #2                  // class Block
+        3140: dup
+        3141: iconst_0
+        3142: iconst_0
+        3143: anewarray     #4                  // class java/lang/Object
+        3146: invokespecial #16                 // Method Block."<init>":(I[Ljava/lang/Object;)V
+        3149: astore        169
+        3151: getstatic     #25                 // Field GLOBALS:[Ljava/lang/Object;
+        3154: bipush        46
+        3156: aload         169
+        3158: aastore
+        3159: iconst_0
+        3160: i2l
+        3161: invokestatic  #61                 // Method java/lang/Long.valueOf:(J)Ljava/lang/Long;
+        3164: astore        170
+        3166: iconst_0
+        3167: i2l
+        3168: lstore        171
+        3170: getstatic     #25                 // Field GLOBALS:[Ljava/lang/Object;
+        3173: bipush        45
+        3175: aaload
+        3176: checkcast     #2                  // class Block
+        3179: getfield      #71                 // Field Block.fields:[Ljava/lang/Object;
+        3182: bipush        102
+        3184: aaload
+        3185: astore        173
+        3187: aload         173
+        3189: checkcast     #143                // class Closure
+        3192: lload         171
+        3194: invokestatic  #61                 // Method java/lang/Long.valueOf:(J)Ljava/lang/Long;
+        3197: invokevirtual #378                // Method Closure.apply1:(Ljava/lang/Object;)Ljava/lang/Object;
+        3200: astore        174
+        3202: new           #2                  // class Block
+        3205: dup
+        3206: iconst_0
+        3207: iconst_0
+        3208: anewarray     #4                  // class java/lang/Object
+        3211: invokespecial #16                 // Method Block."<init>":(I[Ljava/lang/Object;)V
+        3214: astore        175
+        3216: getstatic     #25                 // Field GLOBALS:[Ljava/lang/Object;
+        3219: bipush        47
+        3221: aload         175
+        3223: aastore
+        3224: iconst_0
+        3225: i2l
+        3226: invokestatic  #61                 // Method java/lang/Long.valueOf:(J)Ljava/lang/Long;
+        3229: astore        176
+        3231: return
     }
     |}]
