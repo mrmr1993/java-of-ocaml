@@ -4747,13 +4747,11 @@ and emit_ccall_named ctx name args =
        the call site. *)
     (* Drop any args already loaded — we haven't loaded any; args
        are lazily loaded per-case above. *)
-    Jvm.Code.ldc_string
-      ctx.code
-      (Printf.sprintf "C primitive %s is not implemented" name);
+    Jvm.Code.ldc_string ctx.code name;
     Jvm.Code.invokestatic
       ctx.code
       ~class_:"Ocaml"
-      ~method_:"raiseFailure"
+      ~method_:"raiseUnimplementedPrim"
       ~descriptor:"(Ljava/lang/String;)Ljava/lang/RuntimeException;";
     Jvm.Code.athrow ctx.code;
     (* Dead: give downstream an Object so emit_store has something

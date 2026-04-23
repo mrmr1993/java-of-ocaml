@@ -151,6 +151,25 @@ public final class Ocaml {
         throw new CamlException(new Block(0, new Object[] { id, msg }));
     }
 
+    /** Throw a [CamlException] for an auto-generated "primitive not
+     *  implemented" stub. Logs to stderr *before* throwing so the
+     *  message survives OCaml-level [try ... with _] handlers that
+     *  would otherwise swallow it (e.g. when [sexp_of_exn] fires
+     *  while formatting another exception and trips a second
+     *  exception that obscures the original).
+     *
+     *  Quieted by JAVA_OF_OCAML_QUIET_STUBS=1 for test runs where a
+     *  [try ... with _] path legitimately depends on an auto-stub
+     *  firing (e.g. feature-availability probes) and doesn't want
+     *  stderr clutter. */
+    public static RuntimeException raiseUnimplementedPrim(String primName) {
+        if (System.getenv("JAVA_OF_OCAML_QUIET_STUBS") == null) {
+            System.err.println(
+                "[java_of_ocaml] unimplemented C primitive: " + primName);
+        }
+        throw raiseFailure("C primitive " + primName + " is not implemented");
+    }
+
     /** Throw a [CamlException] wrapping [Not_found]. Constructor is
      *  nullary, so the payload is just the descriptor itself. */
     public static RuntimeException raiseNotFound() {

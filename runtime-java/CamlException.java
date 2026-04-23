@@ -33,20 +33,27 @@ public final class CamlException extends RuntimeException {
         if (v == null) return "null";
         if (v instanceof Block) {
             Block b = (Block) v;
-            StringBuilder sb = new StringBuilder();
+            // An OCaml exception value is a [Block(tag=0, [id; args...])]
+            // where [id] is a [Block(tag=248, ["Name"; int])]. Detect
+            // that shape and print "Name(args...)"; other blocks fall
+            // through to the generic "Block(tag=N)(field0, field1, ...)"
+            // path that includes every field (including field 0).
             String ctor = null;
+            int firstArg = 0;
             if (b.fields != null && b.fields.length > 0 && b.fields[0] instanceof Block) {
                 Block hdr = (Block) b.fields[0];
-                if (hdr.fields != null && hdr.fields.length > 0
-                    && hdr.fields[0] instanceof String) {
+                if (hdr.tag == 248 && hdr.fields != null
+                    && hdr.fields.length > 0 && hdr.fields[0] instanceof String) {
                     ctor = (String) hdr.fields[0];
+                    firstArg = 1;
                 }
             }
+            StringBuilder sb = new StringBuilder();
             sb.append(ctor == null ? ("Block(tag=" + b.tag + ")") : ctor);
-            if (b.fields != null && b.fields.length > 1) {
+            if (b.fields != null && b.fields.length > firstArg) {
                 sb.append("(");
-                for (int i = 1; i < b.fields.length; i++) {
-                    if (i > 1) sb.append(", ");
+                for (int i = firstArg; i < b.fields.length; i++) {
+                    if (i > firstArg) sb.append(", ");
                     Object f = b.fields[i];
                     if (depth > 0)
                         sb.append(fmt(f, depth - 1));
