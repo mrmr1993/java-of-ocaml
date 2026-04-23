@@ -5529,20 +5529,21 @@ let emit_last ctx prog (l : Code.last) =
        Jvm.Code.dcmpl ctx.code;
        Jvm.Code.ifeq ctx.code l_else
      | K_obj ->
+       (* OCaml's [if v then ... else ...] treats every non-int-zero
+          value as truthy — including blocks, closures, strings,
+          doubles. Routing through [Ocaml.isTruthy] (instead of the
+          earlier [instanceof Block ? truthy : asLong]) is the only
+          shape that handles closures correctly; [Closure] doesn't
+          extend [Block] in our runtime, so the previous code
+          ClassCastException'd when a closure flowed into a
+          conditional. *)
        emit_load ctx v;
-       let l_then = Jvm.Code.fresh_label ctx.code in
-       Jvm.Code.dup ctx.code;
-       Jvm.Code.instanceof_ ctx.code "Block";
-       Jvm.Code.ifne ctx.code l_then;
-       Kind.emit_unbox_long ctx.code;
-       emit_int_const ctx 0;
-       Jvm.Code.lcmp ctx.code;
-       Jvm.Code.ifeq ctx.code l_else;
-       let l_end = Jvm.Code.fresh_label ctx.code in
-       Jvm.Code.goto_w ctx.code l_end;
-       Jvm.Code.mark_label ctx.code l_then;
-       Jvm.Code.pop_top ctx.code;
-       Jvm.Code.mark_label ctx.code l_end);
+       Jvm.Code.invokestatic
+         ctx.code
+         ~class_:"Ocaml"
+         ~method_:"isTruthy"
+         ~descriptor:"(Ljava/lang/Object;)I";
+       Jvm.Code.ifeq ctx.code l_else);
     emit_cont ctx prog c_then;
     Jvm.Code.mark_label ctx.code l_else;
     emit_cont ctx prog c_else

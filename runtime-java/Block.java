@@ -36,7 +36,16 @@ public class Block {
         if (o instanceof Long) return ((Long) o).longValue();
         if (o instanceof Integer) return ((Integer) o).intValue();
         if (o instanceof Number) return ((Number) o).longValue();
-        // Unknown; mirror Long.longValue() on a mis-cast.
+        // Unknown — typically a compiler-side kind-inference error
+        // (we asked for int but got a block / closure / string).
+        // Include the offending object's class in the message so
+        // the diagnosis is self-contained, instead of the bare
+        // [ClassCastException: class X cannot be cast to Long].
+        if (System.getenv("JAVA_OF_OCAML_ASLONG_TRACE") != null) {
+            System.err.println("[asLong] fail on " + o.getClass().getName()
+                + ": " + o);
+            new Throwable().printStackTrace(System.err);
+        }
         return ((Long) o).longValue();
     }
 

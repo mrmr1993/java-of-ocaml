@@ -53,6 +53,29 @@ public final class Ocaml {
         return new Block(0, fields);
     }
 
+    // -------- truthy test for OCaml conditionals --------
+
+    /**
+     * OCaml's `if` treats only `false` (== int 0) as falsy. Everything
+     * else — non-zero ints, blocks, closures, strings, doubles — is
+     * truthy.
+     *
+     * Our previous Cond K_obj emission assumed the scrutinee was
+     * either a [Block] or a boxed int. If it got a [Closure] (which
+     * is a reference but not a [Block] in our runtime — [Closure]
+     * doesn't extend [Block]), the generated code fell through to
+     * [Block.asLong] on the closure and ClassCastException'd.
+     * Route through [isTruthy] for mixed-kind scrutinees so every
+     * concrete runtime value decodes correctly.
+     */
+    public static int isTruthy(Object o) {
+        if (o instanceof Long) return ((Long) o).longValue() != 0 ? 1 : 0;
+        if (o instanceof Integer) return ((Integer) o).intValue() != 0 ? 1 : 0;
+        // Block / Closure / String / Double / BigArray / Bytes / etc. —
+        // all non-zero-int → truthy.
+        return 1;
+    }
+
     // -------- OO dispatch --------
 
     /**
