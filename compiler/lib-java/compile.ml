@@ -595,20 +595,27 @@ let emit_globals_entry code i =
    descriptors from [GLOBALS]. Runs right after [emit_globals_init]
    so [GLOBALS[i]] is populated by the time we read it.
 
-   Currently just [End_of_file] at slot 4, used by [Channel] on EOF. *)
+   - [End_of_file] at slot 4 → [Channel.endOfFileExn]
+   - [Failure] at slot 2 → [Ocaml.failureExn] (used by the
+     auto-generated "primitive not implemented" stub so OCaml's
+     [try ... with Failure _] / [with _] catches it). *)
 let emit_runtime_init_after_globals main_code =
-  Jvm.Code.getstatic
-    main_code
-    ~class_:"Main"
-    ~field:"GLOBALS"
-    ~descriptor:"[Ljava/lang/Object;";
-  Jvm.Code.ldc_int main_code 4;
-  Jvm.Code.aaload main_code;
-  Jvm.Code.putstatic
-    main_code
-    ~class_:"Channel"
-    ~field:"endOfFileExn"
-    ~descriptor:"Ljava/lang/Object;"
+  let wire_global ~slot ~class_ ~field =
+    Jvm.Code.getstatic
+      main_code
+      ~class_:"Main"
+      ~field:"GLOBALS"
+      ~descriptor:"[Ljava/lang/Object;";
+    Jvm.Code.ldc_int main_code slot;
+    Jvm.Code.aaload main_code;
+    Jvm.Code.putstatic
+      main_code
+      ~class_
+      ~field
+      ~descriptor:"Ljava/lang/Object;"
+  in
+  wire_global ~slot:4 ~class_:"Channel" ~field:"endOfFileExn";
+  wire_global ~slot:2 ~class_:"Ocaml" ~field:"failureExn"
 
 (* [emit_globals_init globals ~main_code] allocates the [GLOBALS]
    array in [main_code] and then populates it. Entries flow into

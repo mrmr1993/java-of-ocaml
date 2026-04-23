@@ -4736,19 +4736,25 @@ and emit_ccall_named ctx name args =
        falling back to the legacy emitter. Matches what legacy does
        for OO / effect opcodes. Programs that never reach this call
        path at runtime (the usual case for Stdlib functions
-       unrelated to the program's features) load and run cleanly. *)
+       unrelated to the program's features) load and run cleanly.
+
+       Throw via [Ocaml.raiseFailure] so the result is a
+       [CamlException(Failure _)] rather than a Java
+       [UnsupportedOperationException]. OCaml init paths that
+       gracefully degrade with [try ... with _ -> default] /
+       [with Failure _] catch this; only callers without a handler
+       see the exception escape. The JVM stack trace still pinpoints
+       the call site. *)
     (* Drop any args already loaded — we haven't loaded any; args
        are lazily loaded per-case above. *)
-    Jvm.Code.new_ ctx.code "java/lang/UnsupportedOperationException";
-    Jvm.Code.dup ctx.code;
     Jvm.Code.ldc_string
       ctx.code
       (Printf.sprintf "C primitive %s is not implemented" name);
-    Jvm.Code.invokespecial
+    Jvm.Code.invokestatic
       ctx.code
-      ~class_:"java/lang/UnsupportedOperationException"
-      ~method_:"<init>"
-      ~descriptor:"(Ljava/lang/String;)V";
+      ~class_:"Ocaml"
+      ~method_:"raiseFailure"
+      ~descriptor:"(Ljava/lang/String;)Ljava/lang/RuntimeException;";
     Jvm.Code.athrow ctx.code;
     (* Dead: give downstream an Object so emit_store has something
        to pop. *)

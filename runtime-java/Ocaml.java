@@ -119,6 +119,32 @@ public final class Ocaml {
         return meths.fields[li - 1];
     }
 
+    // -------- predefined exception identifiers --------
+
+    /** OCaml's predefined [Failure] exception identifier (a tag-248
+     *  Block stored at [GLOBALS[2]] after globals init). The compiler
+     *  wires this field once globals are populated. Used by
+     *  [raiseFailure] and by the auto-generated "primitive not
+     *  implemented" stubs so OCaml's [try ... with _] / [with Failure _]
+     *  catches them. Stays [null] until globals init runs (i.e. for
+     *  programs that don't link Stdlib's predefined exceptions);
+     *  [raiseFailure] falls back to a fresh fabricated identifier in
+     *  that case so it still throws something OCaml-shaped. */
+    public static Object failureExn;
+
+    /** Throw a [CamlException] wrapping [Failure msg]. The shape is
+     *  [Block(0, [failureExn, msg])] so OCaml's [try ... with Failure _]
+     *  matches by reference identity on field 0. */
+    public static RuntimeException raiseFailure(String msg) {
+        Object id = failureExn;
+        if (id == null) {
+            // Pre-globals-init or no Stdlib linked: fabricate a
+            // descriptor so we still throw a CamlException.
+            id = new Block(248, new Object[] { "Failure", Long.valueOf(-1L) });
+        }
+        throw new CamlException(new Block(0, new Object[] { id, msg }));
+    }
+
     // -------- sentinels --------
 
     public static final Object unit = Long.valueOf(0L);

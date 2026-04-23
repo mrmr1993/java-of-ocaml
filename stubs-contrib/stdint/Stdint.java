@@ -31,10 +31,6 @@ public final class Stdint {
     private static final Object ZERO = Long.valueOf(0L);
 
     // ==== arity-overloaded fallback ================================
-    public static Object zero()                         { return ZERO; }
-    public static Object zero(Object a)                 { return ZERO; }
-    public static Object zero(Object a, Object b)       { return ZERO; }
-    public static Object zero(Object a, Object b, Object c) { return ZERO; }
 
     // ==== unboxing helpers =========================================
     private static long L(Object o) {

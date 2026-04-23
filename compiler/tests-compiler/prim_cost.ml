@@ -209,7 +209,7 @@ let%expect_test "primitive cost table vs real emission" =
     caml_ml_flush                            est= 20 act= 15 delta= -5
     caml_ml_output_char                      est= 24 act= 20 delta= -4
     caml_ml_output                           est= 36 act= 31 delta= -5
-    caml_ml_output_string                    est= 28 act= 14 delta=-14
+    caml_ml_output_string                    est= 28 act= 10 delta=-18
     caml_array_unsafe_get                    est= 28 act= 16 delta=-12
     caml_array_get                           est= 28 act= 16 delta=-12
     caml_array_unsafe_set                    est= 36 act= 22 delta=-14
@@ -329,6 +329,6 @@ let%expect_test "primitive cost table vs real emission" =
     get_global_field                         est= 20 act= 16 delta= -4
     caml_unix_inet_addr_of_string            est= 12 act=  4 delta= -8
     unix_inet_addr_of_string                 est= 12 act=  4 delta= -8
-    nonexistent_primitive_stub_path          est= 50 act= 14 delta=-36
+    nonexistent_primitive_stub_path          est= 50 act= 10 delta=-40
     set_global                               est= 25 act= 14 delta=-11
     |}]

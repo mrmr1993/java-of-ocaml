@@ -13,26 +13,16 @@
  *
  * ### Stubbing strategy
  *
- * Most [bigstring_*_stub] syscall wrappers (pread / pwrite / read
- * / write / send / recv / writev / sendmmsg / recvmmsg / output /
- * input) return [0] (bytes transferred = 0) — enough to satisfy
- * init-time references that don't actually consume the data. A
- * real implementation would delegate to the corresponding
- * [java.nio.channels.*] APIs.
- *
- * The pure-memory helpers ([memset_stub], [memcmp_stub], [find],
- * [blit_*_stub], [is_mmapped_stub]) have real Java equivalents
- * via [java.util.Arrays] / [System.arraycopy], but a caller
- * workload doesn't reach them; stubbing as [0] here is safe.
- *
- * [bigstring_alloc] is the one exception — it returns a live
- * [BigArray], so callers can read [.dim1] / access cells through
- * the existing [BigArray] runtime class.
+ * Only primitives with a real implementation, or no-op
+ * registration calls that genuinely run unconditionally at module
+ * load (currently [bigstring_init_stub]), are listed here. Every
+ * other [bigstring_*_stub] is intentionally left out of the
+ * manifest so the auto-generated "primitive not implemented" stub
+ * fires at the first real call site. That keeps us honest about
+ * what's stubbed for shape vs. what's actually implemented.
  */
 public final class Bigstring {
     private Bigstring() {}
-
-    private static final Object ZERO = Long.valueOf(0L);
 
     /**
      * [bigstring_alloc pos len]. Upstream:
@@ -132,22 +122,10 @@ public final class Bigstring {
         return 0;
     }
 
-    // ==== zero-returners (see javadoc) ===============================
-
-    public static Object zero()                                       { return ZERO; }
-    public static Object zero(Object a)                                { return ZERO; }
-    public static Object zero(Object a, Object b)                      { return ZERO; }
-    public static Object zero(Object a, Object b, Object c)            { return ZERO; }
-    public static Object zero(Object a, Object b, Object c, Object d)  { return ZERO; }
-    public static Object zero(Object a, Object b, Object c, Object d, Object e) {
-        return ZERO;
-    }
-    public static Object zero(Object a, Object b, Object c, Object d, Object e,
-                              Object f) {
-        return ZERO;
-    }
-    public static Object zero(Object a, Object b, Object c, Object d, Object e,
-                              Object f, Object g) {
-        return ZERO;
-    }
+    /** [bigstring_init_stub]: called once at [Bigstring_unix] module
+     *  load right after [Callback.register_exception] for the Bigstring
+     *  IO exceptions. Upstream registers signal handlers; nothing for
+     *  us to do. Listed explicitly so it doesn't get caught by the
+     *  general "primitive not implemented" throw. */
+    public static long init_stub(Object unit) { return 0; }
 }

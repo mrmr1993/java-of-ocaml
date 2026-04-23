@@ -14,25 +14,6 @@
 public final class Sodium {
     private Sodium() {}
 
-    private static final Object ZERO = Long.valueOf(0L);
-
-    public static Object zero()                                       { return ZERO; }
-    public static Object zero(Object a)                                { return ZERO; }
-    public static Object zero(Object a, Object b)                      { return ZERO; }
-    public static Object zero(Object a, Object b, Object c)            { return ZERO; }
-    public static Object zero(Object a, Object b, Object c, Object d)  { return ZERO; }
-    public static Object zero(Object a, Object b, Object c, Object d, Object e) {
-        return ZERO;
-    }
-    public static Object zero(Object a, Object b, Object c, Object d, Object e,
-                              Object f) {
-        return ZERO;
-    }
-    public static Object zero(Object a, Object b, Object c, Object d, Object e,
-                              Object f, Object g) {
-        return ZERO;
-    }
-
     // ==== NaCl/libsodium size constants ==========================
     // Each of these is an OCaml [external sz : unit -> int], called
     // at init to sanity-check buffer sizes (e.g. [assert (pk_bytes

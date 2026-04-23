@@ -56,24 +56,6 @@ public final class Sodium {
     // Libsodium primitives we haven't bridged yet still route here.
     // When the zero-stubs bundle is swapped for this one we want to
     // keep the surface compilable without listing every name.
-    private static final Object ZERO = Long.valueOf(0L);
-    public static Object zero()                                       { return ZERO; }
-    public static Object zero(Object a)                                { return ZERO; }
-    public static Object zero(Object a, Object b)                      { return ZERO; }
-    public static Object zero(Object a, Object b, Object c)            { return ZERO; }
-    public static Object zero(Object a, Object b, Object c, Object d)  { return ZERO; }
-    public static Object zero(Object a, Object b, Object c, Object d, Object e) {
-        return ZERO;
-    }
-    public static Object zero(Object a, Object b, Object c, Object d, Object e,
-                              Object f) {
-        return ZERO;
-    }
-    public static Object zero(Object a, Object b, Object c, Object d, Object e,
-                              Object f, Object g) {
-        return ZERO;
-    }
-
     // ==== Size queries (real libsodium calls) ====================
     // OCaml externals are declared [unit -> int], which our backend
     // lowers to 1-arg JVM signatures taking a [()] placeholder.

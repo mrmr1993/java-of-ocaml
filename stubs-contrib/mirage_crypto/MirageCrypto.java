@@ -25,26 +25,9 @@
 public final class MirageCrypto {
     private MirageCrypto() {}
 
-    private static final Object ZERO = Long.valueOf(0L);
     private static final Object UNIT = Long.valueOf(0L);
 
     // ==== arity-overloaded no-ops ===================================
-    public static Object zero()                                       { return ZERO; }
-    public static Object zero(Object a)                                { return ZERO; }
-    public static Object zero(Object a, Object b)                      { return ZERO; }
-    public static Object zero(Object a, Object b, Object c)            { return ZERO; }
-    public static Object zero(Object a, Object b, Object c, Object d)  { return ZERO; }
-    public static Object zero(Object a, Object b, Object c, Object d, Object e) {
-        return ZERO;
-    }
-    public static Object zero(Object a, Object b, Object c, Object d, Object e,
-                              Object f) {
-        return ZERO;
-    }
-    public static Object zero(Object a, Object b, Object c, Object d, Object e,
-                              Object f, Object g) {
-        return ZERO;
-    }
 
     // ==== CPU feature queries ======================================
     // Real impl returns a bitmask of detected AES-NI / PCLMUL /

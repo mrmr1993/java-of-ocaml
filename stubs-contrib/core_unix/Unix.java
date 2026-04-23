@@ -22,8 +22,6 @@ import java.net.UnknownHostException;
 public final class Unix {
     private Unix() {}
 
-    private static final Object ZERO = Long.valueOf(0L);
-
     // ==== Real implementations (observable by init code) ===============
 
     /** [unix_gettimeofday] → seconds since epoch as float. */
@@ -147,16 +145,4 @@ public final class Unix {
 
     // ==== zero-returning syscall stubs =================================
 
-    public static Object zero()                                       { return ZERO; }
-    public static Object zero(Object a)                                { return ZERO; }
-    public static Object zero(Object a, Object b)                      { return ZERO; }
-    public static Object zero(Object a, Object b, Object c)            { return ZERO; }
-    public static Object zero(Object a, Object b, Object c, Object d)  { return ZERO; }
-    public static Object zero(Object a, Object b, Object c, Object d, Object e) {
-        return ZERO;
-    }
-    public static Object zero(Object a, Object b, Object c, Object d, Object e,
-                              Object f) {
-        return ZERO;
-    }
 }

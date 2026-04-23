@@ -1,497 +1,286 @@
 {
   "bigstring_alloc": {
-    "target": "Bigstring.bigstring_alloc",
-    "descriptor": "(Ljava/lang/Object;J)Ljava/lang/Object;"
+    "descriptor": "(Ljava/lang/Object;J)Ljava/lang/Object;",
+    "target": "Bigstring.bigstring_alloc"
   },
   "bigstring_blit_bigstring_bytes_stub": {
-    "target": "Bigstring.blitBigstringToBytes",
-    "descriptor": "(Ljava/lang/Object;JLjava/lang/Object;JJ)J"
+    "descriptor": "(Ljava/lang/Object;JLjava/lang/Object;JJ)J",
+    "target": "Bigstring.blitBigstringToBytes"
   },
   "bigstring_blit_bytes_bigstring_stub": {
-    "target": "Bigstring.blitBytesToBigstring",
-    "descriptor": "(Ljava/lang/Object;JLjava/lang/Object;JJ)J"
+    "descriptor": "(Ljava/lang/Object;JLjava/lang/Object;JJ)J",
+    "target": "Bigstring.blitBytesToBigstring"
   },
   "bigstring_blit_string_bigstring_stub": {
-    "target": "Bigstring.blitStringToBigstring",
-    "descriptor": "(Ljava/lang/Object;JLjava/lang/Object;JJ)J"
+    "descriptor": "(Ljava/lang/Object;JLjava/lang/Object;JJ)J",
+    "target": "Bigstring.blitStringToBigstring"
   },
   "bigstring_blit_stub": {
-    "target": "Bigstring.blitBigstringToBigstring",
-    "descriptor": "(Ljava/lang/Object;JLjava/lang/Object;JJ)J"
+    "descriptor": "(Ljava/lang/Object;JLjava/lang/Object;JJ)J",
+    "target": "Bigstring.blitBigstringToBigstring"
   },
-  "bigstring_destroy_stub": "Bigstring.zero",
-  "bigstring_find": "Bigstring.zero",
-  "bigstring_init_stub": "Bigstring.zero",
-  "bigstring_input_stub": "Bigstring.zero",
-  "bigstring_is_mmapped_stub": "Bigstring.zero",
   "bigstring_memcmp_stub": {
-    "target": "Bigstring.memcmp",
-    "descriptor": "(Ljava/lang/Object;JLjava/lang/Object;JJ)J"
+    "descriptor": "(Ljava/lang/Object;JLjava/lang/Object;JJ)J",
+    "target": "Bigstring.memcmp"
+  },
+  "bigstring_init_stub": {
+    "descriptor": "(Ljava/lang/Object;)J",
+    "target": "Bigstring.init_stub"
   },
   "bigstring_memset_stub": {
-    "target": "Bigstring.memset",
-    "descriptor": "(Ljava/lang/Object;JJJ)J"
+    "descriptor": "(Ljava/lang/Object;JJJ)J",
+    "target": "Bigstring.memset"
   },
-  "bigstring_output_stub": "Bigstring.zero",
-  "bigstring_pread_assume_fd_is_nonblocking_stub": "Bigstring.zero",
-  "bigstring_pwrite_assume_fd_is_nonblocking_stub": "Bigstring.zero",
-  "bigstring_read_assume_fd_is_nonblocking_stub": "Bigstring.zero",
-  "bigstring_read_stub": "Bigstring.zero",
-  "bigstring_really_recv_stub": "Bigstring.zero",
-  "bigstring_really_send_no_sigpipe_stub": "Bigstring.zero",
-  "bigstring_really_write_stub": "Bigstring.zero",
-  "bigstring_recvfrom_assume_fd_is_nonblocking_stub": "Bigstring.zero",
-  "bigstring_recvmmsg_assume_fd_is_nonblocking_stub": "Bigstring.zero",
-  "bigstring_send_nonblocking_no_sigpipe_stub": "Bigstring.zero",
-  "bigstring_sendmsg_nonblocking_no_sigpipe_stub": "Bigstring.zero",
-  "bigstring_sendto_nonblocking_no_sigpipe_stub": "Bigstring.zero",
-  "bigstring_write_assume_fd_is_nonblocking_stub": "Bigstring.zero",
-  "bigstring_write_stub": "Bigstring.zero",
-  "bigstring_writev_assume_fd_is_nonblocking_stub": "Bigstring.zero",
-  "bigstring_writev_stub": "Bigstring.zero",
-  "caml_blit_bigstring_to_bigstring": "Bigstring.zero",
-  "caml_blit_bigstring_to_string": "Bigstring.zero",
-  "core_linux_bind_to_interface": "LinuxExt.zero",
   "core_linux_epoll_EPOLLERR_flag": {
-    "target": "LinuxExt.EPOLLERR_flag",
-    "descriptor": "(Ljava/lang/Object;)J"
+    "descriptor": "(Ljava/lang/Object;)J",
+    "target": "LinuxExt.EPOLLERR_flag"
   },
   "core_linux_epoll_EPOLLET_flag": {
-    "target": "LinuxExt.EPOLLET_flag",
-    "descriptor": "(Ljava/lang/Object;)J"
+    "descriptor": "(Ljava/lang/Object;)J",
+    "target": "LinuxExt.EPOLLET_flag"
   },
   "core_linux_epoll_EPOLLHUP_flag": {
-    "target": "LinuxExt.EPOLLHUP_flag",
-    "descriptor": "(Ljava/lang/Object;)J"
+    "descriptor": "(Ljava/lang/Object;)J",
+    "target": "LinuxExt.EPOLLHUP_flag"
   },
   "core_linux_epoll_EPOLLIN_flag": {
-    "target": "LinuxExt.EPOLLIN_flag",
-    "descriptor": "(Ljava/lang/Object;)J"
+    "descriptor": "(Ljava/lang/Object;)J",
+    "target": "LinuxExt.EPOLLIN_flag"
   },
   "core_linux_epoll_EPOLLONESHOT_flag": {
-    "target": "LinuxExt.EPOLLONESHOT_flag",
-    "descriptor": "(Ljava/lang/Object;)J"
+    "descriptor": "(Ljava/lang/Object;)J",
+    "target": "LinuxExt.EPOLLONESHOT_flag"
   },
   "core_linux_epoll_EPOLLOUT_flag": {
-    "target": "LinuxExt.EPOLLOUT_flag",
-    "descriptor": "(Ljava/lang/Object;)J"
+    "descriptor": "(Ljava/lang/Object;)J",
+    "target": "LinuxExt.EPOLLOUT_flag"
   },
   "core_linux_epoll_EPOLLPRI_flag": {
-    "target": "LinuxExt.EPOLLPRI_flag",
-    "descriptor": "(Ljava/lang/Object;)J"
+    "descriptor": "(Ljava/lang/Object;)J",
+    "target": "LinuxExt.EPOLLPRI_flag"
   },
   "core_linux_epoll_EPOLLRDHUP_flag": {
-    "target": "LinuxExt.EPOLLRDHUP_flag",
-    "descriptor": "(Ljava/lang/Object;)J"
+    "descriptor": "(Ljava/lang/Object;)J",
+    "target": "LinuxExt.EPOLLRDHUP_flag"
   },
-  "core_linux_epoll_create": "LinuxExt.zero",
-  "core_linux_epoll_ctl_add": "LinuxExt.zero",
-  "core_linux_epoll_ctl_del": "LinuxExt.zero",
-  "core_linux_epoll_ctl_mod": "LinuxExt.zero",
   "core_linux_epoll_offsetof_readyfd": {
-    "target": "LinuxExt.offsetof_readyfd",
-    "descriptor": "(Ljava/lang/Object;)J"
+    "descriptor": "(Ljava/lang/Object;)J",
+    "target": "LinuxExt.offsetof_readyfd"
   },
   "core_linux_epoll_offsetof_readyflags": {
-    "target": "LinuxExt.offsetof_readyflags",
-    "descriptor": "(Ljava/lang/Object;)J"
+    "descriptor": "(Ljava/lang/Object;)J",
+    "target": "LinuxExt.offsetof_readyflags"
   },
   "core_linux_epoll_sizeof_epoll_event": {
-    "target": "LinuxExt.sizeof_epoll_event",
-    "descriptor": "(Ljava/lang/Object;)J"
+    "descriptor": "(Ljava/lang/Object;)J",
+    "target": "LinuxExt.sizeof_epoll_event"
   },
-  "core_linux_epoll_wait": "LinuxExt.zero",
-  "core_linux_eventfd": "LinuxExt.zero",
   "core_linux_eventfd_EFD_CLOEXEC": {
-    "target": "LinuxExt.EFD_CLOEXEC",
-    "descriptor": "(Ljava/lang/Object;)J"
+    "descriptor": "(Ljava/lang/Object;)J",
+    "target": "LinuxExt.EFD_CLOEXEC"
   },
   "core_linux_eventfd_EFD_NONBLOCK": {
-    "target": "LinuxExt.EFD_NONBLOCK",
-    "descriptor": "(Ljava/lang/Object;)J"
+    "descriptor": "(Ljava/lang/Object;)J",
+    "target": "LinuxExt.EFD_NONBLOCK"
   },
   "core_linux_eventfd_EFD_SEMAPHORE": {
-    "target": "LinuxExt.EFD_SEMAPHORE",
-    "descriptor": "(Ljava/lang/Object;)J"
+    "descriptor": "(Ljava/lang/Object;)J",
+    "target": "LinuxExt.EFD_SEMAPHORE"
   },
-  "core_linux_eventfd_read": "LinuxExt.zero",
-  "core_linux_eventfd_write": "LinuxExt.zero",
-  "core_linux_get_bind_to_interface": "LinuxExt.zero",
-  "core_linux_get_ipv4_address_for_interface": "LinuxExt.zero",
-  "core_linux_get_terminal_size": "LinuxExt.zero",
-  "core_linux_getpriority": "LinuxExt.zero",
-  "core_linux_gettcpopt_bool_stub": "LinuxExt.zero",
-  "core_linux_getxattr": "LinuxExt.zero",
-  "core_linux_peer_credentials": "LinuxExt.zero",
-  "core_linux_pr_get_name": "LinuxExt.zero",
-  "core_linux_pr_get_pdeathsig_stub": "LinuxExt.zero",
-  "core_linux_pr_set_name": "LinuxExt.zero",
-  "core_linux_pr_set_pdeathsig_stub": "LinuxExt.zero",
-  "core_linux_sched_getaffinity": "LinuxExt.zero",
-  "core_linux_sched_setaffinity": "LinuxExt.zero",
-  "core_linux_send_no_sigpipe_stub": "LinuxExt.zero",
-  "core_linux_send_nonblocking_no_sigpipe_stub": "LinuxExt.zero",
-  "core_linux_sendfile_stub": "LinuxExt.zero",
-  "core_linux_sendmsg_nonblocking_no_sigpipe_stub": "LinuxExt.zero",
-  "core_linux_setpriority": "LinuxExt.zero",
-  "core_linux_settcpopt_bool_stub": "LinuxExt.zero",
-  "core_linux_setxattr": "LinuxExt.zero",
-  "core_linux_sysinfo": "LinuxExt.zero",
   "core_linux_timerfd_CLOCK_MONOTONIC": {
-    "target": "LinuxExt.CLOCK_MONOTONIC",
-    "descriptor": "(Ljava/lang/Object;)J"
+    "descriptor": "(Ljava/lang/Object;)J",
+    "target": "LinuxExt.CLOCK_MONOTONIC"
   },
   "core_linux_timerfd_CLOCK_REALTIME": {
-    "target": "LinuxExt.CLOCK_REALTIME",
-    "descriptor": "(Ljava/lang/Object;)J"
+    "descriptor": "(Ljava/lang/Object;)J",
+    "target": "LinuxExt.CLOCK_REALTIME"
   },
   "core_linux_timerfd_TFD_CLOEXEC": {
-    "target": "LinuxExt.TFD_CLOEXEC",
-    "descriptor": "(Ljava/lang/Object;)J"
+    "descriptor": "(Ljava/lang/Object;)J",
+    "target": "LinuxExt.TFD_CLOEXEC"
   },
   "core_linux_timerfd_TFD_NONBLOCK": {
-    "target": "LinuxExt.TFD_NONBLOCK",
-    "descriptor": "(Ljava/lang/Object;)J"
+    "descriptor": "(Ljava/lang/Object;)J",
+    "target": "LinuxExt.TFD_NONBLOCK"
   },
-  "core_linux_timerfd_create": "LinuxExt.zero",
-  "core_linux_timerfd_gettime": "LinuxExt.zero",
-  "core_linux_timerfd_settime": "LinuxExt.zero",
   "core_linux_xattr_XATTR_CREATE_flag": {
-    "target": "LinuxExt.XATTR_CREATE_flag",
-    "descriptor": "(Ljava/lang/Object;)J"
+    "descriptor": "(Ljava/lang/Object;)J",
+    "target": "LinuxExt.XATTR_CREATE_flag"
   },
   "core_linux_xattr_XATTR_REPLACE_flag": {
-    "target": "LinuxExt.XATTR_REPLACE_flag",
-    "descriptor": "(Ljava/lang/Object;)J"
+    "descriptor": "(Ljava/lang/Object;)J",
+    "target": "LinuxExt.XATTR_REPLACE_flag"
   },
-  "core_unix_abort": "CoreUnix.zero",
-  "core_unix_clock_getres": "CoreUnix.zero",
-  "core_unix_clock_gettime": "CoreUnix.zero",
-  "core_unix_clock_process_cputime_id_stub": "CoreUnix.zero",
-  "core_unix_clock_settime": "CoreUnix.zero",
-  "core_unix_clock_thread_cputime_id_stub": "CoreUnix.zero",
-  "core_unix_dirfd": "CoreUnix.zero",
-  "core_unix_endpwent": "CoreUnix.zero",
   "core_unix_error_of_code": {
-    "target": "CoreUnix.error_of_code",
-    "descriptor": "(J)J"
+    "descriptor": "(J)J",
+    "target": "CoreUnix.error_of_code"
   },
-  "core_unix_error_stub": "CoreUnix.zero",
-  "core_unix_fcntl": "CoreUnix.zero",
-  "core_unix_fdatasync": "CoreUnix.zero",
-  "core_unix_flock": "CoreUnix.zero",
-  "core_unix_fnmatch": "CoreUnix.zero",
-  "core_unix_fnmatch_make_flags": "CoreUnix.zero",
-  "core_unix_fsync": "CoreUnix.zero",
-  "core_unix_getgrgid_r": "CoreUnix.zero",
-  "core_unix_getgrnam_r": "CoreUnix.zero",
-  "core_unix_getgrouplist": "CoreUnix.zero",
-  "core_unix_getifaddrs": "CoreUnix.zero",
-  "core_unix_getpwent": "CoreUnix.zero",
-  "core_unix_getpwnam_r": "CoreUnix.zero",
-  "core_unix_getpwuid_r": "CoreUnix.zero",
   "core_unix_getrlimit": {
-    "target": "CoreUnix.getrlimit",
-    "descriptor": "(Ljava/lang/Object;)Ljava/lang/Object;"
+    "descriptor": "(Ljava/lang/Object;)Ljava/lang/Object;",
+    "target": "CoreUnix.getrlimit"
   },
-  "core_unix_getrusage": "CoreUnix.zero",
-  "core_unix_gettid": "CoreUnix.zero",
-  "core_unix_if_indextoname": "CoreUnix.zero",
-  "core_unix_iff_to_int": "CoreUnix.zero",
   "core_unix_inet4_addr_of_int32": {
-    "target": "CoreUnix.inet4_addr_of_int",
-    "descriptor": "(J)Ljava/lang/String;"
+    "descriptor": "(J)Ljava/lang/String;",
+    "target": "CoreUnix.inet4_addr_of_int"
   },
   "core_unix_inet4_addr_of_int63": {
-    "target": "CoreUnix.inet4_addr_of_int",
-    "descriptor": "(J)Ljava/lang/String;"
+    "descriptor": "(J)Ljava/lang/String;",
+    "target": "CoreUnix.inet4_addr_of_int"
   },
   "core_unix_inet4_addr_to_int32_exn": {
-    "target": "CoreUnix.inet4_addr_to_int",
-    "descriptor": "(Ljava/lang/Object;)J"
+    "descriptor": "(Ljava/lang/Object;)J",
+    "target": "CoreUnix.inet4_addr_to_int"
   },
   "core_unix_inet4_addr_to_int63_exn": {
-    "target": "CoreUnix.inet4_addr_to_int",
-    "descriptor": "(Ljava/lang/Object;)J"
+    "descriptor": "(Ljava/lang/Object;)J",
+    "target": "CoreUnix.inet4_addr_to_int"
   },
-  "core_unix_initgroups": "CoreUnix.zero",
-  "core_unix_mcast_get_loop": "CoreUnix.zero",
-  "core_unix_mcast_get_ttl": "CoreUnix.zero",
-  "core_unix_mcast_modify": "CoreUnix.zero",
-  "core_unix_mcast_set_ifname": "CoreUnix.zero",
-  "core_unix_mcast_set_loop": "CoreUnix.zero",
-  "core_unix_mcast_set_ttl": "CoreUnix.zero",
-  "core_unix_mkdtemp": "CoreUnix.zero",
-  "core_unix_mknod_stub": "CoreUnix.zero",
-  "core_unix_mkstemp": "CoreUnix.zero",
-  "core_unix_mlockall": "CoreUnix.zero",
-  "core_unix_munlockall": "CoreUnix.zero",
-  "core_unix_nice": "CoreUnix.zero",
-  "core_unix_pselect_stub": "CoreUnix.zero",
-  "core_unix_pthread_getcpuclockid": "CoreUnix.zero",
-  "core_unix_read_assume_fd_is_nonblocking_stub": "CoreUnix.zero",
-  "core_unix_readdir_ino_stub": "CoreUnix.zero",
-  "core_unix_realpath": "CoreUnix.zero",
-  "core_unix_remove": "CoreUnix.zero",
-  "core_unix_sched_setscheduler": "CoreUnix.zero",
-  "core_unix_setpwent": "CoreUnix.zero",
-  "core_unix_setrlimit": "CoreUnix.zero",
-  "core_unix_strptime": "CoreUnix.zero",
-  "core_unix_sync": "CoreUnix.zero",
-  "core_unix_sysconf": "CoreUnix.zero",
-  "core_unix_uname": "CoreUnix.zero",
-  "core_unix_unsetenv": "CoreUnix.zero",
-  "core_unix_wordexp": "CoreUnix.zero",
-  "core_unix_wordexp_make_flags": "CoreUnix.zero",
-  "core_unix_write_assume_fd_is_nonblocking_stub": "CoreUnix.zero",
-  "core_unix_writev_assume_fd_is_nonblocking_stub": "CoreUnix.zero",
-  "core_unix_writev_stub": "CoreUnix.zero",
-  "iobuf_recvmmsg_assume_fd_is_nonblocking_stub": "Iobuf.zero",
-  "iobuf_recvmmsg_ctx": "Iobuf.zero",
-  "iobuf_unsafe_pokef_double_bytecode": "Iobuf.zero",
   "unix_F_GETFL": {
-    "target": "CoreUnix.F_GETFL",
-    "descriptor": "(Ljava/lang/Object;)J"
+    "descriptor": "(Ljava/lang/Object;)J",
+    "target": "CoreUnix.F_GETFL"
   },
   "unix_F_SETFL": {
-    "target": "CoreUnix.F_SETFL",
-    "descriptor": "(Ljava/lang/Object;)J"
+    "descriptor": "(Ljava/lang/Object;)J",
+    "target": "CoreUnix.F_SETFL"
   },
   "unix_O_APPEND": {
-    "target": "CoreUnix.O_APPEND",
-    "descriptor": "(Ljava/lang/Object;)J"
+    "descriptor": "(Ljava/lang/Object;)J",
+    "target": "CoreUnix.O_APPEND"
   },
   "unix_O_ASYNC": {
-    "target": "CoreUnix.O_ASYNC",
-    "descriptor": "(Ljava/lang/Object;)J"
+    "descriptor": "(Ljava/lang/Object;)J",
+    "target": "CoreUnix.O_ASYNC"
   },
   "unix_O_CLOEXEC": {
-    "target": "CoreUnix.O_CLOEXEC",
-    "descriptor": "(Ljava/lang/Object;)J"
+    "descriptor": "(Ljava/lang/Object;)J",
+    "target": "CoreUnix.O_CLOEXEC"
   },
   "unix_O_CREAT": {
-    "target": "CoreUnix.O_CREAT",
-    "descriptor": "(Ljava/lang/Object;)J"
+    "descriptor": "(Ljava/lang/Object;)J",
+    "target": "CoreUnix.O_CREAT"
   },
   "unix_O_DIRECT": {
-    "target": "CoreUnix.O_DIRECT",
-    "descriptor": "(Ljava/lang/Object;)J"
+    "descriptor": "(Ljava/lang/Object;)J",
+    "target": "CoreUnix.O_DIRECT"
   },
   "unix_O_DIRECTORY": {
-    "target": "CoreUnix.O_DIRECTORY",
-    "descriptor": "(Ljava/lang/Object;)J"
+    "descriptor": "(Ljava/lang/Object;)J",
+    "target": "CoreUnix.O_DIRECTORY"
   },
   "unix_O_DSYNC": {
-    "target": "CoreUnix.O_DSYNC",
-    "descriptor": "(Ljava/lang/Object;)J"
+    "descriptor": "(Ljava/lang/Object;)J",
+    "target": "CoreUnix.O_DSYNC"
   },
   "unix_O_EXCL": {
-    "target": "CoreUnix.O_EXCL",
-    "descriptor": "(Ljava/lang/Object;)J"
+    "descriptor": "(Ljava/lang/Object;)J",
+    "target": "CoreUnix.O_EXCL"
   },
   "unix_O_NOATIME": {
-    "target": "CoreUnix.O_NOATIME",
-    "descriptor": "(Ljava/lang/Object;)J"
+    "descriptor": "(Ljava/lang/Object;)J",
+    "target": "CoreUnix.O_NOATIME"
   },
   "unix_O_NOCTTY": {
-    "target": "CoreUnix.O_NOCTTY",
-    "descriptor": "(Ljava/lang/Object;)J"
+    "descriptor": "(Ljava/lang/Object;)J",
+    "target": "CoreUnix.O_NOCTTY"
   },
   "unix_O_NOFOLLOW": {
-    "target": "CoreUnix.O_NOFOLLOW",
-    "descriptor": "(Ljava/lang/Object;)J"
+    "descriptor": "(Ljava/lang/Object;)J",
+    "target": "CoreUnix.O_NOFOLLOW"
   },
   "unix_O_NONBLOCK": {
-    "target": "CoreUnix.O_NONBLOCK",
-    "descriptor": "(Ljava/lang/Object;)J"
+    "descriptor": "(Ljava/lang/Object;)J",
+    "target": "CoreUnix.O_NONBLOCK"
   },
   "unix_O_RDONLY": {
-    "target": "CoreUnix.O_RDONLY",
-    "descriptor": "(Ljava/lang/Object;)J"
+    "descriptor": "(Ljava/lang/Object;)J",
+    "target": "CoreUnix.O_RDONLY"
   },
   "unix_O_RDWR": {
-    "target": "CoreUnix.O_RDWR",
-    "descriptor": "(Ljava/lang/Object;)J"
+    "descriptor": "(Ljava/lang/Object;)J",
+    "target": "CoreUnix.O_RDWR"
   },
   "unix_O_RSYNC": {
-    "target": "CoreUnix.O_RSYNC",
-    "descriptor": "(Ljava/lang/Object;)J"
+    "descriptor": "(Ljava/lang/Object;)J",
+    "target": "CoreUnix.O_RSYNC"
   },
   "unix_O_SYNC": {
-    "target": "CoreUnix.O_SYNC",
-    "descriptor": "(Ljava/lang/Object;)J"
+    "descriptor": "(Ljava/lang/Object;)J",
+    "target": "CoreUnix.O_SYNC"
   },
   "unix_O_TRUNC": {
-    "target": "CoreUnix.O_TRUNC",
-    "descriptor": "(Ljava/lang/Object;)J"
+    "descriptor": "(Ljava/lang/Object;)J",
+    "target": "CoreUnix.O_TRUNC"
   },
   "unix_O_WRONLY": {
-    "target": "CoreUnix.O_WRONLY",
-    "descriptor": "(Ljava/lang/Object;)J"
+    "descriptor": "(Ljava/lang/Object;)J",
+    "target": "CoreUnix.O_WRONLY"
   },
-  "unix_accept": "Unix.zero",
-  "unix_access": "Unix.zero",
-  "unix_alarm": "Unix.zero",
-  "unix_bind": "Unix.zero",
-  "unix_chdir": "Unix.zero",
-  "unix_chmod": "Unix.zero",
-  "unix_chown": "Unix.zero",
-  "unix_chroot": "Unix.zero",
-  "unix_clear_close_on_exec": "Unix.zero",
-  "unix_clear_nonblock": "Unix.zero",
-  "unix_close": "Unix.zero",
-  "unix_closedir": "Unix.zero",
-  "unix_connect": "Unix.zero",
-  "unix_create_error_checking_mutex": "Unix.zero",
-  "unix_dup": { "target": "Unix.dupStub", "descriptor": "(Ljava/lang/Object;Ljava/lang/Object;)J" },
-  "unix_dup2": "Unix.zero",
+  "unix_dup": {
+    "descriptor": "(Ljava/lang/Object;Ljava/lang/Object;)J",
+    "target": "Unix.dupStub"
+  },
   "unix_environment": {
-    "target": "Unix.environment",
-    "descriptor": "(Ljava/lang/Object;)LBlock;"
+    "descriptor": "(Ljava/lang/Object;)LBlock;",
+    "target": "Unix.environment"
   },
   "unix_environment_unsafe": {
-    "target": "Unix.environment",
-    "descriptor": "(Ljava/lang/Object;)LBlock;"
+    "descriptor": "(Ljava/lang/Object;)LBlock;",
+    "target": "Unix.environment"
   },
-  "unix_error_message": "Unix.zero",
-  "unix_execv": "Unix.zero",
-  "unix_execve": "Unix.zero",
-  "unix_execvp": "Unix.zero",
-  "unix_execvpe": "Unix.zero",
-  "unix_exit": "Unix.zero",
-  "unix_fchmod": "Unix.zero",
-  "unix_fchown": "Unix.zero",
-  "unix_fork": { "target": "Unix.forkStub", "descriptor": "(Ljava/lang/Object;)J" },
-  "unix_fstat": "Unix.zero",
-  "unix_fstat_64": "Unix.zero",
-  "unix_fsync": "Unix.zero",
-  "unix_ftruncate": "Unix.zero",
-  "unix_ftruncate_64": "Unix.zero",
-  "unix_getaddrinfo": "Unix.zero",
-  "unix_getcwd": "Unix.zero",
+  "unix_fork": {
+    "descriptor": "(Ljava/lang/Object;)J",
+    "target": "Unix.forkStub"
+  },
   "unix_getegid": {
-    "target": "Unix.getegid",
-    "descriptor": "(Ljava/lang/Object;)J"
+    "descriptor": "(Ljava/lang/Object;)J",
+    "target": "Unix.getegid"
   },
   "unix_geteuid": {
-    "target": "Unix.geteuid",
-    "descriptor": "(Ljava/lang/Object;)J"
+    "descriptor": "(Ljava/lang/Object;)J",
+    "target": "Unix.geteuid"
   },
   "unix_getgid": {
-    "target": "Unix.getgid",
-    "descriptor": "(Ljava/lang/Object;)J"
+    "descriptor": "(Ljava/lang/Object;)J",
+    "target": "Unix.getgid"
   },
-  "unix_getgrgid": "Unix.zero",
-  "unix_getgrnam": "Unix.zero",
-  "unix_getgroups": "Unix.zero",
-  "unix_gethostbyaddr": "Unix.zero",
-  "unix_gethostbyname": "Unix.zero",
   "unix_gethostname": {
-    "target": "Unix.gethostname",
-    "descriptor": "(Ljava/lang/Object;)Ljava/lang/String;"
+    "descriptor": "(Ljava/lang/Object;)Ljava/lang/String;",
+    "target": "Unix.gethostname"
   },
-  "unix_getitimer": "Unix.zero",
-  "unix_getlogin": "Unix.zero",
-  "unix_getnameinfo": "Unix.zero",
-  "unix_getpeername": "Unix.zero",
   "unix_getpid": {
-    "target": "Unix.getpid",
-    "descriptor": "(Ljava/lang/Object;)J"
+    "descriptor": "(Ljava/lang/Object;)J",
+    "target": "Unix.getpid"
   },
   "unix_getppid": {
-    "target": "Unix.getppid",
-    "descriptor": "(Ljava/lang/Object;)J"
+    "descriptor": "(Ljava/lang/Object;)J",
+    "target": "Unix.getppid"
   },
-  "unix_getprotobyname": "Unix.zero",
-  "unix_getprotobynumber": "Unix.zero",
-  "unix_getpwnam": "Unix.zero",
-  "unix_getpwuid": "Unix.zero",
-  "unix_getservbyname": "Unix.zero",
-  "unix_getservbyport": "Unix.zero",
-  "unix_getsockname": "Unix.zero",
-  "unix_getsockopt": "Unix.zero",
   "unix_gettimeofday": {
-    "target": "Unix.gettimeofday",
-    "descriptor": "(Ljava/lang/Object;)D"
+    "descriptor": "(Ljava/lang/Object;)D",
+    "target": "Unix.gettimeofday"
   },
   "unix_getuid": {
-    "target": "Unix.getuid",
-    "descriptor": "(Ljava/lang/Object;)J"
+    "descriptor": "(Ljava/lang/Object;)J",
+    "target": "Unix.getuid"
   },
-  "unix_gmtime": "Unix.zero",
-  "unix_has_symlink": "Unix.zero",
-  "unix_inchannel_of_filedescr": { "target": "Unix.inchannelOfFiledescr", "descriptor": "(Ljava/lang/Object;)LChannel;" },
-  "unix_inet_addr_of_string": "Unix.zero",
-  "unix_initgroups": "Unix.zero",
-  "unix_isatty": "Unix.zero",
-  "unix_kill": "Unix.zero",
-  "unix_link": "Unix.zero",
-  "unix_listen": "Unix.zero",
-  "unix_localtime": "Unix.zero",
-  "unix_lockf": "Unix.zero",
-  "unix_lseek": "Unix.zero",
-  "unix_lseek_64": "Unix.zero",
-  "unix_lstat": "Unix.zero",
-  "unix_lstat_64": "Unix.zero",
-  "unix_mkdir": "Unix.zero",
-  "unix_mkfifo": "Unix.zero",
-  "unix_mktime": "Unix.zero",
-  "unix_nice": "Unix.zero",
-  "unix_open": "Unix.zero",
-  "unix_opendir": "Unix.zero",
-  "unix_outchannel_of_filedescr": { "target": "Unix.outchannelOfFiledescr", "descriptor": "(Ljava/lang/Object;)LChannel;" },
-  "unix_pipe": { "target": "Unix.pipeStub", "descriptor": "(Ljava/lang/Object;Ljava/lang/Object;)LBlock;" },
-  "unix_putenv": "Unix.zero",
-  "unix_read": "Unix.zero",
-  "unix_readdir": "Unix.zero",
-  "unix_readlink": "Unix.zero",
-  "unix_realpath": "Unix.zero",
-  "unix_recv": "Unix.zero",
-  "unix_recvfrom": "Unix.zero",
-  "unix_rename": "Unix.zero",
-  "unix_rewinddir": "Unix.zero",
-  "unix_rmdir": "Unix.zero",
-  "unix_select": "Unix.zero",
-  "unix_send": "Unix.zero",
-  "unix_sendto": "Unix.zero",
-  "unix_set_close_on_exec": "Unix.zero",
-  "unix_set_nonblock": "Unix.zero",
-  "unix_setgid": "Unix.zero",
-  "unix_setgroups": "Unix.zero",
-  "unix_setitimer": "Unix.zero",
-  "unix_setsid": "Unix.zero",
-  "unix_setsockopt": "Unix.zero",
-  "unix_setuid": "Unix.zero",
-  "unix_shutdown": "Unix.zero",
-  "unix_sigpending": "Unix.zero",
-  "unix_sigprocmask": "Unix.zero",
-  "unix_sigsuspend": "Unix.zero",
-  "unix_single_write": "Unix.zero",
-  "unix_sleep": "Unix.zero",
-  "unix_socket": "Unix.zero",
-  "unix_socketpair": "Unix.zero",
-  "unix_spawn": "Unix.zero",
-  "unix_stat": "Unix.zero",
-  "unix_stat_64": "Unix.zero",
-  "unix_string_of_inet_addr": "Unix.zero",
-  "unix_symlink": "Unix.zero",
-  "unix_tcdrain": "Unix.zero",
-  "unix_tcflow": "Unix.zero",
-  "unix_tcflush": "Unix.zero",
-  "unix_tcgetattr": "Unix.zero",
-  "unix_tcsendbreak": "Unix.zero",
-  "unix_tcsetattr": "Unix.zero",
+  "unix_inchannel_of_filedescr": {
+    "descriptor": "(Ljava/lang/Object;)LChannel;",
+    "target": "Unix.inchannelOfFiledescr"
+  },
+  "unix_outchannel_of_filedescr": {
+    "descriptor": "(Ljava/lang/Object;)LChannel;",
+    "target": "Unix.outchannelOfFiledescr"
+  },
+  "unix_pipe": {
+    "descriptor": "(Ljava/lang/Object;Ljava/lang/Object;)LBlock;",
+    "target": "Unix.pipeStub"
+  },
   "unix_time": {
-    "target": "Unix.time",
-    "descriptor": "(Ljava/lang/Object;)J"
+    "descriptor": "(Ljava/lang/Object;)J",
+    "target": "Unix.time"
   },
-  "unix_times": "Unix.zero",
-  "unix_truncate": "Unix.zero",
-  "unix_truncate_64": "Unix.zero",
-  "unix_umask": "Unix.zero",
-  "unix_unlink": "Unix.zero",
-  "unix_utimes": "Unix.zero",
-  "unix_wait": "Unix.zero",
-  "unix_waitpid": { "target": "Unix.waitpidStub", "descriptor": "(Ljava/lang/Object;Ljava/lang/Object;)LBlock;" },
-  "unix_write": "Unix.zero"
+  "unix_waitpid": {
+    "descriptor": "(Ljava/lang/Object;Ljava/lang/Object;)LBlock;",
+    "target": "Unix.waitpidStub"
+  }
 }
