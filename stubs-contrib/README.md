@@ -50,6 +50,37 @@ dune rule that walks those to produce a manifest for
 `java_of_ocaml`. That wrapper-library pattern doesn't require
 anything beyond what the compiler already supports.
 
+## How these libraries enter typical link
+
+For reference during the upcoming consistency passes — each
+manifest's primitives come in through specific transitive deps:
+
+- **`integers`** — enters via `ctypes` (every `ctypes`-using
+  library in a large test binary depends on `integers` for typed unsigned
+  arithmetic). Upstream JS runtime:
+  [`integers_stubs_js`][integers-stubs-js]
+  (Jane Street). User projects that need it typically vendor
+  an upstream `runtime.js` — comparing our Java
+  against that file is the primary consistency check for this
+  directory.
+
+- **`ctypes`** — enters via
+  a platform-specific module, which uses
+  `Ctypes.Foreign` to call `_NSGetExecutablePath` on macOS for
+  executable-path discovery. There is no upstream JS runtime for
+  `ctypes` (ctypes itself is forbidden in downstream JS-target dune configs);
+  our Java stubs are the only implementation and the consistency
+  check is against the C originals under
+  `~/.opam/…/.opam-switch/sources/ctypes.0.17.1/src/`.
+
+- **`core_unix`** / **`core_linux`** / **`bigstring`** /
+  **`iobuf`** — enter via Core and Async throughout a large test binary. No
+  upstream JS runtime. Consistency against the C sources under
+  `~/.opam/…/sources/core_unix.vX.Y.Z/` and
+  `~/.opam/…/sources/core.vX.Y.Z/`.
+
+[integers-stubs-js]: https://github.com/janestreet/integers_stubs_js
+
 ## Usage example — compiling a caller executable
 
 A large test binary transitively depends on `integers` + `ctypes` (the latter via
