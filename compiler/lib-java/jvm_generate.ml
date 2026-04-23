@@ -4168,12 +4168,31 @@ and emit_ccall_named ctx name args =
        Kind.K_int
      | _ -> raise (Unsupported "caml_string_compare arity"))
   | "caml_set_oo_id" ->
-    (* [caml_set_oo_id block] sets field 1 of [block] to a fresh
-       OO-id. The legacy emitter uses a static counter. Skip the
-       side-effect for IR path: return the block unchanged. *)
+    (* [caml_set_oo_id block] stores a fresh OO-id in [block]'s
+       field 1 and returns the block. Matches OCaml's
+       [runtime/obj.c:319-323]; we use the compile-time counter
+       that [caml_fresh_oo_id] also feeds from, so the two
+       primitives hand out consistent ids. *)
     (match args with
      | [ Pv b ] ->
+       let n = !(ctx.fresh_oo_id) in
+       ctx.fresh_oo_id := n + 1;
        emit_load ctx b;
+       Jvm.Code.checkcast ctx.code "Block";
+       Jvm.Code.dup ctx.code;
+       Jvm.Code.getfield
+         ctx.code
+         ~class_:"Block"
+         ~field:"fields"
+         ~descriptor:"[Ljava/lang/Object;";
+       Jvm.Code.ldc_int ctx.code 1;
+       Jvm.Code.ldc_long ctx.code (Int64.of_int n);
+       Jvm.Code.invokestatic
+         ctx.code
+         ~class_:"java/lang/Long"
+         ~method_:"valueOf"
+         ~descriptor:"(J)Ljava/lang/Long;";
+       Jvm.Code.aastore ctx.code;
        Kind.K_obj
      | _ -> raise (Unsupported "caml_set_oo_id arity"))
   | "caml_ml_open_descriptor_out" ->
@@ -4982,25 +5001,54 @@ let emit_prim ctx (p : Code.prim) (args : Code.prim_arg list) : Kind.kind =
       ~descriptor:"(Ljava/lang/Object;I)I";
     Jvm.Code.i2l ctx.code;
     K_int
-  | Extern ("getmethod" | "getpubmet" | "getdynmet"), _ ->
-    (* OCaml's OO dispatch is not supported. Throw at the lookup
-       site; programs that don't reach these ops at runtime load
-       cleanly. the test binary-sized programs with ppxlib visitors can
-       still hit this at init time (astlib's AST-version
-       migration uses visitor objects that are instantiated and
-       invoked from some module's toplevel). Full OO support
-       would take a ~one-off effort in a follow-up. *)
-    Jvm.Code.new_ ctx.code "java/lang/UnsupportedOperationException";
-    Jvm.Code.dup ctx.code;
-    Jvm.Code.ldc_string ctx.code "OCaml objects / methods are not supported";
-    Jvm.Code.invokespecial
+  | Extern "getmethod", [ a; obj ] ->
+    (* GETMETHOD: static label. Parse_bytecode emits args as
+       [label; obj]; emit [obj.fields[0].fields[label]]. *)
+    let _ = emit_prim_arg ctx obj in
+    Jvm.Code.checkcast ctx.code "Block";
+    Jvm.Code.getfield
       ctx.code
-      ~class_:"java/lang/UnsupportedOperationException"
-      ~method_:"<init>"
-      ~descriptor:"(Ljava/lang/String;)V";
-    Jvm.Code.athrow ctx.code;
-    Jvm.Code.aconst_null ctx.code;
+      ~class_:"Block"
+      ~field:"fields"
+      ~descriptor:"[Ljava/lang/Object;";
+    Jvm.Code.ldc_int ctx.code 0;
+    Jvm.Code.aaload ctx.code;            (* method table block *)
+    Jvm.Code.checkcast ctx.code "Block";
+    Jvm.Code.getfield
+      ctx.code
+      ~class_:"Block"
+      ~field:"fields"
+      ~descriptor:"[Ljava/lang/Object;";
+    let ka = emit_prim_arg ctx a in
+    ensure_int ctx ka;
+    Jvm.Code.l2i ctx.code;
+    Jvm.Code.aaload ctx.code;
     K_obj
+  | Extern "getpubmet", [ obj; Pc (Int tag) ] ->
+    (* GETPUBMET: static tag. Binary-search via the runtime
+       helper. *)
+    let _ = emit_prim_arg ctx obj in
+    Jvm.Code.ldc_long ctx.code (Int64.of_int tag);
+    Jvm.Code.invokestatic
+      ctx.code
+      ~class_:"Ocaml"
+      ~method_:"getPublicMethod"
+      ~descriptor:"(Ljava/lang/Object;J)Ljava/lang/Object;";
+    K_obj
+  | Extern "getdynmet", [ tag; obj ] ->
+    (* GETDYNMET: dynamic tag. Same helper, runtime operand.
+       Parse_bytecode emits args as [tag; obj]. *)
+    let _ = emit_prim_arg ctx obj in
+    let kt = emit_prim_arg ctx tag in
+    ensure_int ctx kt;
+    Jvm.Code.invokestatic
+      ctx.code
+      ~class_:"Ocaml"
+      ~method_:"getPublicMethod"
+      ~descriptor:"(Ljava/lang/Object;J)Ljava/lang/Object;";
+    K_obj
+  | Extern ("getmethod" | "getpubmet" | "getdynmet"), _ ->
+    raise (Unsupported "getmethod/getpubmet/getdynmet arity")
   | Extern "alloc_block", [ Pc (Int tag); Pc (Int n) ] ->
     (* Allocate a [Block] of the given tag and size with every
        field initialised to [null]. [Block_preallocation] emits

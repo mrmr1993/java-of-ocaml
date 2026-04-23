@@ -53,6 +53,49 @@ public final class Ocaml {
         return new Block(0, fields);
     }
 
+    // -------- OO dispatch --------
+
+    /**
+     * Look up a method closure on an OCaml object by its hash tag.
+     * Mirrors [caml_get_public_method] in OCaml's [runtime/obj.c]:
+     *
+     *   meths = obj.fields[0]                 // method-table Block
+     *   li = 3, hi = meths.fields[0]          // search window
+     *   while li < hi:
+     *     mi = ((li+hi) >> 1) | 1             // guarantee odd mi
+     *     if tag < meths.fields[mi]: hi = mi-2
+     *     else:                       li = mi
+     *   return meths.fields[li-1]
+     *
+     * Method tables store alternating (method, tag) pairs starting
+     * at index 2, sorted by tag. The `| 1` keeps [mi] pointing at
+     * a tag slot; [li-1] is then the matching method slot.
+     *
+     * Upstream's interp.c carries an inline cache (a PC-local field
+     * mutated on hit). We skip it — correctness doesn't depend on
+     * it, and a profiler can flag the extra binary search later.
+     */
+    public static Object getPublicMethod(Object obj, long tag) {
+        Block o = (Block) obj;
+        Block meths = (Block) o.fields[0];
+        // Upstream's [Field(meths,0)] reads [len] as an OCaml-tagged
+        // integer: physically `(len << 1) | 1`. Our runtime stores
+        // OCaml ints as plain [Long]s (no tag bit), so we
+        // reconstruct the tagged form to match the algorithm's
+        // bounds expectations — otherwise the binary search
+        // collapses for any class with more than one public method.
+        long len = Block.asLong(meths.fields[0]);
+        int hi = (int) ((len << 1) | 1);
+        int li = 3;
+        while (li < hi) {
+            int mi = ((li + hi) >> 1) | 1;
+            long t = Block.asLong(meths.fields[mi]);
+            if (tag < t) hi = mi - 2;
+            else li = mi;
+        }
+        return meths.fields[li - 1];
+    }
+
     // -------- sentinels --------
 
     public static final Object unit = Long.valueOf(0L);

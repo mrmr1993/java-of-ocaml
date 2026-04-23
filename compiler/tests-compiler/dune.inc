@@ -384,6 +384,18 @@
   (pps ppx_expect)))
 
 (library
+ ;; compiler/tests-compiler/objects.ml
+ (name objects_15)
+ (enabled_if true)
+ (modules objects)
+ (libraries unix str java_of_ocaml_expect_tests_helper)
+ (inline_tests
+  (enabled_if true))
+ (flags (:standard -open Java_of_ocaml_expect_tests_helper))
+ (preprocess
+  (pps ppx_expect)))
+
+(library
  ;; compiler/tests-compiler/prim_cost.ml
  (name prim_cost_15)
  (enabled_if true)
