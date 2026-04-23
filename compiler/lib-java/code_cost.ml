@@ -78,7 +78,8 @@ let extern_cost = function
   | "caml_fresh_oo_id" -> 10
   | "caml_alloc_dummy" | "caml_alloc_dummy_function"
   | "caml_alloc_dummy_float" -> 16
-  | "caml_update_dummy" -> 40  (* instanceof dispatch w/ two paths *)
+  | "caml_update_dummy" -> 54  (* instanceof dispatch w/ two paths,
+                                  Block branch copies tag + fields *)
   (* Float primitives — most dispatch to one JVM op + box. *)
   | "caml_add_float" | "caml_sub_float" | "caml_mul_float"
   | "caml_div_float" | "caml_neg_float" | "caml_abs_float" -> 10

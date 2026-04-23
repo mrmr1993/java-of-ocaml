@@ -4098,10 +4098,13 @@ and emit_ccall_named ctx name args =
          [target] field to [src]; subsequent applyN on the dummy
          forwards there.
        - [Block] (from [caml_alloc_dummy] / [caml_alloc_dummy_float]):
-         arraycopy [src.fields] into [dst.fields], leaving the tag
-         at its [caml_alloc_dummy] value of 0. This covers the
-         common recursive-value ([let rec xs = x :: xs]) and
-         recursive-module cases where [src] is also a Block.
+         copy [src.tag] into [dst.tag] and arraycopy [src.fields]
+         into [dst.fields]. The tag matters: recursive [lazy]
+         values allocate a dummy then update it with a freshly
+         built [Block(lazy_tag=246, …)]; if the tag isn't carried
+         over, [Lazy.force] takes the [t <> lazy_tag → return as-is]
+         branch and downstream code dereferences the still-lazy
+         block as the supposed forced value.
 
        We pick the branch via an [instanceof DummyClosure] check
        rather than emitting two different prim calls from the front
@@ -4129,8 +4132,21 @@ and emit_ccall_named ctx name args =
          ~field:"target"
          ~descriptor:"LClosure;";
        Jvm.Code.goto ctx.code end_lbl;
-       (* else copy src.fields into dst.fields *)
+       (* else copy src's tag and fields into dst *)
        Jvm.Code.mark_label ctx.code not_dummy_lbl;
+       (* dst.tag := src.tag *)
+       as_block dst;
+       as_block src;
+       Jvm.Code.getfield
+         ctx.code
+         ~class_:"Block"
+         ~field:"tag"
+         ~descriptor:"I";
+       Jvm.Code.putfield
+         ctx.code
+         ~class_:"Block"
+         ~field:"tag"
+         ~descriptor:"I";
        as_block dst;
        Jvm.Code.getfield
          ctx.code

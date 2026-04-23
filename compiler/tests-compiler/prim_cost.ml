@@ -246,7 +246,7 @@ let%expect_test "primitive cost table vs real emission" =
     caml_alloc_dummy                         est= 26 act= 19 delta= -7
     caml_alloc_dummy_function                est= 30 act= 10 delta=-20
     caml_alloc_dummy_float                   est= 26 act= 19 delta= -7
-    caml_update_dummy                        est= 54 act= 52 delta= -2
+    caml_update_dummy                        est= 68 act= 66 delta= -2
     caml_add_float                           est= 24 act= 21 delta= -3
     caml_sub_float                           est= 24 act= 21 delta= -3
     caml_mul_float                           est= 24 act= 21 delta= -3
