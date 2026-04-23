@@ -95,15 +95,19 @@ public final class Unix {
     // with enough slots for the widest call site so destructuring
     // reads [Long 0] for every component.
 
-    /** [unix_pipe cloexec ()]: returns (read_fd, write_fd). Called
-     *  as 2-arg C_CALL2 because the OCaml declaration widens to
-     *  [?cloexec:bool -> unit -> _]. Unique fds each call so
-     *  [popen_processes]-style hashtables keyed by the derived
-     *  channel don't alias across pipes. */
+    /** [unix_pipe cloexec ()]: returns (read_fd, write_fd) backed
+     *  by a real java.nio.channels.Pipe so subsequent read / write
+     *  on the fds works. Async uses these for inter-thread
+     *  wakeups. */
     public static Block pipeStub(Object cloexec, Object unit) {
-        long rd = Channel.allocFd();
-        long wr = Channel.allocFd();
-        return new Block(0, new Object[] { Long.valueOf(rd), Long.valueOf(wr) });
+        try {
+            int[] fds = Channel.unixPipe();
+            return new Block(0, new Object[] {
+                Long.valueOf(fds[0]), Long.valueOf(fds[1]),
+            });
+        } catch (java.io.IOException e) {
+            throw Ocaml.raiseUnixError(15L, "pipe", ""); // EMFILE-ish
+        }
     }
 
     /** [unix_dup]: returns a new fd. We hand back a value >= 3 so
@@ -431,6 +435,60 @@ public final class Unix {
             return Channel.unixRead((int) fd, buf, (int) pos, (int) len);
         } catch (java.io.IOException e) {
             throw Ocaml.raiseUnixError(5L, "read", "");
+        }
+    }
+
+    /** [core_unix_{read,write}_assume_fd_is_nonblocking_stub]: same
+     *  semantics as the blocking variants for our purposes — the
+     *  underlying Java InputStream.read returns 0/EOF rather than
+     *  blocking when nothing is ready (we don't actually have
+     *  non-blocking IO yet). Async treats the read returning 0 as
+     *  "nothing yet" and reschedules. */
+    public static long read_nonblocking(long fd, Object buf, long pos, long len) {
+        return read(fd, buf, pos, len);
+    }
+
+    public static long write_nonblocking(long fd, Object buf, long pos, long len) {
+        return write(fd, buf, pos, len);
+    }
+
+    /** [Unix.error_message err] - a human-readable message for a
+     *  Unix.error variant tag. */
+    public static String error_message(Object errVariant) {
+        long tag;
+        if (errVariant instanceof Long) tag = ((Long) errVariant).longValue();
+        else if (errVariant instanceof Block) {
+            Block b = (Block) errVariant;
+            // EUNKNOWNERR of int — print its int payload
+            return "Unknown error " + Block.asLong(b.fields[0]);
+        }
+        else return "Unknown error";
+        switch ((int) tag) {
+            case 0:  return "Argument list too long";
+            case 1:  return "Permission denied";
+            case 2:  return "Resource temporarily unavailable";
+            case 3:  return "Bad file descriptor";
+            case 5:  return "No child processes";
+            case 6:  return "Resource deadlock avoided";
+            case 8:  return "File exists";
+            case 11: return "Interrupted system call";
+            case 12: return "Invalid argument";
+            case 13: return "Input/output error";
+            case 14: return "Is a directory";
+            case 15: return "Too many open files";
+            case 17: return "File name too long";
+            case 18: return "Too many open files in system";
+            case 20: return "No such file or directory";
+            case 23: return "Out of memory";
+            case 24: return "No space left on device";
+            case 25: return "Function not implemented";
+            case 26: return "Not a directory";
+            case 30: return "Operation not permitted";
+            case 31: return "Broken pipe";
+            case 32: return "Numerical result out of range";
+            case 35: return "No such process";
+            case 37: return "Resource temporarily unavailable";
+            default: return "Unix.error tag " + tag;
         }
     }
 

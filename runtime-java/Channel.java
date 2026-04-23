@@ -177,6 +177,21 @@ public class Channel {
    *   10=O_SYNC,  11=O_RSYNC, 12=O_SHARE_DELETE, 13=O_CLOEXEC,
    *   14=O_KEEPEXEC.
    *  Returns an int fd registered in [FDS]. */
+  /** [Unix.pipe ()] - returns [|read_fd, write_fd|] for an in-process
+   *  pipe. java.nio.channels.Pipe gives us a Source/Sink pair we can
+   *  register under fresh int fds. */
+  public static int[] unixPipe() throws IOException {
+    java.nio.channels.Pipe p = java.nio.channels.Pipe.open();
+    int rfd, wfd;
+    synchronized (FDS) {
+      rfd = nextFd++;
+      wfd = nextFd++;
+      FDS.put(rfd, java.nio.channels.Channels.newInputStream(p.source()));
+      FDS.put(wfd, java.nio.channels.Channels.newOutputStream(p.sink()));
+    }
+    return new int[] { rfd, wfd };
+  }
+
   /** [Unix.write fd buf pos len]. Looks up [fd] in [FDS]; if it's
    *  a writable stream, writes the slice. Returns bytes written. */
   public static int unixWrite(int fd, Object bufObj, int pos, int len) throws IOException {

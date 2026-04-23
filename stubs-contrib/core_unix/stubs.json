@@ -175,6 +175,14 @@
     "descriptor": "(Ljava/lang/Object;)J",
     "target": "CoreUnix.inet4_addr_to_int"
   },
+  "core_unix_read_assume_fd_is_nonblocking_stub": {
+    "descriptor": "(JLjava/lang/Object;JJ)J",
+    "target": "Unix.read_nonblocking"
+  },
+  "core_unix_write_assume_fd_is_nonblocking_stub": {
+    "descriptor": "(JLjava/lang/Object;JJ)J",
+    "target": "Unix.write_nonblocking"
+  },
   "dump_core_on_job_delay_dump_core": {
     "descriptor": "(Ljava/lang/Object;)J",
     "target": "Unix.dump_core_on_job_delay_dump_core"
@@ -306,6 +314,10 @@
   "unix_environment_unsafe": {
     "descriptor": "(Ljava/lang/Object;)LBlock;",
     "target": "Unix.environment"
+  },
+  "unix_error_message": {
+    "descriptor": "(Ljava/lang/Object;)Ljava/lang/String;",
+    "target": "Unix.error_message"
   },
   "unix_fork": {
     "descriptor": "(Ljava/lang/Object;)J",
