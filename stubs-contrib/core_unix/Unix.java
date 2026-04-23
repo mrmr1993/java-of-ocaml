@@ -79,6 +79,29 @@ public final class Unix {
         return new Block(0, new Object[0]);
     }
 
+    // ==== tuple-returning syscall stubs ================================
+    // Some Unix primitives return tuples / records that OCaml code
+    // immediately destructures. Returning [Long 0] causes a
+    // "Long cannot be cast to Block" the moment the caller does
+    // [let (a, b) = ...]. Supply a Block(tag=0) of zero-Long fields
+    // with enough slots for the widest call site so destructuring
+    // reads [Long 0] for every component.
+
+    /** [unix_pipe cloexec ()]: returns (read_fd, write_fd). Called
+     *  as 2-arg C_CALL2 because the OCaml declaration widens to
+     *  [?cloexec:bool -> unit -> _]. */
+    public static Block pipeStub(Object cloexec, Object unit) {
+        return new Block(0, new Object[] { Long.valueOf(0L), Long.valueOf(0L) });
+    }
+
+    /** [unix_dup]: returns a new fd. We hand back a value >= 3 so
+     *  code like [Unix.file_descr_not_standard] (which recurses
+     *  until [fd >= 3]) terminates — a 0-returning stub would
+     *  infinite-loop at init. */
+    public static long dupStub(Object cloexec, Object fd) {
+        return 3L;
+    }
+
     // ==== zero-returning syscall stubs =================================
 
     public static Object zero()                                       { return ZERO; }

@@ -325,7 +325,7 @@
   "unix_closedir": "Unix.zero",
   "unix_connect": "Unix.zero",
   "unix_create_error_checking_mutex": "Unix.zero",
-  "unix_dup": "Unix.zero",
+  "unix_dup": { "target": "Unix.dupStub", "descriptor": "(Ljava/lang/Object;Ljava/lang/Object;)J" },
   "unix_dup2": "Unix.zero",
   "unix_environment": {
     "target": "Unix.environment",
@@ -422,7 +422,7 @@
   "unix_open": "Unix.zero",
   "unix_opendir": "Unix.zero",
   "unix_outchannel_of_filedescr": "Unix.zero",
-  "unix_pipe": "Unix.zero",
+  "unix_pipe": { "target": "Unix.pipeStub", "descriptor": "(Ljava/lang/Object;Ljava/lang/Object;)LBlock;" },
   "unix_putenv": "Unix.zero",
   "unix_read": "Unix.zero",
   "unix_readdir": "Unix.zero",
