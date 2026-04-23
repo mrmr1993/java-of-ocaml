@@ -211,7 +211,9 @@ public class Channel {
   }
 
   /** [Unix.read fd buf pos len]. Looks up [fd] in [FDS]; reads up
-   *  to [len] bytes into the buffer. Returns bytes read. */
+   *  to [len] bytes into the buffer. Returns bytes read. Throws
+   *  IOException if no data available (caller should map to EAGAIN
+   *  for non-blocking semantics). */
   public static int unixRead(int fd, Object bufObj, int pos, int len) throws IOException {
     Object stream;
     synchronized (FDS) { stream = FDS.get(fd); }
@@ -219,9 +221,35 @@ public class Channel {
     if (!(stream instanceof InputStream)) {
       throw new IOException("fd " + fd + " is not readable");
     }
+    InputStream in = (InputStream) stream;
     byte[] tmp = new byte[len];
-    int n = ((InputStream) stream).read(tmp, 0, len);
-    if (n <= 0) return 0;
+    int n = in.read(tmp, 0, len);
+    if (n < 0) return 0;        // EOF
+    if (n == 0) return 0;
+    Bytes b = (Bytes) bufObj;
+    for (int i = 0; i < n; i++) b.sb.setCharAt(pos + i, (char) (tmp[i] & 0xFF));
+    return n;
+  }
+
+  /** [Unix.read] non-blocking variant: returns -1 to signal "no data
+   *  ready, EAGAIN" without blocking. Caller should map to a
+   *  Unix_error(EAGAIN, ...) raise. */
+  public static int unixReadNonblocking(int fd, Object bufObj, int pos, int len)
+      throws IOException {
+    Object stream;
+    synchronized (FDS) { stream = FDS.get(fd); }
+    if (stream == null) throw new IOException("bad fd " + fd);
+    if (!(stream instanceof InputStream)) {
+      throw new IOException("fd " + fd + " is not readable");
+    }
+    InputStream in = (InputStream) stream;
+    int avail = in.available();
+    if (avail <= 0) return -1;
+    int toRead = Math.min(len, avail);
+    byte[] tmp = new byte[toRead];
+    int n = in.read(tmp, 0, toRead);
+    if (n < 0) return 0;
+    if (n == 0) return -1;
     Bytes b = (Bytes) bufObj;
     for (int i = 0; i < n; i++) b.sb.setCharAt(pos + i, (char) (tmp[i] & 0xFF));
     return n;

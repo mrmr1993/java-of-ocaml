@@ -337,7 +337,18 @@ public final class Unix {
     // events, retry next cycle" and just keeps looping.
     public static Block select(Object reads, Object writes, Object excepts,
                                double timeout) {
-        Object empty = Long.valueOf(0L); // []
+        // Honour the timeout so the Async loop doesn't busy-spin
+        // burning 100% CPU. Negative timeout = block indefinitely
+        // (we cap at 1s so the JVM can still process signals etc.);
+        // 0 = poll, return immediately; positive = sleep that long
+        // before reporting "nothing ready".
+        long ms;
+        if (timeout < 0)        ms = 1000L;
+        else if (timeout == 0)  ms = 1L;   // tiny sleep to avoid CPU burn
+        else                    ms = Math.max(1L, (long) (timeout * 1000.0));
+        try { Thread.sleep(ms); }
+        catch (InterruptedException e) { Thread.currentThread().interrupt(); }
+        Object empty = Long.valueOf(0L);
         return new Block(0, new Object[] { empty, empty, empty });
     }
 
@@ -438,14 +449,20 @@ public final class Unix {
         }
     }
 
-    /** [core_unix_{read,write}_assume_fd_is_nonblocking_stub]: same
-     *  semantics as the blocking variants for our purposes — the
-     *  underlying Java InputStream.read returns 0/EOF rather than
-     *  blocking when nothing is ready (we don't actually have
-     *  non-blocking IO yet). Async treats the read returning 0 as
-     *  "nothing yet" and reschedules. */
+    /** [core_unix_read_assume_fd_is_nonblocking_stub]: poll the fd via
+     *  InputStream.available; raise Unix_error(EAGAIN) when no data
+     *  ready. Returning 0 instead would tell Async "EOF, pipe
+     *  closed" and the scheduler permanently de-registers the fd. */
     public static long read_nonblocking(long fd, Object buf, long pos, long len) {
-        return read(fd, buf, pos, len);
+        try {
+            int n = Channel.unixReadNonblocking((int) fd, buf, (int) pos, (int) len);
+            if (n < 0) {
+                throw Ocaml.raiseUnixError(2L, "read", ""); // EAGAIN tag = 2
+            }
+            return n;
+        } catch (java.io.IOException e) {
+            throw Ocaml.raiseUnixError(3L, "read", "");     // EBADF tag = 3
+        }
     }
 
     public static long write_nonblocking(long fd, Object buf, long pos, long len) {
