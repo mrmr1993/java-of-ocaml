@@ -43,6 +43,95 @@ public final class Bigstring {
         return BigArray.allocBigstring(len);
     }
 
+    // ==== blit primitives ============================================
+    // Without these, [Bigstring.of_string] silently produces a
+    // zero-filled bigstring and downstream [bin_io] reads garbage
+    // — which surfaces as "version read 0 does not match expected
+
+    private static int byteAt(BigArray ba, int i) {
+        return (int) Block.asLong(ba.data[i]) & 0xFF;
+    }
+
+    private static void setByte(BigArray ba, int i, int b) {
+        ba.data[i] = Long.valueOf(b & 0xFF);
+    }
+
+    /** [bigstring_blit_string_bigstring_stub]: string → bigstring. */
+    public static long blitStringToBigstring(Object src, long srcPos,
+                                             Object dst, long dstPos,
+                                             long len) {
+        String s = (String) src;
+        BigArray d = (BigArray) dst;
+        int n = (int) len, so = (int) srcPos, dop = (int) dstPos;
+        for (int i = 0; i < n; i++) setByte(d, dop + i, s.charAt(so + i));
+        return 0;
+    }
+
+    /** [bigstring_blit_bytes_bigstring_stub]: Bytes → bigstring. */
+    public static long blitBytesToBigstring(Object src, long srcPos,
+                                            Object dst, long dstPos,
+                                            long len) {
+        BigArray d = (BigArray) dst;
+        int n = (int) len, so = (int) srcPos, dop = (int) dstPos;
+        if (src instanceof Bytes) {
+            Bytes s = (Bytes) src;
+            for (int i = 0; i < n; i++) setByte(d, dop + i, s.sb.charAt(so + i));
+        } else {
+            // Caller may pass a string via [Bytes.unsafe_of_string].
+            String s = (String) src;
+            for (int i = 0; i < n; i++) setByte(d, dop + i, s.charAt(so + i));
+        }
+        return 0;
+    }
+
+    /** [bigstring_blit_bigstring_bytes_stub]: bigstring → Bytes. */
+    public static long blitBigstringToBytes(Object src, long srcPos,
+                                            Object dst, long dstPos,
+                                            long len) {
+        BigArray s = (BigArray) src;
+        Bytes d = (Bytes) dst;
+        int n = (int) len, so = (int) srcPos, dop = (int) dstPos;
+        for (int i = 0; i < n; i++) d.sb.setCharAt(dop + i, (char) byteAt(s, so + i));
+        return 0;
+    }
+
+    /** [bigstring_blit_stub]: bigstring → bigstring (memmove semantics). */
+    public static long blitBigstringToBigstring(Object src, long srcPos,
+                                                Object dst, long dstPos,
+                                                long len) {
+        BigArray s = (BigArray) src;
+        BigArray d = (BigArray) dst;
+        int n = (int) len, so = (int) srcPos, dop = (int) dstPos;
+        if (s == d && dop > so) {
+            for (int i = n - 1; i >= 0; i--) setByte(d, dop + i, byteAt(s, so + i));
+        } else {
+            for (int i = 0; i < n; i++) setByte(d, dop + i, byteAt(s, so + i));
+        }
+        return 0;
+    }
+
+    /** [bigstring_memcmp_stub]: bytewise comparison; first non-zero
+     *  difference (sign-significant), or 0 if equal. */
+    public static long memcmp(Object a, long aPos, Object b, long bPos,
+                              long len) {
+        BigArray ba = (BigArray) a;
+        BigArray bb = (BigArray) b;
+        int n = (int) len, ao = (int) aPos, bo = (int) bPos;
+        for (int i = 0; i < n; i++) {
+            int d = byteAt(ba, ao + i) - byteAt(bb, bo + i);
+            if (d != 0) return d;
+        }
+        return 0;
+    }
+
+    /** [bigstring_memset_stub]: fill [len] bytes starting at [pos] with [c]. */
+    public static long memset(Object dst, long pos, long len, long c) {
+        BigArray d = (BigArray) dst;
+        int n = (int) len, po = (int) pos, cv = (int) c;
+        for (int i = 0; i < n; i++) setByte(d, po + i, cv);
+        return 0;
+    }
+
     // ==== zero-returners (see javadoc) ===============================
 
     public static Object zero()                                       { return ZERO; }

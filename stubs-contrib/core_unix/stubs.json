@@ -3,17 +3,35 @@
     "target": "Bigstring.bigstring_alloc",
     "descriptor": "(Ljava/lang/Object;J)Ljava/lang/Object;"
   },
-  "bigstring_blit_bigstring_bytes_stub": "Bigstring.zero",
-  "bigstring_blit_bytes_bigstring_stub": "Bigstring.zero",
-  "bigstring_blit_string_bigstring_stub": "Bigstring.zero",
-  "bigstring_blit_stub": "Bigstring.zero",
+  "bigstring_blit_bigstring_bytes_stub": {
+    "target": "Bigstring.blitBigstringToBytes",
+    "descriptor": "(Ljava/lang/Object;JLjava/lang/Object;JJ)J"
+  },
+  "bigstring_blit_bytes_bigstring_stub": {
+    "target": "Bigstring.blitBytesToBigstring",
+    "descriptor": "(Ljava/lang/Object;JLjava/lang/Object;JJ)J"
+  },
+  "bigstring_blit_string_bigstring_stub": {
+    "target": "Bigstring.blitStringToBigstring",
+    "descriptor": "(Ljava/lang/Object;JLjava/lang/Object;JJ)J"
+  },
+  "bigstring_blit_stub": {
+    "target": "Bigstring.blitBigstringToBigstring",
+    "descriptor": "(Ljava/lang/Object;JLjava/lang/Object;JJ)J"
+  },
   "bigstring_destroy_stub": "Bigstring.zero",
   "bigstring_find": "Bigstring.zero",
   "bigstring_init_stub": "Bigstring.zero",
   "bigstring_input_stub": "Bigstring.zero",
   "bigstring_is_mmapped_stub": "Bigstring.zero",
-  "bigstring_memcmp_stub": "Bigstring.zero",
-  "bigstring_memset_stub": "Bigstring.zero",
+  "bigstring_memcmp_stub": {
+    "target": "Bigstring.memcmp",
+    "descriptor": "(Ljava/lang/Object;JLjava/lang/Object;JJ)J"
+  },
+  "bigstring_memset_stub": {
+    "target": "Bigstring.memset",
+    "descriptor": "(Ljava/lang/Object;JJJ)J"
+  },
   "bigstring_output_stub": "Bigstring.zero",
   "bigstring_pread_assume_fd_is_nonblocking_stub": "Bigstring.zero",
   "bigstring_pwrite_assume_fd_is_nonblocking_stub": "Bigstring.zero",
