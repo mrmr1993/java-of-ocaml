@@ -24,12 +24,29 @@ public final class Num {
     public static final long DIGIT_MASK = (1L << BITS_PER_DIGIT) - 1L;
 
     /** Wrapper so a [nat] flows through the runtime as a single
-     *  [Object]. Direct long[] can't be a Block field cleanly; a
-     *  tiny class keeps signatures trivial and gives callers a
-     *  stable shape. */
-    public static final class Nat {
+     *  [Object]. Extends [Block] so that OCaml-side code which
+     *  reflects on [nat] via [Obj.size] / [Obj.repr] works
+     *  transparently ([length_nat] in the Num library is
+     *  literally [Obj.size (Obj.repr n) - 1]).
+     *
+     *  The [fields] array has [len + 1] entries to match the
+     *  OCaml convention (one extra "header" slot counted by
+     *  [Obj.size] but subtracted back in [length_nat]); digit [i]
+     *  lives in [fields[i]] as a boxed [Long]. The mirrored
+     *  [long[] d] keeps per-digit reads/writes primitive-fast for
+     *  our stubs without re-boxing through [fields] each time.
+     *  [d.length == len], so callers iterate by index up to [len]. */
+    public static final class Nat extends Block {
         public final long[] d;
-        public Nat(int len) { this.d = new long[len]; }
+        public Nat(int len) {
+            super(0, new Object[len + 1]);
+            this.d = new long[len];
+            // Pre-populate fields with boxed zero Longs so
+            // pattern-matching / Obj.field callers see valid
+            // digit values rather than nulls.
+            for (int i = 0; i < len; i++) fields[i] = Long.valueOf(0L);
+            fields[len] = Long.valueOf(0L);
+        }
     }
 
     private static Nat asNat(Object o) { return (Nat) o; }
@@ -76,12 +93,64 @@ public final class Num {
     }
 
     public static long set_digit_nat(Object nat, long i, long v) {
-        asNat(nat).d[(int) i] = v & DIGIT_MASK;
+        Nat n = asNat(nat);
+        long masked = v & DIGIT_MASK;
+        n.d[(int) i] = masked;
+        n.fields[(int) i] = Long.valueOf(masked);
         return 0;
     }
 
     public static long nth_digit_nat(Object nat, long i) {
         return asNat(nat).d[(int) i] & DIGIT_MASK;
+    }
+
+    /** [set_digit_nat_native n i v]: same as [set_digit_nat] but [v]
+     *  is a [nativeint] rather than an [int]. Our backend represents
+     *  both as JVM long; the two stubs are identical. */
+    public static long set_digit_nat_native(Object nat, long i, long v) {
+        asNat(nat).d[(int) i] = v & DIGIT_MASK;
+        return 0;
+    }
+
+    /** [nth_digit_nat_native]: nativeint-typed sibling of
+     *  [nth_digit_nat]. */
+    public static long nth_digit_nat_native(Object nat, long i) {
+        return asNat(nat).d[(int) i] & DIGIT_MASK;
+    }
+
+    /** [is_digit_int n i]: digit fits in an OCaml int? Our digits
+     *  are 30-bit so every slot fits. */
+    public static long is_digit_int(Object nat, long i) {
+        return 1;
+    }
+
+    /** [is_digit_zero n i]: digit at [i] is 0? */
+    public static long is_digit_zero(Object nat, long i) {
+        return (asNat(nat).d[(int) i] & DIGIT_MASK) == 0 ? 1 : 0;
+    }
+
+    /** [is_digit_normalized n i]: high bit of digit set? (i.e. the
+     *  canonical "normalised" form for the library.) With 30-bit
+     *  digits, we consider bit 29 the high bit. */
+    public static long is_digit_normalized(Object nat, long i) {
+        return (asNat(nat).d[(int) i] & (1L << (BITS_PER_DIGIT - 1))) != 0 ? 1 : 0;
+    }
+
+    /** [is_digit_odd n i]: digit's lowest bit is 1. */
+    public static long is_digit_odd(Object nat, long i) {
+        return (asNat(nat).d[(int) i] & 1L) != 0 ? 1 : 0;
+    }
+
+    /** [num_leading_zero_bits_in_digit n i]: count leading zero
+     *  bits of the digit, treating the digit as [BITS_PER_DIGIT]
+     *  wide. */
+    public static long num_leading_zero_bits_in_digit(Object nat, long i) {
+        long v = asNat(nat).d[(int) i] & DIGIT_MASK;
+        if (v == 0) return BITS_PER_DIGIT;
+        int lz = Long.numberOfLeadingZeros(v);
+        // Long has 64 leading-zero bits; digit has BITS_PER_DIGIT.
+        // The real count is lz - (64 - BITS_PER_DIGIT).
+        return lz - (64 - BITS_PER_DIGIT);
     }
 
     public static long num_digits_nat(Object nat, long ofs, long len) {

@@ -108,6 +108,7 @@ let%expect_test "compile accepts a .cmo and emits class files" =
     Block.class
     Bytes.class
     CamlException.class
+    Channel$EmptyInputStream.class
     Channel.class
     Closure.class
     Compare.class

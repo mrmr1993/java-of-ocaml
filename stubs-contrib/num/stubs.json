@@ -4,7 +4,15 @@
   "blit_nat":           { "target": "Num.blit_nat",           "descriptor": "(Ljava/lang/Object;JLjava/lang/Object;JJ)J" },
   "set_digit_nat":      { "target": "Num.set_digit_nat",      "descriptor": "(Ljava/lang/Object;JJ)J" },
   "nth_digit_nat":      { "target": "Num.nth_digit_nat",      "descriptor": "(Ljava/lang/Object;J)J" },
+  "set_digit_nat_native": { "target": "Num.set_digit_nat_native", "descriptor": "(Ljava/lang/Object;JJ)J" },
+  "nth_digit_nat_native": { "target": "Num.nth_digit_nat_native", "descriptor": "(Ljava/lang/Object;J)J" },
   "num_digits_nat":     { "target": "Num.num_digits_nat",     "descriptor": "(Ljava/lang/Object;JJ)J" },
+  "num_leading_zero_bits_in_digit": { "target": "Num.num_leading_zero_bits_in_digit", "descriptor": "(Ljava/lang/Object;J)J" },
+
+  "is_digit_int":        { "target": "Num.is_digit_int",        "descriptor": "(Ljava/lang/Object;J)J" },
+  "is_digit_zero":       { "target": "Num.is_digit_zero",       "descriptor": "(Ljava/lang/Object;J)J" },
+  "is_digit_normalized": { "target": "Num.is_digit_normalized", "descriptor": "(Ljava/lang/Object;J)J" },
+  "is_digit_odd":        { "target": "Num.is_digit_odd",        "descriptor": "(Ljava/lang/Object;J)J" },
 
   "add_nat":            { "target": "Num.add_nat",            "descriptor": "(Ljava/lang/Object;JJLjava/lang/Object;JJJ)J" },
   "sub_nat":            { "target": "Num.sub_nat",            "descriptor": "(Ljava/lang/Object;JJLjava/lang/Object;JJJ)J" },

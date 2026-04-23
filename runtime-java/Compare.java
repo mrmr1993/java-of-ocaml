@@ -70,6 +70,53 @@ public final class Compare {
         return 5;
     }
 
+    /**
+     * Polymorphic hash matching our [equal]: two structurally-equal
+     * values produce the same int. HashMap-keyed data structures
+     * (e.g. OCaml [Hashtbl]) depend on the [hash]/[equal] contract
+     * — before this method existed, [caml_hash] used identity
+     * hashing on [Block] instances while [caml_equal] was
+     * structural, so freshly-constructed [Process_in ic] blocks
+     * missed in [Hashtbl.find popen_processes] even though an
+     * earlier-added block with the same [ic] was present.
+     *
+     * The hash follows OCaml's [Hashtbl.hash] spirit: recurse on
+     * Block fields and mix via [31 * acc + field_hash], depth-
+     * bounded to keep cycles (Ephemeron / recursive records)
+     * from blowing the stack. Primitive values use [hashCode]
+     * directly; closures fall back to identity hash (OCaml
+     * considers functional values hash-incomparable, we just
+     * need consistency with [equal]'s identity check for them).
+     */
+    public static int hash(Object o) {
+        return hashDepth(o, 10);
+    }
+
+    private static int hashDepth(Object o, int depth) {
+        if (o == null) return 0;
+        if (o instanceof Long) {
+            long v = ((Long) o).longValue();
+            return (int) (v ^ (v >>> 32));
+        }
+        if (o instanceof Integer) return ((Integer) o).intValue();
+        if (o instanceof Double) return ((Double) o).hashCode();
+        if (o instanceof String) return ((String) o).hashCode();
+        if (o instanceof Block) {
+            Block b = (Block) o;
+            int h = b.tag;
+            if (depth <= 0) return h;   // cap recursion
+            int n = Math.min(b.fields.length, 8); // cap per-block fan-out
+            for (int i = 0; i < n; i++) {
+                h = 31 * h + hashDepth(b.fields[i], depth - 1);
+            }
+            return h;
+        }
+        // Closures / arbitrary refs: identity hash. OCaml [Hashtbl]
+        // rarely keys on functional values; consistency with
+        // equal's identity check is what matters here.
+        return System.identityHashCode(o);
+    }
+
     public static int equal(Object a, Object b) {
         if (a == b) return 1;
         if (a == null || b == null) return 0;

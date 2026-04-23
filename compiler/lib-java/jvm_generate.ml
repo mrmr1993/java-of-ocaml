@@ -2969,10 +2969,15 @@ and emit_ccall_named ctx name args =
      outside the JVM int range but enough for most Stdlib paths
      that route through Hashtbl.hash, Random, etc. *)
   | "caml_hash" ->
-    (* Stdlib's Hashtbl calls this to compute a hash. Return
-       a simple polymorphic hash using Object.hashCode() on the
-       boxed value. OCaml's hash is structural; this is coarser
-       but enough to make Hashtbl work at a basic level. *)
+    (* Stdlib's Hashtbl calls this to compute a hash. Must agree
+       with [caml_equal] — i.e. structurally equal values must
+       produce the same hash. The previous [Object.hashCode]
+       shortcut used identity hashing on [Block]s, so two
+       freshly-constructed [Process_in ic] keys for the same
+       [ic] hashed differently and [Hashtbl.find popen_processes]
+       silently missed. Route through [Compare.hash] which
+       recurses into Block fields the same way [Compare.equal]
+       does. *)
     (match args with
      | [ _; _; _; Pv v ] | [ Pv v ] | [ Pv v; _ ] ->
        emit_load ctx v;
@@ -2980,12 +2985,11 @@ and emit_ccall_named ctx name args =
         | K_int -> Kind.emit_box_long ctx.code
         | K_float -> Kind.emit_box_float ctx.code
         | _ -> ());
-       Jvm.Code.invokevirtual
+       Jvm.Code.invokestatic
          ctx.code
-         ~class_:"java/lang/Object"
-         ~method_:"hashCode"
-         ~descriptor:"()I";
-       (* OCaml hashes to a non-negative 30-bit int; mask. *)
+         ~class_:"Compare"
+         ~method_:"hash"
+         ~descriptor:"(Ljava/lang/Object;)I";
        Jvm.Code.ldc_int ctx.code 0x3fffffff;
        Jvm.Code.iand ctx.code;
        Jvm.Code.i2l ctx.code;
