@@ -2059,10 +2059,38 @@ and emit_ccall_named ctx name args =
   | "caml_set_parser_trace" | "caml_restore_raw_backtrace" ->
     emit_int_const ctx 0;
     Kind.K_int
-  | "caml_gc_minor_words" | "caml_get_minor_free"
-  | "caml_gc_counters" ->
+  | "caml_gc_minor_words" | "caml_get_minor_free" ->
     Jvm.Code.ldc_double ctx.code 0.0;
     Kind.K_float
+  | "caml_gc_counters" ->
+    (* OCaml signature: [unit -> (float * float * float)]. Return
+       a Block(tag=0) holding three boxed Doubles — destructuring
+       [let (mi, pro, ma) = counters ()] reads each field. *)
+    Jvm.Code.new_ ctx.code "Block";
+    Jvm.Code.dup ctx.code;
+    Jvm.Code.ldc_int ctx.code 0;
+    Jvm.Code.ldc_int ctx.code 3;
+    Jvm.Code.anewarray ctx.code "java/lang/Object";
+    (* For each of the three slots: dup array, index, zeroed
+       Double, aastore. *)
+    List.iter
+      (fun i ->
+        Jvm.Code.dup ctx.code;
+        Jvm.Code.ldc_int ctx.code i;
+        Jvm.Code.ldc_double ctx.code 0.0;
+        Jvm.Code.invokestatic
+          ctx.code
+          ~class_:"java/lang/Double"
+          ~method_:"valueOf"
+          ~descriptor:"(D)Ljava/lang/Double;";
+        Jvm.Code.aastore ctx.code)
+      [ 0; 1; 2 ];
+    Jvm.Code.invokespecial
+      ctx.code
+      ~class_:"Block"
+      ~method_:"<init>"
+      ~descriptor:"(I[Ljava/lang/Object;)V";
+    Kind.K_obj
   | "caml_gc_stat" | "caml_gc_quick_stat" | "caml_gc_get" ->
     (* OCaml Gc.stat returns a record with 16 fields (floats + ints).
        Build a Block with zeros so destructuring sees a sane shape. *)
@@ -2080,17 +2108,70 @@ and emit_ccall_named ctx name args =
       ~method_:"<init>"
       ~descriptor:"(I[Ljava/lang/Object;)V";
     Kind.K_obj
-  (* Backtrace / callstack — stub as empty / no-op. *)
+  (* Backtrace / callstack — stub as empty / no-op. Each of
+     these has a specific return shape that OCaml-side code
+     pattern-matches on; returning the wrong shape (Long for
+     something expected as Block, or vice versa) NPEs or
+     ClassCasts downstream. *)
+  (* Array-valued: [raw_backtrace] is a [raw_backtrace_slot
+     array]. Return an empty [Block(tag=0, [||])] so
+     [Array.length] etc. see length 0. *)
   | "caml_get_current_callstack"
   | "caml_get_exception_raw_backtrace"
-  | "caml_get_continuation_callstack"
-  | "caml_convert_raw_backtrace"
-  | "caml_convert_raw_backtrace_slot"
-  | "caml_raw_backtrace_length"
-  | "caml_raw_backtrace_slot"
-  | "caml_raw_backtrace_next_slot" ->
-    Jvm.Code.aconst_null ctx.code;
+  | "caml_get_continuation_callstack" ->
+    Jvm.Code.new_ ctx.code "Block";
+    Jvm.Code.dup ctx.code;
+    Jvm.Code.ldc_int ctx.code 0;
+    Jvm.Code.ldc_int ctx.code 0;
+    Jvm.Code.anewarray ctx.code "java/lang/Object";
+    Jvm.Code.invokespecial
+      ctx.code
+      ~class_:"Block"
+      ~method_:"<init>"
+      ~descriptor:"(I[Ljava/lang/Object;)V";
     Kind.K_obj
+  (* [convert_raw_backtrace] returns [backtrace_slot array option]
+     — [None] (with a backtrace-not-available signal) keeps
+     printers quiet. *)
+  | "caml_convert_raw_backtrace" ->
+    emit_int_const ctx 0;
+    Kind.K_int
+  (* [raw_backtrace_length] / [raw_backtrace_slot] — int-valued
+     integer accessors. *)
+  | "caml_raw_backtrace_length"
+  | "caml_raw_backtrace_slot" ->
+    emit_int_const ctx 0;
+    Kind.K_int
+  (* [convert_raw_backtrace_slot] — returns a [backtrace_slot]
+     variant, which OCaml's [type backtrace_slot = Unknown_location
+     of bool | Known_location of …]. Construct [Unknown_location
+     false] = Block(tag=0, [|false|]). *)
+  | "caml_convert_raw_backtrace_slot" ->
+    Jvm.Code.new_ ctx.code "Block";
+    Jvm.Code.dup ctx.code;
+    Jvm.Code.ldc_int ctx.code 0;
+    Jvm.Code.ldc_int ctx.code 1;
+    Jvm.Code.anewarray ctx.code "java/lang/Object";
+    Jvm.Code.dup ctx.code;
+    Jvm.Code.ldc_int ctx.code 0;
+    emit_int_const ctx 0;  (* boxed false *)
+    Jvm.Code.invokestatic
+      ctx.code
+      ~class_:"java/lang/Long"
+      ~method_:"valueOf"
+      ~descriptor:"(J)Ljava/lang/Long;";
+    Jvm.Code.aastore ctx.code;
+    Jvm.Code.invokespecial
+      ctx.code
+      ~class_:"Block"
+      ~method_:"<init>"
+      ~descriptor:"(I[Ljava/lang/Object;)V";
+    Kind.K_obj
+  (* [raw_backtrace_next_slot] returns [raw_backtrace_slot
+     option] — [None]. *)
+  | "caml_raw_backtrace_next_slot" ->
+    emit_int_const ctx 0;
+    Kind.K_int
   | "caml_bytes_compare" ->
     (* Lexicographic compare of two byte sequences. Delegate to
        [Bytes.staticCompare(Object, Object)]. *)
@@ -4902,9 +4983,13 @@ let emit_prim ctx (p : Code.prim) (args : Code.prim_arg list) : Kind.kind =
     Jvm.Code.i2l ctx.code;
     K_int
   | Extern ("getmethod" | "getpubmet" | "getdynmet"), _ ->
-    (* Matches legacy: throw at runtime rather than compile-time.
-       For programs that don't actually reach these ops at runtime
-       (the common case), the class loads and runs cleanly. *)
+    (* OCaml's OO dispatch is not supported. Throw at the lookup
+       site; programs that don't reach these ops at runtime load
+       cleanly. the test binary-sized programs with ppxlib visitors can
+       still hit this at init time (astlib's AST-version
+       migration uses visitor objects that are instantiated and
+       invoked from some module's toplevel). Full OO support
+       would take a ~one-off effort in a follow-up. *)
     Jvm.Code.new_ ctx.code "java/lang/UnsupportedOperationException";
     Jvm.Code.dup ctx.code;
     Jvm.Code.ldc_string ctx.code "OCaml objects / methods are not supported";
@@ -4914,9 +4999,6 @@ let emit_prim ctx (p : Code.prim) (args : Code.prim_arg list) : Kind.kind =
       ~method_:"<init>"
       ~descriptor:"(Ljava/lang/String;)V";
     Jvm.Code.athrow ctx.code;
-    (* athrow is terminating; the verifier is OK with "dead" code
-       following, but we still need a value on the stack for
-       consumers that expect one. Use aconst_null as placeholder. *)
     Jvm.Code.aconst_null ctx.code;
     K_obj
   | Extern "alloc_block", [ Pc (Int tag); Pc (Int n) ] ->
