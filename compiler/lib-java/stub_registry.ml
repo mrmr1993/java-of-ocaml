@@ -232,10 +232,23 @@ let merge_defaults ~builtin ~user =
 
 let java_sources ~manifest_dir t =
   let seen = Hashtbl.create 8 in
+  (* Include every [.java] file in [manifest_dir] — helper classes
+     like [FooHandle] that a caller classes reference but that
+     don't appear in any manifest entry would otherwise be missed
+     by the javac invocation. *)
+  (try
+     Array.iter
+       (fun f ->
+         if Filename.extension f = ".java"
+         then
+           Hashtbl.replace seen (Filename.concat manifest_dir f) ())
+       (Sys.readdir manifest_dir)
+   with Sys_error _ -> ());
+  (* Still honour the manifest-named classes explicitly; protects
+     against a setup where the manifest lives in a different
+     directory than its sources. *)
   List.iter
     (fun s ->
-      (* class_name uses '/' internally; source files are flat
-         relative to manifest_dir. Take the last component. *)
       let leaf =
         match String.rindex_opt s.class_name '/' with
         | None -> s.class_name
