@@ -20,7 +20,8 @@
   BigArray.class
   ThreadPrim.class
   Ocaml.class
-  StrStubs.class)
+  StrStubs.class
+  StrStubs$BPoint.class)
  (deps
   Block.java
   Closure.java
@@ -63,6 +64,7 @@
    ThreadPrim.class
    Ocaml.class
    StrStubs.class
+   StrStubs$BPoint.class
    stubs/stubs.json))
  (action
   (with-stdout-to

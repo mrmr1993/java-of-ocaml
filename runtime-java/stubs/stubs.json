@@ -1,7 +1,7 @@
 {
-  "re_string_match":     { "target": "StrStubs.whole_match",        "descriptor": "(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)LBlock;" },
-  "re_partial_match":    { "target": "StrStubs.whole_match",        "descriptor": "(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)LBlock;" },
-  "re_search_forward":   { "target": "StrStubs.whole_match",        "descriptor": "(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)LBlock;" },
-  "re_search_backward":  { "target": "StrStubs.whole_match",        "descriptor": "(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)LBlock;" },
-  "re_replacement_text": { "target": "StrStubs.empty_replacement",  "descriptor": "(Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/String;" }
+  "re_string_match":     { "target": "StrStubs.re_string_match",     "descriptor": "(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)LBlock;" },
+  "re_partial_match":    { "target": "StrStubs.re_partial_match",    "descriptor": "(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)LBlock;" },
+  "re_search_forward":   { "target": "StrStubs.re_search_forward",   "descriptor": "(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)LBlock;" },
+  "re_search_backward":  { "target": "StrStubs.re_search_backward",  "descriptor": "(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)LBlock;" },
+  "re_replacement_text": { "target": "StrStubs.re_replacement_text", "descriptor": "(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/String;" }
 }

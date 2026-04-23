@@ -29,6 +29,8 @@ let builtin_stub_classes () =
      that by keeping [StrStubs] here.
      Non-upstream library stubs live under [stubs-contrib/] and
      are opt-in via [--stub-manifest]. *)
-  [ "StrStubs", R.str_stubs ]
+  [ "StrStubs", R.str_stubs
+  ; "StrStubs$BPoint", R.str_stubs__b_point
+  ]
 
 let builtin_stubs_json () = R.stubs_json

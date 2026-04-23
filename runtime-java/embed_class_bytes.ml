@@ -20,6 +20,10 @@ let binding_name path =
         Buffer.add_char buf '_';
         Buffer.add_char buf (Char.lowercase_ascii c)
       | 'A' .. 'Z' -> Buffer.add_char buf (Char.lowercase_ascii c)
+      (* [$] is the Java convention for inner-class names
+         ([Outer$Inner]). Translate to [_] in the OCaml binding so
+         [str_stubs_b_point] is a valid identifier. *)
+      | '$' -> Buffer.add_char buf '_'
       | _ -> Buffer.add_char buf c)
     base;
   Buffer.contents buf
