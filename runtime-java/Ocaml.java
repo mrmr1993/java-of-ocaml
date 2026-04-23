@@ -180,6 +180,28 @@ public final class Ocaml {
         throw new CamlException(id);
     }
 
+    // -------- OO / exception identifier allocation --------
+    //
+    // OCaml's runtime hands out a fresh int id per new extension
+    // constructor / object via [caml_fresh_oo_id] + [caml_set_oo_id].
+    // Ids are stored in field 1 of the tag-248 identifier block and
+    // used for reference-identity comparisons — in particular sexp /
+    // hash lookups keyed by [Obj.Extension_constructor.id].
+    //
+    // Previously compile-time per-call-site counter. That collapsed
+    // to a single value for every runtime invocation of a shared
+    // creator closure, so [sexp_of_exn] found the *first* registered
+    // exception converter for every exception and mis-called it. The
+    // generated [[@@deriving sexp]] converter then asserted false
+    // on the mismatch. Runtime counter fixes it.
+
+    private static final java.util.concurrent.atomic.AtomicLong NEXT_OO_ID
+        = new java.util.concurrent.atomic.AtomicLong(0);
+
+    public static long freshOoId() {
+        return NEXT_OO_ID.getAndIncrement();
+    }
+
     // -------- Callback.register / Callback.register_exception --------
     //
     // OCaml programs expose values (closures, exception descriptors) to

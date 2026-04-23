@@ -24,7 +24,6 @@ type ctx =
         (* User + built-in Java-stub table consulted before the
            hardcoded [emit_ccall_named] match. *)
   ; enclosing : (Function_info.function_info * Code.Var.t) option
-  ; fresh_oo_id : int ref
   ; not_found_idx : int ref
         (* Index into Main.GLOBALS of the [Not_found] exception
            descriptor. Populated by the driver. *)
@@ -4221,13 +4220,14 @@ and emit_ccall_named ctx name args =
   | "caml_set_oo_id" ->
     (* [caml_set_oo_id block] stores a fresh OO-id in [block]'s
        field 1 and returns the block. Matches OCaml's
-       [runtime/obj.c:319-323]; we use the compile-time counter
-       that [caml_fresh_oo_id] also feeds from, so the two
-       primitives hand out consistent ids. *)
+       [runtime/obj.c:319-323]. A single compile-site may be
+       invoked many times at runtime (e.g. when exception-creation
+       goes through a shared helper closure) — must fetch a fresh
+       id per call, not per compile-site, or every exception ends
+       up with the same id and [sexp_of_exn] / registry lookups
+       collide. *)
     (match args with
      | [ Pv b ] ->
-       let n = !(ctx.fresh_oo_id) in
-       ctx.fresh_oo_id := n + 1;
        emit_load ctx b;
        Jvm.Code.checkcast ctx.code "Block";
        Jvm.Code.dup ctx.code;
@@ -4237,7 +4237,11 @@ and emit_ccall_named ctx name args =
          ~field:"fields"
          ~descriptor:"[Ljava/lang/Object;";
        Jvm.Code.ldc_int ctx.code 1;
-       Jvm.Code.ldc_long ctx.code (Int64.of_int n);
+       Jvm.Code.invokestatic
+         ctx.code
+         ~class_:"Ocaml"
+         ~method_:"freshOoId"
+         ~descriptor:"()J";
        Jvm.Code.invokestatic
          ctx.code
          ~class_:"java/lang/Long"
@@ -4708,12 +4712,15 @@ and emit_ccall_named ctx name args =
     emit_int_const ctx 0;
     Kind.K_int
   | "caml_fresh_oo_id" ->
-    (* Compile-time counter — stable enough because module init is
-       the only caller and runs once at Main.main entry. Matches
-       legacy. *)
-    let n = !(ctx.fresh_oo_id) in
-    ctx.fresh_oo_id := n + 1;
-    emit_int_const ctx n;
+    (* Runtime counter via [Ocaml.freshOoId] — a single compile-site
+       can be invoked many times at runtime (e.g. object construction
+       inside a loop), so the id must be fresh per call, not per
+       compile-site. *)
+    Jvm.Code.invokestatic
+      ctx.code
+      ~class_:"Ocaml"
+      ~method_:"freshOoId"
+      ~descriptor:"()J";
     Kind.K_int
   | "Base_internalhash_fold_int"
   | "Base_internalhash_fold_int64"
@@ -5836,7 +5843,6 @@ let emit_program
     ; prim_name
     ; stubs
     ; enclosing
-    ; fresh_oo_id = ref 0
     ; not_found_idx = ref not_found_idx
     ; next_local = 1
     ; line_of_pc
