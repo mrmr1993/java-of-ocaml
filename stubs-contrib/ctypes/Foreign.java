@@ -68,10 +68,24 @@ public final class Foreign {
 
     // ==== Dl (dynamic loader wrappers) ================================
 
-    /** [ctypes_dlopen filename flags] — returns an opaque handle. */
-    public static long dlopen(Object filename, long flags) { return 0; }
+    // [ctypes_dlopen] returns [library option] — Some handle or None.
+    // We can't load native libs reflectively from a C-ABI handle,
+    // so always return Some (a non-null opaque marker) so callers
+    // proceed past the "load failed?" branch in [dlopen]. The
+    // resulting handle is opaque; callers that genuinely try to
+    // [dlsym] from it will hit a downstream stub.
+    private static final Object DL_HANDLE = new Object();
+    public static Object dlopen(Object filename, long flags) {
+        return new Block(0, new Object[] { DL_HANDLE });
+    }
     public static long dlclose(long handle)                { return 0; }
-    public static String dlerror(Object ignore)            { return ""; }
-    public static long dlsym(long handle, Object sym)      { return 0; }
+    // [_dlerror : unit -> string option]: return None (the int 0),
+    // not Some "" — a String would fail the [Some _] vs [None]
+    // check on the OCaml side (string isn't a Block of tag 0).
+    public static Object dlerror(Object ignore)            { return Long.valueOf(0L); }
+    // [_dlsym : ?handle:library -> symbol:string -> raw_pointer option]
+    public static Object dlsym(long handle, Object sym) {
+        return new Block(0, new Object[] { Long.valueOf(0L) });
+    }
     public static long resolve_dl_flag(long flag)          { return 0; }
 }

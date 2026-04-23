@@ -65,15 +65,15 @@
   },
   "ctypes_dlerror": {
     "target": "Foreign.dlerror",
-    "descriptor": "(Ljava/lang/Object;)Ljava/lang/String;"
+    "descriptor": "(Ljava/lang/Object;)Ljava/lang/Object;"
   },
   "ctypes_dlopen": {
     "target": "Foreign.dlopen",
-    "descriptor": "(Ljava/lang/Object;J)J"
+    "descriptor": "(Ljava/lang/Object;J)Ljava/lang/Object;"
   },
   "ctypes_dlsym": {
     "target": "Foreign.dlsym",
-    "descriptor": "(JLjava/lang/Object;)J"
+    "descriptor": "(JLjava/lang/Object;)Ljava/lang/Object;"
   },
   "ctypes_ldouble_acoshl": {
     "target": "LDouble.acoshl",
