@@ -1559,24 +1559,28 @@ and emit_ccall_named ctx name args =
       ~method_:"<init>"
       ~descriptor:"(I[Ljava/lang/Object;)V";
     Kind.K_obj
-  | "caml_channel_descriptor"
+  (* String-returning Sys / Unix primitives that we don't really
+     implement. Return the empty string rather than null — many
+     callers immediately [String.equals] / [String.length] the
+     result, which NPEs on null. [Sys.executable_name] is the
+     one that actually surfaced this: ppxlib's init chains
+     [Filename.basename Sys.executable_name] and crashed when
+     our stub returned null. *)
   | "caml_sys_executable_name"
+  | "caml_unix_string_of_inet_addr"
+  | "unix_string_of_inet_addr" ->
+    Jvm.Code.ldc_string ctx.code "";
+    Kind.K_string
+  (* Non-string primitives where null is harmless because the
+     result is either opaque ([channel_descriptor]) or the
+     downstream consumer is defensive. [file_exists] should
+     really return a bool; leaving it at null means the
+     consumer's Is_int check sees it as a block and takes the
+     truthy branch — wrong in principle but neutral at init. *)
+  | "caml_channel_descriptor"
   | "caml_sys_system_command"
   | "caml_sys_file_exists"
-  (* Unix init-time stubs. When linking threads.cma the Unix module
-     is pulled in; its init touches a few inet helpers whose results
-     aren't used unless the application actually reaches for
-     sockets. Returning null keeps init flowing; an actual socket
-     call later would NPE at the use site. *)
   | "caml_unix_inet_addr_of_string"
-  | "caml_unix_string_of_inet_addr"
-  (* Core-level unbound-prefix variants of the same Unix helpers.
-     Jane Street's core_unix registers its C stubs under names that
-     drop the OCaml-runtime [caml_] prefix, so [Unix.inet_addr_of_string]
-     in a core_unix-linked program resolves to [unix_inet_addr_of_string]
-     rather than [caml_unix_inet_addr_of_string]. Same init-time-only
-     treatment — null is OK until an actual socket path runs. *)
-  | "unix_string_of_inet_addr"
   | "unix_inet_addr_of_string" ->
     Jvm.Code.aconst_null ctx.code;
     Kind.K_obj
