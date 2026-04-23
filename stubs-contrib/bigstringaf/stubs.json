@@ -1,0 +1,7 @@
+{
+  "bigstringaf_blit_to_bytes":     { "target": "Bigstringaf.blit_to_bytes",     "descriptor": "(Ljava/lang/Object;JLjava/lang/Object;JJ)J" },
+  "bigstringaf_blit_to_bigstring": { "target": "Bigstringaf.blit_to_bigstring", "descriptor": "(Ljava/lang/Object;JLjava/lang/Object;JJ)J" },
+  "bigstringaf_blit_from_bytes":   { "target": "Bigstringaf.blit_from_bytes",   "descriptor": "(Ljava/lang/Object;JLjava/lang/Object;JJ)J" },
+  "bigstringaf_memcmp_bigstring":  { "target": "Bigstringaf.memcmp_bigstring",  "descriptor": "(Ljava/lang/Object;JLjava/lang/Object;JJ)J" },
+  "bigstringaf_memcmp_string":     { "target": "Bigstringaf.memcmp_string",     "descriptor": "(Ljava/lang/Object;JLjava/lang/Object;JJ)J" }
+}
