@@ -42,6 +42,43 @@ public class Channel {
   private static final Map<Integer, Object> FDS = new HashMap<>();
   private static int nextFd = 3;
 
+  // [CHANNELS] memoises [forDescriptor] so repeated calls on the
+  // same fd return the same [Channel] instance. This matters for
+  // [popen_processes]-style hashtables in OCaml stdlib that key by
+  // channel identity: [Hashtbl.add popen_processes (Process_in
+  // ic) pid] at [open_process_in] time, then [Hashtbl.find] at
+  // [close_process_in] time. Fresh [new Channel] per call would
+  // miss the hash. Separate from [FDS] because we want Channel
+  // caching even for stdin/stdout/stderr-style shared instances.
+  private static final Map<Integer, Channel> CHANNELS = new HashMap<>();
+
+  /** A never-yielding InputStream — returns -1 (EOF) on every
+   *  read. Used to back fake pipe fds so [input_line] on them
+   *  raises [End_of_file] (which the test binary-style init code handles
+   *  with [may_eof]) instead of a JVM-level IOException.
+   *  Named inner class to keep the runtime class-bytes bundle
+   *  self-contained without an anonymous [Channel$1]. */
+  private static final class EmptyInputStream extends InputStream {
+    @Override public int read() { return -1; }
+  }
+  private static InputStream emptyInputStream() {
+    return new EmptyInputStream();
+  }
+
+  /** Allocate a fresh unique fd. Used by stubs like [pipeStub]
+   *  that need unique ints so downstream hashtable-based dispatch
+   *  (e.g. [popen_processes]) doesn't alias entries. */
+  public static int allocFd() {
+    synchronized (FDS) {
+      int fd = nextFd++;
+      // Register a benign null stream so [forDescriptor] finds
+      // *something* and falls back to [stdout] (harmless for a
+      // fake pipe that won't be read/written).
+      FDS.put(fd, null);
+      return fd;
+    }
+  }
+
   public Channel(PrintStream s) {
     this.out = s;
     this.in = null;
@@ -58,16 +95,43 @@ public class Channel {
     this.bufEnd = 0;
   }
 
+  /**
+   * Coerce an arbitrary OCaml value to a [Channel]. Either the
+   * value already IS a [Channel] (the normal case — [stdlib]'s
+   * [open_descriptor_in] wraps a bare fd as a [Channel] before
+   * it flows into user code) or it's a boxed int fd (a common
+   * leak from Unix / Core pathways that round-trip through
+   * [int] before reaching an OCaml [in_channel]-typed slot).
+   * The pure-[checkcast Channel] we used to emit at every
+   * channel-consuming primitive call exploded on the second
+   * case. Routing through here once keeps the emit site short
+   * and handles both.
+   */
+  public static Channel asChannel(Object o) {
+    if (o instanceof Channel) return (Channel) o;
+    if (o instanceof Long) return forDescriptor((int) ((Long) o).longValue());
+    if (o instanceof Integer) return forDescriptor(((Integer) o).intValue());
+    return (Channel) o; // let the ClassCast fire with its usual message
+  }
+
   public static Channel forDescriptor(int fd) {
     if (fd == 2) return stderr;
     if (fd == 1) return stdout;
     if (fd == 0) return stdin;
+    synchronized (CHANNELS) {
+      Channel cached = CHANNELS.get(fd);
+      if (cached != null) return cached;
+    }
     Object s;
     synchronized (FDS) { s = FDS.get(fd); }
-    if (s instanceof PrintStream) return new Channel((PrintStream) s);
-    if (s instanceof OutputStream) return new Channel(new PrintStream((OutputStream) s));
-    if (s instanceof InputStream) return new Channel((InputStream) s);
-    return stdout;
+    Channel c;
+    if (s instanceof PrintStream) c = new Channel((PrintStream) s);
+    else if (s instanceof OutputStream)
+      c = new Channel(new PrintStream((OutputStream) s));
+    else if (s instanceof InputStream) c = new Channel((InputStream) s);
+    else c = new Channel(emptyInputStream());  // fake/empty channel
+    synchronized (CHANNELS) { CHANNELS.put(fd, c); }
+    return c;
   }
 
   public static int openFile(String path, Object flagsList, int perm) throws IOException {

@@ -31,6 +31,12 @@ val compare_class_bytes : unit -> string
 val channel_class_bytes : unit -> string
 (** See above. *)
 
+val channel_empty_input_stream_class_bytes : unit -> string
+(** Private named inner class of [Channel], used to back fake fds
+    with an InputStream that returns EOF on every read. Must be
+    written out alongside [Channel] so the JVM can load it when
+    [Channel.forDescriptor] instantiates an empty stream. *)
+
 val format_class_bytes : unit -> string
 (** [caml_format_int] / [caml_format_float] target. *)
 

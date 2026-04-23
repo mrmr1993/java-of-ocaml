@@ -179,6 +179,18 @@ let emit_prim_arg ctx (pa : Code.prim_arg) : Kind.kind =
 (* Ensure top of stack is a primitive JVM [long] (the backing type of
    [K_int]). Tolerant of boxed Long / Integer globals via
    [Block.asLong]. *)
+(* Coerce top-of-stack to a [Channel]. The pure [checkcast Channel]
+   crashes when a bare int fd flows through an [in_channel]-typed
+   slot — a common shape because OCaml stdlib / Core sometimes
+   round-trip fds as ints before wrapping. The [asChannel] helper
+   in [Channel.java] handles both cases. *)
+let emit_as_channel code =
+  Jvm.Code.invokestatic
+    code
+    ~class_:"Channel"
+    ~method_:"asChannel"
+    ~descriptor:"(Ljava/lang/Object;)LChannel;"
+
 let ensure_int ctx k =
   match k with
   | Kind.K_int -> ()
@@ -634,7 +646,7 @@ and emit_ccall_named ctx name args =
     (match args with
      | [ Pv chan ] ->
        emit_load ctx chan;
-       Jvm.Code.checkcast ctx.code "Channel";
+       emit_as_channel ctx.code;
        Jvm.Code.invokevirtual
          ctx.code
          ~class_:"Channel"
@@ -647,7 +659,7 @@ and emit_ccall_named ctx name args =
     (match args with
      | [ Pv chan; Pv c ] ->
        emit_load ctx chan;
-       Jvm.Code.checkcast ctx.code "Channel";
+       emit_as_channel ctx.code;
        as_int c;
        Jvm.Code.invokevirtual
          ctx.code
@@ -821,7 +833,7 @@ and emit_ccall_named ctx name args =
     (match args with
      | [ Pv chan; Pv s; Pv off; Pv len ] ->
        emit_load ctx chan;
-       Jvm.Code.checkcast ctx.code "Channel";
+       emit_as_channel ctx.code;
        as_string s;
        as_int off;
        as_int len;
@@ -1633,7 +1645,7 @@ and emit_ccall_named ctx name args =
     (match args with
      | [ Pv chan; Pv len ] ->
        emit_load ctx chan;
-       Jvm.Code.checkcast ctx.code "Channel";
+       emit_as_channel ctx.code;
        as_int len;
        Jvm.Code.invokevirtual
          ctx.code ~class_:"Channel" ~method_:"md5"
@@ -2743,7 +2755,7 @@ and emit_ccall_named ctx name args =
     (match args with
      | [ Pv chan ] ->
        emit_load ctx chan;
-       Jvm.Code.checkcast ctx.code "Channel";
+       emit_as_channel ctx.code;
        Jvm.Code.invokevirtual
          ctx.code ~class_:"Channel" ~method_:"inputInt"
          ~descriptor:"()I";
@@ -2754,7 +2766,7 @@ and emit_ccall_named ctx name args =
     (match args with
      | [ Pv chan; Pv v ] ->
        emit_load ctx chan;
-       Jvm.Code.checkcast ctx.code "Channel";
+       emit_as_channel ctx.code;
        as_int v;
        Jvm.Code.invokevirtual
          ctx.code ~class_:"Channel" ~method_:"outputInt"
@@ -2827,7 +2839,7 @@ and emit_ccall_named ctx name args =
     (match args with
      | [ Pv chan ] ->
        emit_load ctx chan;
-       Jvm.Code.checkcast ctx.code "Channel";
+       emit_as_channel ctx.code;
        Jvm.Code.invokevirtual
          ctx.code
          ~class_:"Channel"
@@ -2840,7 +2852,7 @@ and emit_ccall_named ctx name args =
     (match args with
      | [ Pv chan ] ->
        emit_load ctx chan;
-       Jvm.Code.checkcast ctx.code "Channel";
+       emit_as_channel ctx.code;
        Jvm.Code.invokevirtual
          ctx.code
          ~class_:"Channel"
@@ -2853,7 +2865,7 @@ and emit_ccall_named ctx name args =
     (match args with
      | [ Pv chan ] ->
        emit_load ctx chan;
-       Jvm.Code.checkcast ctx.code "Channel";
+       emit_as_channel ctx.code;
        Jvm.Code.invokevirtual
          ctx.code
          ~class_:"Channel"
@@ -2866,7 +2878,7 @@ and emit_ccall_named ctx name args =
     (match args with
      | [ Pv chan; Pv buf; Pv ofs; Pv len ] ->
        emit_load ctx chan;
-       Jvm.Code.checkcast ctx.code "Channel";
+       emit_as_channel ctx.code;
        as_bytes buf;
        as_int ofs;
        as_int len;
@@ -3375,7 +3387,7 @@ and emit_ccall_named ctx name args =
     (match args with
      | [ Pv chan; Pv b; Pv off; Pv len ] ->
        emit_load ctx chan;
-       Jvm.Code.checkcast ctx.code "Channel";
+       emit_as_channel ctx.code;
        as_bytes b;
        Jvm.Code.invokevirtual
          ctx.code

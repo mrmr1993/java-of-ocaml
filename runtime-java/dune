@@ -11,6 +11,7 @@
   CamlException.class
   Compare.class
   Channel.class
+  Channel$EmptyInputStream.class
   Bytes.class
   Format.class
   Ephemeron.class
@@ -54,6 +55,7 @@
    CamlException.class
    Compare.class
    Channel.class
+   Channel$EmptyInputStream.class
    Bytes.class
    Format.class
    Ephemeron.class

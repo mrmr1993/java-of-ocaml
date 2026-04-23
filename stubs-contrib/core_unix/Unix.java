@@ -89,9 +89,13 @@ public final class Unix {
 
     /** [unix_pipe cloexec ()]: returns (read_fd, write_fd). Called
      *  as 2-arg C_CALL2 because the OCaml declaration widens to
-     *  [?cloexec:bool -> unit -> _]. */
+     *  [?cloexec:bool -> unit -> _]. Unique fds each call so
+     *  [popen_processes]-style hashtables keyed by the derived
+     *  channel don't alias across pipes. */
     public static Block pipeStub(Object cloexec, Object unit) {
-        return new Block(0, new Object[] { Long.valueOf(0L), Long.valueOf(0L) });
+        long rd = Channel.allocFd();
+        long wr = Channel.allocFd();
+        return new Block(0, new Object[] { Long.valueOf(rd), Long.valueOf(wr) });
     }
 
     /** [unix_dup]: returns a new fd. We hand back a value >= 3 so
@@ -100,6 +104,45 @@ public final class Unix {
      *  infinite-loop at init. */
     public static long dupStub(Object cloexec, Object fd) {
         return 3L;
+    }
+
+    /** [unix_fork]: returns a pid. A [0]-returning stub puts OCaml
+     *  onto the child-process code path (fork semantics: child
+     *  sees 0, parent sees the child pid), which then tries to
+     *  [exec] — and because our exec is also stubbed, we end up
+     *  in a half-torn-down child-side state with no parent entry
+     *  in [popen_processes], so later [close_process] fails with
+     *  [EBADF]. Returning 1 keeps OCaml on the parent side, which
+     *  registers the "child" in the popen table; the later
+     *  [close_process] / [waitpid] on pid 1 then succeed. */
+    public static long forkStub(Object unit) {
+        return 1L;
+    }
+
+    /** [unix_waitpid flags pid]: returns a 2-tuple
+     *  [(pid, WEXITED 0)]. OCaml's process-status variant has
+     *  [WEXITED of int] as constructor 0 with one argument, so
+     *  [WEXITED 0] = [Block(tag=0, [Long 0])]. */
+    public static Block waitpidStub(Object flags, Object pid) {
+        Block wexited = new Block(0, new Object[] { Long.valueOf(0L) });
+        return new Block(0, new Object[] { pid, wexited });
+    }
+
+    /** [unix_inchannel_of_filedescr fd]: wrap an fd as an OCaml
+     *  [in_channel] — a [Channel] instance in our runtime. A
+     *  [Unix.zero] stub would hand back [Long 0], which then
+     *  leaks into stdlib's [popen_processes] hashtable as the
+     *  key. The later [close_process_in] stores a different
+     *  [Channel] instance as its key and the lookup misses with
+     *  [EBADF]. Route through [Channel.forDescriptor] for a
+     *  consistent [Channel]. */
+    public static Channel inchannelOfFiledescr(Object fd) {
+        return Channel.forDescriptor((int) Block.asLong(fd));
+    }
+
+    /** [unix_outchannel_of_filedescr fd]: same for output. */
+    public static Channel outchannelOfFiledescr(Object fd) {
+        return Channel.forDescriptor((int) Block.asLong(fd));
     }
 
     // ==== zero-returning syscall stubs =================================

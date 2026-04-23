@@ -361,6 +361,10 @@ val channel_class_bytes : unit -> string
     [caml_ml_output_char] / [caml_ml_flush] wire through static
     [stdout] / [stderr] instances. *)
 
+val channel_empty_input_stream_class_bytes : unit -> string
+(** Inner class backing fake-fd channels with an EOF-on-read
+    InputStream. Written out alongside [Channel]. *)
+
 val bytes_class_bytes : unit -> string
 (** Bytes of the [Bytes] runtime class — OCaml [bytes] as a
     mutable [StringBuilder] wrapper with [create] / [get] / [set] /

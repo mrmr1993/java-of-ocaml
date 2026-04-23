@@ -366,6 +366,7 @@ let compile_user_stubs ~stub_manifests ~stub_classpath =
     seed "Ocaml" (Jvm.ocaml_class_bytes ());
     seed "Bytes" (Jvm.bytes_class_bytes ());
     seed "BigArray" (Jvm.big_array_class_bytes ());
+    seed "Channel" (Jvm.channel_class_bytes ());
     (* Invoke javac. Extend the classpath with any user-provided
        jars / class dirs (e.g. JNA for native-FFI-backed stubs). *)
     let cp =
@@ -1862,6 +1863,8 @@ let compile_t
     write_class "DummyClosure" (Jvm.dummy_closure_class_bytes ());
     write_class "Compare" (Jvm.compare_class_bytes ());
     write_class "Channel" (Jvm.channel_class_bytes ());
+    write_class "Channel$EmptyInputStream"
+      (Jvm.channel_empty_input_stream_class_bytes ());
     write_class "Bytes" (Jvm.bytes_class_bytes ());
     write_class "Format" (Jvm.format_class_bytes ());
     write_class "Ephemeron" (Jvm.ephemeron_class_bytes ());
