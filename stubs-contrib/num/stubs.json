@@ -1,0 +1,31 @@
+{
+  "create_nat":         { "target": "Num.create_nat",         "descriptor": "(J)Ljava/lang/Object;" },
+  "set_to_zero_nat":    { "target": "Num.set_to_zero_nat",    "descriptor": "(Ljava/lang/Object;JJ)J" },
+  "blit_nat":           { "target": "Num.blit_nat",           "descriptor": "(Ljava/lang/Object;JLjava/lang/Object;JJ)J" },
+  "set_digit_nat":      { "target": "Num.set_digit_nat",      "descriptor": "(Ljava/lang/Object;JJ)J" },
+  "nth_digit_nat":      { "target": "Num.nth_digit_nat",      "descriptor": "(Ljava/lang/Object;J)J" },
+  "num_digits_nat":     { "target": "Num.num_digits_nat",     "descriptor": "(Ljava/lang/Object;JJ)J" },
+
+  "add_nat":            { "target": "Num.add_nat",            "descriptor": "(Ljava/lang/Object;JJLjava/lang/Object;JJJ)J" },
+  "sub_nat":            { "target": "Num.sub_nat",            "descriptor": "(Ljava/lang/Object;JJLjava/lang/Object;JJJ)J" },
+  "incr_nat":           { "target": "Num.incr_nat",           "descriptor": "(Ljava/lang/Object;JJJ)J" },
+  "decr_nat":           { "target": "Num.decr_nat",           "descriptor": "(Ljava/lang/Object;JJJ)J" },
+  "complement_nat":     { "target": "Num.complement_nat",     "descriptor": "(Ljava/lang/Object;JJ)J" },
+
+  "mult_digit_nat":     { "target": "Num.mult_digit_nat",     "descriptor": "(Ljava/lang/Object;JJLjava/lang/Object;JJLjava/lang/Object;J)J" },
+  "mult_nat":           { "target": "Num.mult_nat",           "descriptor": "(Ljava/lang/Object;JJLjava/lang/Object;JJLjava/lang/Object;JJ)J" },
+  "square_nat":         { "target": "Num.square_nat",         "descriptor": "(Ljava/lang/Object;JJLjava/lang/Object;JJ)J" },
+
+  "shift_left_nat":     { "target": "Num.shift_left_nat",     "descriptor": "(Ljava/lang/Object;JJLjava/lang/Object;JJ)J" },
+  "shift_right_nat":    { "target": "Num.shift_right_nat",    "descriptor": "(Ljava/lang/Object;JJLjava/lang/Object;JJ)J" },
+
+  "div_digit_nat":      { "target": "Num.div_digit_nat",      "descriptor": "(Ljava/lang/Object;JLjava/lang/Object;JLjava/lang/Object;JJJ)J" },
+  "div_nat":            { "target": "Num.div_nat",            "descriptor": "(Ljava/lang/Object;JJLjava/lang/Object;JJ)J" },
+
+  "compare_digits_nat": { "target": "Num.compare_digits_nat", "descriptor": "(Ljava/lang/Object;JLjava/lang/Object;J)J" },
+  "compare_nat":        { "target": "Num.compare_nat",        "descriptor": "(Ljava/lang/Object;JJLjava/lang/Object;JJ)J" },
+
+  "land_digit_nat":     { "target": "Num.land_digit_nat",     "descriptor": "(Ljava/lang/Object;JLjava/lang/Object;J)J" },
+  "lor_digit_nat":      { "target": "Num.lor_digit_nat",      "descriptor": "(Ljava/lang/Object;JLjava/lang/Object;J)J" },
+  "lxor_digit_nat":     { "target": "Num.lxor_digit_nat",     "descriptor": "(Ljava/lang/Object;JLjava/lang/Object;J)J" }
+}
