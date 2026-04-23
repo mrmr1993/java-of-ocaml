@@ -1490,7 +1490,7 @@ and emit_ccall_named ctx name args =
   | "caml_ml_pos_in_64" ->
     emit_int_const ctx 0;
     Kind.K_int
-  | "caml_sys_getenv" ->
+  | "caml_sys_getenv" | "caml_sys_unsafe_getenv" ->
     (* Look up the env var via java.lang.System.getenv; if absent,
        raise OCaml's [Not_found] so [Sys.getenv_opt]'s [try ... with
        Not_found -> None] catches it. [Not_found]'s descriptor is
@@ -1524,7 +1524,7 @@ and emit_ccall_named ctx name args =
        Jvm.Code.athrow ctx.code;
        Jvm.Code.mark_label ctx.code lbl_nn;
        Kind.K_string
-     | _ -> raise (Unsupported "caml_sys_getenv arity"))
+     | _ -> raise (Unsupported "caml_sys_(unsafe_)getenv arity"))
   | "caml_sys_argv" ->
     (* Return [Main.ARGV] — the driver populates it at [main(args)]
        entry from the [String[]] parameter. *)

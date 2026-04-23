@@ -145,7 +145,8 @@ let extern_cost = function
   | "caml_sys_const_naked_pointers_checked" | "caml_sys_const_max_int" -> 4
   | "caml_sys_get_config" -> 30
   | "caml_sys_get_argv" -> 35
-  | "caml_sys_getenv" -> 50  (* null-check + raise path *)
+  | "caml_sys_getenv"
+  | "caml_sys_unsafe_getenv" -> 50  (* null-check + raise path *)
   | "caml_sys_argv" | "caml_sys_time" | "caml_sys_time_include_children"
   | "caml_sys_random_seed" -> 20
   | "caml_sys_open" | "caml_sys_close" | "caml_sys_remove" -> 10
