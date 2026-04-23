@@ -10,6 +10,14 @@ public final class CamlException extends RuntimeException {
     public CamlException(Object value) {
         super();
         this.value = value;
+        // Diagnostic: when JAVA_OF_OCAML_TRACE_RAISE is set, print a
+        // JVM stack trace at the raise site. Useful for debugging
+        // mysterious "Uncaught exception: ..." output from OCaml's
+        // top-level handler (which doesn't carry a Java trace).
+        if (System.getenv("JAVA_OF_OCAML_TRACE_RAISE") != null) {
+            System.err.println("[caml-raise] " + getMessage());
+            new RuntimeException("raise site").printStackTrace(System.err);
+        }
     }
 
     @Override
