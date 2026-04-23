@@ -4670,26 +4670,31 @@ let emit_prim ctx (p : Code.prim) (args : Code.prim_arg list) : Kind.kind =
     let ka = arg_kind a in
     let kb = arg_kind b in
     (* For [Eq] / [Neq], dispatch on which kind of equality we need:
-       - value equality on ints (bytecode [BEQ n] or polymorphic-
-         variant dispatch): one or both operands are statically
-         known ints. Unbox the other side and use [if_icmp*].
-       - reference equality on refs (exception-constructor matching,
-         shared descriptors): neither operand is known-int — box
-         both to Object and use [if_acmp*].
-       The subtle case is "one K_int, one K_obj": at runtime both
-       hold the same integer (the frontend boxed the K_int one
-       into an [Integer] because of a cross-block edge), but the
-       [Integer] objects are distinct references for values beyond
-       the JVM's [Integer.valueOf] cache (|n| > 127). Reference
-       equality would silently fail on, e.g., polymorphic-variant
-       hashes like `Blue = 737308346`. *)
+       - Both statically-int: unbox both to JVM [long] and [lcmp].
+       - Otherwise (including "one K_int, one K_obj"): load as
+         Object and use [Object.equals]. [equals] gives value
+         equality on [Long] / [Integer] / [String], reference
+         equality on [Block] / [Closure] (which don't override it)
+         — matching OCaml bytecode's [BEQ] / [BNEQ] semantics for
+         every shape.
+       The previous logic ("at most one side is K_int → unbox the
+       other") crashed when [K_obj] actually held a Block (e.g. a
+       cons-cell [list] being compared to [[]]-as-K_int-0) —
+       [Block.asLong] throws [ClassCastException] on non-numeric
+       boxes. The all-[Object.equals] fallback handles those
+       correctly: [Long(0).equals(cons)] → [false], matching
+       OCaml. The one concern the prior code raised — that
+       [Integer.valueOf(n).equals(...)] differs from value
+       equality outside the [-128..127] cache — doesn't apply
+       with our widened representation: [K_int] boxes as [Long],
+       and [Long.equals] compares by value regardless of cache. *)
     let known_int = function
       | Kind.K_int -> true
       | _ -> false
     in
     let use_ref =
       match p with
-      | Eq | Neq -> not (known_int ka || known_int kb)
+      | Eq | Neq -> not (known_int ka && known_int kb)
       | _ -> false
     in
     let l_true = Jvm.Code.fresh_label ctx.code in
