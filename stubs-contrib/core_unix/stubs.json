@@ -95,6 +95,22 @@
     "descriptor": "(Ljava/lang/Object;)J",
     "target": "LinuxExt.getpriority"
   },
+  "core_linux_pr_get_name": {
+    "descriptor": "(Ljava/lang/Object;)Ljava/lang/String;",
+    "target": "LinuxExt.pr_get_name"
+  },
+  "core_linux_pr_get_pdeathsig_stub": {
+    "descriptor": "(Ljava/lang/Object;)Ljava/lang/Object;",
+    "target": "LinuxExt.pr_get_pdeathsig"
+  },
+  "core_linux_pr_set_name": {
+    "descriptor": "(Ljava/lang/Object;)J",
+    "target": "LinuxExt.pr_set_name"
+  },
+  "core_linux_pr_set_pdeathsig_stub": {
+    "descriptor": "(Ljava/lang/Object;)J",
+    "target": "LinuxExt.pr_set_pdeathsig"
+  },
   "core_linux_setpriority": {
     "descriptor": "(Ljava/lang/Object;)J",
     "target": "LinuxExt.setpriority"
@@ -127,6 +143,10 @@
     "descriptor": "(Ljava/lang/Object;)J",
     "target": "LinuxExt.XATTR_REPLACE_flag"
   },
+  "core_md5_fd": {
+    "descriptor": "(J)Ljava/lang/String;",
+    "target": "Unix.md5_fd"
+  },
   "core_unix_error_of_code": {
     "descriptor": "(J)Ljava/lang/Object;",
     "target": "CoreUnix.error_of_code"
@@ -150,6 +170,18 @@
   "core_unix_inet4_addr_to_int63_exn": {
     "descriptor": "(Ljava/lang/Object;)J",
     "target": "CoreUnix.inet4_addr_to_int"
+  },
+  "dump_core_on_job_delay_dump_core": {
+    "descriptor": "(Ljava/lang/Object;)J",
+    "target": "Unix.dump_core_on_job_delay_dump_core"
+  },
+  "dump_core_on_job_delay_tick": {
+    "descriptor": "(Ljava/lang/Object;)J",
+    "target": "Unix.dump_core_on_job_delay_tick"
+  },
+  "dump_core_on_job_delay_watch": {
+    "descriptor": "(DLjava/lang/Object;)J",
+    "target": "Unix.dump_core_on_job_delay_watch"
   },
   "iobuf_recvmmsg_assume_fd_is_nonblocking_stub": {
     "descriptor": "(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)J",
@@ -239,6 +271,14 @@
     "descriptor": "(Ljava/lang/Object;)J",
     "target": "CoreUnix.O_WRONLY"
   },
+  "unix_access": {
+    "descriptor": "(Ljava/lang/Object;Ljava/lang/Object;)J",
+    "target": "Unix.access"
+  },
+  "unix_chdir": {
+    "descriptor": "(Ljava/lang/Object;)J",
+    "target": "Unix.chdir"
+  },
   "unix_clear_close_on_exec": {
     "descriptor": "(Ljava/lang/Object;)J",
     "target": "Unix.clear_close_on_exec"
@@ -274,6 +314,10 @@
   "unix_fstat_64": {
     "descriptor": "(Ljava/lang/Object;)LBlock;",
     "target": "Unix.fstat"
+  },
+  "unix_getcwd": {
+    "descriptor": "(Ljava/lang/Object;)Ljava/lang/String;",
+    "target": "Unix.getcwd"
   },
   "unix_getegid": {
     "descriptor": "(Ljava/lang/Object;)J",
@@ -323,6 +367,10 @@
     "descriptor": "(Ljava/lang/Object;)LBlock;",
     "target": "Unix.lstat"
   },
+  "unix_mkdir": {
+    "descriptor": "(Ljava/lang/Object;Ljava/lang/Object;)J",
+    "target": "Unix.mkdir"
+  },
   "unix_outchannel_of_filedescr": {
     "descriptor": "(Ljava/lang/Object;)LChannel;",
     "target": "Unix.outchannelOfFiledescr"
@@ -330,6 +378,14 @@
   "unix_pipe": {
     "descriptor": "(Ljava/lang/Object;Ljava/lang/Object;)LBlock;",
     "target": "Unix.pipeStub"
+  },
+  "unix_rmdir": {
+    "descriptor": "(Ljava/lang/Object;)J",
+    "target": "Unix.rmdir"
+  },
+  "unix_select": {
+    "descriptor": "(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;D)LBlock;",
+    "target": "Unix.select"
   },
   "unix_set_close_on_exec": {
     "descriptor": "(Ljava/lang/Object;)J",
@@ -354,6 +410,10 @@
   "unix_time": {
     "descriptor": "(Ljava/lang/Object;)J",
     "target": "Unix.time"
+  },
+  "unix_unlink": {
+    "descriptor": "(Ljava/lang/Object;)J",
+    "target": "Unix.unlink"
   },
   "unix_waitpid": {
     "descriptor": "(Ljava/lang/Object;Ljava/lang/Object;)LBlock;",

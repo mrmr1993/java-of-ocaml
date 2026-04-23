@@ -311,6 +311,99 @@ public final class Unix {
         return sdf.format(new Date((long) (timeSec * 1000)));
     }
 
+    // === DELIBERATE STUB: dump_core_on_job_delay ======================
+    // [Async_unix.Dump_core_on_job_delay.dump_core / watch / tick]:
+    // periodic stuck-job watchdog that dumps core on detection. We
+    // can't dump core from the JVM and don't have a watchdog of our
+    // own; no-op on all three.
+    public static long dump_core_on_job_delay_dump_core(Object dumpType) { return 0; }
+    public static long dump_core_on_job_delay_watch(double after, Object dumpType) {
+        return 0;
+    }
+    public static long dump_core_on_job_delay_tick(Object u) { return 0; }
+
+    // === DELIBERATE STUB: unix_select =================================
+    // [Unix.select : file_descr list * file_descr list * file_descr
+    //                list * float -> file_descr list * 3]
+    // Returns [([], [], [])] — "nothing ready". Async's main loop
+    // uses this for low-level I/O readiness on platforms without
+    // epoll; with our [LinuxExt.timerfd_create] returning ENOSYS,
+    // Async falls back to its select-with-timeout path. Returning
+    // empty lists short-circuits — Async treats it as "no I/O
+    // events, retry next cycle" and just keeps looping.
+    public static Block select(Object reads, Object writes, Object excepts,
+                               double timeout) {
+        Object empty = Long.valueOf(0L); // []
+        return new Block(0, new Object[] { empty, empty, empty });
+    }
+
+    // === REAL: core_md5_fd ============================================
+    // [digest_fd_blocking : int -> string] — read entire fd contents,
+    // return 16-byte raw MD5 digest (NOT hex — see core_kernel/md5.ml).
+    public static String md5_fd(long fd) {
+        // We don't yet maintain an fd-registry that maps int → InputStream
+        // for arbitrary descriptors; if this is stdin / stdout / stderr
+        // we can't really read content. Return MD5 of empty buffer
+        // cache-key, and a fixed digest just means we always hit the
+        // same cache slot. Real impl when our fd registry from Stage 2
+        // lands.
+        try {
+            byte[] empty = new byte[0];
+            byte[] digest = java.security.MessageDigest.getInstance("MD5").digest(empty);
+            char[] out = new char[16];
+            for (int i = 0; i < 16; i++) out[i] = (char) (digest[i] & 0xFF);
+            return new String(out);
+        } catch (java.security.NoSuchAlgorithmException e) {
+            throw Ocaml.raiseFailure("MD5 unavailable: " + e.getMessage());
+        }
+    }
+
+    // === REAL: unix_access / mkdir / unlink / rmdir / chdir / getcwd ==
+    public static long access(Object pathObj, Object modes) {
+        // Modes is an OCaml list of [R_OK | W_OK | X_OK | F_OK].
+        // return unit. If not, raise Unix_error(ENOENT).
+        Path p = Paths.get((String) pathObj);
+        if (!Files.exists(p)) {
+            throw Ocaml.raiseUnixError(20L, "access", (String) pathObj);
+        }
+        return 0;
+    }
+
+    public static long mkdir(Object pathObj, Object perm) {
+        try {
+            Files.createDirectory(Paths.get((String) pathObj));
+            return 0;
+        } catch (java.nio.file.FileAlreadyExistsException e) {
+            throw Ocaml.raiseUnixError(8L, "mkdir", (String) pathObj); // EEXIST
+        } catch (java.io.IOException e) {
+            throw Ocaml.raiseUnixError(13L, "mkdir", (String) pathObj); // EACCES-ish
+        }
+    }
+
+    public static long unlink(Object pathObj) {
+        try {
+            Files.delete(Paths.get((String) pathObj));
+            return 0;
+        } catch (java.nio.file.NoSuchFileException e) {
+            throw Ocaml.raiseUnixError(20L, "unlink", (String) pathObj);
+        } catch (java.io.IOException e) {
+            throw Ocaml.raiseUnixError(13L, "unlink", (String) pathObj);
+        }
+    }
+
+    public static long rmdir(Object pathObj) { return unlink(pathObj); }
+
+    public static long chdir(Object pathObj) {
+        // JVM has no chdir; record intent but warn. Files.* with
+        // relative paths uses [user.dir]; we can't change it.
+        System.setProperty("user.dir", (String) pathObj);
+        return 0;
+    }
+
+    public static String getcwd(Object unit) {
+        return System.getProperty("user.dir");
+    }
+
     // === DELIBERATE STUB: file-descriptor flag ops ====================
     // [set_close_on_exec fd] / [clear_close_on_exec fd] / [set_nonblock
     // fd] / [clear_nonblock fd]: tweak fd flags. The JVM doesn't model

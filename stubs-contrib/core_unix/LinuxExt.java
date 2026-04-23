@@ -97,6 +97,22 @@ public final class LinuxExt {
     public static long getpriority(Object unit) { return 0; }
     public static long setpriority(Object prio) { return 0; }
 
+    // === REAL: pr_set_name / pr_get_name ==============================
+    // [prctl(PR_SET_NAME)] / [prctl(PR_GET_NAME)] — get / set the
+    // current thread's name (visible in /proc/.../task/.../comm).
+    // Map onto Java's Thread name.
+    public static long pr_set_name(Object name) {
+        Thread.currentThread().setName((String) name);
+        return 0;
+    }
+
+    public static String pr_get_name(Object unit) {
+        return Thread.currentThread().getName();
+    }
+
+    public static long pr_set_pdeathsig(Object signal) { return 0; }
+    public static Object pr_get_pdeathsig(Object unit)  { return Long.valueOf(0L); }
+
     // ==== syscall zero-returners =======================================
 
 }
