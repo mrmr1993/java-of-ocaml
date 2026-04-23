@@ -15,7 +15,7 @@ anything not upstream lives here and is opt-in.
 | Directory               | Package(s)                                         | Manifest                                |
 | ----------------------- | -------------------------------------------------- | --------------------------------------- |
 | `integers/`             | `integers`                                         | `stubs-contrib/integers/stubs.json`     |
-| `ctypes/`               | `ctypes` (ldouble, ldouble_complex, POSIX typedefs) | `stubs-contrib/ctypes/stubs.json`       |
+| `ctypes/`               | `ctypes` (one file per upstream submodule: `LDouble`, `ComplexL`, `PosixTypes`) | `stubs-contrib/ctypes/stubs.json` |
 | `core_unix/`            | `core_unix`, `core_linux`, `bigstring`, `iobuf`    | `stubs-contrib/core_unix/stubs.json`    |
 
 ## Why this layout
