@@ -1,0 +1,6 @@
+{
+  "async_ssl_stub_32_OBJ_txt2nid": {
+    "descriptor": "(Ljava/lang/Object;)J",
+    "target": "AsyncSsl.OBJ_txt2nid"
+  }
+}

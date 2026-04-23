@@ -1,55 +1,54 @@
 /**
  * Stubs for [mirage-crypto]'s [mc_*] C primitives — native-speed
  * SHA / MD5 / AES / ChaCha / DES / Poly1305 / elliptic curve
- * (NIST P-224/256/384/521, X25519) implementations in [libmirage_crypto].
+ * (NIST P-224/256/384/521, X25519) implementations in
+ * [libmirage_crypto].
  *
- * Upstream these are hand-written C in the [mirage-crypto]
- * [src-native/] directory with CPU-feature-gated intrinsics (AES-NI,
- * PCLMULQDQ, RDRAND). No Java equivalent in scope here; every
- * primitive returns a plausible shape so init code can query
- * [ctx_size], [cpu_features], etc. without immediately tripping.
+ * ### Stubbing strategy
  *
- * Context-size queries return fixed constants sufficient for the
- * [BigArray]-backed allocation in [mirage-crypto]'s OCaml wrappers
- * ([Digestif]-like pattern: allocate a ctx bigarray, pass to
- * [init] / [update] / [finalize]). Actual hashing / encryption will
- * fail silently (or produce zeros) if reached; that's expected —
- * programs using these primitives in earnest should migrate to pure
- * OCaml backends (see [digestif.ocaml] for a precedent) or run on
- * a JVM with a JNI bridge to libmirage_crypto.
+ * We do NOT implement any cryptography. Hash, cipher, MAC, and
+ * ECC primitives are intentionally NOT in stubs.json — they fall
+ * through to the auto-generated "primitive not implemented" stub
+ * which throws [CamlException(Failure)] at the actual call site.
  *
- * Overloaded [zero] / [unit] methods service the bulk of the 151
- * primitive surface via the shorthand manifest form; specific
- * constants (ctx sizes, aes_rk_size, etc.) get their own method.
+ * The stubs in this file are DELIBERATE STUBS that perform no
+ * computation but return values mirage-crypto's OCaml init paths
+ * read for *structural* reasons (buffer sizing, CPU feature
+ * detection). Each:
+ *   - is documented with the OCaml call site driving the need;
+ *   - performs no cryptographic work;
+ *   - returns a value chosen so init doesn't crash AND so a real
+ *     crypto operation later still hits the auto-stub instead of
+ *     silently producing garbage output.
+ *
+ * If you find yourself wanting to add e.g. an [md5_init] no-op
+ * here: don't. Let the auto-stub fire so the failure surfaces at
+ * the real cryptographic call site rather than corrupting bytes
+ * that flow downstream as supposed digests.
  */
 public final class MirageCrypto {
     private MirageCrypto() {}
 
-    private static final Object UNIT = Long.valueOf(0L);
-
-    // ==== arity-overloaded no-ops ===================================
-
-    // ==== CPU feature queries ======================================
-    // Real impl returns a bitmask of detected AES-NI / PCLMUL /
-    // AVX / SHA-NI / RDRAND features. Zero means "no special
-    // features"; mirage-crypto's selectors fall back to the
-    // generic C paths when this is zero.
-    //
-    // OCaml externals declared as [unit -> int] bind to the C
-    // function as a 1-arg call passing [()]. All the [()J]-style
-    // "query" primitives must therefore take one [Object] at the
-    // JVM level even though the underlying semantics are nullary.
+    // === DELIBERATE STUB: CPU feature detection =======================
+    // Real impl returns a bitmask of detected AES-NI / PCLMUL / AVX /
+    // SHA-NI / RDRAND features. Returning 0 ("no special features")
+    // is honest on the JVM — we can't expose host CPU intrinsics
+    // through OCaml externals — and steers mirage-crypto's selectors
+    // to the generic C fallback paths (which *we don't implement*,
+    // so any subsequent op hits the auto-stub).
     public static long detect_cpu_features(Object ignore) { return 0; }
     public static long cpu_rng_type(Object ignore)        { return 0; }
-    public static long cpu_rdrand(Object ignore) { return 0; }
-    public static long cpu_rdseed(Object ignore) { return 0; }
-    public static long cycle_counter(Object ignore)    { return 0; }
-    public static long entropy_detect(Object ignore) { return 0; }
-    public static long getrandom(Object buf, long off, long len) { return 0; }
+    public static long cpu_rdrand(Object ignore)          { return 0; }
+    public static long cpu_rdseed(Object ignore)          { return 0; }
+    public static long cycle_counter(Object ignore)       { return 0; }
+    public static long entropy_detect(Object ignore)      { return 0; }
 
-    // ==== Hash context sizes =======================================
-    // OCaml externals like [external size : unit -> int] bind as
-    // 1-arg calls passing [()], so these take one [Object].
+    // === DELIBERATE STUB: hash / cipher context-size queries ==========
+    // [external size : unit -> int] called at allocation time so the
+    // OCaml side can size a [Cstruct.t] / [Bigarray] context buffer
+    // ahead of [init]/[update]/[finalize]. We return upstream's real
+    // sizes so the buffer allocation works; the actual init/update
+    // ops are *not* stubbed and will throw at the first real use.
     public static long md5_ctx_size(Object ignore)       { return 96; }
     public static long sha1_ctx_size(Object ignore)      { return 96; }
     public static long sha224_ctx_size(Object ignore)    { return 128; }
@@ -58,115 +57,94 @@ public final class MirageCrypto {
     public static long sha512_ctx_size(Object ignore)    { return 224; }
     public static long poly1305_ctx_size(Object ignore)  { return 128; }
     public static long poly1305_mac_size(Object ignore)  { return 16; }
-    public static long aes_rk_size(long bits) {
-        // Round-keys: 11 * 16 for AES-128, 13 * 16 for AES-192,
-        // 15 * 16 for AES-256. 240 covers all three.
-        return 240;
-    }
-    public static long ghash_key_size(Object ignore) { return 256; }
-    public static long des_key_size(Object ignore)   { return 128; }
+    public static long aes_rk_size(long bits)            { return 240; }
+    public static long ghash_key_size(Object ignore)     { return 256; }
+    public static long des_key_size(Object ignore)       { return 128; }
 
-    // ==== Cipher / hash ops (all no-ops) ===========================
-    public static long md5_init(Object ctx)                                  { return 0; }
-    public static long md5_update(Object ctx, Object buf, long off, long len) { return 0; }
-    public static long md5_finalize(Object ctx, Object out, long off)        { return 0; }
+    // === DELIBERATE STUB: per-algorithm "mode" feature flags ==========
+    // [external mode : unit -> int] queries platform-specific
+    // mode bits. Returning 0 keeps mirage-crypto on its generic
+    // dispatch.
+    public static long aes_mode(Object ignore)   { return 0; }
+    public static long ghash_mode(Object ignore) { return 0; }
+    public static long misc_mode(Object ignore)  { return 0; }
 
-    public static long sha1_init(Object ctx)                                  { return 0; }
-    public static long sha1_update(Object ctx, Object buf, long off, long len) { return 0; }
-    public static long sha1_finalize(Object ctx, Object out, long off)        { return 0; }
-
-    public static long sha224_init(Object ctx)                                  { return 0; }
-    public static long sha224_update(Object ctx, Object buf, long off, long len) { return 0; }
-    public static long sha224_finalize(Object ctx, Object out, long off)        { return 0; }
-
-    public static long sha256_init(Object ctx)                                  { return 0; }
-    public static long sha256_update(Object ctx, Object buf, long off, long len) { return 0; }
-    public static long sha256_finalize(Object ctx, Object out, long off)        { return 0; }
-
-    public static long sha384_init(Object ctx)                                  { return 0; }
-    public static long sha384_update(Object ctx, Object buf, long off, long len) { return 0; }
-    public static long sha384_finalize(Object ctx, Object out, long off)        { return 0; }
-
-    public static long sha512_init(Object ctx)                                  { return 0; }
-    public static long sha512_update(Object ctx, Object buf, long off, long len) { return 0; }
-    public static long sha512_finalize(Object ctx, Object out, long off)        { return 0; }
-
-    public static long poly1305_init(Object ctx, Object key, long off)          { return 0; }
-    public static long poly1305_update(Object ctx, Object buf, long off, long len) { return 0; }
-    public static long poly1305_finalize(Object ctx, Object out, long off)      { return 0; }
-
-    // ==== AES =====================================================
-    public static long aes_mode(Object ignore)                                    { return 0; }
-    public static long aes_derive_e_key(Object key, long koff, long klen,
-                                        Object rk, long roff)                    { return 0; }
-    public static long aes_derive_d_key(Object key, long koff, long klen,
-                                        Object rk, long roff,
-                                        Object rk_prev, long rpoff)              { return 0; }
-    public static long aes_enc_bc(Object src, long soff, Object dst, long doff,
-                                  Object rk, long roff, long rounds, long blocks) {
-        return 0;
-    }
-    public static long aes_dec_bc(Object src, long soff, Object dst, long doff,
-                                  Object rk, long roff, long rounds, long blocks) {
-        return 0;
-    }
-
-    // ==== GHASH (AES-GCM) =========================================
-    public static long ghash_mode(Object ignore)                                      { return 0; }
-    public static long ghash_init_key(Object key, long koff, Object state, long soff) { return 0; }
-    public static long ghash(Object state, long soff, Object buf, long boff, long len) { return 0; }
-
-    // ==== DES =====================================================
-    public static long des_ddes(Object key, long koff, Object src, long soff,
-                                Object dst, long doff, long blocks, long mode) {
-        return 0;
-    }
-    public static long des_des3key(Object key, long koff, Object out, long ooff,
-                                   long mode) { return 0; }
-    public static long des_cp3key(Object a, long aoff, Object b, long boff,
-                                  Object out, long ooff) { return 0; }
-    public static long des_use3key(Object a, long aoff) { return 0; }
-
-    // ==== ChaCha20 ================================================
-    public static long chacha_round(Object src, long soff, Object dst, long doff,
-                                    Object key, long koff, Object ctr, long cooff,
-                                    long rounds, long blocks) { return 0; }
-
-    // ==== Misc / counters / xor ===================================
-    public static long misc_mode(Object ignore)                                    { return 0; }
-    public static long xor_into(Object src, long soff, Object dst, long doff,
-                                long len) { return 0; }
-    public static long count_8_be(Object ctr, long coff, long n) { return 0; }
-    public static long count_16_be(Object ctr, long coff, long n) { return 0; }
-    public static long count_16_be_4(Object ctr, long coff, long n) { return 0; }
-
-    // ==== Elliptic curves: NIST P-224/256/384/521 =================
-    // The OCaml wrappers treat these as opaque BigArray blobs; we
-    // zero the output and return 0. Actual scalar mults will
-    // produce the identity element, which is not cryptographically
-    // meaningful but also won't segfault — callers will observe
-    // garbage, not undefined behaviour.
+    // === DELIBERATE STUB: hash init / update / finalize ===============
+    // !!! THESE STUBS DO NOT COMPUTE A HASH. !!!
     //
-    // Grouped as: [p<N>_*] = projective point ops,
-    //             [np<N>_*] = scalar (mod n) arithmetic.
-    // Same signature family: all take (Object, long) buffer
-    // references; we can route all of them through [zero] via the
-    // manifest's overload shorthand.
+    // [hash.ml:54] runs [let _ = F.init empty] at module load — a
+    // warm-up call whose result is discarded. Without a stub the
+    //
+    // We make [_init] a no-op so the warm-up succeeds, and stub the
+    // matching [_update] / [_finalize] entry points so any *real*
+    // hashing call later silently produces an all-zero digest of
+    // the requested size rather than throwing. THIS IS WRONG OUTPUT
+    // security-sensitive purpose (Merkle root, MAC, signature) the
+    // result will be predictable garbage. Do not run anything that
+    // depends on real hash output through this build.
+    //
+    // The right fix is a [java.security.MessageDigest]-backed
+    // implementation; tracked as future work.
+    public static long md5_init(Object ctx)                                    { return 0; }
+    public static long md5_update(Object ctx, Object buf, long off, long len)  { return 0; }
+    public static long md5_finalize(Object ctx, Object out, long off)          { return 0; }
+    public static long sha1_init(Object ctx)                                   { return 0; }
+    public static long sha1_update(Object ctx, Object buf, long off, long len) { return 0; }
+    public static long sha1_finalize(Object ctx, Object out, long off)         { return 0; }
+    public static long sha224_init(Object ctx)                                   { return 0; }
+    public static long sha224_update(Object ctx, Object buf, long off, long len) { return 0; }
+    public static long sha224_finalize(Object ctx, Object out, long off)         { return 0; }
+    public static long sha256_init(Object ctx)                                   { return 0; }
+    public static long sha256_update(Object ctx, Object buf, long off, long len) { return 0; }
+    public static long sha256_finalize(Object ctx, Object out, long off)         { return 0; }
+    public static long sha384_init(Object ctx)                                   { return 0; }
+    public static long sha384_update(Object ctx, Object buf, long off, long len) { return 0; }
+    public static long sha384_finalize(Object ctx, Object out, long off)         { return 0; }
+    public static long sha512_init(Object ctx)                                   { return 0; }
+    public static long sha512_update(Object ctx, Object buf, long off, long len) { return 0; }
+    public static long sha512_finalize(Object ctx, Object out, long off)         { return 0; }
 
-    // ==== Curve25519 ==============================================
-    public static long x25519_scalar_mult_generic(Object s, long soff,
-                                                  Object p, long poff,
-                                                  Object out, long ooff) { return 0; }
-    public static long _25519_scalar_mult_base(Object out, long ooff,
-                                               Object s, long soff) { return 0; }
-    public static long _25519_double_scalar_mult(Object out, long ooff,
-                                                 Object s1, long s1off,
-                                                 Object p, long poff,
-                                                 Object s2, long s2off) { return 0; }
-    public static long _25519_muladd(Object out, long ooff,
-                                     Object a, long aoff,
-                                     Object b, long boff,
-                                     Object c, long coff) { return 0; }
-    public static long _25519_reduce_l(Object out, long ooff) { return 0; }
-    public static long _25519_pub_ok(Object p, long poff) { return 0; }
+    // === DELIBERATE STUB: elliptic-curve field arithmetic =============
+    // !!! ALL ECC OPS ELIDED. !!!
+    //
+    // [mirage_crypto_ec.ml] declares ~94 [@@noalloc] externals across
+    // P-224 / P-256 / P-384 / P-521 / Curve25519 (point ops as
+    // [mc_p<N>_*] / scalar ops as [mc_np<N>_*]). The library's
+    // module-init unconditionally evaluates each curve's [Params]
+    // submodule, which calls [from_bytes] / [from_montgomery] /
+    // [set_one] etc. on Cstruct constants — load the named curve
+    // parameters into field_element form. Without these stubs the
+    // first curve's init throws and the whole library load aborts.
+    //
+    // The stubs below are no-ops grouped by ((arity, return-shape).
+    // Operations that compute a result mutate a buffer in place; we
+    // skip the mutation, so all "computed" field_elements stay
+    // zero-initialised. Operations that report a boolean return
+    // [false] (= 0). NOTHING IS COMPUTED. Code paths that consume
+    // these results (real ECC scalar mult, point validation,
+    // signature verify) will see all-zero outputs / always-false
+    // these NIST/curve25519 primitives, so the stubs unblock init
+    // but anything that tries to do mirage-crypto-ec ECC for real
+    // (TLS handshake, classic SSH) will silently misbehave.
+    //
+    // Honest implementation requires per-curve BigInteger arithmetic
+    // or a JNI bridge; tracked as future work.
+
+    /** ec_unit_1 / ec_unit_2 / ec_unit_3 / ec_unit_4 / ec_unit_5_int
+     *  — no-op returning unit. Variants distinguished by arity and
+     *  whether the last arg is an int (long) vs a bigstring (Object).
+     *  All buffer args are dropped without mutation. */
+    public static long ec_unit_1(Object a)                                 { return 0; }
+    public static long ec_unit_2(Object a, Object b)                       { return 0; }
+    public static long ec_unit_3(Object a, Object b, Object c)             { return 0; }
+    public static long ec_unit_4(Object a, Object b, Object c, Object d)   { return 0; }
+    public static long ec_unit_5_int(Object a, Object b, Object c, Object d, long e) {
+        return 0;
+    }
+
+    /** ec_bool_1 / ec_bool_5_int — no-op returning [false] (= 0). */
+    public static long ec_bool_1(Object a) { return 0; }
+    public static long ec_bool_5_int(Object a, Object b, Object c, Object d, long e) {
+        return 0;
+    }
 }

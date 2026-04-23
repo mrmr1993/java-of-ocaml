@@ -1,18 +1,34 @@
 /**
- * Stubs for [libsodium] (NaCl) ctypes-foreign bindings used via
- * the test binary's [sodium] or [hacl_star]-style ocaml wrapper. Each
- * primitive is cstubs-indexed as [caml__<N>_<nacl_symbol>]; the
- * set covers Curve25519/XSalsa20Poly1305 box + sign +
- * onetimeauth/poly1305 + secretbox families.
+ * Stubs for [libsodium] (NaCl) ctypes-foreign bindings — the
+ * cstubs-indexed [caml__<N>_<nacl_symbol>] entry points covering
+ * the curve25519 / XSalsa20Poly1305 box, sign, onetimeauth /
+ * poly1305, secretbox, and pwhash families.
  *
- * Identical pattern to [AsyncSsl]: route every call through
- * arity-overloaded [zero] methods. Init-time paths only query
- * "*bytes" sizes and allocate buffers — actual crypto would need
- * a real libsodium bridge (JNI) or a pure-Java NaCl port, neither
- * in scope here.
+ * ### Stubbing strategy
+ *
+ * We do NOT implement libsodium. The actual cryptographic
+ * primitives ([_keypair], [_open], [_seal], [_pwhash], [_sign],
+ * etc.) are intentionally NOT in stubs.json — they fall through
+ * to the auto-generated "primitive not implemented" stub.
+ *
+ * The methods in this file are DELIBERATE STUBS for the
+ * "constant query" entry points that the test binary's init paths read at
+ * module load to size buffers and configure parameters
+ * ([*_bytes], [memlimit_*], [opslimit_*], etc.). Each returns
+ * the upstream libsodium constant so init proceeds; no crypto
+ * is performed. Real callers that proceed past sizing into
+ * actual operations hit the auto-stub and fail loudly.
  */
 public final class Sodium {
     private Sodium() {}
+
+    // === DELIBERATE STUB: sodium_init() ===============================
+    // [sodium.ml] init runs [Sodium.init ()] once at module load to
+    // initialize the libsodium runtime (chooses code paths, seeds
+    // PRNG, picks AES backend). On real hardware this returns 0
+    // ("first call, succeeded"). Returning 0 lets module init bind
+    // its return code; no library state to initialize on our side.
+    public static long sodium_init(Object u) { return 0; }
 
     // ==== NaCl/libsodium size constants ==========================
     // Each of these is an OCaml [external sz : unit -> int], called
@@ -39,9 +55,26 @@ public final class Sodium {
     public static long scalarmult_bytes(Object u)      { return 32; }
     public static long scalarmult_scalarbytes(Object u){ return 32; }
 
-    // crypto_pwhash_argon2i
-    public static long pwhash_saltbytes(Object u)      { return 16; }
-    public static long pwhash_strbytes(Object u)       { return 128; }
+    // crypto_generichash_blake2b — bytes / keybytes clamps from
+    // libsodium. The base [blake2b_bytes] / [_keybytes] live in
+    // their own block below.
+    public static long blake2b_bytes_min(Object u)        { return 16; }
+    public static long blake2b_bytes_max(Object u)        { return 64; }
+    public static long blake2b_keybytes_min(Object u)     { return 16; }
+    public static long blake2b_keybytes_max(Object u)     { return 64; }
+
+    // crypto_pwhash_argon2i — sizes + the (memlimit, opslimit)
+    // [sodium.ml:508-520] eagerly binds [interactive] /
+    // [moderate] / [sensitive] difficulty records by reading all
+    // six. Values are libsodium's documented defaults.
+    public static long pwhash_saltbytes(Object u)             { return 16; }
+    public static long pwhash_strbytes(Object u)              { return 128; }
+    public static long pwhash_memlimit_interactive(Object u)  { return 67108864L; }   // 64 MiB
+    public static long pwhash_memlimit_moderate(Object u)     { return 268435456L; }  // 256 MiB
+    public static long pwhash_memlimit_sensitive(Object u)    { return 1073741824L; } // 1 GiB
+    public static long pwhash_opslimit_interactive(Object u)  { return 4; }
+    public static long pwhash_opslimit_moderate(Object u)     { return 6; }
+    public static long pwhash_opslimit_sensitive(Object u)    { return 8; }
 
     // crypto_secretbox_xsalsa20poly1305
     public static long secretbox_keybytes(Object u)    { return 32; }

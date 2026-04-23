@@ -19,13 +19,13 @@
     "descriptor": "(Ljava/lang/Object;JLjava/lang/Object;JJ)J",
     "target": "Bigstring.blitBigstringToBigstring"
   },
-  "bigstring_memcmp_stub": {
-    "descriptor": "(Ljava/lang/Object;JLjava/lang/Object;JJ)J",
-    "target": "Bigstring.memcmp"
-  },
   "bigstring_init_stub": {
     "descriptor": "(Ljava/lang/Object;)J",
     "target": "Bigstring.init_stub"
+  },
+  "bigstring_memcmp_stub": {
+    "descriptor": "(Ljava/lang/Object;JLjava/lang/Object;JJ)J",
+    "target": "Bigstring.memcmp"
   },
   "bigstring_memset_stub": {
     "descriptor": "(Ljava/lang/Object;JJJ)J",
@@ -112,7 +112,7 @@
     "target": "LinuxExt.XATTR_REPLACE_flag"
   },
   "core_unix_error_of_code": {
-    "descriptor": "(J)J",
+    "descriptor": "(J)Ljava/lang/Object;",
     "target": "CoreUnix.error_of_code"
   },
   "core_unix_getrlimit": {
@@ -134,6 +134,14 @@
   "core_unix_inet4_addr_to_int63_exn": {
     "descriptor": "(Ljava/lang/Object;)J",
     "target": "CoreUnix.inet4_addr_to_int"
+  },
+  "iobuf_recvmmsg_assume_fd_is_nonblocking_stub": {
+    "descriptor": "(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)J",
+    "target": "Iobuf.iobuf_recvmmsg_assume_fd_is_nonblocking"
+  },
+  "iobuf_recvmmsg_ctx": {
+    "descriptor": "(Ljava/lang/Object;)Ljava/lang/Object;",
+    "target": "Iobuf.iobuf_recvmmsg_ctx"
   },
   "unix_F_GETFL": {
     "descriptor": "(Ljava/lang/Object;)J",

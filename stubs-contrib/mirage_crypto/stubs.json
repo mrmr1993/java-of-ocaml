@@ -1,39 +1,23 @@
 {
   "mc_25519_double_scalar_mult": {
-    "descriptor": "(Ljava/lang/Object;JLjava/lang/Object;JLjava/lang/Object;JLjava/lang/Object;J)J",
-    "target": "MirageCrypto._25519_double_scalar_mult"
+    "descriptor": "(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;J)J",
+    "target": "MirageCrypto.ec_bool_5_int"
   },
   "mc_25519_muladd": {
-    "descriptor": "(Ljava/lang/Object;JLjava/lang/Object;JLjava/lang/Object;JLjava/lang/Object;J)J",
-    "target": "MirageCrypto._25519_muladd"
+    "descriptor": "(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)J",
+    "target": "MirageCrypto.ec_unit_4"
   },
   "mc_25519_pub_ok": {
-    "descriptor": "(Ljava/lang/Object;J)J",
-    "target": "MirageCrypto._25519_pub_ok"
+    "descriptor": "(Ljava/lang/Object;)J",
+    "target": "MirageCrypto.ec_bool_1"
   },
   "mc_25519_reduce_l": {
-    "descriptor": "(Ljava/lang/Object;J)J",
-    "target": "MirageCrypto._25519_reduce_l"
+    "descriptor": "(Ljava/lang/Object;)J",
+    "target": "MirageCrypto.ec_unit_1"
   },
   "mc_25519_scalar_mult_base": {
-    "descriptor": "(Ljava/lang/Object;JLjava/lang/Object;J)J",
-    "target": "MirageCrypto._25519_scalar_mult_base"
-  },
-  "mc_aes_dec_bc": {
-    "descriptor": "(Ljava/lang/Object;JLjava/lang/Object;JLjava/lang/Object;JJJ)J",
-    "target": "MirageCrypto.aes_dec_bc"
-  },
-  "mc_aes_derive_d_key": {
-    "descriptor": "(Ljava/lang/Object;JJLjava/lang/Object;JLjava/lang/Object;J)J",
-    "target": "MirageCrypto.aes_derive_d_key"
-  },
-  "mc_aes_derive_e_key": {
-    "descriptor": "(Ljava/lang/Object;JJLjava/lang/Object;J)J",
-    "target": "MirageCrypto.aes_derive_e_key"
-  },
-  "mc_aes_enc_bc": {
-    "descriptor": "(Ljava/lang/Object;JLjava/lang/Object;JLjava/lang/Object;JJJ)J",
-    "target": "MirageCrypto.aes_enc_bc"
+    "descriptor": "(Ljava/lang/Object;Ljava/lang/Object;)J",
+    "target": "MirageCrypto.ec_unit_2"
   },
   "mc_aes_mode": {
     "descriptor": "(Ljava/lang/Object;)J",
@@ -42,22 +26,6 @@
   "mc_aes_rk_size": {
     "descriptor": "(J)J",
     "target": "MirageCrypto.aes_rk_size"
-  },
-  "mc_chacha_round": {
-    "descriptor": "(Ljava/lang/Object;JLjava/lang/Object;JLjava/lang/Object;JLjava/lang/Object;JJJ)J",
-    "target": "MirageCrypto.chacha_round"
-  },
-  "mc_count_16_be": {
-    "descriptor": "(Ljava/lang/Object;JJ)J",
-    "target": "MirageCrypto.count_16_be"
-  },
-  "mc_count_16_be_4": {
-    "descriptor": "(Ljava/lang/Object;JJ)J",
-    "target": "MirageCrypto.count_16_be_4"
-  },
-  "mc_count_8_be": {
-    "descriptor": "(Ljava/lang/Object;JJ)J",
-    "target": "MirageCrypto.count_8_be"
   },
   "mc_cpu_rdrand": {
     "descriptor": "(Ljava/lang/Object;)J",
@@ -75,25 +43,9 @@
     "descriptor": "(Ljava/lang/Object;)J",
     "target": "MirageCrypto.cycle_counter"
   },
-  "mc_des_cp3key": {
-    "descriptor": "(Ljava/lang/Object;JLjava/lang/Object;JLjava/lang/Object;J)J",
-    "target": "MirageCrypto.des_cp3key"
-  },
-  "mc_des_ddes": {
-    "descriptor": "(Ljava/lang/Object;JLjava/lang/Object;JLjava/lang/Object;JJJ)J",
-    "target": "MirageCrypto.des_ddes"
-  },
-  "mc_des_des3key": {
-    "descriptor": "(Ljava/lang/Object;JLjava/lang/Object;JJ)J",
-    "target": "MirageCrypto.des_des3key"
-  },
   "mc_des_key_size": {
     "descriptor": "(Ljava/lang/Object;)J",
     "target": "MirageCrypto.des_key_size"
-  },
-  "mc_des_use3key": {
-    "descriptor": "(Ljava/lang/Object;J)J",
-    "target": "MirageCrypto.des_use3key"
   },
   "mc_detect_cpu_features": {
     "descriptor": "(Ljava/lang/Object;)J",
@@ -102,18 +54,6 @@
   "mc_entropy_detect": {
     "descriptor": "(Ljava/lang/Object;)J",
     "target": "MirageCrypto.entropy_detect"
-  },
-  "mc_getrandom": {
-    "descriptor": "(Ljava/lang/Object;JJ)J",
-    "target": "MirageCrypto.getrandom"
-  },
-  "mc_ghash": {
-    "descriptor": "(Ljava/lang/Object;JLjava/lang/Object;JJ)J",
-    "target": "MirageCrypto.ghash"
-  },
-  "mc_ghash_init_key": {
-    "descriptor": "(Ljava/lang/Object;JLjava/lang/Object;J)J",
-    "target": "MirageCrypto.ghash_init_key"
   },
   "mc_ghash_key_size": {
     "descriptor": "(Ljava/lang/Object;)J",
@@ -143,25 +83,365 @@
     "descriptor": "(Ljava/lang/Object;)J",
     "target": "MirageCrypto.misc_mode"
   },
+  "mc_np224_add": {
+    "descriptor": "(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)J",
+    "target": "MirageCrypto.ec_unit_3"
+  },
+  "mc_np224_from_bytes": {
+    "descriptor": "(Ljava/lang/Object;Ljava/lang/Object;)J",
+    "target": "MirageCrypto.ec_unit_2"
+  },
+  "mc_np224_from_montgomery": {
+    "descriptor": "(Ljava/lang/Object;Ljava/lang/Object;)J",
+    "target": "MirageCrypto.ec_unit_2"
+  },
+  "mc_np224_inv": {
+    "descriptor": "(Ljava/lang/Object;Ljava/lang/Object;)J",
+    "target": "MirageCrypto.ec_unit_2"
+  },
+  "mc_np224_mul": {
+    "descriptor": "(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)J",
+    "target": "MirageCrypto.ec_unit_3"
+  },
+  "mc_np224_one": {
+    "descriptor": "(Ljava/lang/Object;)J",
+    "target": "MirageCrypto.ec_unit_1"
+  },
+  "mc_np224_to_bytes": {
+    "descriptor": "(Ljava/lang/Object;Ljava/lang/Object;)J",
+    "target": "MirageCrypto.ec_unit_2"
+  },
+  "mc_np224_to_montgomery": {
+    "descriptor": "(Ljava/lang/Object;Ljava/lang/Object;)J",
+    "target": "MirageCrypto.ec_unit_2"
+  },
+  "mc_np256_add": {
+    "descriptor": "(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)J",
+    "target": "MirageCrypto.ec_unit_3"
+  },
+  "mc_np256_from_bytes": {
+    "descriptor": "(Ljava/lang/Object;Ljava/lang/Object;)J",
+    "target": "MirageCrypto.ec_unit_2"
+  },
+  "mc_np256_from_montgomery": {
+    "descriptor": "(Ljava/lang/Object;Ljava/lang/Object;)J",
+    "target": "MirageCrypto.ec_unit_2"
+  },
+  "mc_np256_inv": {
+    "descriptor": "(Ljava/lang/Object;Ljava/lang/Object;)J",
+    "target": "MirageCrypto.ec_unit_2"
+  },
+  "mc_np256_mul": {
+    "descriptor": "(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)J",
+    "target": "MirageCrypto.ec_unit_3"
+  },
+  "mc_np256_one": {
+    "descriptor": "(Ljava/lang/Object;)J",
+    "target": "MirageCrypto.ec_unit_1"
+  },
+  "mc_np256_to_bytes": {
+    "descriptor": "(Ljava/lang/Object;Ljava/lang/Object;)J",
+    "target": "MirageCrypto.ec_unit_2"
+  },
+  "mc_np256_to_montgomery": {
+    "descriptor": "(Ljava/lang/Object;Ljava/lang/Object;)J",
+    "target": "MirageCrypto.ec_unit_2"
+  },
+  "mc_np384_add": {
+    "descriptor": "(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)J",
+    "target": "MirageCrypto.ec_unit_3"
+  },
+  "mc_np384_from_bytes": {
+    "descriptor": "(Ljava/lang/Object;Ljava/lang/Object;)J",
+    "target": "MirageCrypto.ec_unit_2"
+  },
+  "mc_np384_from_montgomery": {
+    "descriptor": "(Ljava/lang/Object;Ljava/lang/Object;)J",
+    "target": "MirageCrypto.ec_unit_2"
+  },
+  "mc_np384_inv": {
+    "descriptor": "(Ljava/lang/Object;Ljava/lang/Object;)J",
+    "target": "MirageCrypto.ec_unit_2"
+  },
+  "mc_np384_mul": {
+    "descriptor": "(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)J",
+    "target": "MirageCrypto.ec_unit_3"
+  },
+  "mc_np384_one": {
+    "descriptor": "(Ljava/lang/Object;)J",
+    "target": "MirageCrypto.ec_unit_1"
+  },
+  "mc_np384_to_bytes": {
+    "descriptor": "(Ljava/lang/Object;Ljava/lang/Object;)J",
+    "target": "MirageCrypto.ec_unit_2"
+  },
+  "mc_np384_to_montgomery": {
+    "descriptor": "(Ljava/lang/Object;Ljava/lang/Object;)J",
+    "target": "MirageCrypto.ec_unit_2"
+  },
+  "mc_np521_add": {
+    "descriptor": "(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)J",
+    "target": "MirageCrypto.ec_unit_3"
+  },
+  "mc_np521_from_bytes": {
+    "descriptor": "(Ljava/lang/Object;Ljava/lang/Object;)J",
+    "target": "MirageCrypto.ec_unit_2"
+  },
+  "mc_np521_from_montgomery": {
+    "descriptor": "(Ljava/lang/Object;Ljava/lang/Object;)J",
+    "target": "MirageCrypto.ec_unit_2"
+  },
+  "mc_np521_inv": {
+    "descriptor": "(Ljava/lang/Object;Ljava/lang/Object;)J",
+    "target": "MirageCrypto.ec_unit_2"
+  },
+  "mc_np521_mul": {
+    "descriptor": "(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)J",
+    "target": "MirageCrypto.ec_unit_3"
+  },
+  "mc_np521_one": {
+    "descriptor": "(Ljava/lang/Object;)J",
+    "target": "MirageCrypto.ec_unit_1"
+  },
+  "mc_np521_to_bytes": {
+    "descriptor": "(Ljava/lang/Object;Ljava/lang/Object;)J",
+    "target": "MirageCrypto.ec_unit_2"
+  },
+  "mc_np521_to_montgomery": {
+    "descriptor": "(Ljava/lang/Object;Ljava/lang/Object;)J",
+    "target": "MirageCrypto.ec_unit_2"
+  },
+  "mc_p224_add": {
+    "descriptor": "(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)J",
+    "target": "MirageCrypto.ec_unit_3"
+  },
+  "mc_p224_from_bytes": {
+    "descriptor": "(Ljava/lang/Object;Ljava/lang/Object;)J",
+    "target": "MirageCrypto.ec_unit_2"
+  },
+  "mc_p224_from_montgomery": {
+    "descriptor": "(Ljava/lang/Object;)J",
+    "target": "MirageCrypto.ec_unit_1"
+  },
+  "mc_p224_inv": {
+    "descriptor": "(Ljava/lang/Object;Ljava/lang/Object;)J",
+    "target": "MirageCrypto.ec_unit_2"
+  },
+  "mc_p224_mul": {
+    "descriptor": "(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)J",
+    "target": "MirageCrypto.ec_unit_3"
+  },
+  "mc_p224_nz": {
+    "descriptor": "(Ljava/lang/Object;)J",
+    "target": "MirageCrypto.ec_bool_1"
+  },
+  "mc_p224_point_add": {
+    "descriptor": "(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)J",
+    "target": "MirageCrypto.ec_unit_3"
+  },
+  "mc_p224_point_double": {
+    "descriptor": "(Ljava/lang/Object;Ljava/lang/Object;)J",
+    "target": "MirageCrypto.ec_unit_2"
+  },
+  "mc_p224_select": {
+    "descriptor": "(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)J",
+    "target": "MirageCrypto.ec_unit_4"
+  },
+  "mc_p224_set_one": {
+    "descriptor": "(Ljava/lang/Object;)J",
+    "target": "MirageCrypto.ec_unit_1"
+  },
+  "mc_p224_sqr": {
+    "descriptor": "(Ljava/lang/Object;Ljava/lang/Object;)J",
+    "target": "MirageCrypto.ec_unit_2"
+  },
+  "mc_p224_sub": {
+    "descriptor": "(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)J",
+    "target": "MirageCrypto.ec_unit_3"
+  },
+  "mc_p224_to_bytes": {
+    "descriptor": "(Ljava/lang/Object;Ljava/lang/Object;)J",
+    "target": "MirageCrypto.ec_unit_2"
+  },
+  "mc_p224_to_montgomery": {
+    "descriptor": "(Ljava/lang/Object;)J",
+    "target": "MirageCrypto.ec_unit_1"
+  },
+  "mc_p256_add": {
+    "descriptor": "(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)J",
+    "target": "MirageCrypto.ec_unit_3"
+  },
+  "mc_p256_from_bytes": {
+    "descriptor": "(Ljava/lang/Object;Ljava/lang/Object;)J",
+    "target": "MirageCrypto.ec_unit_2"
+  },
+  "mc_p256_from_montgomery": {
+    "descriptor": "(Ljava/lang/Object;)J",
+    "target": "MirageCrypto.ec_unit_1"
+  },
+  "mc_p256_inv": {
+    "descriptor": "(Ljava/lang/Object;Ljava/lang/Object;)J",
+    "target": "MirageCrypto.ec_unit_2"
+  },
+  "mc_p256_mul": {
+    "descriptor": "(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)J",
+    "target": "MirageCrypto.ec_unit_3"
+  },
+  "mc_p256_nz": {
+    "descriptor": "(Ljava/lang/Object;)J",
+    "target": "MirageCrypto.ec_bool_1"
+  },
+  "mc_p256_point_add": {
+    "descriptor": "(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)J",
+    "target": "MirageCrypto.ec_unit_3"
+  },
+  "mc_p256_point_double": {
+    "descriptor": "(Ljava/lang/Object;Ljava/lang/Object;)J",
+    "target": "MirageCrypto.ec_unit_2"
+  },
+  "mc_p256_select": {
+    "descriptor": "(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)J",
+    "target": "MirageCrypto.ec_unit_4"
+  },
+  "mc_p256_set_one": {
+    "descriptor": "(Ljava/lang/Object;)J",
+    "target": "MirageCrypto.ec_unit_1"
+  },
+  "mc_p256_sqr": {
+    "descriptor": "(Ljava/lang/Object;Ljava/lang/Object;)J",
+    "target": "MirageCrypto.ec_unit_2"
+  },
+  "mc_p256_sub": {
+    "descriptor": "(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)J",
+    "target": "MirageCrypto.ec_unit_3"
+  },
+  "mc_p256_to_bytes": {
+    "descriptor": "(Ljava/lang/Object;Ljava/lang/Object;)J",
+    "target": "MirageCrypto.ec_unit_2"
+  },
+  "mc_p256_to_montgomery": {
+    "descriptor": "(Ljava/lang/Object;)J",
+    "target": "MirageCrypto.ec_unit_1"
+  },
+  "mc_p384_add": {
+    "descriptor": "(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)J",
+    "target": "MirageCrypto.ec_unit_3"
+  },
+  "mc_p384_from_bytes": {
+    "descriptor": "(Ljava/lang/Object;Ljava/lang/Object;)J",
+    "target": "MirageCrypto.ec_unit_2"
+  },
+  "mc_p384_from_montgomery": {
+    "descriptor": "(Ljava/lang/Object;)J",
+    "target": "MirageCrypto.ec_unit_1"
+  },
+  "mc_p384_inv": {
+    "descriptor": "(Ljava/lang/Object;Ljava/lang/Object;)J",
+    "target": "MirageCrypto.ec_unit_2"
+  },
+  "mc_p384_mul": {
+    "descriptor": "(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)J",
+    "target": "MirageCrypto.ec_unit_3"
+  },
+  "mc_p384_nz": {
+    "descriptor": "(Ljava/lang/Object;)J",
+    "target": "MirageCrypto.ec_bool_1"
+  },
+  "mc_p384_point_add": {
+    "descriptor": "(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)J",
+    "target": "MirageCrypto.ec_unit_3"
+  },
+  "mc_p384_point_double": {
+    "descriptor": "(Ljava/lang/Object;Ljava/lang/Object;)J",
+    "target": "MirageCrypto.ec_unit_2"
+  },
+  "mc_p384_select": {
+    "descriptor": "(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)J",
+    "target": "MirageCrypto.ec_unit_4"
+  },
+  "mc_p384_set_one": {
+    "descriptor": "(Ljava/lang/Object;)J",
+    "target": "MirageCrypto.ec_unit_1"
+  },
+  "mc_p384_sqr": {
+    "descriptor": "(Ljava/lang/Object;Ljava/lang/Object;)J",
+    "target": "MirageCrypto.ec_unit_2"
+  },
+  "mc_p384_sub": {
+    "descriptor": "(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)J",
+    "target": "MirageCrypto.ec_unit_3"
+  },
+  "mc_p384_to_bytes": {
+    "descriptor": "(Ljava/lang/Object;Ljava/lang/Object;)J",
+    "target": "MirageCrypto.ec_unit_2"
+  },
+  "mc_p384_to_montgomery": {
+    "descriptor": "(Ljava/lang/Object;)J",
+    "target": "MirageCrypto.ec_unit_1"
+  },
+  "mc_p521_add": {
+    "descriptor": "(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)J",
+    "target": "MirageCrypto.ec_unit_3"
+  },
+  "mc_p521_from_bytes": {
+    "descriptor": "(Ljava/lang/Object;Ljava/lang/Object;)J",
+    "target": "MirageCrypto.ec_unit_2"
+  },
+  "mc_p521_from_montgomery": {
+    "descriptor": "(Ljava/lang/Object;)J",
+    "target": "MirageCrypto.ec_unit_1"
+  },
+  "mc_p521_inv": {
+    "descriptor": "(Ljava/lang/Object;Ljava/lang/Object;)J",
+    "target": "MirageCrypto.ec_unit_2"
+  },
+  "mc_p521_mul": {
+    "descriptor": "(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)J",
+    "target": "MirageCrypto.ec_unit_3"
+  },
+  "mc_p521_nz": {
+    "descriptor": "(Ljava/lang/Object;)J",
+    "target": "MirageCrypto.ec_bool_1"
+  },
+  "mc_p521_point_add": {
+    "descriptor": "(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)J",
+    "target": "MirageCrypto.ec_unit_3"
+  },
+  "mc_p521_point_double": {
+    "descriptor": "(Ljava/lang/Object;Ljava/lang/Object;)J",
+    "target": "MirageCrypto.ec_unit_2"
+  },
+  "mc_p521_select": {
+    "descriptor": "(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)J",
+    "target": "MirageCrypto.ec_unit_4"
+  },
+  "mc_p521_set_one": {
+    "descriptor": "(Ljava/lang/Object;)J",
+    "target": "MirageCrypto.ec_unit_1"
+  },
+  "mc_p521_sqr": {
+    "descriptor": "(Ljava/lang/Object;Ljava/lang/Object;)J",
+    "target": "MirageCrypto.ec_unit_2"
+  },
+  "mc_p521_sub": {
+    "descriptor": "(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)J",
+    "target": "MirageCrypto.ec_unit_3"
+  },
+  "mc_p521_to_bytes": {
+    "descriptor": "(Ljava/lang/Object;Ljava/lang/Object;)J",
+    "target": "MirageCrypto.ec_unit_2"
+  },
+  "mc_p521_to_montgomery": {
+    "descriptor": "(Ljava/lang/Object;)J",
+    "target": "MirageCrypto.ec_unit_1"
+  },
   "mc_poly1305_ctx_size": {
     "descriptor": "(Ljava/lang/Object;)J",
     "target": "MirageCrypto.poly1305_ctx_size"
   },
-  "mc_poly1305_finalize": {
-    "descriptor": "(Ljava/lang/Object;Ljava/lang/Object;J)J",
-    "target": "MirageCrypto.poly1305_finalize"
-  },
-  "mc_poly1305_init": {
-    "descriptor": "(Ljava/lang/Object;Ljava/lang/Object;J)J",
-    "target": "MirageCrypto.poly1305_init"
-  },
   "mc_poly1305_mac_size": {
     "descriptor": "(Ljava/lang/Object;)J",
     "target": "MirageCrypto.poly1305_mac_size"
-  },
-  "mc_poly1305_update": {
-    "descriptor": "(Ljava/lang/Object;Ljava/lang/Object;JJ)J",
-    "target": "MirageCrypto.poly1305_update"
   },
   "mc_sha1_ctx_size": {
     "descriptor": "(Ljava/lang/Object;)J",
@@ -244,11 +524,7 @@
     "target": "MirageCrypto.sha512_update"
   },
   "mc_x25519_scalar_mult_generic": {
-    "descriptor": "(Ljava/lang/Object;JLjava/lang/Object;JLjava/lang/Object;J)J",
-    "target": "MirageCrypto.x25519_scalar_mult_generic"
-  },
-  "mc_xor_into": {
-    "descriptor": "(Ljava/lang/Object;JLjava/lang/Object;JJ)J",
-    "target": "MirageCrypto.xor_into"
+    "descriptor": "(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;J)J",
+    "target": "MirageCrypto.ec_unit_5_int"
   }
 }

@@ -27,6 +27,10 @@
     "descriptor": "(Ljava/lang/Object;)J",
     "target": "Sodium.sign_seedbytes"
   },
+  "caml__1_sodium_init": {
+    "descriptor": "(Ljava/lang/Object;)J",
+    "target": "Sodium.sodium_init"
+  },
   "caml__25_crypto_scalarmult_curve25519_bytes": {
     "descriptor": "(Ljava/lang/Object;)J",
     "target": "Sodium.scalarmult_bytes"
@@ -42,6 +46,30 @@
   "caml__30_crypto_pwhash_argon2i_strbytes": {
     "descriptor": "(Ljava/lang/Object;)J",
     "target": "Sodium.pwhash_strbytes"
+  },
+  "caml__31_crypto_pwhash_argon2i_memlimit_interactive": {
+    "descriptor": "(Ljava/lang/Object;)J",
+    "target": "Sodium.pwhash_memlimit_interactive"
+  },
+  "caml__32_crypto_pwhash_argon2i_memlimit_moderate": {
+    "descriptor": "(Ljava/lang/Object;)J",
+    "target": "Sodium.pwhash_memlimit_moderate"
+  },
+  "caml__33_crypto_pwhash_argon2i_memlimit_sensitive": {
+    "descriptor": "(Ljava/lang/Object;)J",
+    "target": "Sodium.pwhash_memlimit_sensitive"
+  },
+  "caml__34_crypto_pwhash_argon2i_opslimit_interactive": {
+    "descriptor": "(Ljava/lang/Object;)J",
+    "target": "Sodium.pwhash_opslimit_interactive"
+  },
+  "caml__35_crypto_pwhash_argon2i_opslimit_moderate": {
+    "descriptor": "(Ljava/lang/Object;)J",
+    "target": "Sodium.pwhash_opslimit_moderate"
+  },
+  "caml__36_crypto_pwhash_argon2i_opslimit_sensitive": {
+    "descriptor": "(Ljava/lang/Object;)J",
+    "target": "Sodium.pwhash_opslimit_sensitive"
   },
   "caml__39_crypto_secretbox_xsalsa20poly1305_keybytes": {
     "descriptor": "(Ljava/lang/Object;)J",
@@ -75,9 +103,25 @@
     "descriptor": "(Ljava/lang/Object;)J",
     "target": "Sodium.blake2b_bytes"
   },
+  "caml__47_crypto_generichash_blake2b_bytes_min": {
+    "descriptor": "(Ljava/lang/Object;)J",
+    "target": "Sodium.blake2b_bytes_min"
+  },
+  "caml__48_crypto_generichash_blake2b_bytes_max": {
+    "descriptor": "(Ljava/lang/Object;)J",
+    "target": "Sodium.blake2b_bytes_max"
+  },
   "caml__49_crypto_generichash_blake2b_keybytes": {
     "descriptor": "(Ljava/lang/Object;)J",
     "target": "Sodium.blake2b_keybytes"
+  },
+  "caml__50_crypto_generichash_blake2b_keybytes_min": {
+    "descriptor": "(Ljava/lang/Object;)J",
+    "target": "Sodium.blake2b_keybytes_min"
+  },
+  "caml__51_crypto_generichash_blake2b_keybytes_max": {
+    "descriptor": "(Ljava/lang/Object;)J",
+    "target": "Sodium.blake2b_keybytes_max"
   },
   "caml__7_crypto_box_curve25519xsalsa20poly1305_publickeybytes": {
     "descriptor": "(Ljava/lang/Object;)J",
