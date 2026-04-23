@@ -32,4 +32,58 @@ public final class Sodium {
                               Object f, Object g) {
         return ZERO;
     }
+
+    // ==== NaCl/libsodium size constants ==========================
+    // Each of these is an OCaml [external sz : unit -> int], called
+    // at init to sanity-check buffer sizes (e.g. [assert (pk_bytes
+    // = 32)]). Real libsodium returns the fixed algorithm-specific
+    // assertions. Values taken from libsodium's public headers
+    // ([crypto_*.h]).
+
+    // crypto_box_curve25519xsalsa20poly1305 (NaCl default "box")
+    public static long box_publickeybytes(Object u)    { return 32; }
+    public static long box_secretkeybytes(Object u)    { return 32; }
+    public static long box_beforenmbytes(Object u)     { return 32; }
+    public static long box_noncebytes(Object u)        { return 24; }
+    public static long box_zerobytes(Object u)         { return 32; }
+    public static long box_boxzerobytes(Object u)      { return 16; }
+
+    // crypto_sign_ed25519
+    public static long sign_publickeybytes(Object u)   { return 32; }
+    public static long sign_secretkeybytes(Object u)   { return 64; }
+    public static long sign_bytes(Object u)            { return 64; }
+    public static long sign_seedbytes(Object u)        { return 32; }
+
+    // crypto_scalarmult_curve25519
+    public static long scalarmult_bytes(Object u)      { return 32; }
+    public static long scalarmult_scalarbytes(Object u){ return 32; }
+
+    // crypto_pwhash_argon2i
+    public static long pwhash_saltbytes(Object u)      { return 16; }
+    public static long pwhash_strbytes(Object u)       { return 128; }
+
+    // crypto_secretbox_xsalsa20poly1305
+    public static long secretbox_keybytes(Object u)    { return 32; }
+    public static long secretbox_noncebytes(Object u)  { return 24; }
+    public static long secretbox_zerobytes(Object u)   { return 32; }
+    public static long secretbox_boxzerobytes(Object u){ return 16; }
+
+    // crypto_stream_xsalsa20
+    public static long stream_keybytes(Object u)       { return 32; }
+    public static long stream_noncebytes(Object u)     { return 24; }
+
+    // crypto_hash_sha512
+    public static long hash_sha512_bytes(Object u)     { return 64; }
+
+    // crypto_generichash_blake2b (keyed hash; default output 32B)
+    public static long blake2b_bytes(Object u)         { return 32; }
+    public static long blake2b_keybytes(Object u)      { return 32; }
+
+    // crypto_auth_hmacsha512256
+    public static long hmacsha512256_keybytes(Object u){ return 32; }
+    public static long hmacsha512256_bytes(Object u)   { return 32; }
+
+    // crypto_onetimeauth_poly1305
+    public static long poly1305_keybytes(Object u)     { return 32; }
+    public static long poly1305_bytes(Object u)        { return 16; }
 }
