@@ -124,6 +124,8 @@ public class Channel {
     }
     Object s;
     synchronized (FDS) { s = FDS.get(fd); }
+    if (TRACE_FDS) System.err.println("[fd] forDescriptor fd=" + fd
+        + " stream=" + (s == null ? "null" : s.getClass().getSimpleName()));
     Channel c;
     if (s instanceof PrintStream) c = new Channel((PrintStream) s);
     else if (s instanceof OutputStream)
@@ -160,6 +162,7 @@ public class Channel {
       }
       FDS.put(fd, stream);
     }
+    traceFd("openFile", fd, path);
     return fd;
   }
 
@@ -189,6 +192,8 @@ public class Channel {
       FDS.put(rfd, java.nio.channels.Channels.newInputStream(p.source()));
       FDS.put(wfd, java.nio.channels.Channels.newOutputStream(p.sink()));
     }
+    traceFd("pipe-rd", rfd, "");
+    traceFd("pipe-wr", wfd, "");
     return new int[] { rfd, wfd };
   }
 
@@ -255,6 +260,12 @@ public class Channel {
     return n;
   }
 
+  private static final boolean TRACE_FDS =
+      System.getenv("JAVA_OF_OCAML_TRACE_FDS") != null;
+  private static void traceFd(String op, int fd, String path) {
+    if (TRACE_FDS) System.err.println("[fd] " + op + " fd=" + fd + " " + path);
+  }
+
   public static int unixOpen(String path, Object flagsList, int perm) throws IOException {
     int flags = 0;
     Object node = flagsList;
@@ -285,6 +296,7 @@ public class Channel {
       }
       FDS.put(fd, stream);
     }
+    traceFd("unixOpen", fd, path);
     return fd;
   }
 

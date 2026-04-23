@@ -527,15 +527,26 @@ public final class Unix {
     public static long set_nonblock(Object fd)        { return 0; }
     public static long clear_nonblock(Object fd)      { return 0; }
 
-    // === DELIBERATE STUB: unix_close ==================================
-    // (subprocess emulation we've stubbed elsewhere) and then closes
-    // the resulting fds. We don't actually open anything — fds in
-    // this build are either real Channel-managed handles (closed by
-    // [Channel.closeFd]) or stub-allocated Long(0) tokens. Returning
-    // unit unconditionally is safe for the latter; the former case
-    // is fine too because OCaml's [Unix.close] on an unknown fd just
-    // raises EBADF, which init code typically swallows via
-    // [protect ~finally:close]. Either way we don't leak anything
-    // visible to the rest of the program.
-    public static long close(Object fd) { return 0; }
+    // === REAL: unix_close =============================================
+    // Closes the underlying stream so Pipe writers de-registering
+    // open_process_in pattern blocks forever:
+    //
+    //   let pipe_r, pipe_w = pipe () in
+    //   ... fork+exec the child to dup pipe_w as stdout ...
+    //   close pipe_w;                       <-- parent closes write end
+    //   In_channel.input_lines (in_channel_of_descr pipe_r)
+    //
+    // We don't actually fork+exec — but the parent's [close pipe_w]
+    // *must* close the underlying SinkChannel so the read end sees
+    // EOF on its first read (which makes input_lines return [],
+    // sensible default).
+    public static long close(Object fd) {
+        try {
+            int n = (int) Block.asLong(fd);
+            Channel.closeFd(n);
+        } catch (java.io.IOException e) {
+            // the close succeeded.
+        }
+        return 0;
+    }
 }
