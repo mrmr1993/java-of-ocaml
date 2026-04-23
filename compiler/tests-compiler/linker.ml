@@ -112,22 +112,17 @@ let%expect_test "compile accepts a .cmo and emits class files" =
     Closure.class
     Compare.class
     CondVar.class
-    ConstantStubs.class
-    CoreUnixStubs.class
-    CtypesStubs.class
     DummyClosure.class
     Ephemeron.class
     Format.class
-    IntegersStubs.class
     JavaFFI.class
     Main$globals_0.class
     Main.class
     Mutex.class
     Ocaml.class
     PartialClosure.class
-    RegexStubs.class
+    StrStubs.class
     ThreadPrim.class
-    ZeroStubs.class
     |}]
 
 let%expect_test "link de-duplicates primitives across two units" =

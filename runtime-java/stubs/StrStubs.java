@@ -12,8 +12,8 @@
  * isn't tractable without reversing the compiled-regex block
  * layout.
  */
-public final class RegexStubs {
-    private RegexStubs() {}
+public final class StrStubs {
+    private StrStubs() {}
 
     /**
      * Returns [|0; length(s)|] as a Block of Longs. OCaml's [Str]

@@ -24,12 +24,11 @@ let thread_prim_class_bytes () = R.thread_prim
 let ocaml_class_bytes () = R.ocaml
 
 let builtin_stub_classes () =
-  [ "CoreUnixStubs", R.core_unix_stubs
-  ; "ConstantStubs", R.constant_stubs
-  ; "IntegersStubs", R.integers_stubs
-  ; "CtypesStubs", R.ctypes_stubs
-  ; "ZeroStubs", R.zero_stubs
-  ; "RegexStubs", R.regex_stubs
-  ]
+  (* Only library stubs that js_of_ocaml itself bundles belong in
+     the built-in set. [Str] ships as [str.js] upstream; we match
+     that by keeping [StrStubs] here.
+     Non-upstream library stubs live under [stubs-contrib/] and
+     are opt-in via [--stub-manifest]. *)
+  [ "StrStubs", R.str_stubs ]
 
 let builtin_stubs_json () = R.stubs_json

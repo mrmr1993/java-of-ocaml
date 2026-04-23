@@ -20,12 +20,7 @@
   BigArray.class
   ThreadPrim.class
   Ocaml.class
-  CoreUnixStubs.class
-  ConstantStubs.class
-  IntegersStubs.class
-  CtypesStubs.class
-  ZeroStubs.class
-  RegexStubs.class)
+  StrStubs.class)
  (deps
   Block.java
   Closure.java
@@ -43,12 +38,7 @@
   BigArray.java
   ThreadPrim.java
   Ocaml.java
-  stubs/CoreUnixStubs.java
-  stubs/ConstantStubs.java
-  stubs/IntegersStubs.java
-  stubs/CtypesStubs.java
-  stubs/ZeroStubs.java
-  stubs/RegexStubs.java)
+  stubs/StrStubs.java)
  (action
   (run javac -d . %{deps})))
 
@@ -72,12 +62,7 @@
    BigArray.class
    ThreadPrim.class
    Ocaml.class
-   CoreUnixStubs.class
-   ConstantStubs.class
-   IntegersStubs.class
-   CtypesStubs.class
-   ZeroStubs.class
-   RegexStubs.class
+   StrStubs.class
    stubs/stubs.json))
  (action
   (with-stdout-to
