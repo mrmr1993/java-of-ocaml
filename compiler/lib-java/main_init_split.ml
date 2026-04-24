@@ -87,121 +87,6 @@ let unit_index_of_pc (units : Bytecode.Unit.t array) pc : int option =
 (* ----------------------------------------------------------------- *)
 (* CFG helpers.                                                       *)
 
-(* ----------------------------------------------------------------- *)
-(* Transitive operand-liveness on a sub-program.                       *)
-
-(* We split at unit boundaries by rewriting each slice's entry-block
-   params to [Let (p, Block(0, [||]))]. That's safe iff no operand
-   in the slice ever reads [p] (directly or via branch-arg
-   forwarding). We compute this with a standard backwards dataflow:
-
-   1. Seed [live] with every Var read as an *operand* — instruction
-      operands, [Cond]/[Switch] discriminators, [Return]/[Raise]
-      values, [Invoke_tail] args. Branch-arg forwarding does NOT
-      count (it merely rebinds to the target block's param, which
-      might itself be dead).
-   2. Propagate: for every [Branch (dst, args)] (and the equivalents
-      on [Cond] / [Switch] / [Pushtrap] / [Poptrap]), index [args]
-      against [dst]'s params. If target [params.(i)] is live, the
-      argument at position [i] becomes live too.
-   3. Iterate to fixpoint.
-
-   A Var [v] ending up in [live] means the original program would
-   have observed [v]'s value via an operand read. If any entry-block
-   param lands in [live], we can't silently replace that param with
-   a [Block(0, [||])] constant and still match semantics. *)
-module Vset = Set.Make (Code.Var)
-
-let prim_arg_var = function
-  | Code.Pv v -> Some v
-  | Code.Pc _ -> None
-
-let expr_operands (e : Code.expr) : Vset.t =
-  match e with
-  | Code.Apply { f; args; _ } ->
-    List.fold_left (fun s v -> Vset.add v s) (Vset.singleton f) args
-  | Block (_, fields) ->
-    Array.fold_left (fun s v -> Vset.add v s) Vset.empty fields
-  | Field (v, _) -> Vset.singleton v
-  | Closure { captures; _ } ->
-    List.fold_left (fun s v -> Vset.add v s) Vset.empty captures
-  | Constant _ -> Vset.empty
-  | Prim (_, args) ->
-    List.fold_left
-      (fun s a ->
-        match prim_arg_var a with
-        | Some v -> Vset.add v s
-        | None -> s)
-      Vset.empty
-      args
-
-let instr_operands (i : Code.instr) : Vset.t =
-  match i with
-  | Code.Let (_, e) -> expr_operands e
-  | Set_field (x, _, y) -> Vset.add x (Vset.singleton y)
-  | Offset_ref (x, _) -> Vset.singleton x
-  | Array_set (a, i, v) -> Vset.add a (Vset.add i (Vset.singleton v))
-  | Source_pc _ -> Vset.empty
-
-let last_direct (l : Code.last) : Vset.t =
-  match l with
-  | Code.Return v | Raise v -> Vset.singleton v
-  | Stop -> Vset.empty
-  | Branch _ | Poptrap _ | Pushtrap _ -> Vset.empty
-  | Cond (v, _, _) | Switch (v, _, _) -> Vset.singleton v
-  | Invoke_tail { args; _ } ->
-    List.fold_left (fun s v -> Vset.add v s) Vset.empty args
-
-let block_direct_operands (b : Code.block) : Vset.t =
-  Array.fold_left
-    (fun s i -> Vset.union (instr_operands i) s)
-    Vset.empty
-    b.body
-  |> Vset.union (last_direct b.branch)
-
-(* All branch-style continuations in a terminator. *)
-let last_conts (l : Code.last) : Code.cont list =
-  match l with
-  | Return _ | Raise _ | Stop | Invoke_tail _ -> []
-  | Branch c | Poptrap c -> [ c ]
-  | Cond (_, c1, c2) -> [ c1; c2 ]
-  | Switch (_, ints, tags) ->
-    Array.to_list ints @ Array.to_list tags
-  | Pushtrap (body, _, handler) -> [ body; handler ]
-
-let live_operand_vars (p : Code.program) : Vset.t =
-  let live = ref Vset.empty in
-  (* Seed. *)
-  Code.Addr.Map.iter
-    (fun _ (b : Code.block) ->
-      live := Vset.union (block_direct_operands b) !live)
-    p.blocks;
-  let changed = ref true in
-  while !changed do
-    changed := false;
-    Code.Addr.Map.iter
-      (fun _ (b : Code.block) ->
-        List.iter
-          (fun ((dst, args) : Code.cont) ->
-            match Code.Addr.Map.find_opt dst p.blocks with
-            | None -> ()
-            | Some tgt ->
-              let rec go params args =
-                match params, args with
-                | [], _ | _, [] -> ()
-                | p :: ps, a :: az ->
-                  if Vset.mem p !live && not (Vset.mem a !live)
-                  then (
-                    live := Vset.add a !live;
-                    changed := true);
-                  go ps az
-              in
-              go tgt.params args)
-          (last_conts b.branch))
-      p.blocks
-  done;
-  !live
-
 let successors (b : Code.block) : Code.Addr.t list =
   match b.branch with
   | Code.Return _ | Raise _ | Stop | Invoke_tail _ -> []
@@ -316,15 +201,34 @@ let plan (prog : Code.program) ~(units : Bytecode.Unit.t list) : result =
            (* Cross-unit edges are permitted only when the source
               block ends in a plain [Branch]: the fall-through
               pattern the OCaml linker uses to chain unit inits.
-              We record each such block so it can have its
-              terminator rewritten to [Stop] inside its slice —
-              the driver then invokes the next slice as an
-              ordinary method call. Anything other than a plain
-              [Branch] (a [Cond] or [Switch] targeting the next
-              unit, say) is a control-flow pattern we can't turn
-              into a sequential dispatch without more work, so we
-              reject. *)
-           let rewrite_to_stop = Hashtbl.create 16 in
+
+              Each slice compiles to a one-arg one-result static
+              method — it takes the incoming [Object] carry-over
+              and returns the outgoing [Object]. Three cross-unit
+              rewrite shapes:
+
+              - [Branch (_, [])]: source block returns a fresh
+                [Block(0, [||])] (OCaml's [()]).
+              - [Branch (_, [v])]: source block becomes
+                [Return v].
+              - [Branch (_, vs)] with [|vs| >= 2]: source block
+                packs [Block(0, vs)] into a fresh local and
+                returns that. The target entry block unpacks
+                field-by-field at its head. This handles the
+                rare-but-real case where the OCaml stack is non-
+                empty at a unit boundary (observed in [Stdlib]
+                and [Stdlib__Printf]).
+
+              Non-[Branch] cross-unit terminators ([Cond] /
+              [Switch] / [Pushtrap] with an arm in another unit)
+              stay rejected — dispatching a conditional into a
+              separate sequential method requires a trampoline,
+              not a sequential call. *)
+           let rewrite_to_return_arg = Hashtbl.create 16 in
+           let rewrite_to_return_fresh = Hashtbl.create 16 in
+           let rewrite_to_pack : (Code.Addr.t, Code.Var.t list) Hashtbl.t =
+             Hashtbl.create 4
+           in
            let reject = ref None in
            Code.Addr.Map.iter
              (fun addr (b : Code.block) ->
@@ -340,7 +244,12 @@ let plan (prog : Code.program) ~(units : Bytecode.Unit.t list) : result =
                if crosses && !reject = None
                then
                  match b.branch with
-                 | Code.Branch (_, _) -> Hashtbl.add rewrite_to_stop addr ()
+                 | Code.Branch (_, []) ->
+                   Hashtbl.add rewrite_to_return_fresh addr ()
+                 | Code.Branch (_, [ v ]) ->
+                   Hashtbl.add rewrite_to_return_arg addr v
+                 | Code.Branch (_, (_ :: _ :: _ as vs)) ->
+                   Hashtbl.add rewrite_to_pack addr vs
                  | _ ->
                    reject :=
                      Some
@@ -388,18 +297,65 @@ let plan (prog : Code.program) ~(units : Bytecode.Unit.t list) : result =
                        (Code.Addr.to_string trap_addr)
                        units_arr.(uj).modname)
                 | None ->
-                  (* Build per-unit block maps, rewriting every
-                     cross-unit [Branch] source terminator to [Stop]
-                     so the slice's IR has no dangling references to
-                     blocks in other units. *)
+                  (* Build per-unit block maps. Three terminator
+                     rewrites keep each slice's method contract:
+                     [(Object) -> Object].
+
+                     - Cross-unit [Branch (_, [v])]: the block
+                       becomes [Return v] — the outgoing carry-
+                       over is the method's return value.
+                     - Cross-unit [Branch (_, [])]: append
+                       [Let (fresh, Constant (Block (0, [||])))]
+                       and return [fresh] — no carry, fill with
+                       unit.
+                     - Original [Stop]: same fresh-return rewrite.
+                       OCaml's linker appends one [STOP] at the
+                       program tail; that lands in the last
+                       slice. [Stop] in [emit_program] produces
+                       [return_void], which mismatches our
+                       [Return_object] split — converting to a
+                       real [Return] keeps the method's return
+                       type consistent. *)
+                  let fresh_return_block (b : Code.block) : Code.block =
+                    let v = Code.Var.fresh () in
+                    let extra =
+                      [| Code.Let
+                           (v, Code.Constant (Code.Block (0, [||]))) |]
+                    in
+                    { b with
+                      body = Array.append b.body extra
+                    ; branch = Code.Return v
+                    }
+                  in
+                  let pack_return_block (b : Code.block) (vs : Code.Var.t list)
+                    : Code.block
+                    =
+                    let pack = Code.Var.fresh () in
+                    let extra =
+                      [| Code.Let (pack, Code.Block (0, Array.of_list vs)) |]
+                    in
+                    { b with
+                      body = Array.append b.body extra
+                    ; branch = Code.Return pack
+                    }
+                  in
                   let per_unit = Array.make n_units Code.Addr.Map.empty in
                   Code.Addr.Map.iter
                     (fun addr (b : Code.block) ->
                       let i = Hashtbl.find assign addr in
                       let b =
-                        if Hashtbl.mem rewrite_to_stop addr
-                        then { b with branch = Code.Stop }
-                        else b
+                        match Hashtbl.find_opt rewrite_to_return_arg addr with
+                        | Some v -> { b with branch = Code.Return v }
+                        | None ->
+                          match Hashtbl.find_opt rewrite_to_pack addr with
+                          | Some vs -> pack_return_block b vs
+                          | None ->
+                            if Hashtbl.mem rewrite_to_return_fresh addr
+                            then fresh_return_block b
+                            else
+                              match b.branch with
+                              | Code.Stop -> fresh_return_block b
+                              | _ -> b
                       in
                       per_unit.(i) <- Code.Addr.Map.add addr b per_unit.(i))
                     prog.blocks;
@@ -424,86 +380,63 @@ let plan (prog : Code.program) ~(units : Bytecode.Unit.t list) : result =
                     !found
                   in
                   let missing_entry = ref None in
-                  let live_param = ref None in
                   let slices_rev = ref [] in
                   let modnames_rev = ref [] in
                   for i = 0 to n_units - 1 do
                     if Code.Addr.Map.is_empty per_unit.(i)
                        || !missing_entry <> None
-                       || !live_param <> None
                     then ()
                     else
                       match entry_of i with
                       | None -> missing_entry := Some i
                       | Some entry ->
                         let sub_blocks = per_unit.(i) in
+                        let entry_block =
+                          Code.Addr.Map.find entry sub_blocks
+                        in
+                        (* Multi-param entries come from cross-unit
+                           [Branch (_, vs)] sources that we rewrote
+                           to return a packed [Block(0, vs)]. Unpack
+                           field-by-field at entry, replacing the
+                           param list with a single [carry_in] that
+                           holds the incoming packed value. The
+                           original params stay as [Var.t]s bound by
+                           [Let (p_i, Field (carry_in, i))] so every
+                           downstream reference keeps resolving. *)
+                        let sub_blocks =
+                          match entry_block.params with
+                          | [] | [ _ ] -> sub_blocks
+                          | ps ->
+                            let carry_in = Code.Var.fresh () in
+                            let unpack =
+                              List.mapi
+                                (fun k p ->
+                                  Code.Let (p, Code.Field (carry_in, k)))
+                                ps
+                            in
+                            let body =
+                              Array.append
+                                (Array.of_list unpack)
+                                entry_block.body
+                            in
+                            Code.Addr.Map.add
+                              entry
+                              { entry_block with
+                                params = [ carry_in ]
+                              ; body
+                              }
+                              sub_blocks
+                        in
                         let sub =
                           { Code.start = entry
                           ; blocks = sub_blocks
                           ; free_pc = prog.free_pc
                           }
                         in
-                        let live = live_operand_vars sub in
-                        let entry_block =
-                          Code.Addr.Map.find entry sub_blocks
-                        in
-                        let live_entry_params =
-                          List.filter (fun p -> Vset.mem p live) entry_block.params
-                        in
-                        if live_entry_params <> []
-                        then
-                          live_param :=
-                            Some
-                              ( units_arr.(i).modname
-                              , List.length live_entry_params )
-                        else begin
-                          (* Entry params are dead; replace them
-                             with [Let (p, Constant (Block (0, [||])))]
-                             at block head so the slice compiles to
-                             a zero-arg method. A [Block] constant
-                             matches the default [K_obj]/[K_block]
-                             kind the parser infers for the carry-
-                             over accu better than [Int 0] would —
-                             an [Int 0] trips typing's
-                             convert-on-assign to [Long] and breaks
-                             [K_block] downstream sites. Since
-                             [live_operand_vars] has certified no
-                             operand actually reads these Vars, the
-                             concrete bound value never matters. *)
-                          let sub_blocks =
-                            Code.Addr.Map.update
-                              entry
-                              (function
-                                | None -> None
-                                | Some (b : Code.block) ->
-                                  let unit_binds =
-                                    List.map
-                                      (fun p ->
-                                        Code.Let
-                                          ( p
-                                          , Code.Constant
-                                              (Code.Block (0, [||])) ))
-                                      b.params
-                                  in
-                                  let body =
-                                    Array.append
-                                      (Array.of_list unit_binds)
-                                      b.body
-                                  in
-                                  Some { b with params = []; body })
-                              sub_blocks
-                          in
-                          let sub =
-                            { Code.start = entry
-                            ; blocks = sub_blocks
-                            ; free_pc = prog.free_pc
-                            }
-                          in
-                          slices_rev :=
-                            (units_arr.(i).modname, sub) :: !slices_rev;
-                          modnames_rev :=
-                            units_arr.(i).modname :: !modnames_rev
-                        end
+                        slices_rev :=
+                          (units_arr.(i).modname, sub) :: !slices_rev;
+                        modnames_rev :=
+                          units_arr.(i).modname :: !modnames_rev
                   done;
                   match !missing_entry with
                   | Some i ->
@@ -513,17 +446,6 @@ let plan (prog : Code.program) ~(units : Bytecode.Unit.t list) : result =
                          units_arr.(i).modname
                          units_arr.(i).start_pc)
                   | None ->
-                    match !live_param with
-                    | Some (modname, n) ->
-                      Rejected
-                        (Printf.sprintf
-                           "unit %s has %d live entry-block param(s) \
-                            (carry-over from the previous unit is \
-                            read as an operand; cannot be rewritten \
-                            to a zero-arg slice)"
-                           modname
-                           n)
-                    | None ->
                     let modnames = List.rev !modnames_rev in
                     let method_names = unique_method_names modnames in
                     let slices = List.rev !slices_rev in

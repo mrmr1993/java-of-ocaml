@@ -1483,7 +1483,7 @@ let compile_t
                     ~limit
                     ~class_name:"Main"
                     ~is_static:true
-                    ~return_kind:Method_split.Return_void
+                    ~return_kind:Method_split.Return_object
                     slice_prog
                 in
                 (* Placement: each helper for this slice gets a
@@ -1526,14 +1526,18 @@ let compile_t
                   Code.Addr.Map.find head.start head.blocks
                 in
                 let entry_params = entry_block.params in
-                let n_params = List.length entry_params in
+                (* Slice method signature: one incoming [Object]
+                   (carry-over from the previous unit, bound to the
+                   entry block's sole param if any) returning one
+                   [Object] (the outgoing carry-over for the next
+                   slice). See [Main_init_split]'s terminator
+                   rewrites: cross-unit [Branch]es become [Return]
+                   of their arg; original [Stop]s become [Return]
+                   of a fresh [Block(0, [||])]. *)
                 let descriptor =
-                  "("
-                  ^ String.concat
-                      ""
-                      (List.init n_params (fun _ -> "Ljava/lang/Object;"))
-                  ^ ")V"
+                  "(Ljava/lang/Object;)Ljava/lang/Object;"
                 in
+                let _ = entry_params in
                 (* Emit each slice-helper onto its sibling class. *)
                 List.iter
                   (fun (h : Method_split.helper) ->
@@ -1619,7 +1623,10 @@ let compile_t
                 let init_class = "Main$" ^ slice.method_name in
                 let icp = Jvm.Cp.create () in
                 let icode = Jvm.Code.create icp in
-                Jvm.Code.set_min_locals icode n_params;
+                (* One arg slot for the incoming carry-over Object
+                   even if the entry block has no param binding it
+                   (the arg is ignored in that case). *)
+                Jvm.Code.set_min_locals icode 1;
                 (try
                    Jvm_generate.emit_program
                      ~code:icode
@@ -1652,7 +1659,7 @@ let compile_t
                       ();
                     let scp = Jvm.Cp.create () in
                     let s = Jvm.Code.create scp in
-                    Jvm.Code.set_min_locals s n_params;
+                    Jvm.Code.set_min_locals s 1;
                     Jvm.Code.new_
                       s
                       "java/lang/UnsupportedOperationException";
@@ -1685,7 +1692,7 @@ let compile_t
                   (init_class, init_bytes) :: !sibling_classes_rev;
                 ignore init_methods_rev;
                 driver_calls_rev :=
-                  (init_class, slice.method_name, descriptor, n_params)
+                  (init_class, slice.method_name, descriptor)
                   :: !driver_calls_rev)
               plan.units;
             Some
@@ -1720,18 +1727,40 @@ let compile_t
            emit_globals_init parsed.globals ~main_code)
        in
        emit_runtime_init_after_globals main_code;
-       (* The driver: for each slice, push one [null] per entry
-          param and [invokestatic] its [Main$init_<mod>]. Static
-          [void] methods leave no value on the operand stack, so
-          the chain is a flat sequence with no pops. *)
+       (* The driver threads the cross-unit carry-over through a
+          local: initialise to [Block(0, new Object[0])] (OCaml's
+          [Val_unit]), then for each slice [aload carry; invoke;
+          astore carry]. Each slice's method is
+          [(Ljava/lang/Object;)Ljava/lang/Object;] so the chain
+          stays stack-balanced. At the end we discard the final
+          value and return.
+
+          Local slot for the carry — [set_min_locals] isn't
+          enough; we need a specific slot reservation past [argv].
+          [argv] lives at local 0 ([String[]]); the carry-over
+          goes in local 1. *)
+       let carry_local = 1 in
+       Jvm.Code.set_min_locals main_code (carry_local + 1);
+       Jvm.Code.new_ main_code "Block";
+       Jvm.Code.dup main_code;
+       Jvm.Code.ldc_int main_code 0;
+       Jvm.Code.ldc_int main_code 0;
+       Jvm.Code.anewarray main_code "java/lang/Object";
+       Jvm.Code.invokespecial
+         main_code
+         ~class_:"Block"
+         ~method_:"<init>"
+         ~descriptor:"(I[Ljava/lang/Object;)V";
+       Jvm.Code.astore main_code carry_local;
        List.iter
-         (fun (init_class, method_name, descriptor, n_params) ->
-           for _ = 1 to n_params do Jvm.Code.aconst_null main_code done;
+         (fun (init_class, method_name, descriptor) ->
+           Jvm.Code.aload main_code carry_local;
            Jvm.Code.invokestatic
              main_code
              ~class_:init_class
              ~method_:method_name
-             ~descriptor)
+             ~descriptor;
+           Jvm.Code.astore main_code carry_local)
          driver_calls;
        Jvm.Code.return_void main_code;
        main_sibling_classes := siblings @ globals_sibling_classes;

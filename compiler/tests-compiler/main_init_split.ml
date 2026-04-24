@@ -111,11 +111,13 @@ let%expect_test "plan splits two disjoint units" =
     |}]
 
 (* The planner ALLOWS cross-unit [Branch] edges (they're the
-   fall-through pattern between consecutive unit inits) but rewrites
-   the source's terminator to [Stop] in the slice. Test the
-   terminator rewrite by making block 0's Branch target live in
-   unit B and verifying the slice's block 0 ends in [Stop]. *)
-let%expect_test "plan rewrites cross-unit Branch to Stop in slice" =
+   fall-through pattern between consecutive unit inits) and rewrites
+   the source's terminator to [Return] in the slice — each slice is
+   a one-arg one-result method, and the outgoing carry-over (the
+   Branch's arg, or a fresh [Block(0, [||])] if no arg) becomes the
+   return value. Original [Stop] terminators are rewritten the same
+   way so the slice's method signature is uniform. *)
+let%expect_test "plan rewrites cross-unit Branch and Stop to Return" =
   let blocks =
     Code.Addr.Map.empty
     |> Code.Addr.Map.add 0 (make_block_branching ~src_pc:10 ~target:1)
@@ -136,6 +138,7 @@ let%expect_test "plan rewrites cross-unit Branch to Stop in slice" =
            (fun addr (b : Code.block) ->
              let last =
                match b.branch with
+               | Code.Return _ -> "Return"
                | Code.Stop -> "Stop"
                | Code.Branch _ -> "Branch"
                | _ -> "other"
@@ -145,8 +148,8 @@ let%expect_test "plan rewrites cross-unit Branch to Stop in slice" =
        plan.units);
   [%expect
     {|
-    A addr=0 last=Stop
-    B addr=1 last=Stop
+    A addr=0 last=Return
+    B addr=1 last=Return
     |}]
 
 (* Non-[Branch] cross-unit terminators (e.g. [Cond] with one arm in
