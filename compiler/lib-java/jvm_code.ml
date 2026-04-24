@@ -68,9 +68,9 @@ type t =
   ; mutable next_label_id : int
   ; mutable labels : label list
   ; mutable exceptions : exception_entry list
-  ; mutable line_entries : (int * int) list
-        (* (jvm_pc, source_line), pushed in reverse chronological
-           order. See [mark_line] / [line_entries]. *)
+  ; mutable line_entries : (int * string * int) list
+        (* (jvm_pc, source_file, source_line), pushed in reverse
+           chronological order. See [mark_line] / [line_entries]. *)
   }
 
 let create cp =
@@ -92,15 +92,16 @@ let create cp =
      (the later call is more specific);
    - otherwise if it reports the same [line] already in effect, skip
      (no change to the running line).  *)
-let mark_line t line =
+let mark_line t file line =
   if line > 0 && line <= 0xffff
   then
     let pc = Buffer.length t.buf in
     match t.line_entries with
-    | (prev_pc, _) :: rest when prev_pc = pc ->
-      t.line_entries <- (pc, line) :: rest
-    | (_, prev_line) :: _ when prev_line = line -> ()
-    | _ -> t.line_entries <- (pc, line) :: t.line_entries
+    | (prev_pc, _, _) :: rest when prev_pc = pc ->
+      t.line_entries <- (pc, file, line) :: rest
+    | (_, prev_file, prev_line) :: _
+      when prev_line = line && prev_file = file -> ()
+    | _ -> t.line_entries <- (pc, file, line) :: t.line_entries
 
 let line_entries t = List.rev t.line_entries
 
@@ -926,7 +927,9 @@ let resolve t =
       t.labels;
     (* Remap line entries to new coordinates. *)
     t.line_entries <-
-      List.map (fun (pc, line) -> pc + shift_at pc, line) t.line_entries;
+      List.map
+        (fun (pc, file, line) -> pc + shift_at pc, file, line)
+        t.line_entries;
     Buffer.clear t.buf;
     Buffer.add_bytes t.buf new_bytes)
 

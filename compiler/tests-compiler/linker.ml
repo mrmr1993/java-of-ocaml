@@ -104,6 +104,7 @@ let%expect_test "compile accepts a .cmo and emits class files" =
       in
       List.iter print_endline files);
   [%expect {|
+    Backtrace.class
     BigArray.class
     Block.class
     Bytes.class

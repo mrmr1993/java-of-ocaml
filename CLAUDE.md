@@ -15,6 +15,12 @@ ingest 4.14-built bytecode — a tiny `bytecode_compat` shim, selected
 by dune via `%{ocaml_version}`, normalises 4.14's and 5.x's
 incompatible `Cmo_format` relocation variants into one shape.
 
+The `local-stubs` directory is machine-specific, and provides stubs to support
+libraries or applications that live locally on this machine, but that cannot or
+will not be published alongside java-of-ocaml. Additional information about
+these stubs can generally be found in `local-stubs/README.md`, although the
+level of detail may vary substantially environment by environment.
+
 ## Architecture
 
 Compilation is a single pass with no legacy / fallback paths:

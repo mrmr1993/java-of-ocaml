@@ -23,6 +23,12 @@ val camlexception_class_bytes : unit -> string
 (** [RuntimeException] carrier for the OCaml exception value. Used by
     [raise] / [try ... with] to cross JVM call boundaries. *)
 
+val backtrace_class_bytes : unit -> string
+(** Runtime class backing [Printexc.record_backtrace] /
+    [Printexc.get_backtrace]. Holds the global recording flag and
+    renders [StackTraceElement[]] into OCaml-style "Raised at" /
+    "Called from" lines using each frame's SourceFile + line. *)
+
 val compare_class_bytes : unit -> string
 (** Static methods for polymorphic structural comparison on the
     runtime-value shapes our compiler emits — used by

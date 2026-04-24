@@ -4,7 +4,13 @@ type debug_loc =
   { file : string      (** Source file name as recorded in the DBUG event
                            ([ev_loc.loc_start.pos_fname]). *)
   ; line : int         (** Source line number (1-based). *)
+  ; line_end : int     (** End line of the source location (1-based). *)
+  ; col_start : int    (** Starting column, 0-based (pos_cnum - pos_bol). *)
+  ; col_end : int      (** Ending column, 0-based. *)
   ; modname : string   (** OCaml module name from the event. *)
+  ; defname : string option
+        (** Enclosing-definition name from [ev_defname] ([None] if empty,
+            e.g. for stripped/old bytecode). *)
   }
 
 type t =

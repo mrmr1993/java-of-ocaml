@@ -19,17 +19,19 @@ val mark_label : t -> label -> unit
 val set_min_locals : t -> int -> unit
 (** Ensure [max_locals] is at least [n]. *)
 
-val mark_line : t -> int -> unit
+val mark_line : t -> string -> int -> unit
 (** Record that bytecode emitted from the current position onward
-    corresponds to source line [line]. Used to populate the
-    [LineNumberTable] attribute. No-op for non-positive [line] or
-    [line] outside the u2 range (the JVM line_number field is u2).
-    Consecutive calls at the same JVM pc keep the most recent; calls
-    that report the already-current line are dropped. *)
+    corresponds to source [file] line [line]. Populates the
+    [LineNumberTable] attribute (line only) plus the per-class
+    [SourceDebugExtension] SMAP (file + line). No-op for non-positive
+    [line] or [line] outside the u2 range (the JVM line_number field
+    is u2). Consecutive calls at the same JVM pc keep the most
+    recent; calls that report the already-current (file, line) are
+    dropped. *)
 
-val line_entries : t -> (int * int) list
-(** [(jvm_pc, source_line)] in JVM-pc order. Safe to call after
-    [contents]. *)
+val line_entries : t -> (int * string * int) list
+(** [(jvm_pc, source_file, source_line)] in JVM-pc order. Safe to
+    call after [contents]. *)
 
 (** {1 Loads / stack manipulation} *)
 

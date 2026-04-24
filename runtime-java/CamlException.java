@@ -21,17 +21,21 @@ public final class CamlException extends RuntimeException {
     }
 
     /**
-     * Suppress JVM stack-trace capture by default. OCaml exceptions
-     * carry their own backtrace (via Printexc) — the JVM trace is
-     * useless overhead, and [Throwable.fillInStackTrace] dominates
-     * profile when OCaml uses exceptions for control flow (e.g.
-     * [List.find / Hashtbl.find] raising [Not_found] in a tight
-     * loop). Re-enable for diagnostic builds via
-     * JAVA_OF_OCAML_TRACE_RAISE — that path explicitly constructs
-     * a [RuntimeException] for the trace.
+     * Gate JVM stack-trace capture on [Backtrace.isRecording]. OCaml
+     * raises exceptions for control flow (e.g. [List.find] /
+     * [Hashtbl.find] raising [Not_found] in a tight loop) and
+     * [Throwable.fillInStackTrace] is expensive enough to show up in
+     * profiles, so we only capture when the user has explicitly
+     * enabled backtraces (via [Printexc.record_backtrace true] or
+     * [OCAMLRUNPARAM=b]). OCaml's runtime makes the same call.
      */
     @Override
-    public Throwable fillInStackTrace() { return this; }
+    public Throwable fillInStackTrace() {
+        if (Backtrace.isRecording()) {
+            return super.fillInStackTrace();
+        }
+        return this;
+    }
 
     @Override
     public String getMessage() {

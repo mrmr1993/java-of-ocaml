@@ -52,10 +52,10 @@ module Code : sig
   (** Ensure [max_locals] is at least [n]. Used to reserve slots for
       method parameters that the body may not touch directly. *)
 
-  val mark_line : t -> int -> unit
+  val mark_line : t -> string -> int -> unit
   (** Record that bytecode emitted from the current position onward
-      maps to source line [line]. Populates the [LineNumberTable]
-      sub-attribute of [Code]. *)
+      maps to [file] line [line]. Populates [LineNumberTable] + the
+      class [SourceDebugExtension] (JSR-045). *)
 
   (** {2 Loads / stack manipulation} *)
 
@@ -351,6 +351,11 @@ val camlexception_class_bytes : unit -> string
 (** Bytes of a [CamlException] class file. Extends [RuntimeException] and
     holds the OCaml exception value in a public [Object] field [value].
     Used as the JVM-level carrier for [raise] / [try … with …]. *)
+
+val backtrace_class_bytes : unit -> string
+(** Bytes of a [Backtrace] class file. Holds the recording flag
+    flipped by [caml_record_backtrace] and renders OCaml-style
+    stack traces from JVM [StackTraceElement[]]. *)
 
 val compare_class_bytes : unit -> string
 (** Bytes of the [Compare] class — polymorphic structural compare /

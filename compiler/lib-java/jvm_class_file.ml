@@ -34,7 +34,10 @@ type method_layout =
   ; name_idx : int
   ; desc_idx : int
   ; code_attr_idx : int
-  ; line_entries : (int * int) list
+  ; lnt_entries : (int * int) list
+        (* (jvm_pc, LNT output_line). output_line is a synthetic
+           per-class integer; the SMAP stratum maps it back to
+           (file, source_line). *)
   ; line_number_table_idx : int
         (* CP utf8 index for "LineNumberTable", or 0 if no entries. *)
   }
@@ -43,7 +46,7 @@ let emit_method_info out (l : method_layout) =
   let code_len = String.length l.code_bytes in
   let entries = Code.exception_entries l.m.code in
   let n_entries = List.length entries in
-  let n_lines = List.length l.line_entries in
+  let n_lines = List.length l.lnt_entries in
   let nested_attrs = if n_lines > 0 then 1 else 0 in
   let lnt_attr_len = 2 + (4 * n_lines) in
   let lnt_total = if n_lines > 0 then 6 + lnt_attr_len else 0 in
@@ -91,7 +94,7 @@ let emit_method_info out (l : method_layout) =
       (fun (jvm_pc, line) ->
         add_u2 out (jvm_pc land 0xffff);
         add_u2 out (line land 0xffff))
-      l.line_entries)
+      l.lnt_entries)
 
 type field_layout =
   { f : field_desc
@@ -115,6 +118,34 @@ let assemble_class
     ~access_flags
     ()
   =
+  (* SMAP stratum builder — shared across methods so we intern each
+     source file once and allocate synthetic output line numbers from
+     a single per-class counter. *)
+  let file_table : (string, int) Hashtbl.t = Hashtbl.create 8 in
+  let files_rev = ref [] in
+  let intern_file f =
+    match Hashtbl.find_opt file_table f with
+    | Some i -> i
+    | None ->
+      let i = Hashtbl.length file_table + 1 in
+      Hashtbl.add file_table f i;
+      files_rev := f :: !files_rev;
+      i
+  in
+  (* LNT output line = source line (keeps plain-Java stack traces
+     readable). SMAP *L maps (file, source_line) → source_line. When
+     two files share a line, the first SMAP entry (by class emission
+     order) wins per JSR-045 §3.2.4 — imperfect, but strictly better
+     than today's single-file heuristic. *)
+  let smap_pairs_seen : (int * int, unit) Hashtbl.t = Hashtbl.create 64 in
+  let smap_lines_rev = ref [] in
+  let record_smap file_id source_line =
+    let key = file_id, source_line in
+    if not (Hashtbl.mem smap_pairs_seen key)
+    then (
+      Hashtbl.add smap_pairs_seen key ();
+      smap_lines_rev := (source_line, file_id) :: !smap_lines_rev)
+  in
   let method_layouts =
     List.map
       (fun m ->
@@ -130,16 +161,23 @@ let assemble_class
           raise
             (Method_too_large
                { class_name; method_name = m.name; size });
-        let line_entries = Code.line_entries m.code in
+        let raw = Code.line_entries m.code in
+        let lnt_entries =
+          List.map
+            (fun (pc, file, line) ->
+              record_smap (intern_file file) line;
+              pc, line land 0xffff)
+            raw
+        in
         let line_number_table_idx =
-          if line_entries = [] then 0 else Cp.utf8 cp "LineNumberTable"
+          if lnt_entries = [] then 0 else Cp.utf8 cp "LineNumberTable"
         in
         { m
         ; code_bytes = bytes
         ; name_idx = Cp.utf8 cp m.name
         ; desc_idx = Cp.utf8 cp m.descriptor
         ; code_attr_idx = Cp.utf8 cp "Code"
-        ; line_entries
+        ; lnt_entries
         ; line_number_table_idx
         })
       methods
@@ -161,7 +199,52 @@ let assemble_class
       let name_idx = Cp.utf8 cp name in
       Some (attr_idx, name_idx)
   in
-  let class_attrs_count = if source_file_attr = None then 0 else 1 in
+  (* Build SMAP (JSR-045) for [SourceDebugExtension]. Only emit when
+     the class has any line mappings and the synthetic line table is
+     populated. *)
+  let smap_bytes =
+    if !smap_lines_rev = []
+    then None
+    else (
+      let buf = Buffer.create 256 in
+      let output_name =
+        match source_file with
+        | Some s -> s
+        | None -> class_name ^ ".ml"
+      in
+      Buffer.add_string buf "SMAP\n";
+      Buffer.add_string buf output_name;
+      Buffer.add_char buf '\n';
+      Buffer.add_string buf "OCaml\n";
+      Buffer.add_string buf "*S OCaml\n";
+      Buffer.add_string buf "*F\n";
+      List.iter
+        (fun (fid, path) ->
+          let base =
+            try Filename.basename path with _ -> path
+          in
+          if String.equal base path
+          then Buffer.add_string buf (Printf.sprintf "%d %s\n" fid path)
+          else (
+            Buffer.add_string buf (Printf.sprintf "+ %d %s\n" fid base);
+            Buffer.add_string buf path;
+            Buffer.add_char buf '\n'))
+        (List.mapi
+           (fun i f -> i + 1, f)
+           (List.rev !files_rev));
+      Buffer.add_string buf "*L\n";
+      List.iter
+        (fun (src_line, fid) ->
+          Buffer.add_string buf
+            (Printf.sprintf "%d#%d:%d\n" src_line fid src_line))
+        (List.rev !smap_lines_rev);
+      Buffer.add_string buf "*E\n";
+      Some (Cp.utf8 cp "SourceDebugExtension", Buffer.contents buf))
+  in
+  let class_attrs_count =
+    (if source_file_attr = None then 0 else 1)
+    + (if smap_bytes = None then 0 else 1)
+  in
   let this_class = Cp.class_ cp class_name in
   let super_class = Cp.class_ cp super_name in
   (* The class-file [constant_pool_count] is a u2: the pool can
@@ -202,6 +285,12 @@ let assemble_class
      add_u2 out attr_idx;
      add_u4 out 2;
      add_u2 out name_idx);
+  (match smap_bytes with
+   | None -> ()
+   | Some (attr_idx, payload) ->
+     add_u2 out attr_idx;
+     add_u4 out (String.length payload);
+     Buffer.add_string out payload);
   Buffer.contents out
 
 let assemble_main_class build =

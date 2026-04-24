@@ -311,7 +311,7 @@ let%expect_test "primitive cost table vs real emission" =
     caml_ensure_stack_capacity               est= 14 act=  8 delta= -6
     caml_register_named_value                est= 18 act= 11 delta= -7
     caml_init_signals                        est= 14 act=  8 delta= -6
-    caml_record_backtrace                    est= 14 act=  8 delta= -6
+    caml_record_backtrace                    est= 23 act= 16 delta= -7
     caml_channel_descriptor                  est= 12 act=  4 delta= -8
     caml_sys_executable_name                 est= 12 act=  5 delta= -7
     caml_gc_minor                            est= 14 act=  8 delta= -6

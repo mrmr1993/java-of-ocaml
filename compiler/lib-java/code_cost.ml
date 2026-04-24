@@ -124,9 +124,10 @@ let extern_cost = function
   | "caml_lessthan" | "caml_lessequal" | "caml_greaterthan"
   | "caml_greaterequal" | "caml_int_compare" -> 8
   (* Stubs / no-ops. *)
+  | "caml_record_backtrace" | "caml_backtrace_status" -> 13
   | "caml_ensure_stack_capacity" | "caml_ml_set_binary_mode"
   | "caml_ml_set_channel_name" | "caml_register_named_value"
-  | "caml_init_signals" | "caml_record_backtrace" | "caml_backtrace_status"
+  | "caml_init_signals"
   | "caml_ml_debug_info_status" | "caml_ml_enable_runtime_warnings"
   | "caml_ml_runtime_warnings_enabled" | "caml_runtime_parameters"
   | "caml_runtime_variant" | "caml_ml_out_channels_list"

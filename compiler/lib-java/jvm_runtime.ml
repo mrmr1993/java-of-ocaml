@@ -11,6 +11,7 @@ let closure_class_bytes () = R.closure
 let partial_closure_class_bytes () = R.partial_closure
 let dummy_closure_class_bytes () = R.dummy_closure
 let camlexception_class_bytes () = R.caml_exception
+let backtrace_class_bytes () = R.backtrace
 let compare_class_bytes () = R.compare
 let channel_class_bytes () = R.channel
 let channel_empty_input_stream_class_bytes () = R.channel__empty_input_stream

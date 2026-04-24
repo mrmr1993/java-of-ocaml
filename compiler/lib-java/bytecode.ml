@@ -1,7 +1,11 @@
 type debug_loc =
   { file : string
   ; line : int
+  ; line_end : int
+  ; col_start : int
+  ; col_end : int
   ; modname : string
+  ; defname : string option
   }
 
 type t =
@@ -459,14 +463,30 @@ let read_exe path =
            (fun (ev : Instruct.debug_event) ->
              let pc = (orig + ev.ev_pos) / 4 in
              let loc_start = ev.ev_loc.Location.loc_start in
+             let loc_end = ev.ev_loc.Location.loc_end in
              let file = loc_start.Lexing.pos_fname in
              let line = loc_start.Lexing.pos_lnum in
+             let line_end = loc_end.Lexing.pos_lnum in
+             let col_start = loc_start.Lexing.pos_cnum - loc_start.Lexing.pos_bol in
+             let col_end = loc_end.Lexing.pos_cnum - loc_end.Lexing.pos_bol in
+             let defname =
+               match ev.ev_defname with
+               | "" -> None
+               | s -> Some s
+             in
              if file <> "_none_" && line > 0
              then
                Hashtbl.replace
                  table
                  pc
-                 { file; line; modname = ev.ev_module })
+                 { file
+                 ; line
+                 ; line_end
+                 ; col_start
+                 ; col_end
+                 ; modname = ev.ev_module
+                 ; defname
+                 })
            evl
        done);
     table
@@ -551,10 +571,30 @@ let read_unit_debug ic ~orig table =
     (fun (ev : Instruct.debug_event) ->
       let pc = (orig + ev.ev_pos) / 4 in
       let loc_start = ev.ev_loc.Location.loc_start in
+      let loc_end = ev.ev_loc.Location.loc_end in
       let file = loc_start.Lexing.pos_fname in
       let line = loc_start.Lexing.pos_lnum in
+      let line_end = loc_end.Lexing.pos_lnum in
+      let col_start = loc_start.Lexing.pos_cnum - loc_start.Lexing.pos_bol in
+      let col_end = loc_end.Lexing.pos_cnum - loc_end.Lexing.pos_bol in
+      let defname =
+        match ev.ev_defname with
+        | "" -> None
+        | s -> Some s
+      in
       if file <> "_none_" && line > 0
-      then Hashtbl.replace table pc { file; line; modname = ev.ev_module })
+      then
+        Hashtbl.replace
+          table
+          pc
+          { file
+          ; line
+          ; line_end
+          ; col_start
+          ; col_end
+          ; modname = ev.ev_module
+          ; defname
+          })
     evl
 
 let convert_compunit ic (cu : Bytecode_compat.cu_header) : unit_info =

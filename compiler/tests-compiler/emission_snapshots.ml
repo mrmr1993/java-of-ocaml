@@ -77,9 +77,9 @@ let%expect_test "emission: println of a string literal" =
           83: aload_0
           84: astore_1
           85: goto_w        90
-          90: new           #53                 // class ocaml_fn_0
+          90: new           #53                 // class ocaml_fn_CamlinternalFormatBasics_erase_rel_0
           93: dup
-          94: invokespecial #55                 // Method ocaml_fn_0."<init>":()V
+          94: invokespecial #55                 // Method ocaml_fn_CamlinternalFormatBasics_erase_rel_0."<init>":()V
           97: astore_2
           98: new           #57                 // class ocaml_fn_1
          101: dup
@@ -169,9 +169,9 @@ let%expect_test "emission: println of a string literal" =
          252: anewarray     #10                 // class java/lang/Object
          255: invokespecial #22                 // Method Block."<init>":(I[Ljava/lang/Object;)V
          258: astore        18
-         260: new           #73                 // class ocaml_fn_8
+         260: new           #73                 // class ocaml_fn_Stdlib_failwith_8
          263: dup
-         264: invokespecial #74                 // Method ocaml_fn_8."<init>":()V
+         264: invokespecial #74                 // Method ocaml_fn_Stdlib_failwith_8."<init>":()V
          267: astore        19
          269: aload         18
          271: checkcast     #8                  // class Block
@@ -179,9 +179,9 @@ let%expect_test "emission: println of a string literal" =
          277: iconst_1
          278: aload         19
          280: aastore
-         281: new           #79                 // class ocaml_fn_9
+         281: new           #79                 // class ocaml_fn_Stdlib_invalid_arg_9
          284: dup
-         285: invokespecial #80                 // Method ocaml_fn_9."<init>":()V
+         285: invokespecial #80                 // Method ocaml_fn_Stdlib_invalid_arg_9."<init>":()V
          288: astore        20
          290: aload         18
          292: checkcast     #8                  // class Block
@@ -360,9 +360,9 @@ let%expect_test "emission: println of a string literal" =
          642: bipush        16
          644: aload         39
          646: aastore
-         647: new           #92                 // class ocaml_fn_12
+         647: new           #92                 // class ocaml_fn_Stdlib_abs_12
          650: dup
-         651: invokespecial #93                 // Method ocaml_fn_12."<init>":()V
+         651: invokespecial #93                 // Method ocaml_fn_Stdlib_abs_12."<init>":()V
          654: astore        40
          656: aload         18
          658: checkcast     #8                  // class Block
@@ -370,9 +370,9 @@ let%expect_test "emission: println of a string literal" =
          664: bipush        17
          666: aload         40
          668: aastore
-         669: new           #95                 // class ocaml_fn_13
+         669: new           #95                 // class ocaml_fn_Stdlib_lnot_13
          672: dup
-         673: invokespecial #96                 // Method ocaml_fn_13."<init>":()V
+         673: invokespecial #96                 // Method ocaml_fn_Stdlib_lnot_13."<init>":()V
          676: astore        41
          678: aload         18
          680: checkcast     #8                  // class Block
@@ -498,10 +498,10 @@ let%expect_test "emission: println of a string literal" =
          954: bipush        27
          956: aload         58
          958: aastore
-         959: new           #118                // class ocaml_fn_15
+         959: new           #118                // class ocaml_fn_Stdlib_char_of_int_15
          962: dup
          963: aload         20
-         965: invokespecial #121                // Method ocaml_fn_15."<init>":(Ljava/lang/Object;)V
+         965: invokespecial #121                // Method ocaml_fn_Stdlib_char_of_int_15."<init>":(Ljava/lang/Object;)V
          968: astore        59
          970: aload         18
          972: checkcast     #8                  // class Block
@@ -509,9 +509,9 @@ let%expect_test "emission: println of a string literal" =
          978: bipush        28
          980: aload         59
          982: aastore
-         983: new           #123                // class ocaml_fn_16
+         983: new           #123                // class ocaml_fn_Stdlib_string_of_bool_16
          986: dup
-         987: invokespecial #124                // Method ocaml_fn_16."<init>":()V
+         987: invokespecial #124                // Method ocaml_fn_Stdlib_string_of_bool_16."<init>":()V
          990: astore        60
          992: aload         18
          994: checkcast     #8                  // class Block
@@ -519,10 +519,10 @@ let%expect_test "emission: println of a string literal" =
         1000: bipush        29
         1002: aload         60
         1004: aastore
-        1005: new           #126                // class ocaml_fn_17
+        1005: new           #126                // class ocaml_fn_Stdlib_bool_of_string_17
         1008: dup
         1009: aload         20
-        1011: invokespecial #127                // Method ocaml_fn_17."<init>":(Ljava/lang/Object;)V
+        1011: invokespecial #127                // Method ocaml_fn_Stdlib_bool_of_string_17."<init>":(Ljava/lang/Object;)V
         1014: astore        61
         1016: aload         18
         1018: checkcast     #8                  // class Block
@@ -530,9 +530,9 @@ let%expect_test "emission: println of a string literal" =
         1024: bipush        31
         1026: aload         61
         1028: aastore
-        1029: new           #129                // class ocaml_fn_18
+        1029: new           #129                // class ocaml_fn_Stdlib_bool_of_string_opt_18
         1032: dup
-        1033: invokespecial #130                // Method ocaml_fn_18."<init>":()V
+        1033: invokespecial #130                // Method ocaml_fn_Stdlib_bool_of_string_opt_18."<init>":()V
         1036: astore        62
         1038: aload         18
         1040: checkcast     #8                  // class Block
@@ -540,9 +540,9 @@ let%expect_test "emission: println of a string literal" =
         1046: bipush        30
         1048: aload         62
         1050: aastore
-        1051: new           #132                // class ocaml_fn_19
+        1051: new           #132                // class ocaml_fn_Stdlib_string_of_int_19
         1054: dup
-        1055: invokespecial #133                // Method ocaml_fn_19."<init>":()V
+        1055: invokespecial #133                // Method ocaml_fn_Stdlib_string_of_int_19."<init>":()V
         1058: astore        63
         1060: aload         18
         1062: checkcast     #8                  // class Block
@@ -550,10 +550,10 @@ let%expect_test "emission: println of a string literal" =
         1068: bipush        32
         1070: aload         63
         1072: aastore
-        1073: new           #135                // class ocaml_fn_20
+        1073: new           #135                // class ocaml_fn_Stdlib_int_of_string_opt_20
         1076: dup
         1077: aload         29
-        1079: invokespecial #136                // Method ocaml_fn_20."<init>":(Ljava/lang/Object;)V
+        1079: invokespecial #136                // Method ocaml_fn_Stdlib_int_of_string_opt_20."<init>":(Ljava/lang/Object;)V
         1082: astore        64
         1084: aload         18
         1086: checkcast     #8                  // class Block
@@ -561,10 +561,10 @@ let%expect_test "emission: println of a string literal" =
         1092: bipush        33
         1094: aload         64
         1096: aastore
-        1097: new           #138                // class ocaml_fn_21
+        1097: new           #138                // class ocaml_fn_Stdlib_valid_float_lexem_21
         1100: dup
         1101: aload         58
-        1103: invokespecial #139                // Method ocaml_fn_21."<init>":(Ljava/lang/Object;)V
+        1103: invokespecial #139                // Method ocaml_fn_Stdlib_valid_float_lexem_21."<init>":(Ljava/lang/Object;)V
         1106: astore        65
         1108: aload         18
         1110: checkcast     #8                  // class Block
@@ -572,10 +572,10 @@ let%expect_test "emission: println of a string literal" =
         1116: bipush        100
         1118: aload         65
         1120: aastore
-        1121: new           #141                // class ocaml_fn_22
+        1121: new           #141                // class ocaml_fn_Stdlib_string_of_float_22
         1124: dup
         1125: aload         65
-        1127: invokespecial #142                // Method ocaml_fn_22."<init>":(Ljava/lang/Object;)V
+        1127: invokespecial #142                // Method ocaml_fn_Stdlib_string_of_float_22."<init>":(Ljava/lang/Object;)V
         1130: astore        66
         1132: aload         18
         1134: checkcast     #8                  // class Block
@@ -583,10 +583,10 @@ let%expect_test "emission: println of a string literal" =
         1140: bipush        34
         1142: aload         66
         1144: aastore
-        1145: new           #144                // class ocaml_fn_23
+        1145: new           #144                // class ocaml_fn_Stdlib_float_of_string_opt_23
         1148: dup
         1149: aload         29
-        1151: invokespecial #145                // Method ocaml_fn_23."<init>":(Ljava/lang/Object;)V
+        1151: invokespecial #145                // Method ocaml_fn_Stdlib_float_of_string_opt_23."<init>":(Ljava/lang/Object;)V
         1154: astore        67
         1156: aload         18
         1158: checkcast     #8                  // class Block
@@ -693,10 +693,10 @@ let%expect_test "emission: println of a string literal" =
         1372: bipush        61
         1374: aload         83
         1376: aastore
-        1377: new           #171                // class ocaml_fn_27
+        1377: new           #171                // class ocaml_fn_Stdlib_open_out_27
         1380: dup
         1381: aload         83
-        1383: invokespecial #172                // Method ocaml_fn_27."<init>":(Ljava/lang/Object;)V
+        1383: invokespecial #172                // Method ocaml_fn_Stdlib_open_out_27."<init>":(Ljava/lang/Object;)V
         1386: astore        84
         1388: aload         18
         1390: checkcast     #8                  // class Block
@@ -704,10 +704,10 @@ let%expect_test "emission: println of a string literal" =
         1396: bipush        59
         1398: aload         84
         1400: aastore
-        1401: new           #174                // class ocaml_fn_28
+        1401: new           #174                // class ocaml_fn_Stdlib_open_out_bin_28
         1404: dup
         1405: aload         83
-        1407: invokespecial #175                // Method ocaml_fn_28."<init>":(Ljava/lang/Object;)V
+        1407: invokespecial #175                // Method ocaml_fn_Stdlib_open_out_bin_28."<init>":(Ljava/lang/Object;)V
         1410: astore        85
         1412: aload         18
         1414: checkcast     #8                  // class Block
@@ -715,10 +715,10 @@ let%expect_test "emission: println of a string literal" =
         1420: bipush        60
         1422: aload         85
         1424: aastore
-        1425: new           #177                // class ocaml_fn_29
+        1425: new           #177                // class ocaml_fn_Stdlib_flush_all_29
         1428: dup
         1429: aload         33
-        1431: invokespecial #178                // Method ocaml_fn_29."<init>":(Ljava/lang/Object;)V
+        1431: invokespecial #178                // Method ocaml_fn_Stdlib_flush_all_29."<init>":(Ljava/lang/Object;)V
         1434: astore        86
         1436: aload         18
         1438: checkcast     #8                  // class Block
@@ -778,9 +778,9 @@ let%expect_test "emission: println of a string literal" =
         1558: bipush        71
         1560: aload         91
         1562: aastore
-        1563: new           #195                // class ocaml_fn_35
+        1563: new           #195                // class ocaml_fn_Stdlib_close_out_35
         1566: dup
-        1567: invokespecial #196                // Method ocaml_fn_35."<init>":()V
+        1567: invokespecial #196                // Method ocaml_fn_Stdlib_close_out_35."<init>":()V
         1570: astore        92
         1572: aload         18
         1574: checkcast     #8                  // class Block
@@ -788,9 +788,9 @@ let%expect_test "emission: println of a string literal" =
         1580: bipush        75
         1582: aload         92
         1584: aastore
-        1585: new           #198                // class ocaml_fn_36
+        1585: new           #198                // class ocaml_fn_Stdlib_close_out_noerr_36
         1588: dup
-        1589: invokespecial #199                // Method ocaml_fn_36."<init>":()V
+        1589: invokespecial #199                // Method ocaml_fn_Stdlib_close_out_noerr_36."<init>":()V
         1592: astore        93
         1594: aload         18
         1596: checkcast     #8                  // class Block
@@ -808,10 +808,10 @@ let%expect_test "emission: println of a string literal" =
         1624: bipush        80
         1626: aload         94
         1628: aastore
-        1629: new           #204                // class ocaml_fn_38
+        1629: new           #204                // class ocaml_fn_Stdlib_open_in_38
         1632: dup
         1633: aload         94
-        1635: invokespecial #205                // Method ocaml_fn_38."<init>":(Ljava/lang/Object;)V
+        1635: invokespecial #205                // Method ocaml_fn_Stdlib_open_in_38."<init>":(Ljava/lang/Object;)V
         1638: astore        95
         1640: aload         18
         1642: checkcast     #8                  // class Block
@@ -819,10 +819,10 @@ let%expect_test "emission: println of a string literal" =
         1648: bipush        78
         1650: aload         95
         1652: aastore
-        1653: new           #207                // class ocaml_fn_39
+        1653: new           #207                // class ocaml_fn_Stdlib_open_in_bin_39
         1656: dup
         1657: aload         94
-        1659: invokespecial #208                // Method ocaml_fn_39."<init>":(Ljava/lang/Object;)V
+        1659: invokespecial #208                // Method ocaml_fn_Stdlib_open_in_bin_39."<init>":(Ljava/lang/Object;)V
         1662: astore        96
         1664: aload         18
         1666: checkcast     #8                  // class Block
@@ -875,10 +875,10 @@ let%expect_test "emission: println of a string literal" =
         1770: bipush        85
         1772: aload         100
         1774: aastore
-        1775: new           #224                // class ocaml_fn_44
+        1775: new           #224                // class ocaml_fn_Stdlib_input_line_44
         1778: dup
         1779: aload         34
-        1781: invokespecial #225                // Method ocaml_fn_44."<init>":(Ljava/lang/Object;)V
+        1781: invokespecial #225                // Method ocaml_fn_Stdlib_input_line_44."<init>":(Ljava/lang/Object;)V
         1784: astore        101
         1786: aload         18
         1788: checkcast     #8                  // class Block
@@ -886,9 +886,9 @@ let%expect_test "emission: println of a string literal" =
         1794: bipush        82
         1796: aload         101
         1798: aastore
-        1799: new           #227                // class ocaml_fn_45
+        1799: new           #227                // class ocaml_fn_Stdlib_close_in_noerr_45
         1802: dup
-        1803: invokespecial #228                // Method ocaml_fn_45."<init>":()V
+        1803: invokespecial #228                // Method ocaml_fn_Stdlib_close_in_noerr_45."<init>":()V
         1806: astore        102
         1808: aload         18
         1810: checkcast     #8                  // class Block
@@ -896,10 +896,10 @@ let%expect_test "emission: println of a string literal" =
         1816: bipush        93
         1818: aload         102
         1820: aastore
-        1821: new           #230                // class ocaml_fn_46
+        1821: new           #230                // class ocaml_fn_Stdlib_print_char_46
         1824: dup
         1825: aload         79
-        1827: invokespecial #231                // Method ocaml_fn_46."<init>":(Ljava/lang/Object;)V
+        1827: invokespecial #231                // Method ocaml_fn_Stdlib_print_char_46."<init>":(Ljava/lang/Object;)V
         1830: astore        103
         1832: aload         18
         1834: checkcast     #8                  // class Block
@@ -907,11 +907,11 @@ let%expect_test "emission: println of a string literal" =
         1840: bipush        40
         1842: aload         103
         1844: aastore
-        1845: new           #233                // class ocaml_fn_47
+        1845: new           #233                // class ocaml_fn_Stdlib_print_string_47
         1848: dup
         1849: aload         79
         1851: aload         88
-        1853: invokespecial #234                // Method ocaml_fn_47."<init>":(Ljava/lang/Object;Ljava/lang/Object;)V
+        1853: invokespecial #234                // Method ocaml_fn_Stdlib_print_string_47."<init>":(Ljava/lang/Object;Ljava/lang/Object;)V
         1856: astore        104
         1858: aload         18
         1860: checkcast     #8                  // class Block
@@ -919,11 +919,11 @@ let%expect_test "emission: println of a string literal" =
         1866: bipush        41
         1868: aload         104
         1870: aastore
-        1871: new           #236                // class ocaml_fn_48
+        1871: new           #236                // class ocaml_fn_Stdlib_print_bytes_48
         1874: dup
         1875: aload         79
         1877: aload         87
-        1879: invokespecial #237                // Method ocaml_fn_48."<init>":(Ljava/lang/Object;Ljava/lang/Object;)V
+        1879: invokespecial #237                // Method ocaml_fn_Stdlib_print_bytes_48."<init>":(Ljava/lang/Object;Ljava/lang/Object;)V
         1882: astore        105
         1884: aload         18
         1886: checkcast     #8                  // class Block
@@ -931,12 +931,12 @@ let%expect_test "emission: println of a string literal" =
         1892: bipush        42
         1894: aload         105
         1896: aastore
-        1897: new           #239                // class ocaml_fn_49
+        1897: new           #239                // class ocaml_fn_Stdlib_print_int_49
         1900: dup
         1901: aload         63
         1903: aload         79
         1905: aload         88
-        1907: invokespecial #242                // Method ocaml_fn_49."<init>":(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)V
+        1907: invokespecial #242                // Method ocaml_fn_Stdlib_print_int_49."<init>":(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)V
         1910: astore        106
         1912: aload         18
         1914: checkcast     #8                  // class Block
@@ -944,12 +944,12 @@ let%expect_test "emission: println of a string literal" =
         1920: bipush        43
         1922: aload         106
         1924: aastore
-        1925: new           #244                // class ocaml_fn_50
+        1925: new           #244                // class ocaml_fn_Stdlib_print_float_50
         1928: dup
         1929: aload         66
         1931: aload         79
         1933: aload         88
-        1935: invokespecial #245                // Method ocaml_fn_50."<init>":(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)V
+        1935: invokespecial #245                // Method ocaml_fn_Stdlib_print_float_50."<init>":(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)V
         1938: astore        107
         1940: aload         18
         1942: checkcast     #8                  // class Block
@@ -957,11 +957,11 @@ let%expect_test "emission: println of a string literal" =
         1948: bipush        44
         1950: aload         107
         1952: aastore
-        1953: new           #247                // class ocaml_fn_51
+        1953: new           #247                // class ocaml_fn_Stdlib_print_endline_51
         1956: dup
         1957: aload         79
         1959: aload         88
-        1961: invokespecial #248                // Method ocaml_fn_51."<init>":(Ljava/lang/Object;Ljava/lang/Object;)V
+        1961: invokespecial #248                // Method ocaml_fn_Stdlib_print_endline_51."<init>":(Ljava/lang/Object;Ljava/lang/Object;)V
         1964: astore        108
         1966: aload         18
         1968: checkcast     #8                  // class Block
@@ -969,10 +969,10 @@ let%expect_test "emission: println of a string literal" =
         1974: bipush        45
         1976: aload         108
         1978: aastore
-        1979: new           #250                // class ocaml_fn_52
+        1979: new           #250                // class ocaml_fn_Stdlib_print_newline_52
         1982: dup
         1983: aload         79
-        1985: invokespecial #251                // Method ocaml_fn_52."<init>":(Ljava/lang/Object;)V
+        1985: invokespecial #251                // Method ocaml_fn_Stdlib_print_newline_52."<init>":(Ljava/lang/Object;)V
         1988: astore        109
         1990: aload         18
         1992: checkcast     #8                  // class Block
@@ -980,10 +980,10 @@ let%expect_test "emission: println of a string literal" =
         1998: bipush        46
         2000: aload         109
         2002: aastore
-        2003: new           #253                // class ocaml_fn_53
+        2003: new           #253                // class ocaml_fn_Stdlib_prerr_char_53
         2006: dup
         2007: aload         82
-        2009: invokespecial #254                // Method ocaml_fn_53."<init>":(Ljava/lang/Object;)V
+        2009: invokespecial #254                // Method ocaml_fn_Stdlib_prerr_char_53."<init>":(Ljava/lang/Object;)V
         2012: astore        110
         2014: aload         18
         2016: checkcast     #8                  // class Block
@@ -991,11 +991,11 @@ let%expect_test "emission: println of a string literal" =
         2022: bipush        47
         2024: aload         110
         2026: aastore
-        2027: new           #256                // class ocaml_fn_54
+        2027: new           #256                // class ocaml_fn_Stdlib_prerr_string_54
         2030: dup
         2031: aload         82
         2033: aload         88
-        2035: invokespecial #257                // Method ocaml_fn_54."<init>":(Ljava/lang/Object;Ljava/lang/Object;)V
+        2035: invokespecial #257                // Method ocaml_fn_Stdlib_prerr_string_54."<init>":(Ljava/lang/Object;Ljava/lang/Object;)V
         2038: astore        111
         2040: aload         18
         2042: checkcast     #8                  // class Block
@@ -1003,11 +1003,11 @@ let%expect_test "emission: println of a string literal" =
         2048: bipush        48
         2050: aload         111
         2052: aastore
-        2053: new           #259                // class ocaml_fn_55
+        2053: new           #259                // class ocaml_fn_Stdlib_prerr_bytes_55
         2056: dup
         2057: aload         82
         2059: aload         87
-        2061: invokespecial #260                // Method ocaml_fn_55."<init>":(Ljava/lang/Object;Ljava/lang/Object;)V
+        2061: invokespecial #260                // Method ocaml_fn_Stdlib_prerr_bytes_55."<init>":(Ljava/lang/Object;Ljava/lang/Object;)V
         2064: astore        112
         2066: aload         18
         2068: checkcast     #8                  // class Block
@@ -1015,12 +1015,12 @@ let%expect_test "emission: println of a string literal" =
         2074: bipush        49
         2076: aload         112
         2078: aastore
-        2079: new           #262                // class ocaml_fn_56
+        2079: new           #262                // class ocaml_fn_Stdlib_prerr_int_56
         2082: dup
         2083: aload         63
         2085: aload         82
         2087: aload         88
-        2089: invokespecial #263                // Method ocaml_fn_56."<init>":(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)V
+        2089: invokespecial #263                // Method ocaml_fn_Stdlib_prerr_int_56."<init>":(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)V
         2092: astore        113
         2094: aload         18
         2096: checkcast     #8                  // class Block
@@ -1028,12 +1028,12 @@ let%expect_test "emission: println of a string literal" =
         2102: bipush        50
         2104: aload         113
         2106: aastore
-        2107: new           #265                // class ocaml_fn_57
+        2107: new           #265                // class ocaml_fn_Stdlib_prerr_float_57
         2110: dup
         2111: aload         66
         2113: aload         82
         2115: aload         88
-        2117: invokespecial #266                // Method ocaml_fn_57."<init>":(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)V
+        2117: invokespecial #266                // Method ocaml_fn_Stdlib_prerr_float_57."<init>":(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)V
         2120: astore        114
         2122: aload         18
         2124: checkcast     #8                  // class Block
@@ -1041,11 +1041,11 @@ let%expect_test "emission: println of a string literal" =
         2130: bipush        51
         2132: aload         114
         2134: aastore
-        2135: new           #268                // class ocaml_fn_58
+        2135: new           #268                // class ocaml_fn_Stdlib_prerr_endline_58
         2138: dup
         2139: aload         82
         2141: aload         88
-        2143: invokespecial #269                // Method ocaml_fn_58."<init>":(Ljava/lang/Object;Ljava/lang/Object;)V
+        2143: invokespecial #269                // Method ocaml_fn_Stdlib_prerr_endline_58."<init>":(Ljava/lang/Object;Ljava/lang/Object;)V
         2146: astore        115
         2148: aload         18
         2150: checkcast     #8                  // class Block
@@ -1053,10 +1053,10 @@ let%expect_test "emission: println of a string literal" =
         2156: bipush        52
         2158: aload         115
         2160: aastore
-        2161: new           #271                // class ocaml_fn_59
+        2161: new           #271                // class ocaml_fn_Stdlib_prerr_newline_59
         2164: dup
         2165: aload         82
-        2167: invokespecial #272                // Method ocaml_fn_59."<init>":(Ljava/lang/Object;)V
+        2167: invokespecial #272                // Method ocaml_fn_Stdlib_prerr_newline_59."<init>":(Ljava/lang/Object;)V
         2170: astore        116
         2172: aload         18
         2174: checkcast     #8                  // class Block
@@ -1064,12 +1064,12 @@ let%expect_test "emission: println of a string literal" =
         2180: bipush        53
         2182: aload         116
         2184: aastore
-        2185: new           #274                // class ocaml_fn_60
+        2185: new           #274                // class ocaml_fn_Stdlib_read_line_60
         2188: dup
         2189: aload         76
         2191: aload         79
         2193: aload         101
-        2195: invokespecial #275                // Method ocaml_fn_60."<init>":(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)V
+        2195: invokespecial #275                // Method ocaml_fn_Stdlib_read_line_60."<init>":(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)V
         2198: astore        117
         2200: aload         18
         2202: checkcast     #8                  // class Block
@@ -1077,10 +1077,10 @@ let%expect_test "emission: println of a string literal" =
         2208: bipush        54
         2210: aload         117
         2212: aastore
-        2213: new           #277                // class ocaml_fn_61
+        2213: new           #277                // class ocaml_fn_Stdlib_read_int_61
         2216: dup
         2217: aload         117
-        2219: invokespecial #278                // Method ocaml_fn_61."<init>":(Ljava/lang/Object;)V
+        2219: invokespecial #278                // Method ocaml_fn_Stdlib_read_int_61."<init>":(Ljava/lang/Object;)V
         2222: astore        118
         2224: aload         18
         2226: checkcast     #8                  // class Block
@@ -1088,11 +1088,11 @@ let%expect_test "emission: println of a string literal" =
         2232: bipush        56
         2234: aload         118
         2236: aastore
-        2237: new           #280                // class ocaml_fn_62
+        2237: new           #280                // class ocaml_fn_Stdlib_read_int_opt_62
         2240: dup
         2241: aload         64
         2243: aload         117
-        2245: invokespecial #281                // Method ocaml_fn_62."<init>":(Ljava/lang/Object;Ljava/lang/Object;)V
+        2245: invokespecial #281                // Method ocaml_fn_Stdlib_read_int_opt_62."<init>":(Ljava/lang/Object;Ljava/lang/Object;)V
         2248: astore        119
         2250: aload         18
         2252: checkcast     #8                  // class Block
@@ -1100,10 +1100,10 @@ let%expect_test "emission: println of a string literal" =
         2258: bipush        55
         2260: aload         119
         2262: aastore
-        2263: new           #283                // class ocaml_fn_63
+        2263: new           #283                // class ocaml_fn_Stdlib_read_float_63
         2266: dup
         2267: aload         117
-        2269: invokespecial #284                // Method ocaml_fn_63."<init>":(Ljava/lang/Object;)V
+        2269: invokespecial #284                // Method ocaml_fn_Stdlib_read_float_63."<init>":(Ljava/lang/Object;)V
         2272: astore        120
         2274: aload         18
         2276: checkcast     #8                  // class Block
@@ -1111,11 +1111,11 @@ let%expect_test "emission: println of a string literal" =
         2282: bipush        58
         2284: aload         120
         2286: aastore
-        2287: new           #286                // class ocaml_fn_64
+        2287: new           #286                // class ocaml_fn_Stdlib_read_float_opt_64
         2290: dup
         2291: aload         67
         2293: aload         117
-        2295: invokespecial #287                // Method ocaml_fn_64."<init>":(Ljava/lang/Object;Ljava/lang/Object;)V
+        2295: invokespecial #287                // Method ocaml_fn_Stdlib_read_float_opt_64."<init>":(Ljava/lang/Object;Ljava/lang/Object;)V
         2298: astore        121
         2300: aload         18
         2302: checkcast     #8                  // class Block
@@ -1123,9 +1123,9 @@ let%expect_test "emission: println of a string literal" =
         2308: bipush        57
         2310: aload         121
         2312: aastore
-        2313: new           #289                // class ocaml_fn_65
+        2313: new           #289                // class ocaml_fn_Stdlib_string_of_format_65
         2316: dup
-        2317: invokespecial #290                // Method ocaml_fn_65."<init>":()V
+        2317: invokespecial #290                // Method ocaml_fn_Stdlib_string_of_format_65."<init>":()V
         2320: astore        122
         2322: aload         18
         2324: checkcast     #8                  // class Block
@@ -1155,10 +1155,10 @@ let%expect_test "emission: println of a string literal" =
         2372: aastore
         2373: invokespecial #22                 // Method Block."<init>":(I[Ljava/lang/Object;)V
         2376: astore        124
-        2378: new           #295                // class ocaml_fn_67
+        2378: new           #295                // class ocaml_fn_Stdlib_at_exit_67
         2381: dup
         2382: aload         124
-        2384: invokespecial #296                // Method ocaml_fn_67."<init>":(Ljava/lang/Object;)V
+        2384: invokespecial #296                // Method ocaml_fn_Stdlib_at_exit_67."<init>":(Ljava/lang/Object;)V
         2387: astore        125
         2389: aload         18
         2391: checkcast     #8                  // class Block
@@ -1166,9 +1166,9 @@ let%expect_test "emission: println of a string literal" =
         2397: bipush        99
         2399: aload         125
         2401: aastore
-        2402: new           #298                // class ocaml_fn_68
+        2402: new           #298                // class ocaml_fn_Stdlib_do_domain_local_at_exit__fun__68
         2405: dup
-        2406: invokespecial #299                // Method ocaml_fn_68."<init>":()V
+        2406: invokespecial #299                // Method ocaml_fn_Stdlib_do_domain_local_at_exit__fun__68."<init>":()V
         2409: astore        126
         2411: new           #8                  // class Block
         2414: dup
@@ -1187,11 +1187,11 @@ let%expect_test "emission: println of a string literal" =
         2438: bipush        103
         2440: aload         127
         2442: aastore
-        2443: new           #301                // class ocaml_fn_69
+        2443: new           #301                // class ocaml_fn_Stdlib_do_at_exit_69
         2446: dup
         2447: aload         124
         2449: aload         127
-        2451: invokespecial #302                // Method ocaml_fn_69."<init>":(Ljava/lang/Object;Ljava/lang/Object;)V
+        2451: invokespecial #302                // Method ocaml_fn_Stdlib_do_at_exit_69."<init>":(Ljava/lang/Object;Ljava/lang/Object;)V
         2454: astore        128
         2456: aload         18
         2458: checkcast     #8                  // class Block
@@ -1199,10 +1199,10 @@ let%expect_test "emission: println of a string literal" =
         2464: bipush        102
         2466: aload         128
         2468: aastore
-        2469: new           #304                // class ocaml_fn_70
+        2469: new           #304                // class ocaml_fn_Stdlib_exit_70
         2472: dup
         2473: aload         128
-        2475: invokespecial #305                // Method ocaml_fn_70."<init>":(Ljava/lang/Object;)V
+        2475: invokespecial #305                // Method ocaml_fn_Stdlib_exit_70."<init>":(Ljava/lang/Object;)V
         2478: astore        129
         2480: aload         18
         2482: checkcast     #8                  // class Block
@@ -1596,9 +1596,9 @@ let%expect_test "emission: arithmetic ops" =
           83: aload_0
           84: astore_1
           85: goto_w        90
-          90: new           #53                 // class ocaml_fn_0
+          90: new           #53                 // class ocaml_fn_CamlinternalFormatBasics_erase_rel_0
           93: dup
-          94: invokespecial #55                 // Method ocaml_fn_0."<init>":()V
+          94: invokespecial #55                 // Method ocaml_fn_CamlinternalFormatBasics_erase_rel_0."<init>":()V
           97: astore_2
           98: new           #57                 // class ocaml_fn_1
          101: dup
@@ -1688,9 +1688,9 @@ let%expect_test "emission: arithmetic ops" =
          252: anewarray     #10                 // class java/lang/Object
          255: invokespecial #22                 // Method Block."<init>":(I[Ljava/lang/Object;)V
          258: astore        18
-         260: new           #73                 // class ocaml_fn_8
+         260: new           #73                 // class ocaml_fn_Stdlib_failwith_8
          263: dup
-         264: invokespecial #74                 // Method ocaml_fn_8."<init>":()V
+         264: invokespecial #74                 // Method ocaml_fn_Stdlib_failwith_8."<init>":()V
          267: astore        19
          269: aload         18
          271: checkcast     #8                  // class Block
@@ -1698,9 +1698,9 @@ let%expect_test "emission: arithmetic ops" =
          277: iconst_1
          278: aload         19
          280: aastore
-         281: new           #79                 // class ocaml_fn_9
+         281: new           #79                 // class ocaml_fn_Stdlib_invalid_arg_9
          284: dup
-         285: invokespecial #80                 // Method ocaml_fn_9."<init>":()V
+         285: invokespecial #80                 // Method ocaml_fn_Stdlib_invalid_arg_9."<init>":()V
          288: astore        20
          290: aload         18
          292: checkcast     #8                  // class Block
@@ -1879,9 +1879,9 @@ let%expect_test "emission: arithmetic ops" =
          642: bipush        16
          644: aload         39
          646: aastore
-         647: new           #92                 // class ocaml_fn_12
+         647: new           #92                 // class ocaml_fn_Stdlib_abs_12
          650: dup
-         651: invokespecial #93                 // Method ocaml_fn_12."<init>":()V
+         651: invokespecial #93                 // Method ocaml_fn_Stdlib_abs_12."<init>":()V
          654: astore        40
          656: aload         18
          658: checkcast     #8                  // class Block
@@ -1889,9 +1889,9 @@ let%expect_test "emission: arithmetic ops" =
          664: bipush        17
          666: aload         40
          668: aastore
-         669: new           #95                 // class ocaml_fn_13
+         669: new           #95                 // class ocaml_fn_Stdlib_lnot_13
          672: dup
-         673: invokespecial #96                 // Method ocaml_fn_13."<init>":()V
+         673: invokespecial #96                 // Method ocaml_fn_Stdlib_lnot_13."<init>":()V
          676: astore        41
          678: aload         18
          680: checkcast     #8                  // class Block
@@ -2017,10 +2017,10 @@ let%expect_test "emission: arithmetic ops" =
          954: bipush        27
          956: aload         58
          958: aastore
-         959: new           #118                // class ocaml_fn_15
+         959: new           #118                // class ocaml_fn_Stdlib_char_of_int_15
          962: dup
          963: aload         20
-         965: invokespecial #121                // Method ocaml_fn_15."<init>":(Ljava/lang/Object;)V
+         965: invokespecial #121                // Method ocaml_fn_Stdlib_char_of_int_15."<init>":(Ljava/lang/Object;)V
          968: astore        59
          970: aload         18
          972: checkcast     #8                  // class Block
@@ -2028,9 +2028,9 @@ let%expect_test "emission: arithmetic ops" =
          978: bipush        28
          980: aload         59
          982: aastore
-         983: new           #123                // class ocaml_fn_16
+         983: new           #123                // class ocaml_fn_Stdlib_string_of_bool_16
          986: dup
-         987: invokespecial #124                // Method ocaml_fn_16."<init>":()V
+         987: invokespecial #124                // Method ocaml_fn_Stdlib_string_of_bool_16."<init>":()V
          990: astore        60
          992: aload         18
          994: checkcast     #8                  // class Block
@@ -2038,10 +2038,10 @@ let%expect_test "emission: arithmetic ops" =
         1000: bipush        29
         1002: aload         60
         1004: aastore
-        1005: new           #126                // class ocaml_fn_17
+        1005: new           #126                // class ocaml_fn_Stdlib_bool_of_string_17
         1008: dup
         1009: aload         20
-        1011: invokespecial #127                // Method ocaml_fn_17."<init>":(Ljava/lang/Object;)V
+        1011: invokespecial #127                // Method ocaml_fn_Stdlib_bool_of_string_17."<init>":(Ljava/lang/Object;)V
         1014: astore        61
         1016: aload         18
         1018: checkcast     #8                  // class Block
@@ -2049,9 +2049,9 @@ let%expect_test "emission: arithmetic ops" =
         1024: bipush        31
         1026: aload         61
         1028: aastore
-        1029: new           #129                // class ocaml_fn_18
+        1029: new           #129                // class ocaml_fn_Stdlib_bool_of_string_opt_18
         1032: dup
-        1033: invokespecial #130                // Method ocaml_fn_18."<init>":()V
+        1033: invokespecial #130                // Method ocaml_fn_Stdlib_bool_of_string_opt_18."<init>":()V
         1036: astore        62
         1038: aload         18
         1040: checkcast     #8                  // class Block
@@ -2059,9 +2059,9 @@ let%expect_test "emission: arithmetic ops" =
         1046: bipush        30
         1048: aload         62
         1050: aastore
-        1051: new           #132                // class ocaml_fn_19
+        1051: new           #132                // class ocaml_fn_Stdlib_string_of_int_19
         1054: dup
-        1055: invokespecial #133                // Method ocaml_fn_19."<init>":()V
+        1055: invokespecial #133                // Method ocaml_fn_Stdlib_string_of_int_19."<init>":()V
         1058: astore        63
         1060: aload         18
         1062: checkcast     #8                  // class Block
@@ -2069,10 +2069,10 @@ let%expect_test "emission: arithmetic ops" =
         1068: bipush        32
         1070: aload         63
         1072: aastore
-        1073: new           #135                // class ocaml_fn_20
+        1073: new           #135                // class ocaml_fn_Stdlib_int_of_string_opt_20
         1076: dup
         1077: aload         29
-        1079: invokespecial #136                // Method ocaml_fn_20."<init>":(Ljava/lang/Object;)V
+        1079: invokespecial #136                // Method ocaml_fn_Stdlib_int_of_string_opt_20."<init>":(Ljava/lang/Object;)V
         1082: astore        64
         1084: aload         18
         1086: checkcast     #8                  // class Block
@@ -2080,10 +2080,10 @@ let%expect_test "emission: arithmetic ops" =
         1092: bipush        33
         1094: aload         64
         1096: aastore
-        1097: new           #138                // class ocaml_fn_21
+        1097: new           #138                // class ocaml_fn_Stdlib_valid_float_lexem_21
         1100: dup
         1101: aload         58
-        1103: invokespecial #139                // Method ocaml_fn_21."<init>":(Ljava/lang/Object;)V
+        1103: invokespecial #139                // Method ocaml_fn_Stdlib_valid_float_lexem_21."<init>":(Ljava/lang/Object;)V
         1106: astore        65
         1108: aload         18
         1110: checkcast     #8                  // class Block
@@ -2091,10 +2091,10 @@ let%expect_test "emission: arithmetic ops" =
         1116: bipush        100
         1118: aload         65
         1120: aastore
-        1121: new           #141                // class ocaml_fn_22
+        1121: new           #141                // class ocaml_fn_Stdlib_string_of_float_22
         1124: dup
         1125: aload         65
-        1127: invokespecial #142                // Method ocaml_fn_22."<init>":(Ljava/lang/Object;)V
+        1127: invokespecial #142                // Method ocaml_fn_Stdlib_string_of_float_22."<init>":(Ljava/lang/Object;)V
         1130: astore        66
         1132: aload         18
         1134: checkcast     #8                  // class Block
@@ -2102,10 +2102,10 @@ let%expect_test "emission: arithmetic ops" =
         1140: bipush        34
         1142: aload         66
         1144: aastore
-        1145: new           #144                // class ocaml_fn_23
+        1145: new           #144                // class ocaml_fn_Stdlib_float_of_string_opt_23
         1148: dup
         1149: aload         29
-        1151: invokespecial #145                // Method ocaml_fn_23."<init>":(Ljava/lang/Object;)V
+        1151: invokespecial #145                // Method ocaml_fn_Stdlib_float_of_string_opt_23."<init>":(Ljava/lang/Object;)V
         1154: astore        67
         1156: aload         18
         1158: checkcast     #8                  // class Block
@@ -2212,10 +2212,10 @@ let%expect_test "emission: arithmetic ops" =
         1372: bipush        61
         1374: aload         83
         1376: aastore
-        1377: new           #171                // class ocaml_fn_27
+        1377: new           #171                // class ocaml_fn_Stdlib_open_out_27
         1380: dup
         1381: aload         83
-        1383: invokespecial #172                // Method ocaml_fn_27."<init>":(Ljava/lang/Object;)V
+        1383: invokespecial #172                // Method ocaml_fn_Stdlib_open_out_27."<init>":(Ljava/lang/Object;)V
         1386: astore        84
         1388: aload         18
         1390: checkcast     #8                  // class Block
@@ -2223,10 +2223,10 @@ let%expect_test "emission: arithmetic ops" =
         1396: bipush        59
         1398: aload         84
         1400: aastore
-        1401: new           #174                // class ocaml_fn_28
+        1401: new           #174                // class ocaml_fn_Stdlib_open_out_bin_28
         1404: dup
         1405: aload         83
-        1407: invokespecial #175                // Method ocaml_fn_28."<init>":(Ljava/lang/Object;)V
+        1407: invokespecial #175                // Method ocaml_fn_Stdlib_open_out_bin_28."<init>":(Ljava/lang/Object;)V
         1410: astore        85
         1412: aload         18
         1414: checkcast     #8                  // class Block
@@ -2234,10 +2234,10 @@ let%expect_test "emission: arithmetic ops" =
         1420: bipush        60
         1422: aload         85
         1424: aastore
-        1425: new           #177                // class ocaml_fn_29
+        1425: new           #177                // class ocaml_fn_Stdlib_flush_all_29
         1428: dup
         1429: aload         33
-        1431: invokespecial #178                // Method ocaml_fn_29."<init>":(Ljava/lang/Object;)V
+        1431: invokespecial #178                // Method ocaml_fn_Stdlib_flush_all_29."<init>":(Ljava/lang/Object;)V
         1434: astore        86
         1436: aload         18
         1438: checkcast     #8                  // class Block
@@ -2297,9 +2297,9 @@ let%expect_test "emission: arithmetic ops" =
         1558: bipush        71
         1560: aload         91
         1562: aastore
-        1563: new           #195                // class ocaml_fn_35
+        1563: new           #195                // class ocaml_fn_Stdlib_close_out_35
         1566: dup
-        1567: invokespecial #196                // Method ocaml_fn_35."<init>":()V
+        1567: invokespecial #196                // Method ocaml_fn_Stdlib_close_out_35."<init>":()V
         1570: astore        92
         1572: aload         18
         1574: checkcast     #8                  // class Block
@@ -2307,9 +2307,9 @@ let%expect_test "emission: arithmetic ops" =
         1580: bipush        75
         1582: aload         92
         1584: aastore
-        1585: new           #198                // class ocaml_fn_36
+        1585: new           #198                // class ocaml_fn_Stdlib_close_out_noerr_36
         1588: dup
-        1589: invokespecial #199                // Method ocaml_fn_36."<init>":()V
+        1589: invokespecial #199                // Method ocaml_fn_Stdlib_close_out_noerr_36."<init>":()V
         1592: astore        93
         1594: aload         18
         1596: checkcast     #8                  // class Block
@@ -2327,10 +2327,10 @@ let%expect_test "emission: arithmetic ops" =
         1624: bipush        80
         1626: aload         94
         1628: aastore
-        1629: new           #204                // class ocaml_fn_38
+        1629: new           #204                // class ocaml_fn_Stdlib_open_in_38
         1632: dup
         1633: aload         94
-        1635: invokespecial #205                // Method ocaml_fn_38."<init>":(Ljava/lang/Object;)V
+        1635: invokespecial #205                // Method ocaml_fn_Stdlib_open_in_38."<init>":(Ljava/lang/Object;)V
         1638: astore        95
         1640: aload         18
         1642: checkcast     #8                  // class Block
@@ -2338,10 +2338,10 @@ let%expect_test "emission: arithmetic ops" =
         1648: bipush        78
         1650: aload         95
         1652: aastore
-        1653: new           #207                // class ocaml_fn_39
+        1653: new           #207                // class ocaml_fn_Stdlib_open_in_bin_39
         1656: dup
         1657: aload         94
-        1659: invokespecial #208                // Method ocaml_fn_39."<init>":(Ljava/lang/Object;)V
+        1659: invokespecial #208                // Method ocaml_fn_Stdlib_open_in_bin_39."<init>":(Ljava/lang/Object;)V
         1662: astore        96
         1664: aload         18
         1666: checkcast     #8                  // class Block
@@ -2394,10 +2394,10 @@ let%expect_test "emission: arithmetic ops" =
         1770: bipush        85
         1772: aload         100
         1774: aastore
-        1775: new           #224                // class ocaml_fn_44
+        1775: new           #224                // class ocaml_fn_Stdlib_input_line_44
         1778: dup
         1779: aload         34
-        1781: invokespecial #225                // Method ocaml_fn_44."<init>":(Ljava/lang/Object;)V
+        1781: invokespecial #225                // Method ocaml_fn_Stdlib_input_line_44."<init>":(Ljava/lang/Object;)V
         1784: astore        101
         1786: aload         18
         1788: checkcast     #8                  // class Block
@@ -2405,9 +2405,9 @@ let%expect_test "emission: arithmetic ops" =
         1794: bipush        82
         1796: aload         101
         1798: aastore
-        1799: new           #227                // class ocaml_fn_45
+        1799: new           #227                // class ocaml_fn_Stdlib_close_in_noerr_45
         1802: dup
-        1803: invokespecial #228                // Method ocaml_fn_45."<init>":()V
+        1803: invokespecial #228                // Method ocaml_fn_Stdlib_close_in_noerr_45."<init>":()V
         1806: astore        102
         1808: aload         18
         1810: checkcast     #8                  // class Block
@@ -2415,10 +2415,10 @@ let%expect_test "emission: arithmetic ops" =
         1816: bipush        93
         1818: aload         102
         1820: aastore
-        1821: new           #230                // class ocaml_fn_46
+        1821: new           #230                // class ocaml_fn_Stdlib_print_char_46
         1824: dup
         1825: aload         79
-        1827: invokespecial #231                // Method ocaml_fn_46."<init>":(Ljava/lang/Object;)V
+        1827: invokespecial #231                // Method ocaml_fn_Stdlib_print_char_46."<init>":(Ljava/lang/Object;)V
         1830: astore        103
         1832: aload         18
         1834: checkcast     #8                  // class Block
@@ -2426,11 +2426,11 @@ let%expect_test "emission: arithmetic ops" =
         1840: bipush        40
         1842: aload         103
         1844: aastore
-        1845: new           #233                // class ocaml_fn_47
+        1845: new           #233                // class ocaml_fn_Stdlib_print_string_47
         1848: dup
         1849: aload         79
         1851: aload         88
-        1853: invokespecial #234                // Method ocaml_fn_47."<init>":(Ljava/lang/Object;Ljava/lang/Object;)V
+        1853: invokespecial #234                // Method ocaml_fn_Stdlib_print_string_47."<init>":(Ljava/lang/Object;Ljava/lang/Object;)V
         1856: astore        104
         1858: aload         18
         1860: checkcast     #8                  // class Block
@@ -2438,11 +2438,11 @@ let%expect_test "emission: arithmetic ops" =
         1866: bipush        41
         1868: aload         104
         1870: aastore
-        1871: new           #236                // class ocaml_fn_48
+        1871: new           #236                // class ocaml_fn_Stdlib_print_bytes_48
         1874: dup
         1875: aload         79
         1877: aload         87
-        1879: invokespecial #237                // Method ocaml_fn_48."<init>":(Ljava/lang/Object;Ljava/lang/Object;)V
+        1879: invokespecial #237                // Method ocaml_fn_Stdlib_print_bytes_48."<init>":(Ljava/lang/Object;Ljava/lang/Object;)V
         1882: astore        105
         1884: aload         18
         1886: checkcast     #8                  // class Block
@@ -2450,12 +2450,12 @@ let%expect_test "emission: arithmetic ops" =
         1892: bipush        42
         1894: aload         105
         1896: aastore
-        1897: new           #239                // class ocaml_fn_49
+        1897: new           #239                // class ocaml_fn_Stdlib_print_int_49
         1900: dup
         1901: aload         63
         1903: aload         79
         1905: aload         88
-        1907: invokespecial #242                // Method ocaml_fn_49."<init>":(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)V
+        1907: invokespecial #242                // Method ocaml_fn_Stdlib_print_int_49."<init>":(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)V
         1910: astore        106
         1912: aload         18
         1914: checkcast     #8                  // class Block
@@ -2463,12 +2463,12 @@ let%expect_test "emission: arithmetic ops" =
         1920: bipush        43
         1922: aload         106
         1924: aastore
-        1925: new           #244                // class ocaml_fn_50
+        1925: new           #244                // class ocaml_fn_Stdlib_print_float_50
         1928: dup
         1929: aload         66
         1931: aload         79
         1933: aload         88
-        1935: invokespecial #245                // Method ocaml_fn_50."<init>":(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)V
+        1935: invokespecial #245                // Method ocaml_fn_Stdlib_print_float_50."<init>":(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)V
         1938: astore        107
         1940: aload         18
         1942: checkcast     #8                  // class Block
@@ -2476,11 +2476,11 @@ let%expect_test "emission: arithmetic ops" =
         1948: bipush        44
         1950: aload         107
         1952: aastore
-        1953: new           #247                // class ocaml_fn_51
+        1953: new           #247                // class ocaml_fn_Stdlib_print_endline_51
         1956: dup
         1957: aload         79
         1959: aload         88
-        1961: invokespecial #248                // Method ocaml_fn_51."<init>":(Ljava/lang/Object;Ljava/lang/Object;)V
+        1961: invokespecial #248                // Method ocaml_fn_Stdlib_print_endline_51."<init>":(Ljava/lang/Object;Ljava/lang/Object;)V
         1964: astore        108
         1966: aload         18
         1968: checkcast     #8                  // class Block
@@ -2488,10 +2488,10 @@ let%expect_test "emission: arithmetic ops" =
         1974: bipush        45
         1976: aload         108
         1978: aastore
-        1979: new           #250                // class ocaml_fn_52
+        1979: new           #250                // class ocaml_fn_Stdlib_print_newline_52
         1982: dup
         1983: aload         79
-        1985: invokespecial #251                // Method ocaml_fn_52."<init>":(Ljava/lang/Object;)V
+        1985: invokespecial #251                // Method ocaml_fn_Stdlib_print_newline_52."<init>":(Ljava/lang/Object;)V
         1988: astore        109
         1990: aload         18
         1992: checkcast     #8                  // class Block
@@ -2499,10 +2499,10 @@ let%expect_test "emission: arithmetic ops" =
         1998: bipush        46
         2000: aload         109
         2002: aastore
-        2003: new           #253                // class ocaml_fn_53
+        2003: new           #253                // class ocaml_fn_Stdlib_prerr_char_53
         2006: dup
         2007: aload         82
-        2009: invokespecial #254                // Method ocaml_fn_53."<init>":(Ljava/lang/Object;)V
+        2009: invokespecial #254                // Method ocaml_fn_Stdlib_prerr_char_53."<init>":(Ljava/lang/Object;)V
         2012: astore        110
         2014: aload         18
         2016: checkcast     #8                  // class Block
@@ -2510,11 +2510,11 @@ let%expect_test "emission: arithmetic ops" =
         2022: bipush        47
         2024: aload         110
         2026: aastore
-        2027: new           #256                // class ocaml_fn_54
+        2027: new           #256                // class ocaml_fn_Stdlib_prerr_string_54
         2030: dup
         2031: aload         82
         2033: aload         88
-        2035: invokespecial #257                // Method ocaml_fn_54."<init>":(Ljava/lang/Object;Ljava/lang/Object;)V
+        2035: invokespecial #257                // Method ocaml_fn_Stdlib_prerr_string_54."<init>":(Ljava/lang/Object;Ljava/lang/Object;)V
         2038: astore        111
         2040: aload         18
         2042: checkcast     #8                  // class Block
@@ -2522,11 +2522,11 @@ let%expect_test "emission: arithmetic ops" =
         2048: bipush        48
         2050: aload         111
         2052: aastore
-        2053: new           #259                // class ocaml_fn_55
+        2053: new           #259                // class ocaml_fn_Stdlib_prerr_bytes_55
         2056: dup
         2057: aload         82
         2059: aload         87
-        2061: invokespecial #260                // Method ocaml_fn_55."<init>":(Ljava/lang/Object;Ljava/lang/Object;)V
+        2061: invokespecial #260                // Method ocaml_fn_Stdlib_prerr_bytes_55."<init>":(Ljava/lang/Object;Ljava/lang/Object;)V
         2064: astore        112
         2066: aload         18
         2068: checkcast     #8                  // class Block
@@ -2534,12 +2534,12 @@ let%expect_test "emission: arithmetic ops" =
         2074: bipush        49
         2076: aload         112
         2078: aastore
-        2079: new           #262                // class ocaml_fn_56
+        2079: new           #262                // class ocaml_fn_Stdlib_prerr_int_56
         2082: dup
         2083: aload         63
         2085: aload         82
         2087: aload         88
-        2089: invokespecial #263                // Method ocaml_fn_56."<init>":(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)V
+        2089: invokespecial #263                // Method ocaml_fn_Stdlib_prerr_int_56."<init>":(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)V
         2092: astore        113
         2094: aload         18
         2096: checkcast     #8                  // class Block
@@ -2547,12 +2547,12 @@ let%expect_test "emission: arithmetic ops" =
         2102: bipush        50
         2104: aload         113
         2106: aastore
-        2107: new           #265                // class ocaml_fn_57
+        2107: new           #265                // class ocaml_fn_Stdlib_prerr_float_57
         2110: dup
         2111: aload         66
         2113: aload         82
         2115: aload         88
-        2117: invokespecial #266                // Method ocaml_fn_57."<init>":(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)V
+        2117: invokespecial #266                // Method ocaml_fn_Stdlib_prerr_float_57."<init>":(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)V
         2120: astore        114
         2122: aload         18
         2124: checkcast     #8                  // class Block
@@ -2560,11 +2560,11 @@ let%expect_test "emission: arithmetic ops" =
         2130: bipush        51
         2132: aload         114
         2134: aastore
-        2135: new           #268                // class ocaml_fn_58
+        2135: new           #268                // class ocaml_fn_Stdlib_prerr_endline_58
         2138: dup
         2139: aload         82
         2141: aload         88
-        2143: invokespecial #269                // Method ocaml_fn_58."<init>":(Ljava/lang/Object;Ljava/lang/Object;)V
+        2143: invokespecial #269                // Method ocaml_fn_Stdlib_prerr_endline_58."<init>":(Ljava/lang/Object;Ljava/lang/Object;)V
         2146: astore        115
         2148: aload         18
         2150: checkcast     #8                  // class Block
@@ -2572,10 +2572,10 @@ let%expect_test "emission: arithmetic ops" =
         2156: bipush        52
         2158: aload         115
         2160: aastore
-        2161: new           #271                // class ocaml_fn_59
+        2161: new           #271                // class ocaml_fn_Stdlib_prerr_newline_59
         2164: dup
         2165: aload         82
-        2167: invokespecial #272                // Method ocaml_fn_59."<init>":(Ljava/lang/Object;)V
+        2167: invokespecial #272                // Method ocaml_fn_Stdlib_prerr_newline_59."<init>":(Ljava/lang/Object;)V
         2170: astore        116
         2172: aload         18
         2174: checkcast     #8                  // class Block
@@ -2583,12 +2583,12 @@ let%expect_test "emission: arithmetic ops" =
         2180: bipush        53
         2182: aload         116
         2184: aastore
-        2185: new           #274                // class ocaml_fn_60
+        2185: new           #274                // class ocaml_fn_Stdlib_read_line_60
         2188: dup
         2189: aload         76
         2191: aload         79
         2193: aload         101
-        2195: invokespecial #275                // Method ocaml_fn_60."<init>":(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)V
+        2195: invokespecial #275                // Method ocaml_fn_Stdlib_read_line_60."<init>":(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)V
         2198: astore        117
         2200: aload         18
         2202: checkcast     #8                  // class Block
@@ -2596,10 +2596,10 @@ let%expect_test "emission: arithmetic ops" =
         2208: bipush        54
         2210: aload         117
         2212: aastore
-        2213: new           #277                // class ocaml_fn_61
+        2213: new           #277                // class ocaml_fn_Stdlib_read_int_61
         2216: dup
         2217: aload         117
-        2219: invokespecial #278                // Method ocaml_fn_61."<init>":(Ljava/lang/Object;)V
+        2219: invokespecial #278                // Method ocaml_fn_Stdlib_read_int_61."<init>":(Ljava/lang/Object;)V
         2222: astore        118
         2224: aload         18
         2226: checkcast     #8                  // class Block
@@ -2607,11 +2607,11 @@ let%expect_test "emission: arithmetic ops" =
         2232: bipush        56
         2234: aload         118
         2236: aastore
-        2237: new           #280                // class ocaml_fn_62
+        2237: new           #280                // class ocaml_fn_Stdlib_read_int_opt_62
         2240: dup
         2241: aload         64
         2243: aload         117
-        2245: invokespecial #281                // Method ocaml_fn_62."<init>":(Ljava/lang/Object;Ljava/lang/Object;)V
+        2245: invokespecial #281                // Method ocaml_fn_Stdlib_read_int_opt_62."<init>":(Ljava/lang/Object;Ljava/lang/Object;)V
         2248: astore        119
         2250: aload         18
         2252: checkcast     #8                  // class Block
@@ -2619,10 +2619,10 @@ let%expect_test "emission: arithmetic ops" =
         2258: bipush        55
         2260: aload         119
         2262: aastore
-        2263: new           #283                // class ocaml_fn_63
+        2263: new           #283                // class ocaml_fn_Stdlib_read_float_63
         2266: dup
         2267: aload         117
-        2269: invokespecial #284                // Method ocaml_fn_63."<init>":(Ljava/lang/Object;)V
+        2269: invokespecial #284                // Method ocaml_fn_Stdlib_read_float_63."<init>":(Ljava/lang/Object;)V
         2272: astore        120
         2274: aload         18
         2276: checkcast     #8                  // class Block
@@ -2630,11 +2630,11 @@ let%expect_test "emission: arithmetic ops" =
         2282: bipush        58
         2284: aload         120
         2286: aastore
-        2287: new           #286                // class ocaml_fn_64
+        2287: new           #286                // class ocaml_fn_Stdlib_read_float_opt_64
         2290: dup
         2291: aload         67
         2293: aload         117
-        2295: invokespecial #287                // Method ocaml_fn_64."<init>":(Ljava/lang/Object;Ljava/lang/Object;)V
+        2295: invokespecial #287                // Method ocaml_fn_Stdlib_read_float_opt_64."<init>":(Ljava/lang/Object;Ljava/lang/Object;)V
         2298: astore        121
         2300: aload         18
         2302: checkcast     #8                  // class Block
@@ -2642,9 +2642,9 @@ let%expect_test "emission: arithmetic ops" =
         2308: bipush        57
         2310: aload         121
         2312: aastore
-        2313: new           #289                // class ocaml_fn_65
+        2313: new           #289                // class ocaml_fn_Stdlib_string_of_format_65
         2316: dup
-        2317: invokespecial #290                // Method ocaml_fn_65."<init>":()V
+        2317: invokespecial #290                // Method ocaml_fn_Stdlib_string_of_format_65."<init>":()V
         2320: astore        122
         2322: aload         18
         2324: checkcast     #8                  // class Block
@@ -2674,10 +2674,10 @@ let%expect_test "emission: arithmetic ops" =
         2372: aastore
         2373: invokespecial #22                 // Method Block."<init>":(I[Ljava/lang/Object;)V
         2376: astore        124
-        2378: new           #295                // class ocaml_fn_67
+        2378: new           #295                // class ocaml_fn_Stdlib_at_exit_67
         2381: dup
         2382: aload         124
-        2384: invokespecial #296                // Method ocaml_fn_67."<init>":(Ljava/lang/Object;)V
+        2384: invokespecial #296                // Method ocaml_fn_Stdlib_at_exit_67."<init>":(Ljava/lang/Object;)V
         2387: astore        125
         2389: aload         18
         2391: checkcast     #8                  // class Block
@@ -2685,9 +2685,9 @@ let%expect_test "emission: arithmetic ops" =
         2397: bipush        99
         2399: aload         125
         2401: aastore
-        2402: new           #298                // class ocaml_fn_68
+        2402: new           #298                // class ocaml_fn_Stdlib_do_domain_local_at_exit__fun__68
         2405: dup
-        2406: invokespecial #299                // Method ocaml_fn_68."<init>":()V
+        2406: invokespecial #299                // Method ocaml_fn_Stdlib_do_domain_local_at_exit__fun__68."<init>":()V
         2409: astore        126
         2411: new           #8                  // class Block
         2414: dup
@@ -2706,11 +2706,11 @@ let%expect_test "emission: arithmetic ops" =
         2438: bipush        103
         2440: aload         127
         2442: aastore
-        2443: new           #301                // class ocaml_fn_69
+        2443: new           #301                // class ocaml_fn_Stdlib_do_at_exit_69
         2446: dup
         2447: aload         124
         2449: aload         127
-        2451: invokespecial #302                // Method ocaml_fn_69."<init>":(Ljava/lang/Object;Ljava/lang/Object;)V
+        2451: invokespecial #302                // Method ocaml_fn_Stdlib_do_at_exit_69."<init>":(Ljava/lang/Object;Ljava/lang/Object;)V
         2454: astore        128
         2456: aload         18
         2458: checkcast     #8                  // class Block
@@ -2718,10 +2718,10 @@ let%expect_test "emission: arithmetic ops" =
         2464: bipush        102
         2466: aload         128
         2468: aastore
-        2469: new           #304                // class ocaml_fn_70
+        2469: new           #304                // class ocaml_fn_Stdlib_exit_70
         2472: dup
         2473: aload         128
-        2475: invokespecial #305                // Method ocaml_fn_70."<init>":(Ljava/lang/Object;)V
+        2475: invokespecial #305                // Method ocaml_fn_Stdlib_exit_70."<init>":(Ljava/lang/Object;)V
         2478: astore        129
         2480: aload         18
         2482: checkcast     #8                  // class Block
@@ -3117,9 +3117,9 @@ let%expect_test "emission: closure with a captured int" =
           83: aload_0
           84: astore_1
           85: goto_w        90
-          90: new           #53                 // class ocaml_fn_0
+          90: new           #53                 // class ocaml_fn_CamlinternalFormatBasics_erase_rel_0
           93: dup
-          94: invokespecial #55                 // Method ocaml_fn_0."<init>":()V
+          94: invokespecial #55                 // Method ocaml_fn_CamlinternalFormatBasics_erase_rel_0."<init>":()V
           97: astore_2
           98: new           #57                 // class ocaml_fn_1
          101: dup
@@ -3209,9 +3209,9 @@ let%expect_test "emission: closure with a captured int" =
          252: anewarray     #10                 // class java/lang/Object
          255: invokespecial #22                 // Method Block."<init>":(I[Ljava/lang/Object;)V
          258: astore        18
-         260: new           #73                 // class ocaml_fn_8
+         260: new           #73                 // class ocaml_fn_Stdlib_failwith_8
          263: dup
-         264: invokespecial #74                 // Method ocaml_fn_8."<init>":()V
+         264: invokespecial #74                 // Method ocaml_fn_Stdlib_failwith_8."<init>":()V
          267: astore        19
          269: aload         18
          271: checkcast     #8                  // class Block
@@ -3219,9 +3219,9 @@ let%expect_test "emission: closure with a captured int" =
          277: iconst_1
          278: aload         19
          280: aastore
-         281: new           #79                 // class ocaml_fn_9
+         281: new           #79                 // class ocaml_fn_Stdlib_invalid_arg_9
          284: dup
-         285: invokespecial #80                 // Method ocaml_fn_9."<init>":()V
+         285: invokespecial #80                 // Method ocaml_fn_Stdlib_invalid_arg_9."<init>":()V
          288: astore        20
          290: aload         18
          292: checkcast     #8                  // class Block
@@ -3400,9 +3400,9 @@ let%expect_test "emission: closure with a captured int" =
          642: bipush        16
          644: aload         39
          646: aastore
-         647: new           #92                 // class ocaml_fn_12
+         647: new           #92                 // class ocaml_fn_Stdlib_abs_12
          650: dup
-         651: invokespecial #93                 // Method ocaml_fn_12."<init>":()V
+         651: invokespecial #93                 // Method ocaml_fn_Stdlib_abs_12."<init>":()V
          654: astore        40
          656: aload         18
          658: checkcast     #8                  // class Block
@@ -3410,9 +3410,9 @@ let%expect_test "emission: closure with a captured int" =
          664: bipush        17
          666: aload         40
          668: aastore
-         669: new           #95                 // class ocaml_fn_13
+         669: new           #95                 // class ocaml_fn_Stdlib_lnot_13
          672: dup
-         673: invokespecial #96                 // Method ocaml_fn_13."<init>":()V
+         673: invokespecial #96                 // Method ocaml_fn_Stdlib_lnot_13."<init>":()V
          676: astore        41
          678: aload         18
          680: checkcast     #8                  // class Block
@@ -3538,10 +3538,10 @@ let%expect_test "emission: closure with a captured int" =
          954: bipush        27
          956: aload         58
          958: aastore
-         959: new           #118                // class ocaml_fn_15
+         959: new           #118                // class ocaml_fn_Stdlib_char_of_int_15
          962: dup
          963: aload         20
-         965: invokespecial #121                // Method ocaml_fn_15."<init>":(Ljava/lang/Object;)V
+         965: invokespecial #121                // Method ocaml_fn_Stdlib_char_of_int_15."<init>":(Ljava/lang/Object;)V
          968: astore        59
          970: aload         18
          972: checkcast     #8                  // class Block
@@ -3549,9 +3549,9 @@ let%expect_test "emission: closure with a captured int" =
          978: bipush        28
          980: aload         59
          982: aastore
-         983: new           #123                // class ocaml_fn_16
+         983: new           #123                // class ocaml_fn_Stdlib_string_of_bool_16
          986: dup
-         987: invokespecial #124                // Method ocaml_fn_16."<init>":()V
+         987: invokespecial #124                // Method ocaml_fn_Stdlib_string_of_bool_16."<init>":()V
          990: astore        60
          992: aload         18
          994: checkcast     #8                  // class Block
@@ -3559,10 +3559,10 @@ let%expect_test "emission: closure with a captured int" =
         1000: bipush        29
         1002: aload         60
         1004: aastore
-        1005: new           #126                // class ocaml_fn_17
+        1005: new           #126                // class ocaml_fn_Stdlib_bool_of_string_17
         1008: dup
         1009: aload         20
-        1011: invokespecial #127                // Method ocaml_fn_17."<init>":(Ljava/lang/Object;)V
+        1011: invokespecial #127                // Method ocaml_fn_Stdlib_bool_of_string_17."<init>":(Ljava/lang/Object;)V
         1014: astore        61
         1016: aload         18
         1018: checkcast     #8                  // class Block
@@ -3570,9 +3570,9 @@ let%expect_test "emission: closure with a captured int" =
         1024: bipush        31
         1026: aload         61
         1028: aastore
-        1029: new           #129                // class ocaml_fn_18
+        1029: new           #129                // class ocaml_fn_Stdlib_bool_of_string_opt_18
         1032: dup
-        1033: invokespecial #130                // Method ocaml_fn_18."<init>":()V
+        1033: invokespecial #130                // Method ocaml_fn_Stdlib_bool_of_string_opt_18."<init>":()V
         1036: astore        62
         1038: aload         18
         1040: checkcast     #8                  // class Block
@@ -3580,9 +3580,9 @@ let%expect_test "emission: closure with a captured int" =
         1046: bipush        30
         1048: aload         62
         1050: aastore
-        1051: new           #132                // class ocaml_fn_19
+        1051: new           #132                // class ocaml_fn_Stdlib_string_of_int_19
         1054: dup
-        1055: invokespecial #133                // Method ocaml_fn_19."<init>":()V
+        1055: invokespecial #133                // Method ocaml_fn_Stdlib_string_of_int_19."<init>":()V
         1058: astore        63
         1060: aload         18
         1062: checkcast     #8                  // class Block
@@ -3590,10 +3590,10 @@ let%expect_test "emission: closure with a captured int" =
         1068: bipush        32
         1070: aload         63
         1072: aastore
-        1073: new           #135                // class ocaml_fn_20
+        1073: new           #135                // class ocaml_fn_Stdlib_int_of_string_opt_20
         1076: dup
         1077: aload         29
-        1079: invokespecial #136                // Method ocaml_fn_20."<init>":(Ljava/lang/Object;)V
+        1079: invokespecial #136                // Method ocaml_fn_Stdlib_int_of_string_opt_20."<init>":(Ljava/lang/Object;)V
         1082: astore        64
         1084: aload         18
         1086: checkcast     #8                  // class Block
@@ -3601,10 +3601,10 @@ let%expect_test "emission: closure with a captured int" =
         1092: bipush        33
         1094: aload         64
         1096: aastore
-        1097: new           #138                // class ocaml_fn_21
+        1097: new           #138                // class ocaml_fn_Stdlib_valid_float_lexem_21
         1100: dup
         1101: aload         58
-        1103: invokespecial #139                // Method ocaml_fn_21."<init>":(Ljava/lang/Object;)V
+        1103: invokespecial #139                // Method ocaml_fn_Stdlib_valid_float_lexem_21."<init>":(Ljava/lang/Object;)V
         1106: astore        65
         1108: aload         18
         1110: checkcast     #8                  // class Block
@@ -3612,10 +3612,10 @@ let%expect_test "emission: closure with a captured int" =
         1116: bipush        100
         1118: aload         65
         1120: aastore
-        1121: new           #141                // class ocaml_fn_22
+        1121: new           #141                // class ocaml_fn_Stdlib_string_of_float_22
         1124: dup
         1125: aload         65
-        1127: invokespecial #142                // Method ocaml_fn_22."<init>":(Ljava/lang/Object;)V
+        1127: invokespecial #142                // Method ocaml_fn_Stdlib_string_of_float_22."<init>":(Ljava/lang/Object;)V
         1130: astore        66
         1132: aload         18
         1134: checkcast     #8                  // class Block
@@ -3623,10 +3623,10 @@ let%expect_test "emission: closure with a captured int" =
         1140: bipush        34
         1142: aload         66
         1144: aastore
-        1145: new           #144                // class ocaml_fn_23
+        1145: new           #144                // class ocaml_fn_Stdlib_float_of_string_opt_23
         1148: dup
         1149: aload         29
-        1151: invokespecial #145                // Method ocaml_fn_23."<init>":(Ljava/lang/Object;)V
+        1151: invokespecial #145                // Method ocaml_fn_Stdlib_float_of_string_opt_23."<init>":(Ljava/lang/Object;)V
         1154: astore        67
         1156: aload         18
         1158: checkcast     #8                  // class Block
@@ -3733,10 +3733,10 @@ let%expect_test "emission: closure with a captured int" =
         1372: bipush        61
         1374: aload         83
         1376: aastore
-        1377: new           #171                // class ocaml_fn_27
+        1377: new           #171                // class ocaml_fn_Stdlib_open_out_27
         1380: dup
         1381: aload         83
-        1383: invokespecial #172                // Method ocaml_fn_27."<init>":(Ljava/lang/Object;)V
+        1383: invokespecial #172                // Method ocaml_fn_Stdlib_open_out_27."<init>":(Ljava/lang/Object;)V
         1386: astore        84
         1388: aload         18
         1390: checkcast     #8                  // class Block
@@ -3744,10 +3744,10 @@ let%expect_test "emission: closure with a captured int" =
         1396: bipush        59
         1398: aload         84
         1400: aastore
-        1401: new           #174                // class ocaml_fn_28
+        1401: new           #174                // class ocaml_fn_Stdlib_open_out_bin_28
         1404: dup
         1405: aload         83
-        1407: invokespecial #175                // Method ocaml_fn_28."<init>":(Ljava/lang/Object;)V
+        1407: invokespecial #175                // Method ocaml_fn_Stdlib_open_out_bin_28."<init>":(Ljava/lang/Object;)V
         1410: astore        85
         1412: aload         18
         1414: checkcast     #8                  // class Block
@@ -3755,10 +3755,10 @@ let%expect_test "emission: closure with a captured int" =
         1420: bipush        60
         1422: aload         85
         1424: aastore
-        1425: new           #177                // class ocaml_fn_29
+        1425: new           #177                // class ocaml_fn_Stdlib_flush_all_29
         1428: dup
         1429: aload         33
-        1431: invokespecial #178                // Method ocaml_fn_29."<init>":(Ljava/lang/Object;)V
+        1431: invokespecial #178                // Method ocaml_fn_Stdlib_flush_all_29."<init>":(Ljava/lang/Object;)V
         1434: astore        86
         1436: aload         18
         1438: checkcast     #8                  // class Block
@@ -3818,9 +3818,9 @@ let%expect_test "emission: closure with a captured int" =
         1558: bipush        71
         1560: aload         91
         1562: aastore
-        1563: new           #195                // class ocaml_fn_35
+        1563: new           #195                // class ocaml_fn_Stdlib_close_out_35
         1566: dup
-        1567: invokespecial #196                // Method ocaml_fn_35."<init>":()V
+        1567: invokespecial #196                // Method ocaml_fn_Stdlib_close_out_35."<init>":()V
         1570: astore        92
         1572: aload         18
         1574: checkcast     #8                  // class Block
@@ -3828,9 +3828,9 @@ let%expect_test "emission: closure with a captured int" =
         1580: bipush        75
         1582: aload         92
         1584: aastore
-        1585: new           #198                // class ocaml_fn_36
+        1585: new           #198                // class ocaml_fn_Stdlib_close_out_noerr_36
         1588: dup
-        1589: invokespecial #199                // Method ocaml_fn_36."<init>":()V
+        1589: invokespecial #199                // Method ocaml_fn_Stdlib_close_out_noerr_36."<init>":()V
         1592: astore        93
         1594: aload         18
         1596: checkcast     #8                  // class Block
@@ -3848,10 +3848,10 @@ let%expect_test "emission: closure with a captured int" =
         1624: bipush        80
         1626: aload         94
         1628: aastore
-        1629: new           #204                // class ocaml_fn_38
+        1629: new           #204                // class ocaml_fn_Stdlib_open_in_38
         1632: dup
         1633: aload         94
-        1635: invokespecial #205                // Method ocaml_fn_38."<init>":(Ljava/lang/Object;)V
+        1635: invokespecial #205                // Method ocaml_fn_Stdlib_open_in_38."<init>":(Ljava/lang/Object;)V
         1638: astore        95
         1640: aload         18
         1642: checkcast     #8                  // class Block
@@ -3859,10 +3859,10 @@ let%expect_test "emission: closure with a captured int" =
         1648: bipush        78
         1650: aload         95
         1652: aastore
-        1653: new           #207                // class ocaml_fn_39
+        1653: new           #207                // class ocaml_fn_Stdlib_open_in_bin_39
         1656: dup
         1657: aload         94
-        1659: invokespecial #208                // Method ocaml_fn_39."<init>":(Ljava/lang/Object;)V
+        1659: invokespecial #208                // Method ocaml_fn_Stdlib_open_in_bin_39."<init>":(Ljava/lang/Object;)V
         1662: astore        96
         1664: aload         18
         1666: checkcast     #8                  // class Block
@@ -3915,10 +3915,10 @@ let%expect_test "emission: closure with a captured int" =
         1770: bipush        85
         1772: aload         100
         1774: aastore
-        1775: new           #224                // class ocaml_fn_44
+        1775: new           #224                // class ocaml_fn_Stdlib_input_line_44
         1778: dup
         1779: aload         34
-        1781: invokespecial #225                // Method ocaml_fn_44."<init>":(Ljava/lang/Object;)V
+        1781: invokespecial #225                // Method ocaml_fn_Stdlib_input_line_44."<init>":(Ljava/lang/Object;)V
         1784: astore        101
         1786: aload         18
         1788: checkcast     #8                  // class Block
@@ -3926,9 +3926,9 @@ let%expect_test "emission: closure with a captured int" =
         1794: bipush        82
         1796: aload         101
         1798: aastore
-        1799: new           #227                // class ocaml_fn_45
+        1799: new           #227                // class ocaml_fn_Stdlib_close_in_noerr_45
         1802: dup
-        1803: invokespecial #228                // Method ocaml_fn_45."<init>":()V
+        1803: invokespecial #228                // Method ocaml_fn_Stdlib_close_in_noerr_45."<init>":()V
         1806: astore        102
         1808: aload         18
         1810: checkcast     #8                  // class Block
@@ -3936,10 +3936,10 @@ let%expect_test "emission: closure with a captured int" =
         1816: bipush        93
         1818: aload         102
         1820: aastore
-        1821: new           #230                // class ocaml_fn_46
+        1821: new           #230                // class ocaml_fn_Stdlib_print_char_46
         1824: dup
         1825: aload         79
-        1827: invokespecial #231                // Method ocaml_fn_46."<init>":(Ljava/lang/Object;)V
+        1827: invokespecial #231                // Method ocaml_fn_Stdlib_print_char_46."<init>":(Ljava/lang/Object;)V
         1830: astore        103
         1832: aload         18
         1834: checkcast     #8                  // class Block
@@ -3947,11 +3947,11 @@ let%expect_test "emission: closure with a captured int" =
         1840: bipush        40
         1842: aload         103
         1844: aastore
-        1845: new           #233                // class ocaml_fn_47
+        1845: new           #233                // class ocaml_fn_Stdlib_print_string_47
         1848: dup
         1849: aload         79
         1851: aload         88
-        1853: invokespecial #234                // Method ocaml_fn_47."<init>":(Ljava/lang/Object;Ljava/lang/Object;)V
+        1853: invokespecial #234                // Method ocaml_fn_Stdlib_print_string_47."<init>":(Ljava/lang/Object;Ljava/lang/Object;)V
         1856: astore        104
         1858: aload         18
         1860: checkcast     #8                  // class Block
@@ -3959,11 +3959,11 @@ let%expect_test "emission: closure with a captured int" =
         1866: bipush        41
         1868: aload         104
         1870: aastore
-        1871: new           #236                // class ocaml_fn_48
+        1871: new           #236                // class ocaml_fn_Stdlib_print_bytes_48
         1874: dup
         1875: aload         79
         1877: aload         87
-        1879: invokespecial #237                // Method ocaml_fn_48."<init>":(Ljava/lang/Object;Ljava/lang/Object;)V
+        1879: invokespecial #237                // Method ocaml_fn_Stdlib_print_bytes_48."<init>":(Ljava/lang/Object;Ljava/lang/Object;)V
         1882: astore        105
         1884: aload         18
         1886: checkcast     #8                  // class Block
@@ -3971,12 +3971,12 @@ let%expect_test "emission: closure with a captured int" =
         1892: bipush        42
         1894: aload         105
         1896: aastore
-        1897: new           #239                // class ocaml_fn_49
+        1897: new           #239                // class ocaml_fn_Stdlib_print_int_49
         1900: dup
         1901: aload         63
         1903: aload         79
         1905: aload         88
-        1907: invokespecial #242                // Method ocaml_fn_49."<init>":(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)V
+        1907: invokespecial #242                // Method ocaml_fn_Stdlib_print_int_49."<init>":(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)V
         1910: astore        106
         1912: aload         18
         1914: checkcast     #8                  // class Block
@@ -3984,12 +3984,12 @@ let%expect_test "emission: closure with a captured int" =
         1920: bipush        43
         1922: aload         106
         1924: aastore
-        1925: new           #244                // class ocaml_fn_50
+        1925: new           #244                // class ocaml_fn_Stdlib_print_float_50
         1928: dup
         1929: aload         66
         1931: aload         79
         1933: aload         88
-        1935: invokespecial #245                // Method ocaml_fn_50."<init>":(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)V
+        1935: invokespecial #245                // Method ocaml_fn_Stdlib_print_float_50."<init>":(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)V
         1938: astore        107
         1940: aload         18
         1942: checkcast     #8                  // class Block
@@ -3997,11 +3997,11 @@ let%expect_test "emission: closure with a captured int" =
         1948: bipush        44
         1950: aload         107
         1952: aastore
-        1953: new           #247                // class ocaml_fn_51
+        1953: new           #247                // class ocaml_fn_Stdlib_print_endline_51
         1956: dup
         1957: aload         79
         1959: aload         88
-        1961: invokespecial #248                // Method ocaml_fn_51."<init>":(Ljava/lang/Object;Ljava/lang/Object;)V
+        1961: invokespecial #248                // Method ocaml_fn_Stdlib_print_endline_51."<init>":(Ljava/lang/Object;Ljava/lang/Object;)V
         1964: astore        108
         1966: aload         18
         1968: checkcast     #8                  // class Block
@@ -4009,10 +4009,10 @@ let%expect_test "emission: closure with a captured int" =
         1974: bipush        45
         1976: aload         108
         1978: aastore
-        1979: new           #250                // class ocaml_fn_52
+        1979: new           #250                // class ocaml_fn_Stdlib_print_newline_52
         1982: dup
         1983: aload         79
-        1985: invokespecial #251                // Method ocaml_fn_52."<init>":(Ljava/lang/Object;)V
+        1985: invokespecial #251                // Method ocaml_fn_Stdlib_print_newline_52."<init>":(Ljava/lang/Object;)V
         1988: astore        109
         1990: aload         18
         1992: checkcast     #8                  // class Block
@@ -4020,10 +4020,10 @@ let%expect_test "emission: closure with a captured int" =
         1998: bipush        46
         2000: aload         109
         2002: aastore
-        2003: new           #253                // class ocaml_fn_53
+        2003: new           #253                // class ocaml_fn_Stdlib_prerr_char_53
         2006: dup
         2007: aload         82
-        2009: invokespecial #254                // Method ocaml_fn_53."<init>":(Ljava/lang/Object;)V
+        2009: invokespecial #254                // Method ocaml_fn_Stdlib_prerr_char_53."<init>":(Ljava/lang/Object;)V
         2012: astore        110
         2014: aload         18
         2016: checkcast     #8                  // class Block
@@ -4031,11 +4031,11 @@ let%expect_test "emission: closure with a captured int" =
         2022: bipush        47
         2024: aload         110
         2026: aastore
-        2027: new           #256                // class ocaml_fn_54
+        2027: new           #256                // class ocaml_fn_Stdlib_prerr_string_54
         2030: dup
         2031: aload         82
         2033: aload         88
-        2035: invokespecial #257                // Method ocaml_fn_54."<init>":(Ljava/lang/Object;Ljava/lang/Object;)V
+        2035: invokespecial #257                // Method ocaml_fn_Stdlib_prerr_string_54."<init>":(Ljava/lang/Object;Ljava/lang/Object;)V
         2038: astore        111
         2040: aload         18
         2042: checkcast     #8                  // class Block
@@ -4043,11 +4043,11 @@ let%expect_test "emission: closure with a captured int" =
         2048: bipush        48
         2050: aload         111
         2052: aastore
-        2053: new           #259                // class ocaml_fn_55
+        2053: new           #259                // class ocaml_fn_Stdlib_prerr_bytes_55
         2056: dup
         2057: aload         82
         2059: aload         87
-        2061: invokespecial #260                // Method ocaml_fn_55."<init>":(Ljava/lang/Object;Ljava/lang/Object;)V
+        2061: invokespecial #260                // Method ocaml_fn_Stdlib_prerr_bytes_55."<init>":(Ljava/lang/Object;Ljava/lang/Object;)V
         2064: astore        112
         2066: aload         18
         2068: checkcast     #8                  // class Block
@@ -4055,12 +4055,12 @@ let%expect_test "emission: closure with a captured int" =
         2074: bipush        49
         2076: aload         112
         2078: aastore
-        2079: new           #262                // class ocaml_fn_56
+        2079: new           #262                // class ocaml_fn_Stdlib_prerr_int_56
         2082: dup
         2083: aload         63
         2085: aload         82
         2087: aload         88
-        2089: invokespecial #263                // Method ocaml_fn_56."<init>":(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)V
+        2089: invokespecial #263                // Method ocaml_fn_Stdlib_prerr_int_56."<init>":(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)V
         2092: astore        113
         2094: aload         18
         2096: checkcast     #8                  // class Block
@@ -4068,12 +4068,12 @@ let%expect_test "emission: closure with a captured int" =
         2102: bipush        50
         2104: aload         113
         2106: aastore
-        2107: new           #265                // class ocaml_fn_57
+        2107: new           #265                // class ocaml_fn_Stdlib_prerr_float_57
         2110: dup
         2111: aload         66
         2113: aload         82
         2115: aload         88
-        2117: invokespecial #266                // Method ocaml_fn_57."<init>":(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)V
+        2117: invokespecial #266                // Method ocaml_fn_Stdlib_prerr_float_57."<init>":(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)V
         2120: astore        114
         2122: aload         18
         2124: checkcast     #8                  // class Block
@@ -4081,11 +4081,11 @@ let%expect_test "emission: closure with a captured int" =
         2130: bipush        51
         2132: aload         114
         2134: aastore
-        2135: new           #268                // class ocaml_fn_58
+        2135: new           #268                // class ocaml_fn_Stdlib_prerr_endline_58
         2138: dup
         2139: aload         82
         2141: aload         88
-        2143: invokespecial #269                // Method ocaml_fn_58."<init>":(Ljava/lang/Object;Ljava/lang/Object;)V
+        2143: invokespecial #269                // Method ocaml_fn_Stdlib_prerr_endline_58."<init>":(Ljava/lang/Object;Ljava/lang/Object;)V
         2146: astore        115
         2148: aload         18
         2150: checkcast     #8                  // class Block
@@ -4093,10 +4093,10 @@ let%expect_test "emission: closure with a captured int" =
         2156: bipush        52
         2158: aload         115
         2160: aastore
-        2161: new           #271                // class ocaml_fn_59
+        2161: new           #271                // class ocaml_fn_Stdlib_prerr_newline_59
         2164: dup
         2165: aload         82
-        2167: invokespecial #272                // Method ocaml_fn_59."<init>":(Ljava/lang/Object;)V
+        2167: invokespecial #272                // Method ocaml_fn_Stdlib_prerr_newline_59."<init>":(Ljava/lang/Object;)V
         2170: astore        116
         2172: aload         18
         2174: checkcast     #8                  // class Block
@@ -4104,12 +4104,12 @@ let%expect_test "emission: closure with a captured int" =
         2180: bipush        53
         2182: aload         116
         2184: aastore
-        2185: new           #274                // class ocaml_fn_60
+        2185: new           #274                // class ocaml_fn_Stdlib_read_line_60
         2188: dup
         2189: aload         76
         2191: aload         79
         2193: aload         101
-        2195: invokespecial #275                // Method ocaml_fn_60."<init>":(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)V
+        2195: invokespecial #275                // Method ocaml_fn_Stdlib_read_line_60."<init>":(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)V
         2198: astore        117
         2200: aload         18
         2202: checkcast     #8                  // class Block
@@ -4117,10 +4117,10 @@ let%expect_test "emission: closure with a captured int" =
         2208: bipush        54
         2210: aload         117
         2212: aastore
-        2213: new           #277                // class ocaml_fn_61
+        2213: new           #277                // class ocaml_fn_Stdlib_read_int_61
         2216: dup
         2217: aload         117
-        2219: invokespecial #278                // Method ocaml_fn_61."<init>":(Ljava/lang/Object;)V
+        2219: invokespecial #278                // Method ocaml_fn_Stdlib_read_int_61."<init>":(Ljava/lang/Object;)V
         2222: astore        118
         2224: aload         18
         2226: checkcast     #8                  // class Block
@@ -4128,11 +4128,11 @@ let%expect_test "emission: closure with a captured int" =
         2232: bipush        56
         2234: aload         118
         2236: aastore
-        2237: new           #280                // class ocaml_fn_62
+        2237: new           #280                // class ocaml_fn_Stdlib_read_int_opt_62
         2240: dup
         2241: aload         64
         2243: aload         117
-        2245: invokespecial #281                // Method ocaml_fn_62."<init>":(Ljava/lang/Object;Ljava/lang/Object;)V
+        2245: invokespecial #281                // Method ocaml_fn_Stdlib_read_int_opt_62."<init>":(Ljava/lang/Object;Ljava/lang/Object;)V
         2248: astore        119
         2250: aload         18
         2252: checkcast     #8                  // class Block
@@ -4140,10 +4140,10 @@ let%expect_test "emission: closure with a captured int" =
         2258: bipush        55
         2260: aload         119
         2262: aastore
-        2263: new           #283                // class ocaml_fn_63
+        2263: new           #283                // class ocaml_fn_Stdlib_read_float_63
         2266: dup
         2267: aload         117
-        2269: invokespecial #284                // Method ocaml_fn_63."<init>":(Ljava/lang/Object;)V
+        2269: invokespecial #284                // Method ocaml_fn_Stdlib_read_float_63."<init>":(Ljava/lang/Object;)V
         2272: astore        120
         2274: aload         18
         2276: checkcast     #8                  // class Block
@@ -4151,11 +4151,11 @@ let%expect_test "emission: closure with a captured int" =
         2282: bipush        58
         2284: aload         120
         2286: aastore
-        2287: new           #286                // class ocaml_fn_64
+        2287: new           #286                // class ocaml_fn_Stdlib_read_float_opt_64
         2290: dup
         2291: aload         67
         2293: aload         117
-        2295: invokespecial #287                // Method ocaml_fn_64."<init>":(Ljava/lang/Object;Ljava/lang/Object;)V
+        2295: invokespecial #287                // Method ocaml_fn_Stdlib_read_float_opt_64."<init>":(Ljava/lang/Object;Ljava/lang/Object;)V
         2298: astore        121
         2300: aload         18
         2302: checkcast     #8                  // class Block
@@ -4163,9 +4163,9 @@ let%expect_test "emission: closure with a captured int" =
         2308: bipush        57
         2310: aload         121
         2312: aastore
-        2313: new           #289                // class ocaml_fn_65
+        2313: new           #289                // class ocaml_fn_Stdlib_string_of_format_65
         2316: dup
-        2317: invokespecial #290                // Method ocaml_fn_65."<init>":()V
+        2317: invokespecial #290                // Method ocaml_fn_Stdlib_string_of_format_65."<init>":()V
         2320: astore        122
         2322: aload         18
         2324: checkcast     #8                  // class Block
@@ -4195,10 +4195,10 @@ let%expect_test "emission: closure with a captured int" =
         2372: aastore
         2373: invokespecial #22                 // Method Block."<init>":(I[Ljava/lang/Object;)V
         2376: astore        124
-        2378: new           #295                // class ocaml_fn_67
+        2378: new           #295                // class ocaml_fn_Stdlib_at_exit_67
         2381: dup
         2382: aload         124
-        2384: invokespecial #296                // Method ocaml_fn_67."<init>":(Ljava/lang/Object;)V
+        2384: invokespecial #296                // Method ocaml_fn_Stdlib_at_exit_67."<init>":(Ljava/lang/Object;)V
         2387: astore        125
         2389: aload         18
         2391: checkcast     #8                  // class Block
@@ -4206,9 +4206,9 @@ let%expect_test "emission: closure with a captured int" =
         2397: bipush        99
         2399: aload         125
         2401: aastore
-        2402: new           #298                // class ocaml_fn_68
+        2402: new           #298                // class ocaml_fn_Stdlib_do_domain_local_at_exit__fun__68
         2405: dup
-        2406: invokespecial #299                // Method ocaml_fn_68."<init>":()V
+        2406: invokespecial #299                // Method ocaml_fn_Stdlib_do_domain_local_at_exit__fun__68."<init>":()V
         2409: astore        126
         2411: new           #8                  // class Block
         2414: dup
@@ -4227,11 +4227,11 @@ let%expect_test "emission: closure with a captured int" =
         2438: bipush        103
         2440: aload         127
         2442: aastore
-        2443: new           #301                // class ocaml_fn_69
+        2443: new           #301                // class ocaml_fn_Stdlib_do_at_exit_69
         2446: dup
         2447: aload         124
         2449: aload         127
-        2451: invokespecial #302                // Method ocaml_fn_69."<init>":(Ljava/lang/Object;Ljava/lang/Object;)V
+        2451: invokespecial #302                // Method ocaml_fn_Stdlib_do_at_exit_69."<init>":(Ljava/lang/Object;Ljava/lang/Object;)V
         2454: astore        128
         2456: aload         18
         2458: checkcast     #8                  // class Block
@@ -4239,10 +4239,10 @@ let%expect_test "emission: closure with a captured int" =
         2464: bipush        102
         2466: aload         128
         2468: aastore
-        2469: new           #304                // class ocaml_fn_70
+        2469: new           #304                // class ocaml_fn_Stdlib_exit_70
         2472: dup
         2473: aload         128
-        2475: invokespecial #305                // Method ocaml_fn_70."<init>":(Ljava/lang/Object;)V
+        2475: invokespecial #305                // Method ocaml_fn_Stdlib_exit_70."<init>":(Ljava/lang/Object;)V
         2478: astore        129
         2480: aload         18
         2482: checkcast     #8                  // class Block
@@ -4517,9 +4517,9 @@ let%expect_test "emission: closure with a captured int" =
         3062: invokestatic  #67                 // Method java/lang/Long.valueOf:(J)Ljava/lang/Long;
         3065: astore        159
         3067: goto_w        3072
-        3072: new           #376                // class ocaml_fn_95
+        3072: new           #376                // class ocaml_fn_Test_mkadder_95
         3075: dup
-        3076: invokespecial #377                // Method ocaml_fn_95."<init>":()V
+        3076: invokespecial #377                // Method ocaml_fn_Test_mkadder_95."<init>":()V
         3079: astore        160
         3081: bipush        10
         3083: i2l
@@ -4667,9 +4667,9 @@ let%expect_test "emission: variant match via switch" =
           83: aload_0
           84: astore_1
           85: goto_w        90
-          90: new           #53                 // class ocaml_fn_0
+          90: new           #53                 // class ocaml_fn_CamlinternalFormatBasics_erase_rel_0
           93: dup
-          94: invokespecial #55                 // Method ocaml_fn_0."<init>":()V
+          94: invokespecial #55                 // Method ocaml_fn_CamlinternalFormatBasics_erase_rel_0."<init>":()V
           97: astore_2
           98: new           #57                 // class ocaml_fn_1
          101: dup
@@ -4759,9 +4759,9 @@ let%expect_test "emission: variant match via switch" =
          252: anewarray     #10                 // class java/lang/Object
          255: invokespecial #22                 // Method Block."<init>":(I[Ljava/lang/Object;)V
          258: astore        18
-         260: new           #73                 // class ocaml_fn_8
+         260: new           #73                 // class ocaml_fn_Stdlib_failwith_8
          263: dup
-         264: invokespecial #74                 // Method ocaml_fn_8."<init>":()V
+         264: invokespecial #74                 // Method ocaml_fn_Stdlib_failwith_8."<init>":()V
          267: astore        19
          269: aload         18
          271: checkcast     #8                  // class Block
@@ -4769,9 +4769,9 @@ let%expect_test "emission: variant match via switch" =
          277: iconst_1
          278: aload         19
          280: aastore
-         281: new           #79                 // class ocaml_fn_9
+         281: new           #79                 // class ocaml_fn_Stdlib_invalid_arg_9
          284: dup
-         285: invokespecial #80                 // Method ocaml_fn_9."<init>":()V
+         285: invokespecial #80                 // Method ocaml_fn_Stdlib_invalid_arg_9."<init>":()V
          288: astore        20
          290: aload         18
          292: checkcast     #8                  // class Block
@@ -4950,9 +4950,9 @@ let%expect_test "emission: variant match via switch" =
          642: bipush        16
          644: aload         39
          646: aastore
-         647: new           #92                 // class ocaml_fn_12
+         647: new           #92                 // class ocaml_fn_Stdlib_abs_12
          650: dup
-         651: invokespecial #93                 // Method ocaml_fn_12."<init>":()V
+         651: invokespecial #93                 // Method ocaml_fn_Stdlib_abs_12."<init>":()V
          654: astore        40
          656: aload         18
          658: checkcast     #8                  // class Block
@@ -4960,9 +4960,9 @@ let%expect_test "emission: variant match via switch" =
          664: bipush        17
          666: aload         40
          668: aastore
-         669: new           #95                 // class ocaml_fn_13
+         669: new           #95                 // class ocaml_fn_Stdlib_lnot_13
          672: dup
-         673: invokespecial #96                 // Method ocaml_fn_13."<init>":()V
+         673: invokespecial #96                 // Method ocaml_fn_Stdlib_lnot_13."<init>":()V
          676: astore        41
          678: aload         18
          680: checkcast     #8                  // class Block
@@ -5088,10 +5088,10 @@ let%expect_test "emission: variant match via switch" =
          954: bipush        27
          956: aload         58
          958: aastore
-         959: new           #118                // class ocaml_fn_15
+         959: new           #118                // class ocaml_fn_Stdlib_char_of_int_15
          962: dup
          963: aload         20
-         965: invokespecial #121                // Method ocaml_fn_15."<init>":(Ljava/lang/Object;)V
+         965: invokespecial #121                // Method ocaml_fn_Stdlib_char_of_int_15."<init>":(Ljava/lang/Object;)V
          968: astore        59
          970: aload         18
          972: checkcast     #8                  // class Block
@@ -5099,9 +5099,9 @@ let%expect_test "emission: variant match via switch" =
          978: bipush        28
          980: aload         59
          982: aastore
-         983: new           #123                // class ocaml_fn_16
+         983: new           #123                // class ocaml_fn_Stdlib_string_of_bool_16
          986: dup
-         987: invokespecial #124                // Method ocaml_fn_16."<init>":()V
+         987: invokespecial #124                // Method ocaml_fn_Stdlib_string_of_bool_16."<init>":()V
          990: astore        60
          992: aload         18
          994: checkcast     #8                  // class Block
@@ -5109,10 +5109,10 @@ let%expect_test "emission: variant match via switch" =
         1000: bipush        29
         1002: aload         60
         1004: aastore
-        1005: new           #126                // class ocaml_fn_17
+        1005: new           #126                // class ocaml_fn_Stdlib_bool_of_string_17
         1008: dup
         1009: aload         20
-        1011: invokespecial #127                // Method ocaml_fn_17."<init>":(Ljava/lang/Object;)V
+        1011: invokespecial #127                // Method ocaml_fn_Stdlib_bool_of_string_17."<init>":(Ljava/lang/Object;)V
         1014: astore        61
         1016: aload         18
         1018: checkcast     #8                  // class Block
@@ -5120,9 +5120,9 @@ let%expect_test "emission: variant match via switch" =
         1024: bipush        31
         1026: aload         61
         1028: aastore
-        1029: new           #129                // class ocaml_fn_18
+        1029: new           #129                // class ocaml_fn_Stdlib_bool_of_string_opt_18
         1032: dup
-        1033: invokespecial #130                // Method ocaml_fn_18."<init>":()V
+        1033: invokespecial #130                // Method ocaml_fn_Stdlib_bool_of_string_opt_18."<init>":()V
         1036: astore        62
         1038: aload         18
         1040: checkcast     #8                  // class Block
@@ -5130,9 +5130,9 @@ let%expect_test "emission: variant match via switch" =
         1046: bipush        30
         1048: aload         62
         1050: aastore
-        1051: new           #132                // class ocaml_fn_19
+        1051: new           #132                // class ocaml_fn_Stdlib_string_of_int_19
         1054: dup
-        1055: invokespecial #133                // Method ocaml_fn_19."<init>":()V
+        1055: invokespecial #133                // Method ocaml_fn_Stdlib_string_of_int_19."<init>":()V
         1058: astore        63
         1060: aload         18
         1062: checkcast     #8                  // class Block
@@ -5140,10 +5140,10 @@ let%expect_test "emission: variant match via switch" =
         1068: bipush        32
         1070: aload         63
         1072: aastore
-        1073: new           #135                // class ocaml_fn_20
+        1073: new           #135                // class ocaml_fn_Stdlib_int_of_string_opt_20
         1076: dup
         1077: aload         29
-        1079: invokespecial #136                // Method ocaml_fn_20."<init>":(Ljava/lang/Object;)V
+        1079: invokespecial #136                // Method ocaml_fn_Stdlib_int_of_string_opt_20."<init>":(Ljava/lang/Object;)V
         1082: astore        64
         1084: aload         18
         1086: checkcast     #8                  // class Block
@@ -5151,10 +5151,10 @@ let%expect_test "emission: variant match via switch" =
         1092: bipush        33
         1094: aload         64
         1096: aastore
-        1097: new           #138                // class ocaml_fn_21
+        1097: new           #138                // class ocaml_fn_Stdlib_valid_float_lexem_21
         1100: dup
         1101: aload         58
-        1103: invokespecial #139                // Method ocaml_fn_21."<init>":(Ljava/lang/Object;)V
+        1103: invokespecial #139                // Method ocaml_fn_Stdlib_valid_float_lexem_21."<init>":(Ljava/lang/Object;)V
         1106: astore        65
         1108: aload         18
         1110: checkcast     #8                  // class Block
@@ -5162,10 +5162,10 @@ let%expect_test "emission: variant match via switch" =
         1116: bipush        100
         1118: aload         65
         1120: aastore
-        1121: new           #141                // class ocaml_fn_22
+        1121: new           #141                // class ocaml_fn_Stdlib_string_of_float_22
         1124: dup
         1125: aload         65
-        1127: invokespecial #142                // Method ocaml_fn_22."<init>":(Ljava/lang/Object;)V
+        1127: invokespecial #142                // Method ocaml_fn_Stdlib_string_of_float_22."<init>":(Ljava/lang/Object;)V
         1130: astore        66
         1132: aload         18
         1134: checkcast     #8                  // class Block
@@ -5173,10 +5173,10 @@ let%expect_test "emission: variant match via switch" =
         1140: bipush        34
         1142: aload         66
         1144: aastore
-        1145: new           #144                // class ocaml_fn_23
+        1145: new           #144                // class ocaml_fn_Stdlib_float_of_string_opt_23
         1148: dup
         1149: aload         29
-        1151: invokespecial #145                // Method ocaml_fn_23."<init>":(Ljava/lang/Object;)V
+        1151: invokespecial #145                // Method ocaml_fn_Stdlib_float_of_string_opt_23."<init>":(Ljava/lang/Object;)V
         1154: astore        67
         1156: aload         18
         1158: checkcast     #8                  // class Block
@@ -5283,10 +5283,10 @@ let%expect_test "emission: variant match via switch" =
         1372: bipush        61
         1374: aload         83
         1376: aastore
-        1377: new           #171                // class ocaml_fn_27
+        1377: new           #171                // class ocaml_fn_Stdlib_open_out_27
         1380: dup
         1381: aload         83
-        1383: invokespecial #172                // Method ocaml_fn_27."<init>":(Ljava/lang/Object;)V
+        1383: invokespecial #172                // Method ocaml_fn_Stdlib_open_out_27."<init>":(Ljava/lang/Object;)V
         1386: astore        84
         1388: aload         18
         1390: checkcast     #8                  // class Block
@@ -5294,10 +5294,10 @@ let%expect_test "emission: variant match via switch" =
         1396: bipush        59
         1398: aload         84
         1400: aastore
-        1401: new           #174                // class ocaml_fn_28
+        1401: new           #174                // class ocaml_fn_Stdlib_open_out_bin_28
         1404: dup
         1405: aload         83
-        1407: invokespecial #175                // Method ocaml_fn_28."<init>":(Ljava/lang/Object;)V
+        1407: invokespecial #175                // Method ocaml_fn_Stdlib_open_out_bin_28."<init>":(Ljava/lang/Object;)V
         1410: astore        85
         1412: aload         18
         1414: checkcast     #8                  // class Block
@@ -5305,10 +5305,10 @@ let%expect_test "emission: variant match via switch" =
         1420: bipush        60
         1422: aload         85
         1424: aastore
-        1425: new           #177                // class ocaml_fn_29
+        1425: new           #177                // class ocaml_fn_Stdlib_flush_all_29
         1428: dup
         1429: aload         33
-        1431: invokespecial #178                // Method ocaml_fn_29."<init>":(Ljava/lang/Object;)V
+        1431: invokespecial #178                // Method ocaml_fn_Stdlib_flush_all_29."<init>":(Ljava/lang/Object;)V
         1434: astore        86
         1436: aload         18
         1438: checkcast     #8                  // class Block
@@ -5368,9 +5368,9 @@ let%expect_test "emission: variant match via switch" =
         1558: bipush        71
         1560: aload         91
         1562: aastore
-        1563: new           #195                // class ocaml_fn_35
+        1563: new           #195                // class ocaml_fn_Stdlib_close_out_35
         1566: dup
-        1567: invokespecial #196                // Method ocaml_fn_35."<init>":()V
+        1567: invokespecial #196                // Method ocaml_fn_Stdlib_close_out_35."<init>":()V
         1570: astore        92
         1572: aload         18
         1574: checkcast     #8                  // class Block
@@ -5378,9 +5378,9 @@ let%expect_test "emission: variant match via switch" =
         1580: bipush        75
         1582: aload         92
         1584: aastore
-        1585: new           #198                // class ocaml_fn_36
+        1585: new           #198                // class ocaml_fn_Stdlib_close_out_noerr_36
         1588: dup
-        1589: invokespecial #199                // Method ocaml_fn_36."<init>":()V
+        1589: invokespecial #199                // Method ocaml_fn_Stdlib_close_out_noerr_36."<init>":()V
         1592: astore        93
         1594: aload         18
         1596: checkcast     #8                  // class Block
@@ -5398,10 +5398,10 @@ let%expect_test "emission: variant match via switch" =
         1624: bipush        80
         1626: aload         94
         1628: aastore
-        1629: new           #204                // class ocaml_fn_38
+        1629: new           #204                // class ocaml_fn_Stdlib_open_in_38
         1632: dup
         1633: aload         94
-        1635: invokespecial #205                // Method ocaml_fn_38."<init>":(Ljava/lang/Object;)V
+        1635: invokespecial #205                // Method ocaml_fn_Stdlib_open_in_38."<init>":(Ljava/lang/Object;)V
         1638: astore        95
         1640: aload         18
         1642: checkcast     #8                  // class Block
@@ -5409,10 +5409,10 @@ let%expect_test "emission: variant match via switch" =
         1648: bipush        78
         1650: aload         95
         1652: aastore
-        1653: new           #207                // class ocaml_fn_39
+        1653: new           #207                // class ocaml_fn_Stdlib_open_in_bin_39
         1656: dup
         1657: aload         94
-        1659: invokespecial #208                // Method ocaml_fn_39."<init>":(Ljava/lang/Object;)V
+        1659: invokespecial #208                // Method ocaml_fn_Stdlib_open_in_bin_39."<init>":(Ljava/lang/Object;)V
         1662: astore        96
         1664: aload         18
         1666: checkcast     #8                  // class Block
@@ -5465,10 +5465,10 @@ let%expect_test "emission: variant match via switch" =
         1770: bipush        85
         1772: aload         100
         1774: aastore
-        1775: new           #224                // class ocaml_fn_44
+        1775: new           #224                // class ocaml_fn_Stdlib_input_line_44
         1778: dup
         1779: aload         34
-        1781: invokespecial #225                // Method ocaml_fn_44."<init>":(Ljava/lang/Object;)V
+        1781: invokespecial #225                // Method ocaml_fn_Stdlib_input_line_44."<init>":(Ljava/lang/Object;)V
         1784: astore        101
         1786: aload         18
         1788: checkcast     #8                  // class Block
@@ -5476,9 +5476,9 @@ let%expect_test "emission: variant match via switch" =
         1794: bipush        82
         1796: aload         101
         1798: aastore
-        1799: new           #227                // class ocaml_fn_45
+        1799: new           #227                // class ocaml_fn_Stdlib_close_in_noerr_45
         1802: dup
-        1803: invokespecial #228                // Method ocaml_fn_45."<init>":()V
+        1803: invokespecial #228                // Method ocaml_fn_Stdlib_close_in_noerr_45."<init>":()V
         1806: astore        102
         1808: aload         18
         1810: checkcast     #8                  // class Block
@@ -5486,10 +5486,10 @@ let%expect_test "emission: variant match via switch" =
         1816: bipush        93
         1818: aload         102
         1820: aastore
-        1821: new           #230                // class ocaml_fn_46
+        1821: new           #230                // class ocaml_fn_Stdlib_print_char_46
         1824: dup
         1825: aload         79
-        1827: invokespecial #231                // Method ocaml_fn_46."<init>":(Ljava/lang/Object;)V
+        1827: invokespecial #231                // Method ocaml_fn_Stdlib_print_char_46."<init>":(Ljava/lang/Object;)V
         1830: astore        103
         1832: aload         18
         1834: checkcast     #8                  // class Block
@@ -5497,11 +5497,11 @@ let%expect_test "emission: variant match via switch" =
         1840: bipush        40
         1842: aload         103
         1844: aastore
-        1845: new           #233                // class ocaml_fn_47
+        1845: new           #233                // class ocaml_fn_Stdlib_print_string_47
         1848: dup
         1849: aload         79
         1851: aload         88
-        1853: invokespecial #234                // Method ocaml_fn_47."<init>":(Ljava/lang/Object;Ljava/lang/Object;)V
+        1853: invokespecial #234                // Method ocaml_fn_Stdlib_print_string_47."<init>":(Ljava/lang/Object;Ljava/lang/Object;)V
         1856: astore        104
         1858: aload         18
         1860: checkcast     #8                  // class Block
@@ -5509,11 +5509,11 @@ let%expect_test "emission: variant match via switch" =
         1866: bipush        41
         1868: aload         104
         1870: aastore
-        1871: new           #236                // class ocaml_fn_48
+        1871: new           #236                // class ocaml_fn_Stdlib_print_bytes_48
         1874: dup
         1875: aload         79
         1877: aload         87
-        1879: invokespecial #237                // Method ocaml_fn_48."<init>":(Ljava/lang/Object;Ljava/lang/Object;)V
+        1879: invokespecial #237                // Method ocaml_fn_Stdlib_print_bytes_48."<init>":(Ljava/lang/Object;Ljava/lang/Object;)V
         1882: astore        105
         1884: aload         18
         1886: checkcast     #8                  // class Block
@@ -5521,12 +5521,12 @@ let%expect_test "emission: variant match via switch" =
         1892: bipush        42
         1894: aload         105
         1896: aastore
-        1897: new           #239                // class ocaml_fn_49
+        1897: new           #239                // class ocaml_fn_Stdlib_print_int_49
         1900: dup
         1901: aload         63
         1903: aload         79
         1905: aload         88
-        1907: invokespecial #242                // Method ocaml_fn_49."<init>":(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)V
+        1907: invokespecial #242                // Method ocaml_fn_Stdlib_print_int_49."<init>":(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)V
         1910: astore        106
         1912: aload         18
         1914: checkcast     #8                  // class Block
@@ -5534,12 +5534,12 @@ let%expect_test "emission: variant match via switch" =
         1920: bipush        43
         1922: aload         106
         1924: aastore
-        1925: new           #244                // class ocaml_fn_50
+        1925: new           #244                // class ocaml_fn_Stdlib_print_float_50
         1928: dup
         1929: aload         66
         1931: aload         79
         1933: aload         88
-        1935: invokespecial #245                // Method ocaml_fn_50."<init>":(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)V
+        1935: invokespecial #245                // Method ocaml_fn_Stdlib_print_float_50."<init>":(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)V
         1938: astore        107
         1940: aload         18
         1942: checkcast     #8                  // class Block
@@ -5547,11 +5547,11 @@ let%expect_test "emission: variant match via switch" =
         1948: bipush        44
         1950: aload         107
         1952: aastore
-        1953: new           #247                // class ocaml_fn_51
+        1953: new           #247                // class ocaml_fn_Stdlib_print_endline_51
         1956: dup
         1957: aload         79
         1959: aload         88
-        1961: invokespecial #248                // Method ocaml_fn_51."<init>":(Ljava/lang/Object;Ljava/lang/Object;)V
+        1961: invokespecial #248                // Method ocaml_fn_Stdlib_print_endline_51."<init>":(Ljava/lang/Object;Ljava/lang/Object;)V
         1964: astore        108
         1966: aload         18
         1968: checkcast     #8                  // class Block
@@ -5559,10 +5559,10 @@ let%expect_test "emission: variant match via switch" =
         1974: bipush        45
         1976: aload         108
         1978: aastore
-        1979: new           #250                // class ocaml_fn_52
+        1979: new           #250                // class ocaml_fn_Stdlib_print_newline_52
         1982: dup
         1983: aload         79
-        1985: invokespecial #251                // Method ocaml_fn_52."<init>":(Ljava/lang/Object;)V
+        1985: invokespecial #251                // Method ocaml_fn_Stdlib_print_newline_52."<init>":(Ljava/lang/Object;)V
         1988: astore        109
         1990: aload         18
         1992: checkcast     #8                  // class Block
@@ -5570,10 +5570,10 @@ let%expect_test "emission: variant match via switch" =
         1998: bipush        46
         2000: aload         109
         2002: aastore
-        2003: new           #253                // class ocaml_fn_53
+        2003: new           #253                // class ocaml_fn_Stdlib_prerr_char_53
         2006: dup
         2007: aload         82
-        2009: invokespecial #254                // Method ocaml_fn_53."<init>":(Ljava/lang/Object;)V
+        2009: invokespecial #254                // Method ocaml_fn_Stdlib_prerr_char_53."<init>":(Ljava/lang/Object;)V
         2012: astore        110
         2014: aload         18
         2016: checkcast     #8                  // class Block
@@ -5581,11 +5581,11 @@ let%expect_test "emission: variant match via switch" =
         2022: bipush        47
         2024: aload         110
         2026: aastore
-        2027: new           #256                // class ocaml_fn_54
+        2027: new           #256                // class ocaml_fn_Stdlib_prerr_string_54
         2030: dup
         2031: aload         82
         2033: aload         88
-        2035: invokespecial #257                // Method ocaml_fn_54."<init>":(Ljava/lang/Object;Ljava/lang/Object;)V
+        2035: invokespecial #257                // Method ocaml_fn_Stdlib_prerr_string_54."<init>":(Ljava/lang/Object;Ljava/lang/Object;)V
         2038: astore        111
         2040: aload         18
         2042: checkcast     #8                  // class Block
@@ -5593,11 +5593,11 @@ let%expect_test "emission: variant match via switch" =
         2048: bipush        48
         2050: aload         111
         2052: aastore
-        2053: new           #259                // class ocaml_fn_55
+        2053: new           #259                // class ocaml_fn_Stdlib_prerr_bytes_55
         2056: dup
         2057: aload         82
         2059: aload         87
-        2061: invokespecial #260                // Method ocaml_fn_55."<init>":(Ljava/lang/Object;Ljava/lang/Object;)V
+        2061: invokespecial #260                // Method ocaml_fn_Stdlib_prerr_bytes_55."<init>":(Ljava/lang/Object;Ljava/lang/Object;)V
         2064: astore        112
         2066: aload         18
         2068: checkcast     #8                  // class Block
@@ -5605,12 +5605,12 @@ let%expect_test "emission: variant match via switch" =
         2074: bipush        49
         2076: aload         112
         2078: aastore
-        2079: new           #262                // class ocaml_fn_56
+        2079: new           #262                // class ocaml_fn_Stdlib_prerr_int_56
         2082: dup
         2083: aload         63
         2085: aload         82
         2087: aload         88
-        2089: invokespecial #263                // Method ocaml_fn_56."<init>":(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)V
+        2089: invokespecial #263                // Method ocaml_fn_Stdlib_prerr_int_56."<init>":(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)V
         2092: astore        113
         2094: aload         18
         2096: checkcast     #8                  // class Block
@@ -5618,12 +5618,12 @@ let%expect_test "emission: variant match via switch" =
         2102: bipush        50
         2104: aload         113
         2106: aastore
-        2107: new           #265                // class ocaml_fn_57
+        2107: new           #265                // class ocaml_fn_Stdlib_prerr_float_57
         2110: dup
         2111: aload         66
         2113: aload         82
         2115: aload         88
-        2117: invokespecial #266                // Method ocaml_fn_57."<init>":(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)V
+        2117: invokespecial #266                // Method ocaml_fn_Stdlib_prerr_float_57."<init>":(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)V
         2120: astore        114
         2122: aload         18
         2124: checkcast     #8                  // class Block
@@ -5631,11 +5631,11 @@ let%expect_test "emission: variant match via switch" =
         2130: bipush        51
         2132: aload         114
         2134: aastore
-        2135: new           #268                // class ocaml_fn_58
+        2135: new           #268                // class ocaml_fn_Stdlib_prerr_endline_58
         2138: dup
         2139: aload         82
         2141: aload         88
-        2143: invokespecial #269                // Method ocaml_fn_58."<init>":(Ljava/lang/Object;Ljava/lang/Object;)V
+        2143: invokespecial #269                // Method ocaml_fn_Stdlib_prerr_endline_58."<init>":(Ljava/lang/Object;Ljava/lang/Object;)V
         2146: astore        115
         2148: aload         18
         2150: checkcast     #8                  // class Block
@@ -5643,10 +5643,10 @@ let%expect_test "emission: variant match via switch" =
         2156: bipush        52
         2158: aload         115
         2160: aastore
-        2161: new           #271                // class ocaml_fn_59
+        2161: new           #271                // class ocaml_fn_Stdlib_prerr_newline_59
         2164: dup
         2165: aload         82
-        2167: invokespecial #272                // Method ocaml_fn_59."<init>":(Ljava/lang/Object;)V
+        2167: invokespecial #272                // Method ocaml_fn_Stdlib_prerr_newline_59."<init>":(Ljava/lang/Object;)V
         2170: astore        116
         2172: aload         18
         2174: checkcast     #8                  // class Block
@@ -5654,12 +5654,12 @@ let%expect_test "emission: variant match via switch" =
         2180: bipush        53
         2182: aload         116
         2184: aastore
-        2185: new           #274                // class ocaml_fn_60
+        2185: new           #274                // class ocaml_fn_Stdlib_read_line_60
         2188: dup
         2189: aload         76
         2191: aload         79
         2193: aload         101
-        2195: invokespecial #275                // Method ocaml_fn_60."<init>":(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)V
+        2195: invokespecial #275                // Method ocaml_fn_Stdlib_read_line_60."<init>":(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)V
         2198: astore        117
         2200: aload         18
         2202: checkcast     #8                  // class Block
@@ -5667,10 +5667,10 @@ let%expect_test "emission: variant match via switch" =
         2208: bipush        54
         2210: aload         117
         2212: aastore
-        2213: new           #277                // class ocaml_fn_61
+        2213: new           #277                // class ocaml_fn_Stdlib_read_int_61
         2216: dup
         2217: aload         117
-        2219: invokespecial #278                // Method ocaml_fn_61."<init>":(Ljava/lang/Object;)V
+        2219: invokespecial #278                // Method ocaml_fn_Stdlib_read_int_61."<init>":(Ljava/lang/Object;)V
         2222: astore        118
         2224: aload         18
         2226: checkcast     #8                  // class Block
@@ -5678,11 +5678,11 @@ let%expect_test "emission: variant match via switch" =
         2232: bipush        56
         2234: aload         118
         2236: aastore
-        2237: new           #280                // class ocaml_fn_62
+        2237: new           #280                // class ocaml_fn_Stdlib_read_int_opt_62
         2240: dup
         2241: aload         64
         2243: aload         117
-        2245: invokespecial #281                // Method ocaml_fn_62."<init>":(Ljava/lang/Object;Ljava/lang/Object;)V
+        2245: invokespecial #281                // Method ocaml_fn_Stdlib_read_int_opt_62."<init>":(Ljava/lang/Object;Ljava/lang/Object;)V
         2248: astore        119
         2250: aload         18
         2252: checkcast     #8                  // class Block
@@ -5690,10 +5690,10 @@ let%expect_test "emission: variant match via switch" =
         2258: bipush        55
         2260: aload         119
         2262: aastore
-        2263: new           #283                // class ocaml_fn_63
+        2263: new           #283                // class ocaml_fn_Stdlib_read_float_63
         2266: dup
         2267: aload         117
-        2269: invokespecial #284                // Method ocaml_fn_63."<init>":(Ljava/lang/Object;)V
+        2269: invokespecial #284                // Method ocaml_fn_Stdlib_read_float_63."<init>":(Ljava/lang/Object;)V
         2272: astore        120
         2274: aload         18
         2276: checkcast     #8                  // class Block
@@ -5701,11 +5701,11 @@ let%expect_test "emission: variant match via switch" =
         2282: bipush        58
         2284: aload         120
         2286: aastore
-        2287: new           #286                // class ocaml_fn_64
+        2287: new           #286                // class ocaml_fn_Stdlib_read_float_opt_64
         2290: dup
         2291: aload         67
         2293: aload         117
-        2295: invokespecial #287                // Method ocaml_fn_64."<init>":(Ljava/lang/Object;Ljava/lang/Object;)V
+        2295: invokespecial #287                // Method ocaml_fn_Stdlib_read_float_opt_64."<init>":(Ljava/lang/Object;Ljava/lang/Object;)V
         2298: astore        121
         2300: aload         18
         2302: checkcast     #8                  // class Block
@@ -5713,9 +5713,9 @@ let%expect_test "emission: variant match via switch" =
         2308: bipush        57
         2310: aload         121
         2312: aastore
-        2313: new           #289                // class ocaml_fn_65
+        2313: new           #289                // class ocaml_fn_Stdlib_string_of_format_65
         2316: dup
-        2317: invokespecial #290                // Method ocaml_fn_65."<init>":()V
+        2317: invokespecial #290                // Method ocaml_fn_Stdlib_string_of_format_65."<init>":()V
         2320: astore        122
         2322: aload         18
         2324: checkcast     #8                  // class Block
@@ -5745,10 +5745,10 @@ let%expect_test "emission: variant match via switch" =
         2372: aastore
         2373: invokespecial #22                 // Method Block."<init>":(I[Ljava/lang/Object;)V
         2376: astore        124
-        2378: new           #295                // class ocaml_fn_67
+        2378: new           #295                // class ocaml_fn_Stdlib_at_exit_67
         2381: dup
         2382: aload         124
-        2384: invokespecial #296                // Method ocaml_fn_67."<init>":(Ljava/lang/Object;)V
+        2384: invokespecial #296                // Method ocaml_fn_Stdlib_at_exit_67."<init>":(Ljava/lang/Object;)V
         2387: astore        125
         2389: aload         18
         2391: checkcast     #8                  // class Block
@@ -5756,9 +5756,9 @@ let%expect_test "emission: variant match via switch" =
         2397: bipush        99
         2399: aload         125
         2401: aastore
-        2402: new           #298                // class ocaml_fn_68
+        2402: new           #298                // class ocaml_fn_Stdlib_do_domain_local_at_exit__fun__68
         2405: dup
-        2406: invokespecial #299                // Method ocaml_fn_68."<init>":()V
+        2406: invokespecial #299                // Method ocaml_fn_Stdlib_do_domain_local_at_exit__fun__68."<init>":()V
         2409: astore        126
         2411: new           #8                  // class Block
         2414: dup
@@ -5777,11 +5777,11 @@ let%expect_test "emission: variant match via switch" =
         2438: bipush        103
         2440: aload         127
         2442: aastore
-        2443: new           #301                // class ocaml_fn_69
+        2443: new           #301                // class ocaml_fn_Stdlib_do_at_exit_69
         2446: dup
         2447: aload         124
         2449: aload         127
-        2451: invokespecial #302                // Method ocaml_fn_69."<init>":(Ljava/lang/Object;Ljava/lang/Object;)V
+        2451: invokespecial #302                // Method ocaml_fn_Stdlib_do_at_exit_69."<init>":(Ljava/lang/Object;Ljava/lang/Object;)V
         2454: astore        128
         2456: aload         18
         2458: checkcast     #8                  // class Block
@@ -5789,10 +5789,10 @@ let%expect_test "emission: variant match via switch" =
         2464: bipush        102
         2466: aload         128
         2468: aastore
-        2469: new           #304                // class ocaml_fn_70
+        2469: new           #304                // class ocaml_fn_Stdlib_exit_70
         2472: dup
         2473: aload         128
-        2475: invokespecial #305                // Method ocaml_fn_70."<init>":(Ljava/lang/Object;)V
+        2475: invokespecial #305                // Method ocaml_fn_Stdlib_exit_70."<init>":(Ljava/lang/Object;)V
         2478: astore        129
         2480: aload         18
         2482: checkcast     #8                  // class Block
@@ -6067,9 +6067,9 @@ let%expect_test "emission: variant match via switch" =
         3062: invokestatic  #67                 // Method java/lang/Long.valueOf:(J)Ljava/lang/Long;
         3065: astore        159
         3067: goto_w        3072
-        3072: new           #376                // class ocaml_fn_94
+        3072: new           #376                // class ocaml_fn_Test_get_94
         3075: dup
-        3076: invokespecial #377                // Method ocaml_fn_94."<init>":()V
+        3076: invokespecial #377                // Method ocaml_fn_Test_get_94."<init>":()V
         3079: astore        160
         3081: getstatic     #31                 // Field GLOBALS:[Ljava/lang/Object;
         3084: bipush        46
@@ -6208,9 +6208,9 @@ let%expect_test "emission: try/with catchall" =
           83: aload_0
           84: astore_1
           85: goto_w        90
-          90: new           #53                 // class ocaml_fn_0
+          90: new           #53                 // class ocaml_fn_CamlinternalFormatBasics_erase_rel_0
           93: dup
-          94: invokespecial #55                 // Method ocaml_fn_0."<init>":()V
+          94: invokespecial #55                 // Method ocaml_fn_CamlinternalFormatBasics_erase_rel_0."<init>":()V
           97: astore_2
           98: new           #57                 // class ocaml_fn_1
          101: dup
@@ -6300,9 +6300,9 @@ let%expect_test "emission: try/with catchall" =
          252: anewarray     #10                 // class java/lang/Object
          255: invokespecial #22                 // Method Block."<init>":(I[Ljava/lang/Object;)V
          258: astore        18
-         260: new           #73                 // class ocaml_fn_8
+         260: new           #73                 // class ocaml_fn_Stdlib_failwith_8
          263: dup
-         264: invokespecial #74                 // Method ocaml_fn_8."<init>":()V
+         264: invokespecial #74                 // Method ocaml_fn_Stdlib_failwith_8."<init>":()V
          267: astore        19
          269: aload         18
          271: checkcast     #8                  // class Block
@@ -6310,9 +6310,9 @@ let%expect_test "emission: try/with catchall" =
          277: iconst_1
          278: aload         19
          280: aastore
-         281: new           #79                 // class ocaml_fn_9
+         281: new           #79                 // class ocaml_fn_Stdlib_invalid_arg_9
          284: dup
-         285: invokespecial #80                 // Method ocaml_fn_9."<init>":()V
+         285: invokespecial #80                 // Method ocaml_fn_Stdlib_invalid_arg_9."<init>":()V
          288: astore        20
          290: aload         18
          292: checkcast     #8                  // class Block
@@ -6491,9 +6491,9 @@ let%expect_test "emission: try/with catchall" =
          642: bipush        16
          644: aload         39
          646: aastore
-         647: new           #92                 // class ocaml_fn_12
+         647: new           #92                 // class ocaml_fn_Stdlib_abs_12
          650: dup
-         651: invokespecial #93                 // Method ocaml_fn_12."<init>":()V
+         651: invokespecial #93                 // Method ocaml_fn_Stdlib_abs_12."<init>":()V
          654: astore        40
          656: aload         18
          658: checkcast     #8                  // class Block
@@ -6501,9 +6501,9 @@ let%expect_test "emission: try/with catchall" =
          664: bipush        17
          666: aload         40
          668: aastore
-         669: new           #95                 // class ocaml_fn_13
+         669: new           #95                 // class ocaml_fn_Stdlib_lnot_13
          672: dup
-         673: invokespecial #96                 // Method ocaml_fn_13."<init>":()V
+         673: invokespecial #96                 // Method ocaml_fn_Stdlib_lnot_13."<init>":()V
          676: astore        41
          678: aload         18
          680: checkcast     #8                  // class Block
@@ -6629,10 +6629,10 @@ let%expect_test "emission: try/with catchall" =
          954: bipush        27
          956: aload         58
          958: aastore
-         959: new           #118                // class ocaml_fn_15
+         959: new           #118                // class ocaml_fn_Stdlib_char_of_int_15
          962: dup
          963: aload         20
-         965: invokespecial #121                // Method ocaml_fn_15."<init>":(Ljava/lang/Object;)V
+         965: invokespecial #121                // Method ocaml_fn_Stdlib_char_of_int_15."<init>":(Ljava/lang/Object;)V
          968: astore        59
          970: aload         18
          972: checkcast     #8                  // class Block
@@ -6640,9 +6640,9 @@ let%expect_test "emission: try/with catchall" =
          978: bipush        28
          980: aload         59
          982: aastore
-         983: new           #123                // class ocaml_fn_16
+         983: new           #123                // class ocaml_fn_Stdlib_string_of_bool_16
          986: dup
-         987: invokespecial #124                // Method ocaml_fn_16."<init>":()V
+         987: invokespecial #124                // Method ocaml_fn_Stdlib_string_of_bool_16."<init>":()V
          990: astore        60
          992: aload         18
          994: checkcast     #8                  // class Block
@@ -6650,10 +6650,10 @@ let%expect_test "emission: try/with catchall" =
         1000: bipush        29
         1002: aload         60
         1004: aastore
-        1005: new           #126                // class ocaml_fn_17
+        1005: new           #126                // class ocaml_fn_Stdlib_bool_of_string_17
         1008: dup
         1009: aload         20
-        1011: invokespecial #127                // Method ocaml_fn_17."<init>":(Ljava/lang/Object;)V
+        1011: invokespecial #127                // Method ocaml_fn_Stdlib_bool_of_string_17."<init>":(Ljava/lang/Object;)V
         1014: astore        61
         1016: aload         18
         1018: checkcast     #8                  // class Block
@@ -6661,9 +6661,9 @@ let%expect_test "emission: try/with catchall" =
         1024: bipush        31
         1026: aload         61
         1028: aastore
-        1029: new           #129                // class ocaml_fn_18
+        1029: new           #129                // class ocaml_fn_Stdlib_bool_of_string_opt_18
         1032: dup
-        1033: invokespecial #130                // Method ocaml_fn_18."<init>":()V
+        1033: invokespecial #130                // Method ocaml_fn_Stdlib_bool_of_string_opt_18."<init>":()V
         1036: astore        62
         1038: aload         18
         1040: checkcast     #8                  // class Block
@@ -6671,9 +6671,9 @@ let%expect_test "emission: try/with catchall" =
         1046: bipush        30
         1048: aload         62
         1050: aastore
-        1051: new           #132                // class ocaml_fn_19
+        1051: new           #132                // class ocaml_fn_Stdlib_string_of_int_19
         1054: dup
-        1055: invokespecial #133                // Method ocaml_fn_19."<init>":()V
+        1055: invokespecial #133                // Method ocaml_fn_Stdlib_string_of_int_19."<init>":()V
         1058: astore        63
         1060: aload         18
         1062: checkcast     #8                  // class Block
@@ -6681,10 +6681,10 @@ let%expect_test "emission: try/with catchall" =
         1068: bipush        32
         1070: aload         63
         1072: aastore
-        1073: new           #135                // class ocaml_fn_20
+        1073: new           #135                // class ocaml_fn_Stdlib_int_of_string_opt_20
         1076: dup
         1077: aload         29
-        1079: invokespecial #136                // Method ocaml_fn_20."<init>":(Ljava/lang/Object;)V
+        1079: invokespecial #136                // Method ocaml_fn_Stdlib_int_of_string_opt_20."<init>":(Ljava/lang/Object;)V
         1082: astore        64
         1084: aload         18
         1086: checkcast     #8                  // class Block
@@ -6692,10 +6692,10 @@ let%expect_test "emission: try/with catchall" =
         1092: bipush        33
         1094: aload         64
         1096: aastore
-        1097: new           #138                // class ocaml_fn_21
+        1097: new           #138                // class ocaml_fn_Stdlib_valid_float_lexem_21
         1100: dup
         1101: aload         58
-        1103: invokespecial #139                // Method ocaml_fn_21."<init>":(Ljava/lang/Object;)V
+        1103: invokespecial #139                // Method ocaml_fn_Stdlib_valid_float_lexem_21."<init>":(Ljava/lang/Object;)V
         1106: astore        65
         1108: aload         18
         1110: checkcast     #8                  // class Block
@@ -6703,10 +6703,10 @@ let%expect_test "emission: try/with catchall" =
         1116: bipush        100
         1118: aload         65
         1120: aastore
-        1121: new           #141                // class ocaml_fn_22
+        1121: new           #141                // class ocaml_fn_Stdlib_string_of_float_22
         1124: dup
         1125: aload         65
-        1127: invokespecial #142                // Method ocaml_fn_22."<init>":(Ljava/lang/Object;)V
+        1127: invokespecial #142                // Method ocaml_fn_Stdlib_string_of_float_22."<init>":(Ljava/lang/Object;)V
         1130: astore        66
         1132: aload         18
         1134: checkcast     #8                  // class Block
@@ -6714,10 +6714,10 @@ let%expect_test "emission: try/with catchall" =
         1140: bipush        34
         1142: aload         66
         1144: aastore
-        1145: new           #144                // class ocaml_fn_23
+        1145: new           #144                // class ocaml_fn_Stdlib_float_of_string_opt_23
         1148: dup
         1149: aload         29
-        1151: invokespecial #145                // Method ocaml_fn_23."<init>":(Ljava/lang/Object;)V
+        1151: invokespecial #145                // Method ocaml_fn_Stdlib_float_of_string_opt_23."<init>":(Ljava/lang/Object;)V
         1154: astore        67
         1156: aload         18
         1158: checkcast     #8                  // class Block
@@ -6824,10 +6824,10 @@ let%expect_test "emission: try/with catchall" =
         1372: bipush        61
         1374: aload         83
         1376: aastore
-        1377: new           #171                // class ocaml_fn_27
+        1377: new           #171                // class ocaml_fn_Stdlib_open_out_27
         1380: dup
         1381: aload         83
-        1383: invokespecial #172                // Method ocaml_fn_27."<init>":(Ljava/lang/Object;)V
+        1383: invokespecial #172                // Method ocaml_fn_Stdlib_open_out_27."<init>":(Ljava/lang/Object;)V
         1386: astore        84
         1388: aload         18
         1390: checkcast     #8                  // class Block
@@ -6835,10 +6835,10 @@ let%expect_test "emission: try/with catchall" =
         1396: bipush        59
         1398: aload         84
         1400: aastore
-        1401: new           #174                // class ocaml_fn_28
+        1401: new           #174                // class ocaml_fn_Stdlib_open_out_bin_28
         1404: dup
         1405: aload         83
-        1407: invokespecial #175                // Method ocaml_fn_28."<init>":(Ljava/lang/Object;)V
+        1407: invokespecial #175                // Method ocaml_fn_Stdlib_open_out_bin_28."<init>":(Ljava/lang/Object;)V
         1410: astore        85
         1412: aload         18
         1414: checkcast     #8                  // class Block
@@ -6846,10 +6846,10 @@ let%expect_test "emission: try/with catchall" =
         1420: bipush        60
         1422: aload         85
         1424: aastore
-        1425: new           #177                // class ocaml_fn_29
+        1425: new           #177                // class ocaml_fn_Stdlib_flush_all_29
         1428: dup
         1429: aload         33
-        1431: invokespecial #178                // Method ocaml_fn_29."<init>":(Ljava/lang/Object;)V
+        1431: invokespecial #178                // Method ocaml_fn_Stdlib_flush_all_29."<init>":(Ljava/lang/Object;)V
         1434: astore        86
         1436: aload         18
         1438: checkcast     #8                  // class Block
@@ -6909,9 +6909,9 @@ let%expect_test "emission: try/with catchall" =
         1558: bipush        71
         1560: aload         91
         1562: aastore
-        1563: new           #195                // class ocaml_fn_35
+        1563: new           #195                // class ocaml_fn_Stdlib_close_out_35
         1566: dup
-        1567: invokespecial #196                // Method ocaml_fn_35."<init>":()V
+        1567: invokespecial #196                // Method ocaml_fn_Stdlib_close_out_35."<init>":()V
         1570: astore        92
         1572: aload         18
         1574: checkcast     #8                  // class Block
@@ -6919,9 +6919,9 @@ let%expect_test "emission: try/with catchall" =
         1580: bipush        75
         1582: aload         92
         1584: aastore
-        1585: new           #198                // class ocaml_fn_36
+        1585: new           #198                // class ocaml_fn_Stdlib_close_out_noerr_36
         1588: dup
-        1589: invokespecial #199                // Method ocaml_fn_36."<init>":()V
+        1589: invokespecial #199                // Method ocaml_fn_Stdlib_close_out_noerr_36."<init>":()V
         1592: astore        93
         1594: aload         18
         1596: checkcast     #8                  // class Block
@@ -6939,10 +6939,10 @@ let%expect_test "emission: try/with catchall" =
         1624: bipush        80
         1626: aload         94
         1628: aastore
-        1629: new           #204                // class ocaml_fn_38
+        1629: new           #204                // class ocaml_fn_Stdlib_open_in_38
         1632: dup
         1633: aload         94
-        1635: invokespecial #205                // Method ocaml_fn_38."<init>":(Ljava/lang/Object;)V
+        1635: invokespecial #205                // Method ocaml_fn_Stdlib_open_in_38."<init>":(Ljava/lang/Object;)V
         1638: astore        95
         1640: aload         18
         1642: checkcast     #8                  // class Block
@@ -6950,10 +6950,10 @@ let%expect_test "emission: try/with catchall" =
         1648: bipush        78
         1650: aload         95
         1652: aastore
-        1653: new           #207                // class ocaml_fn_39
+        1653: new           #207                // class ocaml_fn_Stdlib_open_in_bin_39
         1656: dup
         1657: aload         94
-        1659: invokespecial #208                // Method ocaml_fn_39."<init>":(Ljava/lang/Object;)V
+        1659: invokespecial #208                // Method ocaml_fn_Stdlib_open_in_bin_39."<init>":(Ljava/lang/Object;)V
         1662: astore        96
         1664: aload         18
         1666: checkcast     #8                  // class Block
@@ -7006,10 +7006,10 @@ let%expect_test "emission: try/with catchall" =
         1770: bipush        85
         1772: aload         100
         1774: aastore
-        1775: new           #224                // class ocaml_fn_44
+        1775: new           #224                // class ocaml_fn_Stdlib_input_line_44
         1778: dup
         1779: aload         34
-        1781: invokespecial #225                // Method ocaml_fn_44."<init>":(Ljava/lang/Object;)V
+        1781: invokespecial #225                // Method ocaml_fn_Stdlib_input_line_44."<init>":(Ljava/lang/Object;)V
         1784: astore        101
         1786: aload         18
         1788: checkcast     #8                  // class Block
@@ -7017,9 +7017,9 @@ let%expect_test "emission: try/with catchall" =
         1794: bipush        82
         1796: aload         101
         1798: aastore
-        1799: new           #227                // class ocaml_fn_45
+        1799: new           #227                // class ocaml_fn_Stdlib_close_in_noerr_45
         1802: dup
-        1803: invokespecial #228                // Method ocaml_fn_45."<init>":()V
+        1803: invokespecial #228                // Method ocaml_fn_Stdlib_close_in_noerr_45."<init>":()V
         1806: astore        102
         1808: aload         18
         1810: checkcast     #8                  // class Block
@@ -7027,10 +7027,10 @@ let%expect_test "emission: try/with catchall" =
         1816: bipush        93
         1818: aload         102
         1820: aastore
-        1821: new           #230                // class ocaml_fn_46
+        1821: new           #230                // class ocaml_fn_Stdlib_print_char_46
         1824: dup
         1825: aload         79
-        1827: invokespecial #231                // Method ocaml_fn_46."<init>":(Ljava/lang/Object;)V
+        1827: invokespecial #231                // Method ocaml_fn_Stdlib_print_char_46."<init>":(Ljava/lang/Object;)V
         1830: astore        103
         1832: aload         18
         1834: checkcast     #8                  // class Block
@@ -7038,11 +7038,11 @@ let%expect_test "emission: try/with catchall" =
         1840: bipush        40
         1842: aload         103
         1844: aastore
-        1845: new           #233                // class ocaml_fn_47
+        1845: new           #233                // class ocaml_fn_Stdlib_print_string_47
         1848: dup
         1849: aload         79
         1851: aload         88
-        1853: invokespecial #234                // Method ocaml_fn_47."<init>":(Ljava/lang/Object;Ljava/lang/Object;)V
+        1853: invokespecial #234                // Method ocaml_fn_Stdlib_print_string_47."<init>":(Ljava/lang/Object;Ljava/lang/Object;)V
         1856: astore        104
         1858: aload         18
         1860: checkcast     #8                  // class Block
@@ -7050,11 +7050,11 @@ let%expect_test "emission: try/with catchall" =
         1866: bipush        41
         1868: aload         104
         1870: aastore
-        1871: new           #236                // class ocaml_fn_48
+        1871: new           #236                // class ocaml_fn_Stdlib_print_bytes_48
         1874: dup
         1875: aload         79
         1877: aload         87
-        1879: invokespecial #237                // Method ocaml_fn_48."<init>":(Ljava/lang/Object;Ljava/lang/Object;)V
+        1879: invokespecial #237                // Method ocaml_fn_Stdlib_print_bytes_48."<init>":(Ljava/lang/Object;Ljava/lang/Object;)V
         1882: astore        105
         1884: aload         18
         1886: checkcast     #8                  // class Block
@@ -7062,12 +7062,12 @@ let%expect_test "emission: try/with catchall" =
         1892: bipush        42
         1894: aload         105
         1896: aastore
-        1897: new           #239                // class ocaml_fn_49
+        1897: new           #239                // class ocaml_fn_Stdlib_print_int_49
         1900: dup
         1901: aload         63
         1903: aload         79
         1905: aload         88
-        1907: invokespecial #242                // Method ocaml_fn_49."<init>":(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)V
+        1907: invokespecial #242                // Method ocaml_fn_Stdlib_print_int_49."<init>":(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)V
         1910: astore        106
         1912: aload         18
         1914: checkcast     #8                  // class Block
@@ -7075,12 +7075,12 @@ let%expect_test "emission: try/with catchall" =
         1920: bipush        43
         1922: aload         106
         1924: aastore
-        1925: new           #244                // class ocaml_fn_50
+        1925: new           #244                // class ocaml_fn_Stdlib_print_float_50
         1928: dup
         1929: aload         66
         1931: aload         79
         1933: aload         88
-        1935: invokespecial #245                // Method ocaml_fn_50."<init>":(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)V
+        1935: invokespecial #245                // Method ocaml_fn_Stdlib_print_float_50."<init>":(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)V
         1938: astore        107
         1940: aload         18
         1942: checkcast     #8                  // class Block
@@ -7088,11 +7088,11 @@ let%expect_test "emission: try/with catchall" =
         1948: bipush        44
         1950: aload         107
         1952: aastore
-        1953: new           #247                // class ocaml_fn_51
+        1953: new           #247                // class ocaml_fn_Stdlib_print_endline_51
         1956: dup
         1957: aload         79
         1959: aload         88
-        1961: invokespecial #248                // Method ocaml_fn_51."<init>":(Ljava/lang/Object;Ljava/lang/Object;)V
+        1961: invokespecial #248                // Method ocaml_fn_Stdlib_print_endline_51."<init>":(Ljava/lang/Object;Ljava/lang/Object;)V
         1964: astore        108
         1966: aload         18
         1968: checkcast     #8                  // class Block
@@ -7100,10 +7100,10 @@ let%expect_test "emission: try/with catchall" =
         1974: bipush        45
         1976: aload         108
         1978: aastore
-        1979: new           #250                // class ocaml_fn_52
+        1979: new           #250                // class ocaml_fn_Stdlib_print_newline_52
         1982: dup
         1983: aload         79
-        1985: invokespecial #251                // Method ocaml_fn_52."<init>":(Ljava/lang/Object;)V
+        1985: invokespecial #251                // Method ocaml_fn_Stdlib_print_newline_52."<init>":(Ljava/lang/Object;)V
         1988: astore        109
         1990: aload         18
         1992: checkcast     #8                  // class Block
@@ -7111,10 +7111,10 @@ let%expect_test "emission: try/with catchall" =
         1998: bipush        46
         2000: aload         109
         2002: aastore
-        2003: new           #253                // class ocaml_fn_53
+        2003: new           #253                // class ocaml_fn_Stdlib_prerr_char_53
         2006: dup
         2007: aload         82
-        2009: invokespecial #254                // Method ocaml_fn_53."<init>":(Ljava/lang/Object;)V
+        2009: invokespecial #254                // Method ocaml_fn_Stdlib_prerr_char_53."<init>":(Ljava/lang/Object;)V
         2012: astore        110
         2014: aload         18
         2016: checkcast     #8                  // class Block
@@ -7122,11 +7122,11 @@ let%expect_test "emission: try/with catchall" =
         2022: bipush        47
         2024: aload         110
         2026: aastore
-        2027: new           #256                // class ocaml_fn_54
+        2027: new           #256                // class ocaml_fn_Stdlib_prerr_string_54
         2030: dup
         2031: aload         82
         2033: aload         88
-        2035: invokespecial #257                // Method ocaml_fn_54."<init>":(Ljava/lang/Object;Ljava/lang/Object;)V
+        2035: invokespecial #257                // Method ocaml_fn_Stdlib_prerr_string_54."<init>":(Ljava/lang/Object;Ljava/lang/Object;)V
         2038: astore        111
         2040: aload         18
         2042: checkcast     #8                  // class Block
@@ -7134,11 +7134,11 @@ let%expect_test "emission: try/with catchall" =
         2048: bipush        48
         2050: aload         111
         2052: aastore
-        2053: new           #259                // class ocaml_fn_55
+        2053: new           #259                // class ocaml_fn_Stdlib_prerr_bytes_55
         2056: dup
         2057: aload         82
         2059: aload         87
-        2061: invokespecial #260                // Method ocaml_fn_55."<init>":(Ljava/lang/Object;Ljava/lang/Object;)V
+        2061: invokespecial #260                // Method ocaml_fn_Stdlib_prerr_bytes_55."<init>":(Ljava/lang/Object;Ljava/lang/Object;)V
         2064: astore        112
         2066: aload         18
         2068: checkcast     #8                  // class Block
@@ -7146,12 +7146,12 @@ let%expect_test "emission: try/with catchall" =
         2074: bipush        49
         2076: aload         112
         2078: aastore
-        2079: new           #262                // class ocaml_fn_56
+        2079: new           #262                // class ocaml_fn_Stdlib_prerr_int_56
         2082: dup
         2083: aload         63
         2085: aload         82
         2087: aload         88
-        2089: invokespecial #263                // Method ocaml_fn_56."<init>":(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)V
+        2089: invokespecial #263                // Method ocaml_fn_Stdlib_prerr_int_56."<init>":(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)V
         2092: astore        113
         2094: aload         18
         2096: checkcast     #8                  // class Block
@@ -7159,12 +7159,12 @@ let%expect_test "emission: try/with catchall" =
         2102: bipush        50
         2104: aload         113
         2106: aastore
-        2107: new           #265                // class ocaml_fn_57
+        2107: new           #265                // class ocaml_fn_Stdlib_prerr_float_57
         2110: dup
         2111: aload         66
         2113: aload         82
         2115: aload         88
-        2117: invokespecial #266                // Method ocaml_fn_57."<init>":(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)V
+        2117: invokespecial #266                // Method ocaml_fn_Stdlib_prerr_float_57."<init>":(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)V
         2120: astore        114
         2122: aload         18
         2124: checkcast     #8                  // class Block
@@ -7172,11 +7172,11 @@ let%expect_test "emission: try/with catchall" =
         2130: bipush        51
         2132: aload         114
         2134: aastore
-        2135: new           #268                // class ocaml_fn_58
+        2135: new           #268                // class ocaml_fn_Stdlib_prerr_endline_58
         2138: dup
         2139: aload         82
         2141: aload         88
-        2143: invokespecial #269                // Method ocaml_fn_58."<init>":(Ljava/lang/Object;Ljava/lang/Object;)V
+        2143: invokespecial #269                // Method ocaml_fn_Stdlib_prerr_endline_58."<init>":(Ljava/lang/Object;Ljava/lang/Object;)V
         2146: astore        115
         2148: aload         18
         2150: checkcast     #8                  // class Block
@@ -7184,10 +7184,10 @@ let%expect_test "emission: try/with catchall" =
         2156: bipush        52
         2158: aload         115
         2160: aastore
-        2161: new           #271                // class ocaml_fn_59
+        2161: new           #271                // class ocaml_fn_Stdlib_prerr_newline_59
         2164: dup
         2165: aload         82
-        2167: invokespecial #272                // Method ocaml_fn_59."<init>":(Ljava/lang/Object;)V
+        2167: invokespecial #272                // Method ocaml_fn_Stdlib_prerr_newline_59."<init>":(Ljava/lang/Object;)V
         2170: astore        116
         2172: aload         18
         2174: checkcast     #8                  // class Block
@@ -7195,12 +7195,12 @@ let%expect_test "emission: try/with catchall" =
         2180: bipush        53
         2182: aload         116
         2184: aastore
-        2185: new           #274                // class ocaml_fn_60
+        2185: new           #274                // class ocaml_fn_Stdlib_read_line_60
         2188: dup
         2189: aload         76
         2191: aload         79
         2193: aload         101
-        2195: invokespecial #275                // Method ocaml_fn_60."<init>":(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)V
+        2195: invokespecial #275                // Method ocaml_fn_Stdlib_read_line_60."<init>":(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)V
         2198: astore        117
         2200: aload         18
         2202: checkcast     #8                  // class Block
@@ -7208,10 +7208,10 @@ let%expect_test "emission: try/with catchall" =
         2208: bipush        54
         2210: aload         117
         2212: aastore
-        2213: new           #277                // class ocaml_fn_61
+        2213: new           #277                // class ocaml_fn_Stdlib_read_int_61
         2216: dup
         2217: aload         117
-        2219: invokespecial #278                // Method ocaml_fn_61."<init>":(Ljava/lang/Object;)V
+        2219: invokespecial #278                // Method ocaml_fn_Stdlib_read_int_61."<init>":(Ljava/lang/Object;)V
         2222: astore        118
         2224: aload         18
         2226: checkcast     #8                  // class Block
@@ -7219,11 +7219,11 @@ let%expect_test "emission: try/with catchall" =
         2232: bipush        56
         2234: aload         118
         2236: aastore
-        2237: new           #280                // class ocaml_fn_62
+        2237: new           #280                // class ocaml_fn_Stdlib_read_int_opt_62
         2240: dup
         2241: aload         64
         2243: aload         117
-        2245: invokespecial #281                // Method ocaml_fn_62."<init>":(Ljava/lang/Object;Ljava/lang/Object;)V
+        2245: invokespecial #281                // Method ocaml_fn_Stdlib_read_int_opt_62."<init>":(Ljava/lang/Object;Ljava/lang/Object;)V
         2248: astore        119
         2250: aload         18
         2252: checkcast     #8                  // class Block
@@ -7231,10 +7231,10 @@ let%expect_test "emission: try/with catchall" =
         2258: bipush        55
         2260: aload         119
         2262: aastore
-        2263: new           #283                // class ocaml_fn_63
+        2263: new           #283                // class ocaml_fn_Stdlib_read_float_63
         2266: dup
         2267: aload         117
-        2269: invokespecial #284                // Method ocaml_fn_63."<init>":(Ljava/lang/Object;)V
+        2269: invokespecial #284                // Method ocaml_fn_Stdlib_read_float_63."<init>":(Ljava/lang/Object;)V
         2272: astore        120
         2274: aload         18
         2276: checkcast     #8                  // class Block
@@ -7242,11 +7242,11 @@ let%expect_test "emission: try/with catchall" =
         2282: bipush        58
         2284: aload         120
         2286: aastore
-        2287: new           #286                // class ocaml_fn_64
+        2287: new           #286                // class ocaml_fn_Stdlib_read_float_opt_64
         2290: dup
         2291: aload         67
         2293: aload         117
-        2295: invokespecial #287                // Method ocaml_fn_64."<init>":(Ljava/lang/Object;Ljava/lang/Object;)V
+        2295: invokespecial #287                // Method ocaml_fn_Stdlib_read_float_opt_64."<init>":(Ljava/lang/Object;Ljava/lang/Object;)V
         2298: astore        121
         2300: aload         18
         2302: checkcast     #8                  // class Block
@@ -7254,9 +7254,9 @@ let%expect_test "emission: try/with catchall" =
         2308: bipush        57
         2310: aload         121
         2312: aastore
-        2313: new           #289                // class ocaml_fn_65
+        2313: new           #289                // class ocaml_fn_Stdlib_string_of_format_65
         2316: dup
-        2317: invokespecial #290                // Method ocaml_fn_65."<init>":()V
+        2317: invokespecial #290                // Method ocaml_fn_Stdlib_string_of_format_65."<init>":()V
         2320: astore        122
         2322: aload         18
         2324: checkcast     #8                  // class Block
@@ -7286,10 +7286,10 @@ let%expect_test "emission: try/with catchall" =
         2372: aastore
         2373: invokespecial #22                 // Method Block."<init>":(I[Ljava/lang/Object;)V
         2376: astore        124
-        2378: new           #295                // class ocaml_fn_67
+        2378: new           #295                // class ocaml_fn_Stdlib_at_exit_67
         2381: dup
         2382: aload         124
-        2384: invokespecial #296                // Method ocaml_fn_67."<init>":(Ljava/lang/Object;)V
+        2384: invokespecial #296                // Method ocaml_fn_Stdlib_at_exit_67."<init>":(Ljava/lang/Object;)V
         2387: astore        125
         2389: aload         18
         2391: checkcast     #8                  // class Block
@@ -7297,9 +7297,9 @@ let%expect_test "emission: try/with catchall" =
         2397: bipush        99
         2399: aload         125
         2401: aastore
-        2402: new           #298                // class ocaml_fn_68
+        2402: new           #298                // class ocaml_fn_Stdlib_do_domain_local_at_exit__fun__68
         2405: dup
-        2406: invokespecial #299                // Method ocaml_fn_68."<init>":()V
+        2406: invokespecial #299                // Method ocaml_fn_Stdlib_do_domain_local_at_exit__fun__68."<init>":()V
         2409: astore        126
         2411: new           #8                  // class Block
         2414: dup
@@ -7318,11 +7318,11 @@ let%expect_test "emission: try/with catchall" =
         2438: bipush        103
         2440: aload         127
         2442: aastore
-        2443: new           #301                // class ocaml_fn_69
+        2443: new           #301                // class ocaml_fn_Stdlib_do_at_exit_69
         2446: dup
         2447: aload         124
         2449: aload         127
-        2451: invokespecial #302                // Method ocaml_fn_69."<init>":(Ljava/lang/Object;Ljava/lang/Object;)V
+        2451: invokespecial #302                // Method ocaml_fn_Stdlib_do_at_exit_69."<init>":(Ljava/lang/Object;Ljava/lang/Object;)V
         2454: astore        128
         2456: aload         18
         2458: checkcast     #8                  // class Block
@@ -7330,10 +7330,10 @@ let%expect_test "emission: try/with catchall" =
         2464: bipush        102
         2466: aload         128
         2468: aastore
-        2469: new           #304                // class ocaml_fn_70
+        2469: new           #304                // class ocaml_fn_Stdlib_exit_70
         2472: dup
         2473: aload         128
-        2475: invokespecial #305                // Method ocaml_fn_70."<init>":(Ljava/lang/Object;)V
+        2475: invokespecial #305                // Method ocaml_fn_Stdlib_exit_70."<init>":(Ljava/lang/Object;)V
         2478: astore        129
         2480: aload         18
         2482: checkcast     #8                  // class Block
@@ -7633,10 +7633,10 @@ let%expect_test "emission: try/with catchall" =
         3112: aastore
         3113: invokespecial #22                 // Method Block."<init>":(I[Ljava/lang/Object;)V
         3116: astore        164
-        3118: new           #376                // class ocaml_fn_94
+        3118: new           #376                // class ocaml_fn_Test_safe_94
         3121: dup
         3122: aload         164
-        3124: invokespecial #377                // Method ocaml_fn_94."<init>":(Ljava/lang/Object;)V
+        3124: invokespecial #377                // Method ocaml_fn_Test_safe_94."<init>":(Ljava/lang/Object;)V
         3127: astore        165
         3129: iconst_0
         3130: i2l
@@ -7778,9 +7778,9 @@ let%expect_test "emission: if/else with int compare" =
           83: aload_0
           84: astore_1
           85: goto_w        90
-          90: new           #53                 // class ocaml_fn_0
+          90: new           #53                 // class ocaml_fn_CamlinternalFormatBasics_erase_rel_0
           93: dup
-          94: invokespecial #55                 // Method ocaml_fn_0."<init>":()V
+          94: invokespecial #55                 // Method ocaml_fn_CamlinternalFormatBasics_erase_rel_0."<init>":()V
           97: astore_2
           98: new           #57                 // class ocaml_fn_1
          101: dup
@@ -7870,9 +7870,9 @@ let%expect_test "emission: if/else with int compare" =
          252: anewarray     #10                 // class java/lang/Object
          255: invokespecial #22                 // Method Block."<init>":(I[Ljava/lang/Object;)V
          258: astore        18
-         260: new           #73                 // class ocaml_fn_8
+         260: new           #73                 // class ocaml_fn_Stdlib_failwith_8
          263: dup
-         264: invokespecial #74                 // Method ocaml_fn_8."<init>":()V
+         264: invokespecial #74                 // Method ocaml_fn_Stdlib_failwith_8."<init>":()V
          267: astore        19
          269: aload         18
          271: checkcast     #8                  // class Block
@@ -7880,9 +7880,9 @@ let%expect_test "emission: if/else with int compare" =
          277: iconst_1
          278: aload         19
          280: aastore
-         281: new           #79                 // class ocaml_fn_9
+         281: new           #79                 // class ocaml_fn_Stdlib_invalid_arg_9
          284: dup
-         285: invokespecial #80                 // Method ocaml_fn_9."<init>":()V
+         285: invokespecial #80                 // Method ocaml_fn_Stdlib_invalid_arg_9."<init>":()V
          288: astore        20
          290: aload         18
          292: checkcast     #8                  // class Block
@@ -8061,9 +8061,9 @@ let%expect_test "emission: if/else with int compare" =
          642: bipush        16
          644: aload         39
          646: aastore
-         647: new           #92                 // class ocaml_fn_12
+         647: new           #92                 // class ocaml_fn_Stdlib_abs_12
          650: dup
-         651: invokespecial #93                 // Method ocaml_fn_12."<init>":()V
+         651: invokespecial #93                 // Method ocaml_fn_Stdlib_abs_12."<init>":()V
          654: astore        40
          656: aload         18
          658: checkcast     #8                  // class Block
@@ -8071,9 +8071,9 @@ let%expect_test "emission: if/else with int compare" =
          664: bipush        17
          666: aload         40
          668: aastore
-         669: new           #95                 // class ocaml_fn_13
+         669: new           #95                 // class ocaml_fn_Stdlib_lnot_13
          672: dup
-         673: invokespecial #96                 // Method ocaml_fn_13."<init>":()V
+         673: invokespecial #96                 // Method ocaml_fn_Stdlib_lnot_13."<init>":()V
          676: astore        41
          678: aload         18
          680: checkcast     #8                  // class Block
@@ -8199,10 +8199,10 @@ let%expect_test "emission: if/else with int compare" =
          954: bipush        27
          956: aload         58
          958: aastore
-         959: new           #118                // class ocaml_fn_15
+         959: new           #118                // class ocaml_fn_Stdlib_char_of_int_15
          962: dup
          963: aload         20
-         965: invokespecial #121                // Method ocaml_fn_15."<init>":(Ljava/lang/Object;)V
+         965: invokespecial #121                // Method ocaml_fn_Stdlib_char_of_int_15."<init>":(Ljava/lang/Object;)V
          968: astore        59
          970: aload         18
          972: checkcast     #8                  // class Block
@@ -8210,9 +8210,9 @@ let%expect_test "emission: if/else with int compare" =
          978: bipush        28
          980: aload         59
          982: aastore
-         983: new           #123                // class ocaml_fn_16
+         983: new           #123                // class ocaml_fn_Stdlib_string_of_bool_16
          986: dup
-         987: invokespecial #124                // Method ocaml_fn_16."<init>":()V
+         987: invokespecial #124                // Method ocaml_fn_Stdlib_string_of_bool_16."<init>":()V
          990: astore        60
          992: aload         18
          994: checkcast     #8                  // class Block
@@ -8220,10 +8220,10 @@ let%expect_test "emission: if/else with int compare" =
         1000: bipush        29
         1002: aload         60
         1004: aastore
-        1005: new           #126                // class ocaml_fn_17
+        1005: new           #126                // class ocaml_fn_Stdlib_bool_of_string_17
         1008: dup
         1009: aload         20
-        1011: invokespecial #127                // Method ocaml_fn_17."<init>":(Ljava/lang/Object;)V
+        1011: invokespecial #127                // Method ocaml_fn_Stdlib_bool_of_string_17."<init>":(Ljava/lang/Object;)V
         1014: astore        61
         1016: aload         18
         1018: checkcast     #8                  // class Block
@@ -8231,9 +8231,9 @@ let%expect_test "emission: if/else with int compare" =
         1024: bipush        31
         1026: aload         61
         1028: aastore
-        1029: new           #129                // class ocaml_fn_18
+        1029: new           #129                // class ocaml_fn_Stdlib_bool_of_string_opt_18
         1032: dup
-        1033: invokespecial #130                // Method ocaml_fn_18."<init>":()V
+        1033: invokespecial #130                // Method ocaml_fn_Stdlib_bool_of_string_opt_18."<init>":()V
         1036: astore        62
         1038: aload         18
         1040: checkcast     #8                  // class Block
@@ -8241,9 +8241,9 @@ let%expect_test "emission: if/else with int compare" =
         1046: bipush        30
         1048: aload         62
         1050: aastore
-        1051: new           #132                // class ocaml_fn_19
+        1051: new           #132                // class ocaml_fn_Stdlib_string_of_int_19
         1054: dup
-        1055: invokespecial #133                // Method ocaml_fn_19."<init>":()V
+        1055: invokespecial #133                // Method ocaml_fn_Stdlib_string_of_int_19."<init>":()V
         1058: astore        63
         1060: aload         18
         1062: checkcast     #8                  // class Block
@@ -8251,10 +8251,10 @@ let%expect_test "emission: if/else with int compare" =
         1068: bipush        32
         1070: aload         63
         1072: aastore
-        1073: new           #135                // class ocaml_fn_20
+        1073: new           #135                // class ocaml_fn_Stdlib_int_of_string_opt_20
         1076: dup
         1077: aload         29
-        1079: invokespecial #136                // Method ocaml_fn_20."<init>":(Ljava/lang/Object;)V
+        1079: invokespecial #136                // Method ocaml_fn_Stdlib_int_of_string_opt_20."<init>":(Ljava/lang/Object;)V
         1082: astore        64
         1084: aload         18
         1086: checkcast     #8                  // class Block
@@ -8262,10 +8262,10 @@ let%expect_test "emission: if/else with int compare" =
         1092: bipush        33
         1094: aload         64
         1096: aastore
-        1097: new           #138                // class ocaml_fn_21
+        1097: new           #138                // class ocaml_fn_Stdlib_valid_float_lexem_21
         1100: dup
         1101: aload         58
-        1103: invokespecial #139                // Method ocaml_fn_21."<init>":(Ljava/lang/Object;)V
+        1103: invokespecial #139                // Method ocaml_fn_Stdlib_valid_float_lexem_21."<init>":(Ljava/lang/Object;)V
         1106: astore        65
         1108: aload         18
         1110: checkcast     #8                  // class Block
@@ -8273,10 +8273,10 @@ let%expect_test "emission: if/else with int compare" =
         1116: bipush        100
         1118: aload         65
         1120: aastore
-        1121: new           #141                // class ocaml_fn_22
+        1121: new           #141                // class ocaml_fn_Stdlib_string_of_float_22
         1124: dup
         1125: aload         65
-        1127: invokespecial #142                // Method ocaml_fn_22."<init>":(Ljava/lang/Object;)V
+        1127: invokespecial #142                // Method ocaml_fn_Stdlib_string_of_float_22."<init>":(Ljava/lang/Object;)V
         1130: astore        66
         1132: aload         18
         1134: checkcast     #8                  // class Block
@@ -8284,10 +8284,10 @@ let%expect_test "emission: if/else with int compare" =
         1140: bipush        34
         1142: aload         66
         1144: aastore
-        1145: new           #144                // class ocaml_fn_23
+        1145: new           #144                // class ocaml_fn_Stdlib_float_of_string_opt_23
         1148: dup
         1149: aload         29
-        1151: invokespecial #145                // Method ocaml_fn_23."<init>":(Ljava/lang/Object;)V
+        1151: invokespecial #145                // Method ocaml_fn_Stdlib_float_of_string_opt_23."<init>":(Ljava/lang/Object;)V
         1154: astore        67
         1156: aload         18
         1158: checkcast     #8                  // class Block
@@ -8394,10 +8394,10 @@ let%expect_test "emission: if/else with int compare" =
         1372: bipush        61
         1374: aload         83
         1376: aastore
-        1377: new           #171                // class ocaml_fn_27
+        1377: new           #171                // class ocaml_fn_Stdlib_open_out_27
         1380: dup
         1381: aload         83
-        1383: invokespecial #172                // Method ocaml_fn_27."<init>":(Ljava/lang/Object;)V
+        1383: invokespecial #172                // Method ocaml_fn_Stdlib_open_out_27."<init>":(Ljava/lang/Object;)V
         1386: astore        84
         1388: aload         18
         1390: checkcast     #8                  // class Block
@@ -8405,10 +8405,10 @@ let%expect_test "emission: if/else with int compare" =
         1396: bipush        59
         1398: aload         84
         1400: aastore
-        1401: new           #174                // class ocaml_fn_28
+        1401: new           #174                // class ocaml_fn_Stdlib_open_out_bin_28
         1404: dup
         1405: aload         83
-        1407: invokespecial #175                // Method ocaml_fn_28."<init>":(Ljava/lang/Object;)V
+        1407: invokespecial #175                // Method ocaml_fn_Stdlib_open_out_bin_28."<init>":(Ljava/lang/Object;)V
         1410: astore        85
         1412: aload         18
         1414: checkcast     #8                  // class Block
@@ -8416,10 +8416,10 @@ let%expect_test "emission: if/else with int compare" =
         1420: bipush        60
         1422: aload         85
         1424: aastore
-        1425: new           #177                // class ocaml_fn_29
+        1425: new           #177                // class ocaml_fn_Stdlib_flush_all_29
         1428: dup
         1429: aload         33
-        1431: invokespecial #178                // Method ocaml_fn_29."<init>":(Ljava/lang/Object;)V
+        1431: invokespecial #178                // Method ocaml_fn_Stdlib_flush_all_29."<init>":(Ljava/lang/Object;)V
         1434: astore        86
         1436: aload         18
         1438: checkcast     #8                  // class Block
@@ -8479,9 +8479,9 @@ let%expect_test "emission: if/else with int compare" =
         1558: bipush        71
         1560: aload         91
         1562: aastore
-        1563: new           #195                // class ocaml_fn_35
+        1563: new           #195                // class ocaml_fn_Stdlib_close_out_35
         1566: dup
-        1567: invokespecial #196                // Method ocaml_fn_35."<init>":()V
+        1567: invokespecial #196                // Method ocaml_fn_Stdlib_close_out_35."<init>":()V
         1570: astore        92
         1572: aload         18
         1574: checkcast     #8                  // class Block
@@ -8489,9 +8489,9 @@ let%expect_test "emission: if/else with int compare" =
         1580: bipush        75
         1582: aload         92
         1584: aastore
-        1585: new           #198                // class ocaml_fn_36
+        1585: new           #198                // class ocaml_fn_Stdlib_close_out_noerr_36
         1588: dup
-        1589: invokespecial #199                // Method ocaml_fn_36."<init>":()V
+        1589: invokespecial #199                // Method ocaml_fn_Stdlib_close_out_noerr_36."<init>":()V
         1592: astore        93
         1594: aload         18
         1596: checkcast     #8                  // class Block
@@ -8509,10 +8509,10 @@ let%expect_test "emission: if/else with int compare" =
         1624: bipush        80
         1626: aload         94
         1628: aastore
-        1629: new           #204                // class ocaml_fn_38
+        1629: new           #204                // class ocaml_fn_Stdlib_open_in_38
         1632: dup
         1633: aload         94
-        1635: invokespecial #205                // Method ocaml_fn_38."<init>":(Ljava/lang/Object;)V
+        1635: invokespecial #205                // Method ocaml_fn_Stdlib_open_in_38."<init>":(Ljava/lang/Object;)V
         1638: astore        95
         1640: aload         18
         1642: checkcast     #8                  // class Block
@@ -8520,10 +8520,10 @@ let%expect_test "emission: if/else with int compare" =
         1648: bipush        78
         1650: aload         95
         1652: aastore
-        1653: new           #207                // class ocaml_fn_39
+        1653: new           #207                // class ocaml_fn_Stdlib_open_in_bin_39
         1656: dup
         1657: aload         94
-        1659: invokespecial #208                // Method ocaml_fn_39."<init>":(Ljava/lang/Object;)V
+        1659: invokespecial #208                // Method ocaml_fn_Stdlib_open_in_bin_39."<init>":(Ljava/lang/Object;)V
         1662: astore        96
         1664: aload         18
         1666: checkcast     #8                  // class Block
@@ -8576,10 +8576,10 @@ let%expect_test "emission: if/else with int compare" =
         1770: bipush        85
         1772: aload         100
         1774: aastore
-        1775: new           #224                // class ocaml_fn_44
+        1775: new           #224                // class ocaml_fn_Stdlib_input_line_44
         1778: dup
         1779: aload         34
-        1781: invokespecial #225                // Method ocaml_fn_44."<init>":(Ljava/lang/Object;)V
+        1781: invokespecial #225                // Method ocaml_fn_Stdlib_input_line_44."<init>":(Ljava/lang/Object;)V
         1784: astore        101
         1786: aload         18
         1788: checkcast     #8                  // class Block
@@ -8587,9 +8587,9 @@ let%expect_test "emission: if/else with int compare" =
         1794: bipush        82
         1796: aload         101
         1798: aastore
-        1799: new           #227                // class ocaml_fn_45
+        1799: new           #227                // class ocaml_fn_Stdlib_close_in_noerr_45
         1802: dup
-        1803: invokespecial #228                // Method ocaml_fn_45."<init>":()V
+        1803: invokespecial #228                // Method ocaml_fn_Stdlib_close_in_noerr_45."<init>":()V
         1806: astore        102
         1808: aload         18
         1810: checkcast     #8                  // class Block
@@ -8597,10 +8597,10 @@ let%expect_test "emission: if/else with int compare" =
         1816: bipush        93
         1818: aload         102
         1820: aastore
-        1821: new           #230                // class ocaml_fn_46
+        1821: new           #230                // class ocaml_fn_Stdlib_print_char_46
         1824: dup
         1825: aload         79
-        1827: invokespecial #231                // Method ocaml_fn_46."<init>":(Ljava/lang/Object;)V
+        1827: invokespecial #231                // Method ocaml_fn_Stdlib_print_char_46."<init>":(Ljava/lang/Object;)V
         1830: astore        103
         1832: aload         18
         1834: checkcast     #8                  // class Block
@@ -8608,11 +8608,11 @@ let%expect_test "emission: if/else with int compare" =
         1840: bipush        40
         1842: aload         103
         1844: aastore
-        1845: new           #233                // class ocaml_fn_47
+        1845: new           #233                // class ocaml_fn_Stdlib_print_string_47
         1848: dup
         1849: aload         79
         1851: aload         88
-        1853: invokespecial #234                // Method ocaml_fn_47."<init>":(Ljava/lang/Object;Ljava/lang/Object;)V
+        1853: invokespecial #234                // Method ocaml_fn_Stdlib_print_string_47."<init>":(Ljava/lang/Object;Ljava/lang/Object;)V
         1856: astore        104
         1858: aload         18
         1860: checkcast     #8                  // class Block
@@ -8620,11 +8620,11 @@ let%expect_test "emission: if/else with int compare" =
         1866: bipush        41
         1868: aload         104
         1870: aastore
-        1871: new           #236                // class ocaml_fn_48
+        1871: new           #236                // class ocaml_fn_Stdlib_print_bytes_48
         1874: dup
         1875: aload         79
         1877: aload         87
-        1879: invokespecial #237                // Method ocaml_fn_48."<init>":(Ljava/lang/Object;Ljava/lang/Object;)V
+        1879: invokespecial #237                // Method ocaml_fn_Stdlib_print_bytes_48."<init>":(Ljava/lang/Object;Ljava/lang/Object;)V
         1882: astore        105
         1884: aload         18
         1886: checkcast     #8                  // class Block
@@ -8632,12 +8632,12 @@ let%expect_test "emission: if/else with int compare" =
         1892: bipush        42
         1894: aload         105
         1896: aastore
-        1897: new           #239                // class ocaml_fn_49
+        1897: new           #239                // class ocaml_fn_Stdlib_print_int_49
         1900: dup
         1901: aload         63
         1903: aload         79
         1905: aload         88
-        1907: invokespecial #242                // Method ocaml_fn_49."<init>":(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)V
+        1907: invokespecial #242                // Method ocaml_fn_Stdlib_print_int_49."<init>":(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)V
         1910: astore        106
         1912: aload         18
         1914: checkcast     #8                  // class Block
@@ -8645,12 +8645,12 @@ let%expect_test "emission: if/else with int compare" =
         1920: bipush        43
         1922: aload         106
         1924: aastore
-        1925: new           #244                // class ocaml_fn_50
+        1925: new           #244                // class ocaml_fn_Stdlib_print_float_50
         1928: dup
         1929: aload         66
         1931: aload         79
         1933: aload         88
-        1935: invokespecial #245                // Method ocaml_fn_50."<init>":(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)V
+        1935: invokespecial #245                // Method ocaml_fn_Stdlib_print_float_50."<init>":(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)V
         1938: astore        107
         1940: aload         18
         1942: checkcast     #8                  // class Block
@@ -8658,11 +8658,11 @@ let%expect_test "emission: if/else with int compare" =
         1948: bipush        44
         1950: aload         107
         1952: aastore
-        1953: new           #247                // class ocaml_fn_51
+        1953: new           #247                // class ocaml_fn_Stdlib_print_endline_51
         1956: dup
         1957: aload         79
         1959: aload         88
-        1961: invokespecial #248                // Method ocaml_fn_51."<init>":(Ljava/lang/Object;Ljava/lang/Object;)V
+        1961: invokespecial #248                // Method ocaml_fn_Stdlib_print_endline_51."<init>":(Ljava/lang/Object;Ljava/lang/Object;)V
         1964: astore        108
         1966: aload         18
         1968: checkcast     #8                  // class Block
@@ -8670,10 +8670,10 @@ let%expect_test "emission: if/else with int compare" =
         1974: bipush        45
         1976: aload         108
         1978: aastore
-        1979: new           #250                // class ocaml_fn_52
+        1979: new           #250                // class ocaml_fn_Stdlib_print_newline_52
         1982: dup
         1983: aload         79
-        1985: invokespecial #251                // Method ocaml_fn_52."<init>":(Ljava/lang/Object;)V
+        1985: invokespecial #251                // Method ocaml_fn_Stdlib_print_newline_52."<init>":(Ljava/lang/Object;)V
         1988: astore        109
         1990: aload         18
         1992: checkcast     #8                  // class Block
@@ -8681,10 +8681,10 @@ let%expect_test "emission: if/else with int compare" =
         1998: bipush        46
         2000: aload         109
         2002: aastore
-        2003: new           #253                // class ocaml_fn_53
+        2003: new           #253                // class ocaml_fn_Stdlib_prerr_char_53
         2006: dup
         2007: aload         82
-        2009: invokespecial #254                // Method ocaml_fn_53."<init>":(Ljava/lang/Object;)V
+        2009: invokespecial #254                // Method ocaml_fn_Stdlib_prerr_char_53."<init>":(Ljava/lang/Object;)V
         2012: astore        110
         2014: aload         18
         2016: checkcast     #8                  // class Block
@@ -8692,11 +8692,11 @@ let%expect_test "emission: if/else with int compare" =
         2022: bipush        47
         2024: aload         110
         2026: aastore
-        2027: new           #256                // class ocaml_fn_54
+        2027: new           #256                // class ocaml_fn_Stdlib_prerr_string_54
         2030: dup
         2031: aload         82
         2033: aload         88
-        2035: invokespecial #257                // Method ocaml_fn_54."<init>":(Ljava/lang/Object;Ljava/lang/Object;)V
+        2035: invokespecial #257                // Method ocaml_fn_Stdlib_prerr_string_54."<init>":(Ljava/lang/Object;Ljava/lang/Object;)V
         2038: astore        111
         2040: aload         18
         2042: checkcast     #8                  // class Block
@@ -8704,11 +8704,11 @@ let%expect_test "emission: if/else with int compare" =
         2048: bipush        48
         2050: aload         111
         2052: aastore
-        2053: new           #259                // class ocaml_fn_55
+        2053: new           #259                // class ocaml_fn_Stdlib_prerr_bytes_55
         2056: dup
         2057: aload         82
         2059: aload         87
-        2061: invokespecial #260                // Method ocaml_fn_55."<init>":(Ljava/lang/Object;Ljava/lang/Object;)V
+        2061: invokespecial #260                // Method ocaml_fn_Stdlib_prerr_bytes_55."<init>":(Ljava/lang/Object;Ljava/lang/Object;)V
         2064: astore        112
         2066: aload         18
         2068: checkcast     #8                  // class Block
@@ -8716,12 +8716,12 @@ let%expect_test "emission: if/else with int compare" =
         2074: bipush        49
         2076: aload         112
         2078: aastore
-        2079: new           #262                // class ocaml_fn_56
+        2079: new           #262                // class ocaml_fn_Stdlib_prerr_int_56
         2082: dup
         2083: aload         63
         2085: aload         82
         2087: aload         88
-        2089: invokespecial #263                // Method ocaml_fn_56."<init>":(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)V
+        2089: invokespecial #263                // Method ocaml_fn_Stdlib_prerr_int_56."<init>":(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)V
         2092: astore        113
         2094: aload         18
         2096: checkcast     #8                  // class Block
@@ -8729,12 +8729,12 @@ let%expect_test "emission: if/else with int compare" =
         2102: bipush        50
         2104: aload         113
         2106: aastore
-        2107: new           #265                // class ocaml_fn_57
+        2107: new           #265                // class ocaml_fn_Stdlib_prerr_float_57
         2110: dup
         2111: aload         66
         2113: aload         82
         2115: aload         88
-        2117: invokespecial #266                // Method ocaml_fn_57."<init>":(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)V
+        2117: invokespecial #266                // Method ocaml_fn_Stdlib_prerr_float_57."<init>":(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)V
         2120: astore        114
         2122: aload         18
         2124: checkcast     #8                  // class Block
@@ -8742,11 +8742,11 @@ let%expect_test "emission: if/else with int compare" =
         2130: bipush        51
         2132: aload         114
         2134: aastore
-        2135: new           #268                // class ocaml_fn_58
+        2135: new           #268                // class ocaml_fn_Stdlib_prerr_endline_58
         2138: dup
         2139: aload         82
         2141: aload         88
-        2143: invokespecial #269                // Method ocaml_fn_58."<init>":(Ljava/lang/Object;Ljava/lang/Object;)V
+        2143: invokespecial #269                // Method ocaml_fn_Stdlib_prerr_endline_58."<init>":(Ljava/lang/Object;Ljava/lang/Object;)V
         2146: astore        115
         2148: aload         18
         2150: checkcast     #8                  // class Block
@@ -8754,10 +8754,10 @@ let%expect_test "emission: if/else with int compare" =
         2156: bipush        52
         2158: aload         115
         2160: aastore
-        2161: new           #271                // class ocaml_fn_59
+        2161: new           #271                // class ocaml_fn_Stdlib_prerr_newline_59
         2164: dup
         2165: aload         82
-        2167: invokespecial #272                // Method ocaml_fn_59."<init>":(Ljava/lang/Object;)V
+        2167: invokespecial #272                // Method ocaml_fn_Stdlib_prerr_newline_59."<init>":(Ljava/lang/Object;)V
         2170: astore        116
         2172: aload         18
         2174: checkcast     #8                  // class Block
@@ -8765,12 +8765,12 @@ let%expect_test "emission: if/else with int compare" =
         2180: bipush        53
         2182: aload         116
         2184: aastore
-        2185: new           #274                // class ocaml_fn_60
+        2185: new           #274                // class ocaml_fn_Stdlib_read_line_60
         2188: dup
         2189: aload         76
         2191: aload         79
         2193: aload         101
-        2195: invokespecial #275                // Method ocaml_fn_60."<init>":(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)V
+        2195: invokespecial #275                // Method ocaml_fn_Stdlib_read_line_60."<init>":(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)V
         2198: astore        117
         2200: aload         18
         2202: checkcast     #8                  // class Block
@@ -8778,10 +8778,10 @@ let%expect_test "emission: if/else with int compare" =
         2208: bipush        54
         2210: aload         117
         2212: aastore
-        2213: new           #277                // class ocaml_fn_61
+        2213: new           #277                // class ocaml_fn_Stdlib_read_int_61
         2216: dup
         2217: aload         117
-        2219: invokespecial #278                // Method ocaml_fn_61."<init>":(Ljava/lang/Object;)V
+        2219: invokespecial #278                // Method ocaml_fn_Stdlib_read_int_61."<init>":(Ljava/lang/Object;)V
         2222: astore        118
         2224: aload         18
         2226: checkcast     #8                  // class Block
@@ -8789,11 +8789,11 @@ let%expect_test "emission: if/else with int compare" =
         2232: bipush        56
         2234: aload         118
         2236: aastore
-        2237: new           #280                // class ocaml_fn_62
+        2237: new           #280                // class ocaml_fn_Stdlib_read_int_opt_62
         2240: dup
         2241: aload         64
         2243: aload         117
-        2245: invokespecial #281                // Method ocaml_fn_62."<init>":(Ljava/lang/Object;Ljava/lang/Object;)V
+        2245: invokespecial #281                // Method ocaml_fn_Stdlib_read_int_opt_62."<init>":(Ljava/lang/Object;Ljava/lang/Object;)V
         2248: astore        119
         2250: aload         18
         2252: checkcast     #8                  // class Block
@@ -8801,10 +8801,10 @@ let%expect_test "emission: if/else with int compare" =
         2258: bipush        55
         2260: aload         119
         2262: aastore
-        2263: new           #283                // class ocaml_fn_63
+        2263: new           #283                // class ocaml_fn_Stdlib_read_float_63
         2266: dup
         2267: aload         117
-        2269: invokespecial #284                // Method ocaml_fn_63."<init>":(Ljava/lang/Object;)V
+        2269: invokespecial #284                // Method ocaml_fn_Stdlib_read_float_63."<init>":(Ljava/lang/Object;)V
         2272: astore        120
         2274: aload         18
         2276: checkcast     #8                  // class Block
@@ -8812,11 +8812,11 @@ let%expect_test "emission: if/else with int compare" =
         2282: bipush        58
         2284: aload         120
         2286: aastore
-        2287: new           #286                // class ocaml_fn_64
+        2287: new           #286                // class ocaml_fn_Stdlib_read_float_opt_64
         2290: dup
         2291: aload         67
         2293: aload         117
-        2295: invokespecial #287                // Method ocaml_fn_64."<init>":(Ljava/lang/Object;Ljava/lang/Object;)V
+        2295: invokespecial #287                // Method ocaml_fn_Stdlib_read_float_opt_64."<init>":(Ljava/lang/Object;Ljava/lang/Object;)V
         2298: astore        121
         2300: aload         18
         2302: checkcast     #8                  // class Block
@@ -8824,9 +8824,9 @@ let%expect_test "emission: if/else with int compare" =
         2308: bipush        57
         2310: aload         121
         2312: aastore
-        2313: new           #289                // class ocaml_fn_65
+        2313: new           #289                // class ocaml_fn_Stdlib_string_of_format_65
         2316: dup
-        2317: invokespecial #290                // Method ocaml_fn_65."<init>":()V
+        2317: invokespecial #290                // Method ocaml_fn_Stdlib_string_of_format_65."<init>":()V
         2320: astore        122
         2322: aload         18
         2324: checkcast     #8                  // class Block
@@ -8856,10 +8856,10 @@ let%expect_test "emission: if/else with int compare" =
         2372: aastore
         2373: invokespecial #22                 // Method Block."<init>":(I[Ljava/lang/Object;)V
         2376: astore        124
-        2378: new           #295                // class ocaml_fn_67
+        2378: new           #295                // class ocaml_fn_Stdlib_at_exit_67
         2381: dup
         2382: aload         124
-        2384: invokespecial #296                // Method ocaml_fn_67."<init>":(Ljava/lang/Object;)V
+        2384: invokespecial #296                // Method ocaml_fn_Stdlib_at_exit_67."<init>":(Ljava/lang/Object;)V
         2387: astore        125
         2389: aload         18
         2391: checkcast     #8                  // class Block
@@ -8867,9 +8867,9 @@ let%expect_test "emission: if/else with int compare" =
         2397: bipush        99
         2399: aload         125
         2401: aastore
-        2402: new           #298                // class ocaml_fn_68
+        2402: new           #298                // class ocaml_fn_Stdlib_do_domain_local_at_exit__fun__68
         2405: dup
-        2406: invokespecial #299                // Method ocaml_fn_68."<init>":()V
+        2406: invokespecial #299                // Method ocaml_fn_Stdlib_do_domain_local_at_exit__fun__68."<init>":()V
         2409: astore        126
         2411: new           #8                  // class Block
         2414: dup
@@ -8888,11 +8888,11 @@ let%expect_test "emission: if/else with int compare" =
         2438: bipush        103
         2440: aload         127
         2442: aastore
-        2443: new           #301                // class ocaml_fn_69
+        2443: new           #301                // class ocaml_fn_Stdlib_do_at_exit_69
         2446: dup
         2447: aload         124
         2449: aload         127
-        2451: invokespecial #302                // Method ocaml_fn_69."<init>":(Ljava/lang/Object;Ljava/lang/Object;)V
+        2451: invokespecial #302                // Method ocaml_fn_Stdlib_do_at_exit_69."<init>":(Ljava/lang/Object;Ljava/lang/Object;)V
         2454: astore        128
         2456: aload         18
         2458: checkcast     #8                  // class Block
@@ -8900,10 +8900,10 @@ let%expect_test "emission: if/else with int compare" =
         2464: bipush        102
         2466: aload         128
         2468: aastore
-        2469: new           #304                // class ocaml_fn_70
+        2469: new           #304                // class ocaml_fn_Stdlib_exit_70
         2472: dup
         2473: aload         128
-        2475: invokespecial #305                // Method ocaml_fn_70."<init>":(Ljava/lang/Object;)V
+        2475: invokespecial #305                // Method ocaml_fn_Stdlib_exit_70."<init>":(Ljava/lang/Object;)V
         2478: astore        129
         2480: aload         18
         2482: checkcast     #8                  // class Block

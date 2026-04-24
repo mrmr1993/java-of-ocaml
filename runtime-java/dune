@@ -9,6 +9,7 @@
   PartialClosure.class
   DummyClosure.class
   CamlException.class
+  Backtrace.class
   Compare.class
   Channel.class
   Channel$EmptyInputStream.class
@@ -29,6 +30,7 @@
   PartialClosure.java
   DummyClosure.java
   CamlException.java
+  Backtrace.java
   Compare.java
   Channel.java
   Bytes.java
@@ -53,6 +55,7 @@
    PartialClosure.class
    DummyClosure.class
    CamlException.class
+   Backtrace.class
    Compare.class
    Channel.class
    Channel$EmptyInputStream.class

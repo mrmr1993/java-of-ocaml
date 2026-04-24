@@ -28,7 +28,7 @@ type ctx =
         (* Index into Main.GLOBALS of the [Not_found] exception
            descriptor. Populated by the driver. *)
   ; mutable next_local : int
-  ; line_of_pc : int -> int option
+  ; line_of_pc : int -> (string * int) option
         (* Source line of a bytecode-pc (Addr), if known. Used to
            populate the LineNumberTable via [Jvm.Code.mark_line]. *)
   ; block_start : (Code.Addr.t, Jvm.Code.label) Hashtbl.t
@@ -1466,12 +1466,30 @@ and emit_ccall_named ctx name args =
     Kind.K_int
   | "caml_sys_const_min_int" -> emit_int_const ctx min_int; Kind.K_int
   | "caml_sys_const_max_int" -> emit_int_const ctx max_int; Kind.K_int
+  | "caml_record_backtrace" ->
+    (match args with
+     | [ Pv v ] ->
+       as_int v;
+       Jvm.Code.invokestatic
+         ctx.code
+         ~class_:"Backtrace"
+         ~method_:"setRecording"
+         ~descriptor:"(I)V";
+       emit_int_const ctx 0;
+       Kind.K_int
+     | _ -> raise (Unsupported "caml_record_backtrace arity"))
+  | "caml_backtrace_status" ->
+    Jvm.Code.invokestatic
+      ctx.code
+      ~class_:"Backtrace"
+      ~method_:"getStatus"
+      ~descriptor:"()I";
+    Jvm.Code.i2l ctx.code;
+    Kind.K_int
   | "caml_ensure_stack_capacity"
   | "caml_ml_set_binary_mode"
   | "caml_ml_set_channel_name"
   | "caml_init_signals"
-  | "caml_record_backtrace"
-  | "caml_backtrace_status"
   | "caml_ml_debug_info_status"
   | "caml_ml_enable_runtime_warnings"
   | "caml_ml_runtime_warnings_enabled"
@@ -5508,7 +5526,7 @@ let emit_instr ctx (i : Code.instr) =
        line, so many consecutive Source_pc markers with the same
        line only produce one LineNumberTable entry. *)
     (match ctx.line_of_pc pc with
-     | Some line -> Jvm.Code.mark_line ctx.code line
+     | Some (file, line) -> Jvm.Code.mark_line ctx.code file line
      | None -> ())
 
 (* Emit a branch edge: parallel-rename the [args] into a caller's
@@ -5792,7 +5810,7 @@ let emit_block ctx prog addr (b : Code.block) =
   let start_lbl = label_of ctx addr in
   Jvm.Code.mark_label ctx.code start_lbl;
   (match ctx.line_of_pc addr with
-   | Some line -> Jvm.Code.mark_line ctx.code line
+   | Some (file, line) -> Jvm.Code.mark_line ctx.code file line
    | None -> ());
   Hashtbl.replace ctx.block_start addr start_lbl;
   Array.iter (fun i -> emit_instr ctx i) b.body;

@@ -363,6 +363,7 @@ let compile_user_stubs ~stub_manifests ~stub_classpath =
     seed "Block" (Jvm.block_class_bytes ());
     seed "Closure" (Jvm.closure_class_bytes ());
     seed "CamlException" (Jvm.camlexception_class_bytes ());
+    seed "Backtrace" (Jvm.backtrace_class_bytes ());
     seed "Ocaml" (Jvm.ocaml_class_bytes ());
     seed "Bytes" (Jvm.bytes_class_bytes ());
     seed "BigArray" (Jvm.big_array_class_bytes ());
@@ -867,7 +868,23 @@ let compile_t
         let body_start_idx, body_end_idx, nargs =
           find_function_body_range arr ~pc_upper_bound body_pc
         in
-        let name = Printf.sprintf "ocaml_fn_%d" !fn_count in
+        let name =
+          let base =
+            match Hashtbl.find_opt parsed.debug body_pc with
+            | Some { defname = Some d; _ } when String.length d > 0 ->
+              let buf = Buffer.create (String.length d) in
+              String.iter
+                (fun c ->
+                  match c with
+                  | 'A' .. 'Z' | 'a' .. 'z' | '0' .. '9' | '_' ->
+                    Buffer.add_char buf c
+                  | _ -> Buffer.add_char buf '_')
+                d;
+              Printf.sprintf "ocaml_fn_%s" (Buffer.contents buf)
+            | _ -> "ocaml_fn"
+          in
+          Printf.sprintf "%s_%d" base !fn_count
+        in
         incr fn_count;
         let info =
           { name
@@ -1001,10 +1018,10 @@ let compile_t
   let sorted_debug_pcs =
     let arr =
       Hashtbl.fold
-        (fun pc (d : Bytecode.debug_loc) acc -> (pc, d.line) :: acc)
+        (fun pc (d : Bytecode.debug_loc) acc -> (pc, d.file, d.line) :: acc)
         parsed.debug
         []
-      |> List.sort (fun (a, _) (b, _) -> compare a b)
+      |> List.sort (fun (a, _, _) (b, _, _) -> compare a b)
       |> Array.of_list
     in
     arr
@@ -1022,7 +1039,7 @@ let compile_t
       let lo = ref 0 and hi = ref (n - 1) and found = ref (-1) in
       while !lo <= !hi do
         let mid = (!lo + !hi) / 2 in
-        let mpc, _ = sorted_debug_pcs.(mid) in
+        let mpc, _, _ = sorted_debug_pcs.(mid) in
         if mpc <= pc
         then (
           found := mid;
@@ -1032,8 +1049,8 @@ let compile_t
       if !found = -1
       then None
       else
-        let _, line = sorted_debug_pcs.(!found) in
-        Some line
+        let _, file, line = sorted_debug_pcs.(!found) in
+        Some (file, line)
   in
   (match Sys.getenv_opt "JAVA_OF_OCAML_DEBUG" with
    | Some s when List.mem "dbug" (String.split_on_char ',' s) ->
@@ -1883,6 +1900,7 @@ let compile_t
     write_class "Block" (Jvm.block_class_bytes ());
     write_class "Closure" (Jvm.closure_class_bytes ());
     write_class "CamlException" (Jvm.camlexception_class_bytes ());
+    write_class "Backtrace" (Jvm.backtrace_class_bytes ());
     write_class "PartialClosure" (Jvm.partial_closure_class_bytes ());
     write_class "DummyClosure" (Jvm.dummy_closure_class_bytes ());
     write_class "Compare" (Jvm.compare_class_bytes ());
