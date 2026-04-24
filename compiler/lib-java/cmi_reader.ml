@@ -163,7 +163,45 @@ let read ~search_paths ~modname =
    Walk one [Sig_module] at a time. At each step, count slot-
    consuming signature items before the target submodule so we
    recover its field index in its parent's module block, then
-   follow its [Mty_signature] body to resolve the next segment. *)
+   follow its body — [Mty_signature] directly, or [Mty_ident]
+   after path-resolution — to resolve the next segment.
+
+   Path resolution is intentionally lightweight: we do not set up
+   a full [Env.t]. Instead we carry a stack of enclosing
+   signatures (innermost first) plus a lazy cache of external
+   [.cmi]s reachable from the search path, and look up modtype /
+   module paths by name inside that stack. This is approximate
+   but handles the common shapes ([Pident X] referring to a local
+   [module type X = ...], [Pdot (Pident M, "X")] referring to a
+   modtype exported from a sibling [.cmi]). Functors, applicative
+   paths, and module-alias chases are out of scope and produce a
+   clear error message. *)
+
+type env =
+  { search_paths : string list
+  ; cmi_cache : (string, Types.signature) Hashtbl.t
+  ; mutable enclosing : Types.signature list
+        (* Innermost first. Used to resolve [Pident] paths. *)
+  }
+
+let make_env search_paths =
+  { search_paths
+  ; cmi_cache = Hashtbl.create 16
+  ; enclosing = []
+  }
+
+let load_cmi_sig env modname =
+  match Hashtbl.find_opt env.cmi_cache modname with
+  | Some s -> Some s
+  | None ->
+    (match find_cmi ~search_paths:env.search_paths ~modname with
+     | None -> None
+     | Some p ->
+       (try
+          let infos = Cmi_format.read_cmi p in
+          Hashtbl.add env.cmi_cache modname infos.cmi_sign;
+          Some infos.cmi_sign
+        with _ -> None))
 
 let find_submodule (sig_items : Types.signature_item list) ~name =
   let idx = ref 0 in
@@ -178,7 +216,91 @@ let find_submodule (sig_items : Types.signature_item list) ~name =
     sig_items;
   !result
 
-let rec descend sig_items ~path =
+let find_modtype_in_sig (sig_items : Types.signature_item list) ~name =
+  List.find_map
+    (function
+      | Types.Sig_modtype (id, decl, _) when Ident.name id = name ->
+        Some decl.mtd_type
+      | _ -> None)
+    sig_items
+
+let find_module_in_sig (sig_items : Types.signature_item list) ~name =
+  List.find_map
+    (function
+      | Types.Sig_module (id, _, md, _, _) when Ident.name id = name ->
+        Some md.md_type
+      | _ -> None)
+    sig_items
+
+(* Resolve a module path ([Pident] / [Pdot], we ignore [Papply] and
+   anything else) to the signature items it names. Used as the
+   parent-lookup step for [Pdot] modtype paths and for [Mty_alias]
+   chases. *)
+let rec resolve_module_path env (p : Path.t) : Types.signature option =
+  match p with
+  | Pident id ->
+    let name = Ident.name id in
+    (match
+       List.find_map (fun s -> find_module_in_sig s ~name) env.enclosing
+     with
+     | Some mt -> resolve_module_type env mt
+     | None -> load_cmi_sig env name)
+  | Pdot (parent, name) ->
+    (match resolve_module_path env parent with
+     | None -> None
+     | Some sig_items ->
+       match find_module_in_sig sig_items ~name with
+       | None -> None
+       | Some mt -> resolve_module_type env mt)
+  | _ -> None
+
+(* Resolve an [Mty_ident]-style path reference to its target
+   module-type, returning the target [module_type] (one dereference
+   step; the caller keeps resolving until it lands on
+   [Mty_signature]). *)
+and resolve_modtype_path env (p : Path.t) : Types.module_type option =
+  match p with
+  | Pident id ->
+    let name = Ident.name id in
+    (match
+       List.find_map
+         (fun s -> find_modtype_in_sig s ~name)
+         env.enclosing
+     with
+     | Some mtd -> mtd
+     | None -> None)
+  | Pdot (parent, name) ->
+    (match resolve_module_path env parent with
+     | None -> None
+     | Some sig_items ->
+       (match find_modtype_in_sig sig_items ~name with
+        | Some (Some mt) -> Some mt
+        | Some None -> None  (* abstract module type *)
+        | None -> None))
+  | _ -> None
+
+(* Collapse a [module_type] chain into its underlying [signature],
+   chasing [Mty_ident] (path to a module type) and [Mty_alias]
+   (path to a module). Bounded iteration to guard against
+   pathological inputs. *)
+and resolve_module_type ?(fuel = 8) env (mt : Types.module_type)
+    : Types.signature option
+  =
+  if fuel <= 0 then None
+  else
+    match mt with
+    | Mty_signature s -> Some s
+    | Mty_ident p ->
+      (match resolve_modtype_path env p with
+       | None -> None
+       | Some mt' -> resolve_module_type ~fuel:(fuel - 1) env mt')
+    | Mty_alias p ->
+      (match resolve_module_path env p with
+       | None -> None
+       | Some s -> Some s)
+    | Mty_functor _ -> None
+
+let rec descend env sig_items ~path =
   match path with
   | [] -> Ok ([], sig_items)
   | name :: rest ->
@@ -186,23 +308,32 @@ let rec descend sig_items ~path =
     | None ->
       Error (Printf.sprintf "no submodule %S in signature" name)
     | Some (fidx, md) ->
-      (match md.md_type with
-       | Mty_signature inner ->
-         (match descend inner ~path:rest with
+      (* Push the parent sig so it's in scope for resolving any
+         [Mty_ident] references encountered below. *)
+      env.enclosing <- sig_items :: env.enclosing;
+      let inner =
+        match md.md_type with
+        | Mty_signature s -> Some s
+        | (Mty_ident _ | Mty_alias _) as mt -> resolve_module_type env mt
+        | Mty_functor _ -> None
+      in
+      let result =
+        match inner with
+        | None ->
+          Error
+            (Printf.sprintf
+               "submodule %S body could not be resolved to an explicit \
+                signature (Mty_functor / Mty_alias to a non-loadable \
+                module, or an Mty_ident chain that bottomed out at an \
+                abstract module type)"
+               name)
+        | Some inner_sig ->
+          match descend env inner_sig ~path:rest with
           | Error _ as e -> e
-          | Ok (chain, leaf) -> Ok (fidx :: chain, leaf))
-       | Mty_ident _ ->
-         Error
-           (Printf.sprintf
-              "submodule %S body is Mty_ident (module-type alias); \
-               inline-signature descent unsupported"
-              name)
-       | Mty_functor _ ->
-         Error
-           (Printf.sprintf "submodule %S is a functor, cannot descend" name)
-       | Mty_alias _ ->
-         Error
-           (Printf.sprintf "submodule %S is an alias, cannot descend" name))
+          | Ok (chain, leaf) -> Ok (fidx :: chain, leaf)
+      in
+      env.enclosing <- List.tl env.enclosing;
+      result
 
 let read_path ~search_paths ~outer ~sub_path =
   match find_cmi ~search_paths ~modname:outer with
@@ -227,7 +358,10 @@ let read_path ~search_paths ~outer ~sub_path =
              path
              (Printexc.to_string e))
     in
-    match descend infos.cmi_sign ~path:sub_path with
+    let env = make_env search_paths in
+    (* Seed the cache so [Pident <outer>] self-references resolve. *)
+    Hashtbl.add env.cmi_cache infos.cmi_name infos.cmi_sign;
+    match descend env infos.cmi_sign ~path:sub_path with
     | Error why ->
       failwith
         (Printf.sprintf

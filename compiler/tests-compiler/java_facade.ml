@@ -166,6 +166,90 @@ let%expect_test "cmi_reader descends into nested Sig_module with field_chain" =
       [2] post : int
     |}]
 
+let%expect_test "cmi_reader resolves Mty_ident local modtype paths" =
+  (* `module Fee : Basic` pattern — submodule body is Mty_ident
+     referring to a module type defined alongside it. The
+     resolver walks the enclosing signature stack to find the
+     modtype and keeps descending. *)
+  Util.with_temp_dir ~f:(fun () ->
+    let oc = open_out "mtyident.ml" in
+    output_string oc
+      "module type Basic = sig\n\
+      \  val zero : int\n\
+      \  val add : int -> int -> int\n\
+       end\n\
+       module Foo : Basic = struct let zero = 0 let add x y = x + y end\n\
+       module Bar : Basic = struct let zero = 1 let add x y = x - y end\n";
+    close_out oc;
+    let _ =
+      Util.compile_ocaml_to_cmo
+        (Util.Filetype.ocaml_file_of_path "mtyident.ml")
+    in
+    let print t =
+      Printf.printf "modname=%s field_chain=[%s]\n"
+        t.Cmi_reader.modname
+        (String.concat ";" (List.map string_of_int t.field_chain));
+      List.iter
+        (fun b ->
+          Printf.printf "  [%d] %s : %s\n"
+            b.Cmi_reader.field_index b.name (kind_to_string b.kind))
+        t.bindings
+    in
+    print
+      (Cmi_reader.read_path ~search_paths:[ Sys.getcwd () ]
+         ~outer:"Mtyident" ~sub_path:[ "Foo" ]);
+    print
+      (Cmi_reader.read_path ~search_paths:[ Sys.getcwd () ]
+         ~outer:"Mtyident" ~sub_path:[ "Bar" ]));
+  [%expect
+    {|
+    modname=Mtyident.Foo field_chain=[0]
+      [0] zero : int
+      [1] add : (int, int) -> int
+    modname=Mtyident.Bar field_chain=[1]
+      [0] zero : int
+      [1] add : (int, int) -> int
+    |}]
+
+let%expect_test "cmi_reader resolves Mty_ident across external .cmi" =
+  Util.with_temp_dir ~f:(fun () ->
+    let oc = open_out "mtypes.ml" in
+    output_string oc
+      "module type Basic = sig val zero : int val add : int -> int -> int end\n";
+    close_out oc;
+    let oc = open_out "wrapper.ml" in
+    output_string oc
+      "module Foo : Mtypes.Basic = \
+       struct let zero = 7 let add x y = x * y end\n";
+    close_out oc;
+    let _ =
+      Util.compile_ocaml_to_cmo
+        (Util.Filetype.ocaml_file_of_path "mtypes.ml")
+    in
+    let _ =
+      Util.compile_ocaml_to_cmo
+        (Util.Filetype.ocaml_file_of_path "wrapper.ml")
+    in
+    let print t =
+      Printf.printf "modname=%s field_chain=[%s]\n"
+        t.Cmi_reader.modname
+        (String.concat ";" (List.map string_of_int t.field_chain));
+      List.iter
+        (fun b ->
+          Printf.printf "  [%d] %s : %s\n"
+            b.Cmi_reader.field_index b.name (kind_to_string b.kind))
+        t.bindings
+    in
+    print
+      (Cmi_reader.read_path ~search_paths:[ Sys.getcwd () ]
+         ~outer:"Wrapper" ~sub_path:[ "Foo" ]));
+  [%expect
+    {|
+    modname=Wrapper.Foo field_chain=[0]
+      [0] zero : int
+      [1] add : (int, int) -> int
+    |}]
+
 let%expect_test "cmi_reader skips external primitives" =
   (* [Val_prim] bindings don't consume module-struct slots, so the
      field_index for [y] stays at 0. *)
@@ -188,16 +272,12 @@ let%expect_test "cmi_reader skips external primitives" =
    emission, and the [Main.GLOBALS]+[Closure.applyN] dispatch
    shape. *)
 
-let java_of_ocaml_root_e2e =
-  try
-    let d = Sys.getenv "PROJECT_ROOT" in
-    if Filename.is_relative d then Filename.concat (Sys.getcwd ()) d else d
-  with Not_found ->
-    let cwd = Sys.getcwd () in
-    match Str.split (Str.regexp "_build") cwd with
-    | left :: _ :: _ ->
-      Filename.concat (Filename.concat left "_build") "default"
-    | _ -> cwd
+(* Reuse [Util]'s resolver - it latches onto [_build/default] the
+   first time it is evaluated (during [Java_of_ocaml_expect_tests_
+   helper]'s module init, before any sandbox chdir), so it stays
+   correct even when dune later runs the test from a sandbox
+   directory that no longer contains a [_build] segment. *)
+let java_of_ocaml_root_e2e = Util.java_of_ocaml_root
 
 let ocaml_stdlib_cma_e2e =
   let ic = Unix.open_process_in "ocamlc -where" in
