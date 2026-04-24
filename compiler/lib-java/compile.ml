@@ -738,9 +738,15 @@ let compile_t
       ?(print_tree = [])
       ?(stub_manifests = [])
       ?(stub_classpath = [])
+      ?(export_modules = [])
+      ?(cmi_paths = [])
       ~parsed
       ~out_dir
       () =
+  (* [export_modules] / [cmi_paths] are accepted but not yet consumed;
+     wiring for the Java-facade feature lands in follow-up steps. See
+     [docs/JAVA_FACADE.md]. *)
+  ignore (export_modules, cmi_paths);
   let total = if debug_times () then Some (Timer.make ()) else None in
   let stubs =
     let builtin =
@@ -2352,6 +2358,8 @@ let compile
       ?(print_tree = [])
       ?(stub_manifests = [])
       ?(stub_classpath = [])
+      ?(export_modules = [])
+      ?(cmi_paths = [])
       ~bcs
       ~out_dir
       () =
@@ -2378,7 +2386,7 @@ let compile
   in
   oversized_stubs := [];
   compile_t ~print_functions ~print_ir ~print_tree ~stub_manifests
-    ~stub_classpath ~parsed ~out_dir ();
+    ~stub_classpath ~export_modules ~cmi_paths ~parsed ~out_dir ();
   report_oversized_stubs_and_maybe_fail ()
 
 (* Share the "read bcs into a [Bytecode.t]" part of [compile] so the

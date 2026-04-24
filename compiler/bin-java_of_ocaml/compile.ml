@@ -3,6 +3,26 @@
 
 open Cmdliner
 
+let parse_export_spec s =
+  (* [NAME=FQCN], where FQCN uses '.' (Java source) or '/' (JVM internal)
+     form; we normalise to '/' downstream. *)
+  match String.index_opt s '=' with
+  | None ->
+    Error
+      (Printf.sprintf
+         "--export-module: expected NAME=FQCN, got %S (missing '=')"
+         s)
+  | Some i ->
+    let name = String.sub s 0 i in
+    let fqcn = String.sub s (i + 1) (String.length s - i - 1) in
+    if name = "" || fqcn = ""
+    then
+      Error
+        (Printf.sprintf
+           "--export-module: NAME and FQCN must both be non-empty (got %S)"
+           s)
+    else Ok (name, fqcn)
+
 let run
     inputs
     output_dir
@@ -12,8 +32,24 @@ let run
     print_tree
     list_missing
     stub_manifests
-    stub_classpath =
+    stub_classpath
+    export_modules
+    cmi_paths =
   List.iter Java_of_ocaml_compiler.Debug.enable debug_flags;
+  let exports_result =
+    List.fold_left
+      (fun acc s ->
+        match acc, parse_export_spec s with
+        | Error _, _ -> acc
+        | Ok _, Error msg -> Error msg
+        | Ok xs, Ok p -> Ok (p :: xs))
+      (Ok [])
+      export_modules
+  in
+  match exports_result with
+  | Error msg -> `Error (true, msg)
+  | Ok exports_rev ->
+  let exports = List.rev exports_rev in
   match inputs, output_dir, list_missing with
   | [], _, _ -> `Error (true, "missing input file(s)")
   | bcs, _, true ->
@@ -42,6 +78,8 @@ let run
          ~print_tree
          ~stub_manifests
          ~stub_classpath
+         ~export_modules:exports
+         ~cmi_paths
          ~bcs
          ~out_dir
          ();
@@ -140,6 +178,33 @@ let stub_classpath_arg =
     & opt_all file []
     & info [ "stub-classpath" ] ~docv:"PATH" ~doc)
 
+let export_module_arg =
+  let doc =
+    "Emit a Java facade class for OCaml module $(b,NAME), exposed as \
+     fully-qualified JVM class $(b,FQCN). The facade forwards each \
+     exported binding through $(b,Main.GLOBALS) + $(b,Closure.apply) \
+     under a one-shot init guard. Requires a matching $(b,.cmi) on \
+     the search path (see $(b,--cmi-path)). Specify as \
+     $(i,NAME=FQCN), e.g. $(i,Mylib__Int64_utils=com.example.Int64Utils). \
+     May be repeated. $(b,Experimental): under active development; \
+     see $(b,docs/JAVA_FACADE.md)."
+  in
+  Arg.(
+    value
+    & opt_all string []
+    & info [ "export-module" ] ~docv:"NAME=FQCN" ~doc)
+
+let cmi_path_arg =
+  let doc =
+    "Directory to search for $(b,.cmi) files when resolving \
+     $(b,--export-module) targets. May be repeated; searched in \
+     order given."
+  in
+  Arg.(
+    value
+    & opt_all dir []
+    & info [ "cmi-path"; "I" ] ~docv:"DIR" ~doc)
+
 let list_missing_arg =
   let doc =
     "Don't compile; instead list every C primitive that the input \
@@ -162,7 +227,9 @@ let term =
        $ print_tree_arg
        $ list_missing_arg
        $ stub_manifest_arg
-       $ stub_classpath_arg))
+       $ stub_classpath_arg
+       $ export_module_arg
+       $ cmi_path_arg))
 
 let info =
   let doc = "Compile OCaml bytecode to JVM class files." in

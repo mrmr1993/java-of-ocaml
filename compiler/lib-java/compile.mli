@@ -4,6 +4,8 @@ val compile :
   -> ?print_tree:int list
   -> ?stub_manifests:string list
   -> ?stub_classpath:string list
+  -> ?export_modules:(string * string) list
+  -> ?cmi_paths:string list
   -> bcs:string list
   -> out_dir:string
   -> unit
@@ -36,6 +38,8 @@ val compile_t :
   -> ?print_tree:int list
   -> ?stub_manifests:string list
   -> ?stub_classpath:string list
+  -> ?export_modules:(string * string) list
+  -> ?cmi_paths:string list
   -> parsed:Bytecode.t
   -> out_dir:string
   -> unit
