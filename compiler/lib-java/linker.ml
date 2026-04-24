@@ -145,14 +145,23 @@ let link (units : unit_info list) : t =
   let total_len = sum_unit_lens + 1 in
   let code = Array.make total_len 0 in
   let debug = Hashtbl.create 64 in
+  let unit_ranges = ref [] in
   let base = ref 0 in
   List.iter
     (fun u ->
-      Array.blit u.cu_code 0 code !base (Array.length u.cu_code);
+      let start_pc = !base in
+      let len = Array.length u.cu_code in
+      Array.blit u.cu_code 0 code start_pc len;
       Hashtbl.iter
-        (fun pc loc -> Hashtbl.replace debug (!base + pc) loc)
+        (fun pc loc -> Hashtbl.replace debug (start_pc + pc) loc)
         u.cu_debug;
-      base := !base + Array.length u.cu_code)
+      unit_ranges :=
+        { Bytecode.Unit.modname = u.cu_name
+        ; start_pc
+        ; end_pc = start_pc + len
+        }
+        :: !unit_ranges;
+      base := start_pc + len)
     units;
   code.(sum_unit_lens) <- Bytecode.Op.stop;
 
@@ -172,4 +181,5 @@ let link (units : unit_info list) : t =
   ; prims = Prim_table.to_array prim_table
   ; globals = Globals.to_array globals
   ; debug
+  ; units = List.rev !unit_ranges
   }

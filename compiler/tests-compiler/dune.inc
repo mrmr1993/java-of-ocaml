@@ -300,6 +300,18 @@
   (pps ppx_expect)))
 
 (library
+ ;; compiler/tests-compiler/main_init_split.ml
+ (name main_init_split_15)
+ (enabled_if true)
+ (modules main_init_split)
+ (libraries unix str java_of_ocaml_expect_tests_helper)
+ (inline_tests
+  (enabled_if true))
+ (flags (:standard -open Java_of_ocaml_expect_tests_helper))
+ (preprocess
+  (pps ppx_expect)))
+
+(library
  ;; compiler/tests-compiler/method_size_limit.ml
  (name method_size_limit_15)
  (enabled_if true)

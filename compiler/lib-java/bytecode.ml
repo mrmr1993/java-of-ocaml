@@ -8,11 +8,20 @@ type debug_loc =
   ; defname : string option
   }
 
+module Unit = struct
+  type t =
+    { modname : string
+    ; start_pc : int
+    ; end_pc : int
+    }
+end
+
 type t =
   { code : int array
   ; prims : string array
   ; globals : Obj.t array
   ; debug : (int, debug_loc) Hashtbl.t
+  ; units : Unit.t list
   }
 
 module Op = struct
@@ -440,8 +449,14 @@ let read_exe path =
       seek_in ic off;
       (Marshal.from_channel ic : Obj.t array)
   in
-  let debug =
+  let code_len_words = Array.length code in
+  let debug, unit_starts =
     let table = Hashtbl.create 64 in
+    (* Collected in-order: one entry per DBUG list. [start_pc] is the
+       word-pc at which the unit's code begins; [modname] comes from
+       the list's events (all events in a list share an [ev_module],
+       which is the unit name). *)
+    let starts = ref [] in
     (match find_section "DBUG" with
      | None -> ()
      | Some (off, _len) ->
@@ -459,6 +474,12 @@ let read_exe path =
          let orig = input_binary_int ic in
          let evl : Instruct.debug_event list = input_value ic in
          let _dirs : string list = input_value ic in
+         let modname =
+           match evl with
+           | ev :: _ -> ev.ev_module
+           | [] -> ""
+         in
+         starts := (modname, orig / 4) :: !starts;
          List.iter
            (fun (ev : Instruct.debug_event) ->
              let pc = (orig + ev.ev_pos) / 4 in
@@ -489,10 +510,31 @@ let read_exe path =
                  })
            evl
        done);
-    table
+    table, List.rev !starts
+  in
+  let units =
+    (* Sort by [start_pc] before computing ranges. OCaml's
+       [Bytelink.output_debug_info] does not guarantee link order
+       in the DBUG stream (it iterates a hashtable of units); once
+       sorted, each entry's [end_pc] is the next entry's [start_pc]
+       and the last entry extends to the end of CODE (including the
+       linker-appended STOP trailer). *)
+    let sorted =
+      List.sort
+        (fun (_, a) (_, b) -> compare a b)
+        unit_starts
+    in
+    let rec build = function
+      | [] -> []
+      | [ (modname, start_pc) ] ->
+        [ { Unit.modname; start_pc; end_pc = code_len_words } ]
+      | (modname, start_pc) :: ((_, next_start) :: _ as rest) ->
+        { Unit.modname; start_pc; end_pc = next_start } :: build rest
+    in
+    build sorted
   in
   close_in ic;
-  { code; prims; globals; debug }
+  { code; prims; globals; debug; units }
 
 let prim_index t name =
   let n = Array.length t.prims in

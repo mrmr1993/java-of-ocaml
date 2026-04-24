@@ -1053,6 +1053,25 @@ let compile_t
         Some (file, line)
   in
   (match Sys.getenv_opt "JAVA_OF_OCAML_DEBUG" with
+   | Some s when List.mem "units" (String.split_on_char ',' s) ->
+     Format.eprintf
+       "[units] %d unit ranges (code_words=%d)@."
+       (List.length parsed.units)
+       (Array.length parsed.code);
+     List.iteri
+       (fun i (u : Bytecode.Unit.t) ->
+         if i < 5 || i >= List.length parsed.units - 5
+         then
+           Format.eprintf
+             "[units]   %d: %s [%d..%d) size=%d@."
+             i
+             u.modname
+             u.start_pc
+             u.end_pc
+             (u.end_pc - u.start_pc))
+       parsed.units
+   | _ -> ());
+  (match Sys.getenv_opt "JAVA_OF_OCAML_DEBUG" with
    | Some s when List.mem "dbug" (String.split_on_char ',' s) ->
      Format.eprintf "[dbug] %d events@." (Hashtbl.length parsed.debug);
      let pcs =
