@@ -87,6 +87,121 @@ let unit_index_of_pc (units : Bytecode.Unit.t array) pc : int option =
 (* ----------------------------------------------------------------- *)
 (* CFG helpers.                                                       *)
 
+(* ----------------------------------------------------------------- *)
+(* Transitive operand-liveness on a sub-program.                       *)
+
+(* We split at unit boundaries by rewriting each slice's entry-block
+   params to [Let (p, Block(0, [||]))]. That's safe iff no operand
+   in the slice ever reads [p] (directly or via branch-arg
+   forwarding). We compute this with a standard backwards dataflow:
+
+   1. Seed [live] with every Var read as an *operand* — instruction
+      operands, [Cond]/[Switch] discriminators, [Return]/[Raise]
+      values, [Invoke_tail] args. Branch-arg forwarding does NOT
+      count (it merely rebinds to the target block's param, which
+      might itself be dead).
+   2. Propagate: for every [Branch (dst, args)] (and the equivalents
+      on [Cond] / [Switch] / [Pushtrap] / [Poptrap]), index [args]
+      against [dst]'s params. If target [params.(i)] is live, the
+      argument at position [i] becomes live too.
+   3. Iterate to fixpoint.
+
+   A Var [v] ending up in [live] means the original program would
+   have observed [v]'s value via an operand read. If any entry-block
+   param lands in [live], we can't silently replace that param with
+   a [Block(0, [||])] constant and still match semantics. *)
+module Vset = Set.Make (Code.Var)
+
+let prim_arg_var = function
+  | Code.Pv v -> Some v
+  | Code.Pc _ -> None
+
+let expr_operands (e : Code.expr) : Vset.t =
+  match e with
+  | Code.Apply { f; args; _ } ->
+    List.fold_left (fun s v -> Vset.add v s) (Vset.singleton f) args
+  | Block (_, fields) ->
+    Array.fold_left (fun s v -> Vset.add v s) Vset.empty fields
+  | Field (v, _) -> Vset.singleton v
+  | Closure { captures; _ } ->
+    List.fold_left (fun s v -> Vset.add v s) Vset.empty captures
+  | Constant _ -> Vset.empty
+  | Prim (_, args) ->
+    List.fold_left
+      (fun s a ->
+        match prim_arg_var a with
+        | Some v -> Vset.add v s
+        | None -> s)
+      Vset.empty
+      args
+
+let instr_operands (i : Code.instr) : Vset.t =
+  match i with
+  | Code.Let (_, e) -> expr_operands e
+  | Set_field (x, _, y) -> Vset.add x (Vset.singleton y)
+  | Offset_ref (x, _) -> Vset.singleton x
+  | Array_set (a, i, v) -> Vset.add a (Vset.add i (Vset.singleton v))
+  | Source_pc _ -> Vset.empty
+
+let last_direct (l : Code.last) : Vset.t =
+  match l with
+  | Code.Return v | Raise v -> Vset.singleton v
+  | Stop -> Vset.empty
+  | Branch _ | Poptrap _ | Pushtrap _ -> Vset.empty
+  | Cond (v, _, _) | Switch (v, _, _) -> Vset.singleton v
+  | Invoke_tail { args; _ } ->
+    List.fold_left (fun s v -> Vset.add v s) Vset.empty args
+
+let block_direct_operands (b : Code.block) : Vset.t =
+  Array.fold_left
+    (fun s i -> Vset.union (instr_operands i) s)
+    Vset.empty
+    b.body
+  |> Vset.union (last_direct b.branch)
+
+(* All branch-style continuations in a terminator. *)
+let last_conts (l : Code.last) : Code.cont list =
+  match l with
+  | Return _ | Raise _ | Stop | Invoke_tail _ -> []
+  | Branch c | Poptrap c -> [ c ]
+  | Cond (_, c1, c2) -> [ c1; c2 ]
+  | Switch (_, ints, tags) ->
+    Array.to_list ints @ Array.to_list tags
+  | Pushtrap (body, _, handler) -> [ body; handler ]
+
+let live_operand_vars (p : Code.program) : Vset.t =
+  let live = ref Vset.empty in
+  (* Seed. *)
+  Code.Addr.Map.iter
+    (fun _ (b : Code.block) ->
+      live := Vset.union (block_direct_operands b) !live)
+    p.blocks;
+  let changed = ref true in
+  while !changed do
+    changed := false;
+    Code.Addr.Map.iter
+      (fun _ (b : Code.block) ->
+        List.iter
+          (fun ((dst, args) : Code.cont) ->
+            match Code.Addr.Map.find_opt dst p.blocks with
+            | None -> ()
+            | Some tgt ->
+              let rec go params args =
+                match params, args with
+                | [], _ | _, [] -> ()
+                | p :: ps, a :: az ->
+                  if Vset.mem p !live && not (Vset.mem a !live)
+                  then (
+                    live := Vset.add a !live;
+                    changed := true);
+                  go ps az
+              in
+              go tgt.params args)
+          (last_conts b.branch))
+      p.blocks
+  done;
+  !live
+
 let successors (b : Code.block) : Code.Addr.t list =
   match b.branch with
   | Code.Return _ | Raise _ | Stop | Invoke_tail _ -> []
@@ -309,26 +424,86 @@ let plan (prog : Code.program) ~(units : Bytecode.Unit.t list) : result =
                     !found
                   in
                   let missing_entry = ref None in
+                  let live_param = ref None in
                   let slices_rev = ref [] in
                   let modnames_rev = ref [] in
                   for i = 0 to n_units - 1 do
                     if Code.Addr.Map.is_empty per_unit.(i)
                        || !missing_entry <> None
+                       || !live_param <> None
                     then ()
                     else
                       match entry_of i with
                       | None -> missing_entry := Some i
                       | Some entry ->
+                        let sub_blocks = per_unit.(i) in
                         let sub =
                           { Code.start = entry
-                          ; blocks = per_unit.(i)
+                          ; blocks = sub_blocks
                           ; free_pc = prog.free_pc
                           }
                         in
-                        slices_rev :=
-                          (units_arr.(i).modname, sub) :: !slices_rev;
-                        modnames_rev :=
-                          units_arr.(i).modname :: !modnames_rev
+                        let live = live_operand_vars sub in
+                        let entry_block =
+                          Code.Addr.Map.find entry sub_blocks
+                        in
+                        let live_entry_params =
+                          List.filter (fun p -> Vset.mem p live) entry_block.params
+                        in
+                        if live_entry_params <> []
+                        then
+                          live_param :=
+                            Some
+                              ( units_arr.(i).modname
+                              , List.length live_entry_params )
+                        else begin
+                          (* Entry params are dead; replace them
+                             with [Let (p, Constant (Block (0, [||])))]
+                             at block head so the slice compiles to
+                             a zero-arg method. A [Block] constant
+                             matches the default [K_obj]/[K_block]
+                             kind the parser infers for the carry-
+                             over accu better than [Int 0] would —
+                             an [Int 0] trips typing's
+                             convert-on-assign to [Long] and breaks
+                             [K_block] downstream sites. Since
+                             [live_operand_vars] has certified no
+                             operand actually reads these Vars, the
+                             concrete bound value never matters. *)
+                          let sub_blocks =
+                            Code.Addr.Map.update
+                              entry
+                              (function
+                                | None -> None
+                                | Some (b : Code.block) ->
+                                  let unit_binds =
+                                    List.map
+                                      (fun p ->
+                                        Code.Let
+                                          ( p
+                                          , Code.Constant
+                                              (Code.Block (0, [||])) ))
+                                      b.params
+                                  in
+                                  let body =
+                                    Array.append
+                                      (Array.of_list unit_binds)
+                                      b.body
+                                  in
+                                  Some { b with params = []; body })
+                              sub_blocks
+                          in
+                          let sub =
+                            { Code.start = entry
+                            ; blocks = sub_blocks
+                            ; free_pc = prog.free_pc
+                            }
+                          in
+                          slices_rev :=
+                            (units_arr.(i).modname, sub) :: !slices_rev;
+                          modnames_rev :=
+                            units_arr.(i).modname :: !modnames_rev
+                        end
                   done;
                   match !missing_entry with
                   | Some i ->
@@ -338,6 +513,17 @@ let plan (prog : Code.program) ~(units : Bytecode.Unit.t list) : result =
                          units_arr.(i).modname
                          units_arr.(i).start_pc)
                   | None ->
+                    match !live_param with
+                    | Some (modname, n) ->
+                      Rejected
+                        (Printf.sprintf
+                           "unit %s has %d live entry-block param(s) \
+                            (carry-over from the previous unit is \
+                            read as an operand; cannot be rewritten \
+                            to a zero-arg slice)"
+                           modname
+                           n)
+                    | None ->
                     let modnames = List.rev !modnames_rev in
                     let method_names = unique_method_names modnames in
                     let slices = List.rev !slices_rev in
