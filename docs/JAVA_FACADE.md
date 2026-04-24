@@ -571,6 +571,55 @@ If/when we start building this:
 - Sandboxing, security review, or any attempt to make the
   facade surface safe to expose to untrusted callers.
 
+## 9.5. Findings from an exploratory test run
+
+After step 3 landed the end-to-end emission path, we pointed the
+facade at two representative modules reachable from a large
+externally-built bytecode executable — one whose top-level
+signature exposed only nested modules (no direct `val`s), and
+`Stdlib__Int64` as a pure-stdlib control. Results:
+
+- **A nested-module-only signature emits zero methods.** When a
+  module's public API is composed entirely of nested modules
+  (`module Fee : Basic`, `module Amount : Basic`, ...) with no
+  direct `val` bindings at the outer level, the step-3 classifier
+  walks past the outermost signature and finds nothing to surface.
+  The tool correctly reports "no supported bindings; no class
+  emitted" rather than crashing. This is the expected landing
+  for step-4 work: descend into `Sig_module`, generate one facade
+  class per nested module, and wire the nested module's field
+  index off its parent's module block.
+- **`Stdlib__Int64` emits 16 static methods.** `zero`, `one`,
+  `minus_one`, `max_int`, `min_int`, `succ`, `pred`, `abs`,
+  `lognot`, `unsigned_div`, `unsigned_rem`, `to_string`, plus the
+  setup surface. `compare`, `equal`, `min`, `max`, `of_string_opt`,
+  `unsigned_to_int`, and several others skip cleanly with the
+  documented stderr warning — their signatures use types the
+  first-landing classifier keeps as `K_other` (polymorphic
+  `('a, 'a) -> int` for `compare`, `int option` for `of_string_opt`,
+  etc.). All skip cases are in the step-4 backlog already.
+- **Dispatch reaches OCaml land.** Calling a facade method from a
+  hand-written Java driver goes through the facade's init guard
+  into `Main.main`, which then runs the target bytecode's regular
+  main-init. On the exploratory target this halted at a pre-
+  existing unimplemented C-primitive stub in an upstream
+  dependency — exactly matching the stub-path behaviour of plain
+  `java Main` on that bytecode. The facade itself transmitted the
+  call correctly; the failure was in the target binary's main-init,
+  not in the facade layer.
+
+**Operational implication surfaced by the run.** The current
+one-shot init model calls `Main.main(new String[0])` at the first
+facade invocation. For a binary with a failing main-init this
+means the facade can't be used even for modules that would
+themselves run cleanly. The natural refinement (flagged in §5.5)
+is: resolve `cu_required` transitively for the target module and
+invoke only the relevant `init_<Modname>` helpers in order,
+stopping before the failing unit. That changes the init-guard
+shape from "one-shot entire-program" to "targeted partial init"
+and is the most impactful step-4+ item once nested-module
+coverage lands.
+
 ## 10. One-line summary
 
 A manifest- or `.cmi`-driven facade layer emitting thin static-
