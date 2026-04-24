@@ -19,9 +19,17 @@
     "descriptor": "(Ljava/lang/Object;JLjava/lang/Object;JJ)J",
     "target": "Bigstring.blitBigstringToBigstring"
   },
+  "bigstring_destroy_stub": {
+    "descriptor": "(Ljava/lang/Object;)J",
+    "target": "Bigstring.destroy_stub"
+  },
   "bigstring_init_stub": {
     "descriptor": "(Ljava/lang/Object;)J",
     "target": "Bigstring.init_stub"
+  },
+  "bigstring_is_mmapped_stub": {
+    "descriptor": "(Ljava/lang/Object;)J",
+    "target": "Bigstring.is_mmapped_stub"
   },
   "bigstring_memcmp_stub": {
     "descriptor": "(Ljava/lang/Object;JLjava/lang/Object;JJ)J",
@@ -38,6 +46,10 @@
   "bigstring_write_assume_fd_is_nonblocking_stub": {
     "descriptor": "(JJJLjava/lang/Object;)J",
     "target": "Bigstring.write_nonblocking"
+  },
+  "bigstring_writev_stub": {
+    "descriptor": "(JLjava/lang/Object;J)J",
+    "target": "Bigstring.writev_stub"
   },
   "core_kernel_time_ns_format": {
     "descriptor": "(DLjava/lang/Object;)Ljava/lang/String;",
@@ -187,6 +199,10 @@
     "descriptor": "(JLjava/lang/Object;JJ)J",
     "target": "Unix.read_nonblocking"
   },
+  "core_unix_sysconf": {
+    "descriptor": "(Ljava/lang/Object;)Ljava/lang/Object;",
+    "target": "CoreUnix.sysconf"
+  },
   "core_unix_write_assume_fd_is_nonblocking_stub": {
     "descriptor": "(JLjava/lang/Object;JJ)J",
     "target": "Unix.write_nonblocking"
@@ -299,6 +315,10 @@
     "descriptor": "(Ljava/lang/Object;)J",
     "target": "Unix.chdir"
   },
+  "unix_chmod": {
+    "descriptor": "(Ljava/lang/Object;J)J",
+    "target": "Unix.chmod"
+  },
   "unix_clear_close_on_exec": {
     "descriptor": "(Ljava/lang/Object;)J",
     "target": "Unix.clear_close_on_exec"
@@ -326,6 +346,10 @@
   "unix_error_message": {
     "descriptor": "(Ljava/lang/Object;)Ljava/lang/String;",
     "target": "Unix.error_message"
+  },
+  "unix_fchmod": {
+    "descriptor": "(Ljava/lang/Object;J)J",
+    "target": "Unix.fchmod"
   },
   "unix_fork": {
     "descriptor": "(Ljava/lang/Object;)J",

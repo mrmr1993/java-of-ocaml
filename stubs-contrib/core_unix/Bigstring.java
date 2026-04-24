@@ -129,6 +129,47 @@ public final class Bigstring {
      *  general "primitive not implemented" throw. */
     public static long init_stub(Object unit) { return 0; }
 
+    /** [bigstring_is_mmapped_stub bstr]: always false — our BigArray
+     *  isn't backed by a real mmap. */
+    public static long is_mmapped_stub(Object bstr) { return 0; }
+
+    /** [bigstring_destroy_stub bstr]: free the underlying buffer.
+     *  No-op — JVM GC handles BigArray collection. */
+    public static long destroy_stub(Object bstr) { return 0; }
+
+    /** [bigstring_writev_stub fd iovecs count]: scatter-gather write
+     *  of [count] iovecs (each is a record [{buf; pos; len}]) to fd.
+     *  Async's Writer uses this to flush its buffered iovec chain.
+     *  Returns total bytes written. */
+    public static long writev_stub(long fd, Object iovecs, long count) {
+        try {
+            Object stream = Channel.fdGetStream((int) fd);
+            if (!(stream instanceof java.io.OutputStream)) {
+                throw new java.io.IOException("fd " + fd + " not writable");
+            }
+            java.io.OutputStream out = (java.io.OutputStream) stream;
+            Block iov = (Block) iovecs;
+            int n = (int) count;
+            long total = 0;
+            for (int i = 0; i < n; i++) {
+                Block rec = (Block) iov.fields[i];
+                BigArray buf = (BigArray) rec.fields[0];
+                int pos = (int) Block.asLong(rec.fields[1]);
+                int len = (int) Block.asLong(rec.fields[2]);
+                byte[] tmp = new byte[len];
+                for (int j = 0; j < len; j++) {
+                    tmp[j] = (byte) (Block.asLong(buf.data[pos + j]) & 0xFF);
+                }
+                out.write(tmp);
+                total += len;
+            }
+            out.flush();
+            return total;
+        } catch (java.io.IOException e) {
+            throw Ocaml.raiseUnixError(5L, "writev", "");
+        }
+    }
+
     /** [bigstring_write_assume_fd_is_nonblocking_stub fd pos len bstr]:
      *  Async's Writer uses this to flush its accumulated Bigstring
      *  buffer to an fd. We delegate to the same Channel registry used

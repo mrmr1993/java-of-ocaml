@@ -136,7 +136,7 @@ public class Channel {
     return c;
   }
 
-  public static int openFile(String path, Object flagsList, int perm) throws IOException {
+  public static int openFile(String path, Object flagsList, int perm) {
     // OCaml open_flag indices:
     //   0=Open_rdonly, 1=Open_wronly, 2=Open_append, 3=Open_creat,
     //   4=Open_trunc,  5=Open_excl,   6=Open_binary, 7=Open_text,
@@ -152,15 +152,22 @@ public class Channel {
     boolean readOnly = (flags & (1 << 0)) != 0;
     boolean append   = (flags & (1 << 2)) != 0;
     int fd;
-    synchronized (FDS) {
-      fd = nextFd++;
-      Object stream;
-      if (readOnly) {
-        stream = new BufferedInputStream(new FileInputStream(path));
-      } else {
-        stream = new FileOutputStream(path, append);
+    try {
+      synchronized (FDS) {
+        fd = nextFd++;
+        Object stream;
+        if (readOnly) {
+          stream = new BufferedInputStream(new FileInputStream(path));
+        } else {
+          stream = new FileOutputStream(path, append);
+        }
+        FDS.put(fd, stream);
       }
-      FDS.put(fd, stream);
+    } catch (java.io.FileNotFoundException e) {
+      // Match OCaml stdlib's Sys_error("path: No such file or directory").
+      throw Ocaml.raiseSysError(path + ": " + e.getMessage());
+    } catch (IOException e) {
+      throw Ocaml.raiseSysError(path + ": " + e.getMessage());
     }
     traceFd("openFile", fd, path);
     return fd;

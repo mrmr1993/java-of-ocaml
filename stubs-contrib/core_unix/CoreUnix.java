@@ -78,6 +78,14 @@ public final class CoreUnix {
         return "127.0.0.1";
     }
 
+    /** [core_unix_sysconf : sysconf -> int64 option]: returns the
+     *  system limit for the given variant tag (NCHILDREN_MAX,
+     *  PAGESIZE, etc). Reporting [None] = Long(0) makes the test binary fall
+     *  back to its hardcoded defaults. */
+    public static Object sysconf(Object conf) {
+        return Long.valueOf(0L);
+    }
+
     /** [core_unix_error_of_code]: Linux errno → [Unix.error] variant
      *  tag. The OCaml [Unix.error] type is a flat variant; nullary
      *  constructors are represented as their declaration index. The

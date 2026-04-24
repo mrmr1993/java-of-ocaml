@@ -16,6 +16,11 @@ public final class ThreadPrim {
     // unit-to-unit closure and passes that here.
     public static java.lang.Thread threadNew(Closure f) {
         java.lang.Thread t = new java.lang.Thread(() -> {
+            // Acquire the OCaml runtime lock before running OCaml
+            // code so this thread doesn't race the main scheduler
+            // (or other workers) on shared OCaml state — the model
+            // mirrors caml_master_lock from the C runtime.
+            Ocaml.runtimeLock();
             try {
                 // [unit] is [Val_int 0] on the OCaml side.
                 f.apply1(Integer.valueOf(0));
@@ -25,6 +30,10 @@ public final class ThreadPrim {
                 // installed by thread_initialize calls
                 // [Printexc.print_backtrace]).
                 e.printStackTrace();
+            } finally {
+                if (Ocaml.RUNTIME_LOCK.isHeldByCurrentThread()) {
+                    Ocaml.runtimeUnlock();
+                }
             }
         });
         t.setDaemon(false);

@@ -616,7 +616,8 @@ let emit_runtime_init_after_globals main_code =
   in
   wire_global ~slot:4 ~class_:"Channel" ~field:"endOfFileExn";
   wire_global ~slot:2 ~class_:"Ocaml" ~field:"failureExn";
-  wire_global ~slot:6 ~class_:"Ocaml" ~field:"notFoundExn"
+  wire_global ~slot:6 ~class_:"Ocaml" ~field:"notFoundExn";
+  wire_global ~slot:1 ~class_:"Ocaml" ~field:"sysErrorExn"
 
 (* [emit_globals_init globals ~main_code] allocates the [GLOBALS]
    array in [main_code] and then populates it. Entries flow into
@@ -1354,6 +1355,16 @@ let compile_t
     in
     (match try_main_ir () with
      | Some (head, typing, split_sibling_classes) ->
+       (* Acquire the OCaml runtime lock before any OCaml code runs.
+          Mirrors caml_thread_initialize: the main thread "owns" the
+          lock at startup; worker threads wait for it. Without this,
+          worker threads spawned later (Async's Fd.syscall_in_thread
+          pool) race the main scheduler on shared OCaml state. *)
+       Jvm.Code.invokestatic
+         main_code
+         ~class_:"Ocaml"
+         ~method_:"runtimeLock"
+         ~descriptor:"()V";
        emit_sys_argv_prologue main_code;
        let globals_sibling_classes =
          Timer_bucket.track main_tb "emit_globals_init" (fun () ->
@@ -1419,6 +1430,11 @@ let compile_t
            "[ir_emit] <main>: used IR (helpers=%d)@."
            (List.length split_sibling_classes)
      | None ->
+       Jvm.Code.invokestatic
+         main_code
+         ~class_:"Ocaml"
+         ~method_:"runtimeLock"
+         ~descriptor:"()V";
        emit_sys_argv_prologue main_code;
        let globals_sibling_classes =
          emit_globals_init parsed.globals ~main_code

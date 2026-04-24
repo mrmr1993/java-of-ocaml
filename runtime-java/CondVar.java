@@ -19,10 +19,20 @@ public final class CondVar {
                 if (underlying == null) underlying = m.lock.newCondition();
             }
         }
+        // Release the OCaml runtime lock around await so the signaller
+        // can acquire it and run any OCaml code (e.g. enqueue into a
+        // shared squeue) before signalling us. Without this, the
+        // main thread holds the runtime lock the whole time it's
+        // sleeping in [select / cwait], starving worker threads
+        // that need to push results back into Async.
+        boolean held = Ocaml.RUNTIME_LOCK.isHeldByCurrentThread();
+        if (held) Ocaml.RUNTIME_LOCK.unlock();
         try {
             underlying.await();
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
+        } finally {
+            if (held) Ocaml.RUNTIME_LOCK.lock();
         }
         return 0;
     }

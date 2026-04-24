@@ -138,6 +138,10 @@ public final class Ocaml {
      *  on an unresolvable name, [Hashtbl.find] on a missing key). */
     public static Object notFoundExn;
 
+    /** OCaml's predefined [Sys_error] ([GLOBALS[1]]). Used by stubs
+     *  raising stdlib I/O errors (e.g. open_in on missing file). */
+    public static Object sysErrorExn;
+
     /** Throw a [CamlException] wrapping [Failure msg]. The shape is
      *  [Block(0, [failureExn, msg])] so OCaml's [try ... with Failure _]
      *  matches by reference identity on field 0. */
@@ -170,6 +174,16 @@ public final class Ocaml {
         throw raiseFailure("C primitive " + primName + " is not implemented");
     }
 
+    /** Throw a [CamlException] wrapping [Sys_error msg]. Same shape
+     *  as [Failure msg]: Block(0, [sysErrorExn, msg]). */
+    public static RuntimeException raiseSysError(String msg) {
+        Object id = sysErrorExn;
+        if (id == null) {
+            id = new Block(248, new Object[] { "Sys_error", Long.valueOf(-1L) });
+        }
+        throw new CamlException(new Block(0, new Object[] { id, msg }));
+    }
+
     /** Throw a [CamlException] wrapping [Not_found]. Constructor is
      *  nullary, so the payload is just the descriptor itself. */
     public static RuntimeException raiseNotFound() {
@@ -178,6 +192,49 @@ public final class Ocaml {
             id = new Block(248, new Object[] { "Not_found", Long.valueOf(-1L) });
         }
         throw new CamlException(id);
+    }
+
+    // -------- OCaml runtime lock --------
+    //
+    // OCaml's threading model assumes that only one OS thread runs
+    // OCaml code at a time. The C runtime enforces this with
+    // [caml_master_lock] (see otherlibs/systhreads/st_stubs.c):
+    //   - before entering a "blocking section" (I/O syscall, sleep,
+    //     condition wait), the thread releases the lock;
+    //   - after, it re-acquires.
+    //
+    // Pure OCaml code (e.g. Thread_safe_queue.enqueue / dequeue)
+    // assumes context switches can only happen at allocation /
+    // external-call boundaries. The JVM does not honor that
+    // assumption — its threads run truly concurrently — so without a
+    // matching lock here, OCaml's concurrent data structures get
+    // corrupted (notably the squeue Async uses to ferry results from
+    // worker-thread syscalls back to the main scheduler).
+    //
+    // We mirror the C runtime's model with a single ReentrantLock
+    // owned at startup by the main thread. Java-side stubs that
+    // perform genuinely blocking work (Unix.select sleep, Mutex
+    // wait, etc.) bracket the wait with [runtimeUnlock] /
+    // [runtimeLock]. Worker threads spawned via [ThreadPrim] start
+    // by acquiring the lock before they begin running OCaml code.
+
+    public static final java.util.concurrent.locks.ReentrantLock RUNTIME_LOCK
+        = new java.util.concurrent.locks.ReentrantLock();
+
+    /** Acquire the runtime lock. Blocks if another thread holds it. */
+    public static void runtimeLock() { RUNTIME_LOCK.lock(); }
+
+    /** Release the runtime lock. Caller must hold it. */
+    public static void runtimeUnlock() { RUNTIME_LOCK.unlock(); }
+
+    /** Run [r] with the runtime lock released. Restores the lock
+     *  state on exit (even on exception). */
+    public static <T extends Throwable> void blockingSection(
+            java.util.concurrent.Callable<Void> body) throws Exception {
+        boolean held = RUNTIME_LOCK.isHeldByCurrentThread();
+        if (held) RUNTIME_LOCK.unlock();
+        try { body.call(); }
+        finally { if (held) RUNTIME_LOCK.lock(); }
     }
 
     // -------- OO / exception identifier allocation --------

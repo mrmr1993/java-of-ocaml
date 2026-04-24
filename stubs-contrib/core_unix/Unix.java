@@ -345,8 +345,15 @@ public final class Unix {
         if (timeout < 0)        ms = 1000L;
         else if (timeout == 0)  ms = 1L;
         else                    ms = Math.max(1L, (long) (timeout * 1000.0));
+        // Release the runtime lock around the sleep so worker threads
+        // (e.g. Async's Fd.syscall_in_thread workers) can acquire it
+        // and push results into Async's external_jobs queue between
+        // our scheduler ticks.
+        boolean held = Ocaml.RUNTIME_LOCK.isHeldByCurrentThread();
+        if (held) Ocaml.RUNTIME_LOCK.unlock();
         try { Thread.sleep(ms); }
         catch (InterruptedException e) { Thread.currentThread().interrupt(); }
+        finally { if (held) Ocaml.RUNTIME_LOCK.lock(); }
 
         if (System.getenv("JAVA_OF_OCAML_TRACE_SELECT") != null) {
             System.err.println("[select] reads=" + listToString(reads)
@@ -452,13 +459,24 @@ public final class Unix {
     }
 
     public static long mkdir(Object pathObj, Object perm) {
+        String path = (String) pathObj;
+        Path p = Paths.get(path);
+        if (Files.exists(p)) {
+            // OCaml stdlib raises EEXIST (variant tag 8) for both
+            // existing-file and existing-dir; mkdir_p loops catch
+            // (EEXIST | EISDIR) -> ().
+            throw Ocaml.raiseUnixError(8L, "mkdir", path);
+        }
         try {
-            Files.createDirectory(Paths.get((String) pathObj));
+            Files.createDirectory(p);
             return 0;
+        } catch (java.nio.file.NoSuchFileException e) {
+            // parent dir missing — variant tag 20 = ENOENT
+            throw Ocaml.raiseUnixError(20L, "mkdir", path);
         } catch (java.nio.file.FileAlreadyExistsException e) {
-            throw Ocaml.raiseUnixError(8L, "mkdir", (String) pathObj); // EEXIST
+            throw Ocaml.raiseUnixError(8L, "mkdir", path);
         } catch (java.io.IOException e) {
-            throw Ocaml.raiseUnixError(13L, "mkdir", (String) pathObj); // EACCES-ish
+            throw Ocaml.raiseUnixError(1L, "mkdir", path); // EACCES = 1
         }
     }
 
@@ -485,6 +503,25 @@ public final class Unix {
     public static String getcwd(Object unit) {
         return System.getProperty("user.dir");
     }
+
+    /** [Unix.chmod path perm] - JVM has limited chmod via setReadable/
+     *  setWritable/setExecutable. Translate the POSIX-style perm to
+     *  these. */
+    public static long chmod(Object pathObj, long perm) {
+        java.io.File f = new java.io.File((String) pathObj);
+        if (!f.exists()) {
+            throw Ocaml.raiseUnixError(20L, "chmod", (String) pathObj);
+        }
+        f.setReadable((perm & 0444L) != 0, false);
+        f.setWritable((perm & 0222L) != 0, false);
+        f.setExecutable((perm & 0111L) != 0, false);
+        return 0;
+    }
+
+    /** [Unix.fchmod fd perm] - same but on a fd. JVM doesn't expose
+     *  fchmod; treat as no-op (the fd was opened with our mode
+     *  already). */
+    public static long fchmod(Object fd, long perm) { return 0; }
 
     /** [Unix.openfile path flags perm] — delegates to Channel's
      *  fd registry. */
@@ -584,10 +621,11 @@ public final class Unix {
     // every fd lets Async's writer machinery accept any fd we hand
     // it. (POSIX: O_RDWR = 2, O_NONBLOCK = 04000 on Linux.)
     public static long fcntl(Object fd, long cmd, long arg) {
-        // F_GETFL is cmd value 3 in Linux (and the OCaml binding's
-        // variant index for [F_GETFL] is 0). Report flags. For
-        // anything else (F_SETFL etc), return 0.
-        if (cmd == 0L) return 2L | 04000L;  // O_RDWR | O_NONBLOCK
+        // Our [LinuxExt.F_GETFL] / [F_SETFL] stubs report Linux's
+        // numeric values (3 / 4). Report O_RDWR | O_NONBLOCK on
+        // F_GETFL so Async's writer machinery accepts the fd; F_SETFL
+        // is a no-op (we can't actually change kernel fd flags).
+        if (cmd == 3L) return 2L | 04000L;  // O_RDWR | O_NONBLOCK
         return 0;
     }
 
