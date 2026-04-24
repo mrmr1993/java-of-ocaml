@@ -348,6 +348,11 @@ public final class Unix {
         try { Thread.sleep(ms); }
         catch (InterruptedException e) { Thread.currentThread().interrupt(); }
 
+        if (System.getenv("JAVA_OF_OCAML_TRACE_SELECT") != null) {
+            System.err.println("[select] reads=" + listToString(reads)
+                + " writes=" + listToString(writes) + " timeout=" + timeout);
+        }
+
         // For reads, poll InputStream.available() on each fd —
         // pipe/socket bytes ready or EOF flag-up. For writes, every
         // OutputStream-backed fd is "always writable" semantically
@@ -389,6 +394,21 @@ public final class Unix {
             node = cons.fields[1];
         }
         return listOf(out);
+    }
+
+    private static String listToString(Object list) {
+        StringBuilder sb = new StringBuilder("[");
+        Object node = list;
+        boolean first = true;
+        while (node instanceof Block) {
+            Block cons = (Block) node;
+            if (!first) sb.append(",");
+            sb.append(Block.asLong(cons.fields[0]));
+            first = false;
+            node = cons.fields[1];
+        }
+        sb.append("]");
+        return sb.toString();
     }
 
     private static Object listOf(java.util.List<Object> xs) {
