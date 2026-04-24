@@ -69,72 +69,178 @@ public final class MirageCrypto {
     public static long ghash_mode(Object ignore) { return 0; }
     public static long misc_mode(Object ignore)  { return 0; }
 
-    // === DELIBERATE STUB: hash init / update / finalize ===============
-    // !!! THESE STUBS DO NOT COMPUTE A HASH. !!!
+    // === REAL: hash init / update / finalize via MessageDigest ========
     //
-    // [hash.ml:54] runs [let _ = F.init empty] at module load — a
-    // warm-up call whose result is discarded. Without a stub the
+    // mirage-crypto's hash API stores opaque ctx state in a [Bytes.t]
+    // allocated on the OCaml side ([F.ctx_size ()] bytes). We can't
+    // store a [MessageDigest] reference *inside* the Bytes, so the
+    // identity of the Bytes object becomes the lookup key into a
+    // side-table. The OCaml side runs:
     //
-    // We make [_init] a no-op so the warm-up succeeds, and stub the
-    // matching [_update] / [_finalize] entry points so any *real*
-    // hashing call later silently produces an all-zero digest of
-    // the requested size rather than throwing. THIS IS WRONG OUTPUT
-    // security-sensitive purpose (Merkle root, MAC, signature) the
-    // result will be predictable garbage. Do not run anything that
-    // depends on real hash output through this build.
+    //   let empty = Bytes.create (F.ctx_size ()) in
+    //   F.init empty;        ← creates / resets MessageDigest
+    //   F.update empty buf size;
+    //   F.finalize empty out;
     //
-    // The right fix is a [java.security.MessageDigest]-backed
-    // implementation; tracked as future work.
-    // Arities from mirage-crypto/native.ml:
-    //   init     : ctx -> unit                        (1 arg)
-    //   update   : ctx -> buffer -> size -> unit      (3 args)
-    //   finalize : ctx -> buffer -> unit              (2 args)
-    public static long md5_init(Object ctx)                              { return 0; }
-    public static long md5_update(Object ctx, Object buf, long size)     { return 0; }
-    public static long md5_finalize(Object ctx, Object out)              { return 0; }
-    public static long sha1_init(Object ctx)                             { return 0; }
-    public static long sha1_update(Object ctx, Object buf, long size)    { return 0; }
-    public static long sha1_finalize(Object ctx, Object out)             { return 0; }
-    public static long sha224_init(Object ctx)                           { return 0; }
-    public static long sha224_update(Object ctx, Object buf, long size)  { return 0; }
-    public static long sha224_finalize(Object ctx, Object out)           { return 0; }
-    public static long sha256_init(Object ctx)                           { return 0; }
-    public static long sha256_update(Object ctx, Object buf, long size)  { return 0; }
-    public static long sha256_finalize(Object ctx, Object out)           { return 0; }
-    public static long sha384_init(Object ctx)                           { return 0; }
-    public static long sha384_update(Object ctx, Object buf, long size)  { return 0; }
-    public static long sha384_finalize(Object ctx, Object out)           { return 0; }
-    public static long sha512_init(Object ctx)                           { return 0; }
-    public static long sha512_update(Object ctx, Object buf, long size)  { return 0; }
-    public static long sha512_finalize(Object ctx, Object out)           { return 0; }
+    // Each [F.init] resets the digest; subsequent updates accumulate;
+    // finalize writes the digest to [out] (a Cstruct buffer = our
+    // [BigArray]).
+    //
+    // Side table is bounded by the number of distinct hash contexts
+    // ephemeral [Bytes] per hash op). Identity-keyed via
+    // System.identityHashCode wrapping; cleaned by [_init] reuse.
 
-    // === DELIBERATE STUB: AES key schedule + en/decrypt ===============
-    // !!! AES IS A NO-OP IN THIS BUILD. !!!
+    private static final java.util.Map<Object, java.security.MessageDigest>
+        HASH_CTX = new java.util.IdentityHashMap<>();
+
+    private static synchronized java.security.MessageDigest hashCtx(
+            Object ctx, String algo) {
+        java.security.MessageDigest m = HASH_CTX.get(ctx);
+        if (m == null) {
+            try {
+                m = java.security.MessageDigest.getInstance(algo);
+            } catch (java.security.NoSuchAlgorithmException e) {
+                throw Ocaml.raiseFailure(algo + " unavailable: " + e.getMessage());
+            }
+            HASH_CTX.put(ctx, m);
+        }
+        m.reset();
+        return m;
+    }
+
+    private static synchronized java.security.MessageDigest hashGet(Object ctx) {
+        return HASH_CTX.get(ctx);
+    }
+
+    private static byte[] readBytes(Object buf, int len) {
+        BigArray ba = (BigArray) buf;
+        byte[] out = new byte[len];
+        for (int i = 0; i < len; i++) {
+            out[i] = (byte) (Block.asLong(ba.data[i]) & 0xFF);
+        }
+        return out;
+    }
+
+    private static void writeBytes(Object out, byte[] digest) {
+        BigArray ba = (BigArray) out;
+        for (int i = 0; i < digest.length; i++) {
+            ba.data[i] = Long.valueOf(digest[i] & 0xFFL);
+        }
+    }
+
+    public static long md5_init(Object ctx)    { hashCtx(ctx, "MD5"); return 0; }
+    public static long sha1_init(Object ctx)   { hashCtx(ctx, "SHA-1"); return 0; }
+    public static long sha224_init(Object ctx) { hashCtx(ctx, "SHA-224"); return 0; }
+    public static long sha256_init(Object ctx) { hashCtx(ctx, "SHA-256"); return 0; }
+    public static long sha384_init(Object ctx) { hashCtx(ctx, "SHA-384"); return 0; }
+    public static long sha512_init(Object ctx) { hashCtx(ctx, "SHA-512"); return 0; }
+
+    public static long md5_update(Object ctx, Object buf, long size)    { return hashUpdate(ctx, buf, size); }
+    public static long sha1_update(Object ctx, Object buf, long size)   { return hashUpdate(ctx, buf, size); }
+    public static long sha224_update(Object ctx, Object buf, long size) { return hashUpdate(ctx, buf, size); }
+    public static long sha256_update(Object ctx, Object buf, long size) { return hashUpdate(ctx, buf, size); }
+    public static long sha384_update(Object ctx, Object buf, long size) { return hashUpdate(ctx, buf, size); }
+    public static long sha512_update(Object ctx, Object buf, long size) { return hashUpdate(ctx, buf, size); }
+
+    private static long hashUpdate(Object ctx, Object buf, long size) {
+        java.security.MessageDigest m = hashGet(ctx);
+        if (m == null) return 0;
+        m.update(readBytes(buf, (int) size));
+        return 0;
+    }
+
+    public static long md5_finalize(Object ctx, Object out)    { return hashFinalize(ctx, out); }
+    public static long sha1_finalize(Object ctx, Object out)   { return hashFinalize(ctx, out); }
+    public static long sha224_finalize(Object ctx, Object out) { return hashFinalize(ctx, out); }
+    public static long sha256_finalize(Object ctx, Object out) { return hashFinalize(ctx, out); }
+    public static long sha384_finalize(Object ctx, Object out) { return hashFinalize(ctx, out); }
+    public static long sha512_finalize(Object ctx, Object out) { return hashFinalize(ctx, out); }
+
+    private static long hashFinalize(Object ctx, Object out) {
+        java.security.MessageDigest m = hashGet(ctx);
+        if (m == null) return 0;
+        writeBytes(out, m.digest());
+        return 0;
+    }
+
+    // === REAL: AES key schedule + en/decrypt via javax.crypto ========
     //
-    // [cipher_block.ml] AES.of_secret derives encryption /
-    // decryption round keys via [mc_aes_derive_e_key] /
-    // [mc_aes_derive_d_key] at construction time, then encrypts /
-    // decrypts blocks via [mc_aes_enc_bc] / [mc_aes_dec_bc].
-    // Mirage-crypto's Fortuna RNG ([rng/fortuna.ml]) builds an AES
-    // key at module init to drive its CTR mode.
+    // mirage-crypto's API:
+    //   derive_e secret off key rounds       (key schedule, encrypt)
+    //   derive_d secret off key rounds e_opt (key schedule, decrypt)
+    //   enc src soff dst doff key rounds size
+    //   dec src soff dst doff key rounds size
     //
-    // Stubbing as no-ops: round-key buffers stay zero-initialised,
-    // ciphertext = zeros, decryption output = zeros. Fortuna's RNG
-    // output is consequently NOT random — anything that consumes
-    // these paths are exercised only by TLS / non-a native extension
-    // ancillaries (which we don't actually run).
-    // Arities follow the OCaml externals in mirage-crypto/native.ml:
-    //   derive_e : secret -> off -> key -> int -> unit            (4 args)
-    //   derive_d : secret -> off -> key -> int -> key option -> unit (5 args)
-    //   enc / dec : buffer -> off -> buffer -> off -> key -> int -> size -> unit (7 args)
+    // We can't store a [Cipher] inside the [key] [BigArray]; instead
+    // identity-key the BigArray to a side-table holding the raw
+    // secret bytes. Each enc / dec recreates a [Cipher] from the
+    // cached secret and runs AES-ECB on [size] block-aligned bytes.
+    // Mirage's Fortuna RNG drives this for CTR-mode randomness.
+
+    private static final java.util.Map<Object, byte[]> AES_KEYS
+        = new java.util.IdentityHashMap<>();
+
+    private static synchronized long aesStoreKey(Object secret, long off, Object key) {
+        BigArray sec = (BigArray) secret;
+        // Mirage passes [rounds = len/4 + 6] derived from the secret
+        // length (16/24/32). We just stash the secret bytes; the
+        // SecretKeySpec ctor figures out AES-128/192/256 from len.
+        int len = sec.data.length - (int) off;
+        int klen = (len >= 32) ? 32 : (len >= 24) ? 24 : 16;
+        byte[] kb = new byte[klen];
+        for (int i = 0; i < klen; i++) {
+            kb[i] = (byte) (Block.asLong(sec.data[(int) off + i]) & 0xFF);
+        }
+        AES_KEYS.put(key, kb);
+        return 0;
+    }
+
     public static long aes_derive_e_key(Object secret, long off, Object key,
-                                        long rounds) { return 0; }
+                                        long rounds) {
+        return aesStoreKey(secret, off, key);
+    }
     public static long aes_derive_d_key(Object secret, long off, Object key,
-                                        long rounds, Object eOpt) { return 0; }
+                                        long rounds, Object eOpt) {
+        return aesStoreKey(secret, off, key);
+    }
+
     public static long aes_enc(Object src, long soff, Object dst, long doff,
-                               Object key, long rounds, long size) { return 0; }
+                               Object key, long rounds, long size) {
+        return aesCrypt(src, soff, dst, doff, key, size, true);
+    }
     public static long aes_dec(Object src, long soff, Object dst, long doff,
-                               Object key, long rounds, long size) { return 0; }
+                               Object key, long rounds, long size) {
+        return aesCrypt(src, soff, dst, doff, key, size, false);
+    }
+
+    private static synchronized long aesCrypt(Object src, long soff, Object dst,
+                                              long doff, Object key, long size,
+                                              boolean encrypt) {
+        byte[] kb = AES_KEYS.get(key);
+        if (kb == null) return 0;
+        int n = ((int) size) * 16; // size = block count
+        BigArray s = (BigArray) src;
+        byte[] block = new byte[n];
+        for (int i = 0; i < n; i++) {
+            block[i] = (byte) (Block.asLong(s.data[(int) soff + i]) & 0xFF);
+        }
+        try {
+            javax.crypto.Cipher c = javax.crypto.Cipher.getInstance("AES/ECB/NoPadding");
+            javax.crypto.spec.SecretKeySpec spec =
+                new javax.crypto.spec.SecretKeySpec(kb, "AES");
+            c.init(encrypt ? javax.crypto.Cipher.ENCRYPT_MODE
+                           : javax.crypto.Cipher.DECRYPT_MODE, spec);
+            byte[] out = c.doFinal(block);
+            BigArray d = (BigArray) dst;
+            for (int i = 0; i < n; i++) {
+                d.data[(int) doff + i] = Long.valueOf(out[i] & 0xFFL);
+            }
+        } catch (java.security.GeneralSecurityException e) {
+            throw Ocaml.raiseFailure("AES " + (encrypt ? "encrypt" : "decrypt")
+                                     + " failed: " + e.getMessage());
+        }
+        return 0;
+    }
 
     // === REAL IMPLEMENTATION: mc_getrandom ============================
     // [mirage_crypto_rng_unix.ml: getrandom_buf : buffer -> int -> unit]
