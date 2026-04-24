@@ -13,6 +13,18 @@ type debug_loc =
             e.g. for stripped/old bytecode). *)
   }
 
+(** One contiguous range of the main-init bytecode that corresponds
+    to a single OCaml compilation unit (i.e. one [.cmo]'s init
+    code). Ranges are disjoint and ordered by [start_pc]. *)
+module Unit : sig
+  type t =
+    { modname : string   (** OCaml module name (from DBUG or the [.cmo]'s
+                             [cu_name]). May be [""] only in degraded cases. *)
+    ; start_pc : int     (** Inclusive, word-pc into [code]. *)
+    ; end_pc : int       (** Exclusive. *)
+    }
+end
+
 type t =
   { code : int array            (** CODE section, decoded as signed int32 words *)
   ; prims : string array        (** PRIM section, null-separated primitive names *)
@@ -21,6 +33,13 @@ type t =
         (** DBUG section, keyed by bytecode word-pc. Empty if the executable
             was built without [-g]. Multiple events may share a pc; last
             writer wins. *)
+  ; units : Unit.t list
+        (** Per-compilation-unit PC ranges covering the main-init
+            region, in link order. Derived from DBUG for executables
+            (one range per list, [orig] determining [start_pc]) and
+            from the unit list for the linker path. Empty when no
+            unit-level information is recoverable (e.g. [.bc] built
+            without [-g] and not produced by our [Linker.link]). *)
   }
 
 val read_exe : string -> t

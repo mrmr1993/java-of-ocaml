@@ -20,42 +20,50 @@ public class DummyClosure extends Closure {
         return target.arity();
     }
 
-    public Object apply1(Object a1) {
+    // Delegates live in [tailApply<N>] (not [apply<N>]): the base
+    // class's [final apply<N>] drives the trampoline, and having
+    // [target] return whatever [target.apply<N>] returns would
+    // short-circuit the driver loop by calling through to a fresh
+    // [apply<N>] on [target] — one JVM frame per hop. Overriding
+    // the virtual [tailApply<N>] slot keeps the driver in the
+    // caller's frame.
+
+    public Object tailApply1(Object a1) {
         if (target == null) throw undefined();
-        return target.apply1(a1);
+        return target.tailApply1(a1);
     }
 
-    public Object apply2(Object a1, Object a2) {
+    public Object tailApply2(Object a1, Object a2) {
         if (target == null) throw undefined();
-        return target.apply2(a1, a2);
+        return target.tailApply2(a1, a2);
     }
 
-    public Object apply3(Object a1, Object a2, Object a3) {
+    public Object tailApply3(Object a1, Object a2, Object a3) {
         if (target == null) throw undefined();
-        return target.apply3(a1, a2, a3);
+        return target.tailApply3(a1, a2, a3);
     }
 
-    public Object apply4(Object a1, Object a2, Object a3, Object a4) {
+    public Object tailApply4(Object a1, Object a2, Object a3, Object a4) {
         if (target == null) throw undefined();
-        return target.apply4(a1, a2, a3, a4);
+        return target.tailApply4(a1, a2, a3, a4);
     }
 
-    public Object apply5(Object a1, Object a2, Object a3, Object a4,
-                         Object a5) {
+    public Object tailApply5(Object a1, Object a2, Object a3, Object a4,
+                             Object a5) {
         if (target == null) throw undefined();
-        return target.apply5(a1, a2, a3, a4, a5);
+        return target.tailApply5(a1, a2, a3, a4, a5);
     }
 
-    public Object apply6(Object a1, Object a2, Object a3, Object a4,
-                         Object a5, Object a6) {
+    public Object tailApply6(Object a1, Object a2, Object a3, Object a4,
+                             Object a5, Object a6) {
         if (target == null) throw undefined();
-        return target.apply6(a1, a2, a3, a4, a5, a6);
+        return target.tailApply6(a1, a2, a3, a4, a5, a6);
     }
 
-    public Object apply7(Object a1, Object a2, Object a3, Object a4,
-                         Object a5, Object a6, Object a7) {
+    public Object tailApply7(Object a1, Object a2, Object a3, Object a4,
+                             Object a5, Object a6, Object a7) {
         if (target == null) throw undefined();
-        return target.apply7(a1, a2, a3, a4, a5, a6, a7);
+        return target.tailApply7(a1, a2, a3, a4, a5, a6, a7);
     }
 
     private static RuntimeException undefined() {

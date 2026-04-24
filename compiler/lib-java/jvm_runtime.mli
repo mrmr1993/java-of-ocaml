@@ -29,6 +29,13 @@ val backtrace_class_bytes : unit -> string
     renders [StackTraceElement[]] into OCaml-style "Raised at" /
     "Called from" lines using each frame's SourceFile + line. *)
 
+val bounce_class_bytes : unit -> string
+(** Trampoline sentinel. A closure in tail position constructs a
+    [Bounce] wrapping [(callee, args)] and returns it instead of
+    invoking the callee directly; [Closure.apply<N>]'s final
+    driver unwinds nested [Bounce]s in a tight loop. Keeps deeply-
+    recursive tail chains to a single JVM frame. *)
+
 val compare_class_bytes : unit -> string
 (** Static methods for polymorphic structural comparison on the
     runtime-value shapes our compiler emits — used by

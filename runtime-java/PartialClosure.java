@@ -127,42 +127,46 @@ public final class PartialClosure extends Closure {
         return combined;
     }
 
+    // Arities 1..7 live in [tailApply<N>] slots since [apply<N>] is
+    // [final] in [Closure] (the base class's [apply<N>] drives the
+    // trampoline).
+
     @Override
-    public Object apply1(Object a1) {
+    public Object tailApply1(Object a1) {
         return applyCombined(combine(new Object[] { a1 }));
     }
 
     @Override
-    public Object apply2(Object a1, Object a2) {
+    public Object tailApply2(Object a1, Object a2) {
         return applyCombined(combine(new Object[] { a1, a2 }));
     }
 
     @Override
-    public Object apply3(Object a1, Object a2, Object a3) {
+    public Object tailApply3(Object a1, Object a2, Object a3) {
         return applyCombined(combine(new Object[] { a1, a2, a3 }));
     }
 
     @Override
-    public Object apply4(Object a1, Object a2, Object a3, Object a4) {
+    public Object tailApply4(Object a1, Object a2, Object a3, Object a4) {
         return applyCombined(combine(new Object[] { a1, a2, a3, a4 }));
     }
 
     @Override
-    public Object apply5(Object a1, Object a2, Object a3, Object a4,
-                         Object a5) {
+    public Object tailApply5(Object a1, Object a2, Object a3, Object a4,
+                             Object a5) {
         return applyCombined(combine(new Object[] { a1, a2, a3, a4, a5 }));
     }
 
     @Override
-    public Object apply6(Object a1, Object a2, Object a3, Object a4,
-                         Object a5, Object a6) {
+    public Object tailApply6(Object a1, Object a2, Object a3, Object a4,
+                             Object a5, Object a6) {
         return applyCombined(
             combine(new Object[] { a1, a2, a3, a4, a5, a6 }));
     }
 
     @Override
-    public Object apply7(Object a1, Object a2, Object a3, Object a4,
-                         Object a5, Object a6, Object a7) {
+    public Object tailApply7(Object a1, Object a2, Object a3, Object a4,
+                             Object a5, Object a6, Object a7) {
         return applyCombined(
             combine(new Object[] { a1, a2, a3, a4, a5, a6, a7 }));
     }

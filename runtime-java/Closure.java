@@ -1,15 +1,25 @@
 // Base class for OCaml closures.
 //
 // Each OCaml function is compiled to a concrete subclass of Closure
-// that overrides [arity] and the [applyN] matching its source arity.
-// Calling [applyN] with N == arity hits the subclass override; calling
-// it with N < arity falls through to [under], which packages the
-// arguments into a PartialClosure for later completion. Calling with
-// N > arity is a compile-time mistake and throws.
+// that overrides [arity] and the [tailApplyN] matching its source
+// arity (for 1 <= N <= 7) or [applyN] (for 8 <= N <= 16). The direct-
+// arity entry-point [applyN] the OCaml compiler picks at the call
+// site hits the subclass via virtual dispatch:
 //
-// The OCaml compiler statically picks the right applyN for each call
-// site based on the number of args being passed; the K-vs-arity
-// mismatch is resolved at runtime via the virtual dispatch on arity().
+//   - For N in [1..7], [applyN] is a [final] method in this base
+//     class that drives the trampoline. It calls [tailApplyN] (which
+//     the subclass overrides) and unwinds any returned [Bounce]
+//     sentinel in a [while] loop, so deeply-recursive tail chains
+//     run in a single JVM frame rather than consuming a frame per
+//     call. A miscall where N != arity() falls through the default
+//     [tailApplyN] in this base class to [under], which packages the
+//     args into a [PartialClosure] (undersupply) or chunks them
+//     (oversupply).
+//
+//   - For N in [8..16], [applyN] is still virtual (no trampoline —
+//     large-arity tail calls are rare enough not to be worth the
+//     plumbing). Subclasses override [applyN] directly; the base
+//     impl routes to [under] for arity mismatches.
 public class Closure {
     public Closure() {
         super();
@@ -20,43 +30,106 @@ public class Closure {
         return 0;
     }
 
-    public Object apply1(Object a1) {
+    // --- Tail-trampolined apply entry points (arities 1..7) ------------
+    //
+    // Each [applyN] below is [final]: it drives the trampoline loop
+    // and routes to the subclass via [tailApplyN]. Subclasses must
+    // override [tailApplyN], not [applyN].
+
+    public final Object apply1(Object a1) {
+        Object r = tailApply1(a1);
+        while (r instanceof Bounce) r = ((Bounce) r).step();
+        return r;
+    }
+
+    public final Object apply2(Object a1, Object a2) {
+        Object r = tailApply2(a1, a2);
+        while (r instanceof Bounce) r = ((Bounce) r).step();
+        return r;
+    }
+
+    public final Object apply3(Object a1, Object a2, Object a3) {
+        Object r = tailApply3(a1, a2, a3);
+        while (r instanceof Bounce) r = ((Bounce) r).step();
+        return r;
+    }
+
+    public final Object apply4(Object a1, Object a2, Object a3, Object a4) {
+        Object r = tailApply4(a1, a2, a3, a4);
+        while (r instanceof Bounce) r = ((Bounce) r).step();
+        return r;
+    }
+
+    public final Object apply5(Object a1, Object a2, Object a3, Object a4,
+                               Object a5) {
+        Object r = tailApply5(a1, a2, a3, a4, a5);
+        while (r instanceof Bounce) r = ((Bounce) r).step();
+        return r;
+    }
+
+    public final Object apply6(Object a1, Object a2, Object a3, Object a4,
+                               Object a5, Object a6) {
+        Object r = tailApply6(a1, a2, a3, a4, a5, a6);
+        while (r instanceof Bounce) r = ((Bounce) r).step();
+        return r;
+    }
+
+    public final Object apply7(Object a1, Object a2, Object a3, Object a4,
+                               Object a5, Object a6, Object a7) {
+        Object r = tailApply7(a1, a2, a3, a4, a5, a6, a7);
+        while (r instanceof Bounce) r = ((Bounce) r).step();
+        return r;
+    }
+
+    // --- Trampoline step methods (arities 1..7) -----------------------
+    //
+    // Overridden by generated closure subclasses whose declared arity
+    // matches the index. The default impl routes to [under] so
+    // arity-mismatched calls still behave correctly (undersupply =>
+    // PartialClosure; oversupply => chunked re-apply).
+
+    public Object tailApply1(Object a1) {
         Object[] args = new Object[] { a1 };
         return under(1, args);
     }
 
-    public Object apply2(Object a1, Object a2) {
+    public Object tailApply2(Object a1, Object a2) {
         Object[] args = new Object[] { a1, a2 };
         return under(2, args);
     }
 
-    public Object apply3(Object a1, Object a2, Object a3) {
+    public Object tailApply3(Object a1, Object a2, Object a3) {
         Object[] args = new Object[] { a1, a2, a3 };
         return under(3, args);
     }
 
-    public Object apply4(Object a1, Object a2, Object a3, Object a4) {
+    public Object tailApply4(Object a1, Object a2, Object a3, Object a4) {
         Object[] args = new Object[] { a1, a2, a3, a4 };
         return under(4, args);
     }
 
-    public Object apply5(Object a1, Object a2, Object a3, Object a4,
-                         Object a5) {
+    public Object tailApply5(Object a1, Object a2, Object a3, Object a4,
+                             Object a5) {
         Object[] args = new Object[] { a1, a2, a3, a4, a5 };
         return under(5, args);
     }
 
-    public Object apply6(Object a1, Object a2, Object a3, Object a4,
-                         Object a5, Object a6) {
+    public Object tailApply6(Object a1, Object a2, Object a3, Object a4,
+                             Object a5, Object a6) {
         Object[] args = new Object[] { a1, a2, a3, a4, a5, a6 };
         return under(6, args);
     }
 
-    public Object apply7(Object a1, Object a2, Object a3, Object a4,
-                         Object a5, Object a6, Object a7) {
+    public Object tailApply7(Object a1, Object a2, Object a3, Object a4,
+                             Object a5, Object a6, Object a7) {
         Object[] args = new Object[] { a1, a2, a3, a4, a5, a6, a7 };
         return under(7, args);
     }
+
+    // --- High-arity apply entry points (arities 8..16) -----------------
+    //
+    // Non-final, virtual — subclasses override directly. No trampoline
+    // plumbing for these; high-arity tail chains are rare in practice.
 
     public Object apply8(Object a1, Object a2, Object a3, Object a4,
                          Object a5, Object a6, Object a7, Object a8) {

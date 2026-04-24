@@ -10,6 +10,7 @@
   DummyClosure.class
   CamlException.class
   Backtrace.class
+  Bounce.class
   Compare.class
   Channel.class
   Channel$EmptyInputStream.class
@@ -31,6 +32,7 @@
   DummyClosure.java
   CamlException.java
   Backtrace.java
+  Bounce.java
   Compare.java
   Channel.java
   Bytes.java
@@ -56,6 +58,7 @@
    DummyClosure.class
    CamlException.class
    Backtrace.class
+  Bounce.class
    Compare.class
    Channel.class
    Channel$EmptyInputStream.class

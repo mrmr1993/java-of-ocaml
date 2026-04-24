@@ -364,6 +364,7 @@ let compile_user_stubs ~stub_manifests ~stub_classpath =
     seed "Closure" (Jvm.closure_class_bytes ());
     seed "CamlException" (Jvm.camlexception_class_bytes ());
     seed "Backtrace" (Jvm.backtrace_class_bytes ());
+    seed "Bounce" (Jvm.bounce_class_bytes ());
     seed "Ocaml" (Jvm.ocaml_class_bytes ());
     seed "Bytes" (Jvm.bytes_class_bytes ());
     seed "BigArray" (Jvm.big_array_class_bytes ());
@@ -1053,6 +1054,25 @@ let compile_t
         Some (file, line)
   in
   (match Sys.getenv_opt "JAVA_OF_OCAML_DEBUG" with
+   | Some s when List.mem "units" (String.split_on_char ',' s) ->
+     Format.eprintf
+       "[units] %d unit ranges (code_words=%d)@."
+       (List.length parsed.units)
+       (Array.length parsed.code);
+     List.iteri
+       (fun i (u : Bytecode.Unit.t) ->
+         if i < 5 || i >= List.length parsed.units - 5
+         then
+           Format.eprintf
+             "[units]   %d: %s [%d..%d) size=%d@."
+             i
+             u.modname
+             u.start_pc
+             u.end_pc
+             (u.end_pc - u.start_pc))
+       parsed.units
+   | _ -> ());
+  (match Sys.getenv_opt "JAVA_OF_OCAML_DEBUG" with
    | Some s when List.mem "dbug" (String.split_on_char ',' s) ->
      Format.eprintf "[dbug] %d events@." (Hashtbl.length parsed.debug);
      let pcs =
@@ -1174,14 +1194,50 @@ let compile_t
           let start_pc = first.pc in
           let end_pc = last.pc + 1 in
           try
+             let extra_starts =
+               (* Force a block boundary at every unit's first
+                  instruction so [Main_init_split] can attribute each
+                  block to exactly one unit. Without this, the
+                  parser's straight-line walker fuses adjacent units
+                  into one straddling block and the planner rejects
+                  the whole program. Only PCs that land on a decoded
+                  instruction in range are respected by [parse_main]. *)
+               Main_init_split.extra_block_starts parsed.units
+             in
              let prog =
                Timer_bucket.track main_tb "parse_main" (fun () ->
-                 Parse_bytecode.parse_main arr ~start_pc ~end_pc)
+                 Parse_bytecode.parse_main
+                   ~extra_starts
+                   arr
+                   ~start_pc
+                   ~end_pc)
              in
              let prog =
                Timer_bucket.track main_tb "optimize" (fun () ->
                  optimize ~what:"<main>" prog)
              in
+             (match Sys.getenv_opt "JAVA_OF_OCAML_DEBUG" with
+              | Some s when List.mem "units_plan" (String.split_on_char ',' s) ->
+                (match Main_init_split.plan prog ~units:parsed.units with
+                 | Main_init_split.Rejected why ->
+                   Format.eprintf "[units_plan] rejected: %s@." why
+                 | Main_init_split.Split p ->
+                   Format.eprintf
+                     "[units_plan] split into %d slices (driver_entry=%d)@."
+                     (List.length p.units)
+                     p.driver_entry_addr;
+                   List.iteri
+                     (fun i (s : Main_init_split.unit_slice) ->
+                       if i < 5 || i >= List.length p.units - 5
+                       then
+                         Format.eprintf
+                           "[units_plan]   %d: %s -> %s (blocks=%d)@."
+                           i
+                           s.modname
+                           s.method_name
+                           (Code.Addr.Map.cardinal s.prog.blocks))
+                     p.units)
+              | _ -> ());
              let typing =
                Timer_bucket.track main_tb "typing.infer" (fun () ->
                  Jvm_typing.infer prog)
@@ -1370,7 +1426,353 @@ let compile_t
                Format.eprintf "[ir_emit] <main>: legacy (gen: %s)@." msg;
              None)
     in
-    (match try_main_ir () with
+    (* On by default. [try_main_ir_split] replaces [main]'s
+       monolithic init chain with a sequence of per-compilation-
+       unit [invokestatic] calls onto sibling classes
+       [Main$init_<mod>]. Each sibling carries one unit's init as
+       a self-contained static method; [Method_split] still runs
+       per-slice when a slice is individually oversized, emitting
+       [Main$init_<mod>_<N>] helper siblings.
+
+       Opt out by setting [JAVA_OF_OCAML_SPLIT_INIT=0] (or [false]
+       / [no]): the driver falls back to the monolithic
+       [try_main_ir] path below. Returns [None] on opt-out, empty
+       input, or when the planner rejects the program. *)
+    let try_main_ir_split () =
+      let enabled =
+        match Sys.getenv_opt "JAVA_OF_OCAML_SPLIT_INIT" with
+        | Some ("0" | "false" | "no") -> false
+        | _ -> true
+      in
+      if (not enabled) || Array.length arr = 0
+      then None
+      else (
+        let first = arr.(0) in
+        let last = arr.(Array.length arr - 1) in
+        let start_pc = first.pc in
+        let end_pc = last.pc + 1 in
+        try
+          let extra_starts =
+            Main_init_split.extra_block_starts parsed.units
+          in
+          let prog =
+            Timer_bucket.track main_tb "parse_main/split" (fun () ->
+              Parse_bytecode.parse_main
+                ~extra_starts
+                arr
+                ~start_pc
+                ~end_pc)
+          in
+          let prog = optimize ~what:"<main>" prog in
+          match Main_init_split.plan prog ~units:parsed.units with
+          | Main_init_split.Rejected why ->
+            if debug_ir_emit ()
+            then
+              Format.eprintf "[ir_emit] split_init rejected: %s@." why;
+            None
+          | Main_init_split.Split plan ->
+            let limit = Lazy.force method_size_limit in
+            let init_methods_rev = ref [] in
+            let sibling_classes_rev = ref [] in
+            let driver_calls_rev = ref [] in
+            List.iter
+              (fun (slice : Main_init_split.unit_slice) ->
+                let slice_prog = slice.prog in
+                let slice_typing = Jvm_typing.infer slice_prog in
+                let split_result =
+                  Method_split.split
+                    ~limit
+                    ~class_name:"Main"
+                    ~is_static:true
+                    ~return_kind:Method_split.Return_object
+                    slice_prog
+                in
+                (* Placement: each helper for this slice gets a
+                   fresh sibling class keyed by the slice's method
+                   name, so helpers across slices never collide. *)
+                let placement =
+                  Hashtbl.create (List.length split_result.helpers)
+                in
+                List.iteri
+                  (fun idx (h : Method_split.helper) ->
+                    Hashtbl.add
+                      placement
+                      h.method_name
+                      (Printf.sprintf
+                         "Main$%s_%d"
+                         slice.method_name
+                         idx))
+                  split_result.helpers;
+                let rewrite_last (l : Code.last) =
+                  match l with
+                  | Code.Invoke_tail
+                      ({ class_ = "Main"; method_; _ } as it) ->
+                    (match Hashtbl.find_opt placement method_ with
+                     | Some sibling ->
+                       Code.Invoke_tail { it with class_ = sibling }
+                     | None -> l)
+                  | _ -> l
+                in
+                let rewrite_prog (p : Code.program) =
+                  { p with
+                    Code.blocks =
+                      Code.Addr.Map.map
+                        (fun (b : Code.block) ->
+                          { b with branch = rewrite_last b.branch })
+                        p.blocks
+                  }
+                in
+                let head = rewrite_prog split_result.head in
+                let entry_block =
+                  Code.Addr.Map.find head.start head.blocks
+                in
+                let entry_params = entry_block.params in
+                (* Slice method signature: one incoming [Object]
+                   (carry-over from the previous unit, bound to the
+                   entry block's sole param if any) returning one
+                   [Object] (the outgoing carry-over for the next
+                   slice). See [Main_init_split]'s terminator
+                   rewrites: cross-unit [Branch]es become [Return]
+                   of their arg; original [Stop]s become [Return]
+                   of a fresh [Block(0, [||])]. *)
+                let descriptor =
+                  "(Ljava/lang/Object;)Ljava/lang/Object;"
+                in
+                let _ = entry_params in
+                (* Emit each slice-helper onto its sibling class. *)
+                List.iter
+                  (fun (h : Method_split.helper) ->
+                    let hcp = Jvm.Cp.create () in
+                    let hcode = Jvm.Code.create hcp in
+                    Jvm.Code.set_min_locals hcode (List.length h.params);
+                    let h_prog = rewrite_prog h.prog in
+                    (try
+                       Jvm_generate.emit_program
+                         ~code:hcode
+                         ~typing:slice_typing
+                         ~name_of_body
+                         ~fn_info_of_body
+                         ~prim_name
+                         ~stubs
+                         ~arg_vars:h.params
+                         ~line_of_pc
+                         ~unbox_args:true
+                         ~is_static:true
+                         h_prog
+                     with Failure msg ->
+                       Format.eprintf
+                         "[ir_emit] slice %s helper %s: %s@."
+                         slice.method_name
+                         h.method_name
+                         msg;
+                       raise (Failure msg));
+                    let size = Jvm.Code.resolved_size hcode in
+                    let hcp, hcode =
+                      if size <= 65535
+                      then hcp, hcode
+                      else (
+                        note_oversized_stub
+                          ~prog:h_prog
+                          ~owner:slice.method_name
+                          ~name:h.method_name
+                          ~size
+                          ();
+                        let scp = Jvm.Cp.create () in
+                        let s = Jvm.Code.create scp in
+                        Jvm.Code.set_min_locals s (List.length h.params);
+                        Jvm.Code.new_
+                          s
+                          "java/lang/UnsupportedOperationException";
+                        Jvm.Code.dup s;
+                        Jvm.Code.ldc_string
+                          s
+                          (Printf.sprintf
+                             "Slice %s helper %s too large (%d > 65535)"
+                             slice.method_name
+                             h.method_name
+                             size);
+                        Jvm.Code.invokespecial
+                          s
+                          ~class_:
+                            "java/lang/UnsupportedOperationException"
+                          ~method_:"<init>"
+                          ~descriptor:"(Ljava/lang/String;)V";
+                        Jvm.Code.athrow s;
+                        scp, s)
+                    in
+                    let sibling_name =
+                      Hashtbl.find placement h.method_name
+                    in
+                    let bytes =
+                      assemble_sibling_class
+                        ?source_file:main_source_file
+                        ~class_name:sibling_name
+                        ~method_name:h.method_name
+                        ~descriptor:h.descriptor
+                        ~cp:hcp
+                        ~code:hcode
+                        ()
+                    in
+                    sibling_classes_rev :=
+                      (sibling_name, bytes) :: !sibling_classes_rev)
+                  split_result.helpers;
+                (* Emit slice head as its own [Main$<method>]
+                   sibling class, where [method] is already
+                   [init_<mod>]. Each sibling holds one slice as a
+                   self-contained static method invoked from
+                   [main]. *)
+                let init_class = "Main$" ^ slice.method_name in
+                let icp = Jvm.Cp.create () in
+                let icode = Jvm.Code.create icp in
+                (* One arg slot for the incoming carry-over Object
+                   even if the entry block has no param binding it
+                   (the arg is ignored in that case). *)
+                Jvm.Code.set_min_locals icode 1;
+                (try
+                   Jvm_generate.emit_program
+                     ~code:icode
+                     ~typing:slice_typing
+                     ~name_of_body
+                     ~fn_info_of_body
+                     ~prim_name
+                     ~stubs
+                     ~arg_vars:entry_params
+                     ~line_of_pc
+                     ~unbox_args:true
+                     ~is_static:true
+                     head
+                 with Failure msg ->
+                   Format.eprintf
+                     "[ir_emit] slice %s head: %s@."
+                     slice.method_name
+                     msg;
+                   raise (Failure msg));
+                let size = Jvm.Code.resolved_size icode in
+                let icp, icode =
+                  if size <= 65535
+                  then icp, icode
+                  else (
+                    note_oversized_stub
+                      ~prog:head
+                      ~owner:slice.method_name
+                      ~name:slice.method_name
+                      ~size
+                      ();
+                    let scp = Jvm.Cp.create () in
+                    let s = Jvm.Code.create scp in
+                    Jvm.Code.set_min_locals s 1;
+                    Jvm.Code.new_
+                      s
+                      "java/lang/UnsupportedOperationException";
+                    Jvm.Code.dup s;
+                    Jvm.Code.ldc_string
+                      s
+                      (Printf.sprintf
+                         "Slice %s too large (%d > 65535)"
+                         slice.method_name
+                         size);
+                    Jvm.Code.invokespecial
+                      s
+                      ~class_:"java/lang/UnsupportedOperationException"
+                      ~method_:"<init>"
+                      ~descriptor:"(Ljava/lang/String;)V";
+                    Jvm.Code.athrow s;
+                    scp, s)
+                in
+                let init_bytes =
+                  assemble_sibling_class
+                    ?source_file:main_source_file
+                    ~class_name:init_class
+                    ~method_name:slice.method_name
+                    ~descriptor
+                    ~cp:icp
+                    ~code:icode
+                    ()
+                in
+                sibling_classes_rev :=
+                  (init_class, init_bytes) :: !sibling_classes_rev;
+                ignore init_methods_rev;
+                driver_calls_rev :=
+                  (init_class, slice.method_name, descriptor)
+                  :: !driver_calls_rev)
+              plan.units;
+            Some
+              ( List.rev !driver_calls_rev
+              , List.rev !sibling_classes_rev )
+        with
+        | Parse_bytecode.Not_supported msg ->
+          if debug_ir_emit ()
+          then
+            Format.eprintf
+              "[ir_emit] split_init: fallback (parse: %s)@."
+              msg;
+          None
+        | Jvm_generate.Unsupported msg ->
+          if debug_ir_emit ()
+          then
+            Format.eprintf
+              "[ir_emit] split_init: fallback (gen: %s)@."
+              msg;
+          None)
+    in
+    (match try_main_ir_split () with
+     | Some (driver_calls, siblings) ->
+       Jvm.Code.invokestatic
+         main_code
+         ~class_:"Ocaml"
+         ~method_:"runtimeLock"
+         ~descriptor:"()V";
+       emit_sys_argv_prologue main_code;
+       let globals_sibling_classes =
+         Timer_bucket.track main_tb "emit_globals_init" (fun () ->
+           emit_globals_init parsed.globals ~main_code)
+       in
+       emit_runtime_init_after_globals main_code;
+       (* The driver threads the cross-unit carry-over through a
+          local: initialise to [Block(0, new Object[0])] (OCaml's
+          [Val_unit]), then for each slice [aload carry; invoke;
+          astore carry]. Each slice's method is
+          [(Ljava/lang/Object;)Ljava/lang/Object;] so the chain
+          stays stack-balanced. At the end we discard the final
+          value and return.
+
+          Local slot for the carry — [set_min_locals] isn't
+          enough; we need a specific slot reservation past [argv].
+          [argv] lives at local 0 ([String[]]); the carry-over
+          goes in local 1. *)
+       let carry_local = 1 in
+       Jvm.Code.set_min_locals main_code (carry_local + 1);
+       Jvm.Code.new_ main_code "Block";
+       Jvm.Code.dup main_code;
+       Jvm.Code.ldc_int main_code 0;
+       Jvm.Code.ldc_int main_code 0;
+       Jvm.Code.anewarray main_code "java/lang/Object";
+       Jvm.Code.invokespecial
+         main_code
+         ~class_:"Block"
+         ~method_:"<init>"
+         ~descriptor:"(I[Ljava/lang/Object;)V";
+       Jvm.Code.astore main_code carry_local;
+       List.iter
+         (fun (init_class, method_name, descriptor) ->
+           Jvm.Code.aload main_code carry_local;
+           Jvm.Code.invokestatic
+             main_code
+             ~class_:init_class
+             ~method_:method_name
+             ~descriptor;
+           Jvm.Code.astore main_code carry_local)
+         driver_calls;
+       Jvm.Code.return_void main_code;
+       main_sibling_classes := siblings @ globals_sibling_classes;
+       if debug_ir_emit ()
+       then
+         Format.eprintf
+           "[ir_emit] <main>: split_init (%d slices, %d siblings)@."
+           (List.length driver_calls)
+           (List.length siblings)
+     | None ->
+    match try_main_ir () with
      | Some (head, typing, split_sibling_classes) ->
        (* Acquire the OCaml runtime lock before any OCaml code runs.
           Mirrors caml_thread_initialize: the main thread "owns" the
@@ -1833,7 +2235,15 @@ let compile_t
           }
         in
         let apply_method =
-          { Jvm.name = Printf.sprintf "apply%d" fn_info.nargs
+          (* For arities 1..7 the [Closure] base class has a [final]
+             [apply<N>] driver that loops on [Bounce]; the subclass's
+             body must go in the virtual [tailApply<N>] slot instead.
+             Arities >= 8 still use the direct [apply<N>] name — no
+             trampoline plumbing there. *)
+          { Jvm.name =
+              (if fn_info.nargs >= 1 && fn_info.nargs <= 7
+               then Printf.sprintf "tailApply%d" fn_info.nargs
+               else Printf.sprintf "apply%d" fn_info.nargs)
           ; descriptor =
               (let b = Buffer.create 16 in
                Buffer.add_char b '(';
@@ -1901,6 +2311,7 @@ let compile_t
     write_class "Closure" (Jvm.closure_class_bytes ());
     write_class "CamlException" (Jvm.camlexception_class_bytes ());
     write_class "Backtrace" (Jvm.backtrace_class_bytes ());
+    write_class "Bounce" (Jvm.bounce_class_bytes ());
     write_class "PartialClosure" (Jvm.partial_closure_class_bytes ());
     write_class "DummyClosure" (Jvm.dummy_closure_class_bytes ());
     write_class "Compare" (Jvm.compare_class_bytes ());
