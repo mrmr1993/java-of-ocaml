@@ -198,28 +198,45 @@ let plan (prog : Code.program) ~(units : Bytecode.Unit.t list) : result =
               a unit. Crosses-unit edges are the thing we're trying
               to avoid — if they survived the parser, we can't
               honestly split. *)
-           let edge_cross = ref None in
+           (* Cross-unit edges are permitted only when the source
+              block ends in a plain [Branch]: the fall-through
+              pattern the OCaml linker uses to chain unit inits.
+              We record each such block so it can have its
+              terminator rewritten to [Stop] inside its slice —
+              the driver then invokes the next slice as an
+              ordinary method call. Anything other than a plain
+              [Branch] (a [Cond] or [Switch] targeting the next
+              unit, say) is a control-flow pattern we can't turn
+              into a sequential dispatch without more work, so we
+              reject. *)
+           let rewrite_to_stop = Hashtbl.create 16 in
+           let reject = ref None in
            Code.Addr.Map.iter
              (fun addr (b : Code.block) ->
                let ui = Hashtbl.find assign addr in
-               List.iter
-                 (fun succ ->
-                   match Hashtbl.find_opt assign succ with
-                   | Some uj when uj <> ui ->
-                     if !edge_cross = None
-                     then edge_cross := Some (addr, succ, ui, uj)
-                   | _ -> ())
-                 (successors b))
+               let crosses =
+                 List.exists
+                   (fun succ ->
+                     match Hashtbl.find_opt assign succ with
+                     | Some uj -> uj <> ui
+                     | None -> false)
+                   (successors b)
+               in
+               if crosses && !reject = None
+               then
+                 match b.branch with
+                 | Code.Branch (_, _) -> Hashtbl.add rewrite_to_stop addr ()
+                 | _ ->
+                   reject :=
+                     Some
+                       (Printf.sprintf
+                          "block %s in unit %s has non-Branch cross-unit \
+                           terminator"
+                          (Code.Addr.to_string addr)
+                          units_arr.(ui).modname))
              prog.blocks;
-           (match !edge_cross with
-            | Some (src, dst, ui, uj) ->
-              Rejected
-                (Printf.sprintf
-                   "CFG edge %s(unit %s) -> %s(unit %s) crosses units"
-                   (Code.Addr.to_string src)
-                   units_arr.(ui).modname
-                   (Code.Addr.to_string dst)
-                   units_arr.(uj).modname)
+           (match !reject with
+            | Some why -> Rejected why
             | None ->
               (* Trap-locality check. If [compute_trap_contexts] says
                  any block in unit N has a pushtrap in its active
@@ -256,11 +273,19 @@ let plan (prog : Code.program) ~(units : Bytecode.Unit.t list) : result =
                        (Code.Addr.to_string trap_addr)
                        units_arr.(uj).modname)
                 | None ->
-                  (* Build per-unit block maps. *)
+                  (* Build per-unit block maps, rewriting every
+                     cross-unit [Branch] source terminator to [Stop]
+                     so the slice's IR has no dangling references to
+                     blocks in other units. *)
                   let per_unit = Array.make n_units Code.Addr.Map.empty in
                   Code.Addr.Map.iter
-                    (fun addr b ->
+                    (fun addr (b : Code.block) ->
                       let i = Hashtbl.find assign addr in
+                      let b =
+                        if Hashtbl.mem rewrite_to_stop addr
+                        then { b with branch = Code.Stop }
+                        else b
+                      in
                       per_unit.(i) <- Code.Addr.Map.add addr b per_unit.(i))
                     prog.blocks;
                   (* Each unit's entry block is the one at its
@@ -287,12 +312,12 @@ let plan (prog : Code.program) ~(units : Bytecode.Unit.t list) : result =
                   let slices_rev = ref [] in
                   let modnames_rev = ref [] in
                   for i = 0 to n_units - 1 do
-                    if Code.Addr.Map.is_empty per_unit.(i) then ()
+                    if Code.Addr.Map.is_empty per_unit.(i)
+                       || !missing_entry <> None
+                    then ()
                     else
                       match entry_of i with
-                      | None ->
-                        if !missing_entry = None
-                        then missing_entry := Some i
+                      | None -> missing_entry := Some i
                       | Some entry ->
                         let sub =
                           { Code.start = entry
@@ -300,7 +325,8 @@ let plan (prog : Code.program) ~(units : Bytecode.Unit.t list) : result =
                           ; free_pc = prog.free_pc
                           }
                         in
-                        slices_rev := (units_arr.(i).modname, sub) :: !slices_rev;
+                        slices_rev :=
+                          (units_arr.(i).modname, sub) :: !slices_rev;
                         modnames_rev :=
                           units_arr.(i).modname :: !modnames_rev
                   done;

@@ -1193,14 +1193,50 @@ let compile_t
           let start_pc = first.pc in
           let end_pc = last.pc + 1 in
           try
+             let extra_starts =
+               (* Force a block boundary at every unit's first
+                  instruction so [Main_init_split] can attribute each
+                  block to exactly one unit. Without this, the
+                  parser's straight-line walker fuses adjacent units
+                  into one straddling block and the planner rejects
+                  the whole program. Only PCs that land on a decoded
+                  instruction in range are respected by [parse_main]. *)
+               Main_init_split.extra_block_starts parsed.units
+             in
              let prog =
                Timer_bucket.track main_tb "parse_main" (fun () ->
-                 Parse_bytecode.parse_main arr ~start_pc ~end_pc)
+                 Parse_bytecode.parse_main
+                   ~extra_starts
+                   arr
+                   ~start_pc
+                   ~end_pc)
              in
              let prog =
                Timer_bucket.track main_tb "optimize" (fun () ->
                  optimize ~what:"<main>" prog)
              in
+             (match Sys.getenv_opt "JAVA_OF_OCAML_DEBUG" with
+              | Some s when List.mem "units_plan" (String.split_on_char ',' s) ->
+                (match Main_init_split.plan prog ~units:parsed.units with
+                 | Main_init_split.Rejected why ->
+                   Format.eprintf "[units_plan] rejected: %s@." why
+                 | Main_init_split.Split p ->
+                   Format.eprintf
+                     "[units_plan] split into %d slices (driver_entry=%d)@."
+                     (List.length p.units)
+                     p.driver_entry_addr;
+                   List.iteri
+                     (fun i (s : Main_init_split.unit_slice) ->
+                       if i < 5 || i >= List.length p.units - 5
+                       then
+                         Format.eprintf
+                           "[units_plan]   %d: %s -> %s (blocks=%d)@."
+                           i
+                           s.modname
+                           s.method_name
+                           (Code.Addr.Map.cardinal s.prog.blocks))
+                     p.units)
+              | _ -> ());
              let typing =
                Timer_bucket.track main_tb "typing.infer" (fun () ->
                  Jvm_typing.infer prog)

@@ -110,11 +110,16 @@ let%expect_test "plan splits two disjoint units" =
       B -> init_B (blocks=1 start=1)
     |}]
 
-let%expect_test "plan rejects cross-unit CFG edge" =
+(* The planner ALLOWS cross-unit [Branch] edges (they're the
+   fall-through pattern between consecutive unit inits) but rewrites
+   the source's terminator to [Stop] in the slice. Test the
+   terminator rewrite by making block 0's Branch target live in
+   unit B and verifying the slice's block 0 ends in [Stop]. *)
+let%expect_test "plan rewrites cross-unit Branch to Stop in slice" =
   let blocks =
     Code.Addr.Map.empty
     |> Code.Addr.Map.add 0 (make_block_branching ~src_pc:10 ~target:1)
-    |> Code.Addr.Map.add 1 (make_block ~src_pc:110)
+    |> Code.Addr.Map.add 1 (make_block ~src_pc:100)
   in
   let prog = { Code.start = 0; blocks; free_pc = 2 } in
   let units =
@@ -124,8 +129,56 @@ let%expect_test "plan rejects cross-unit CFG edge" =
   in
   (match Mis.plan prog ~units with
    | Mis.Rejected why -> Printf.printf "rejected: %s\n" why
+   | Mis.Split plan ->
+     List.iter
+       (fun (s : Mis.unit_slice) ->
+         Code.Addr.Map.iter
+           (fun addr (b : Code.block) ->
+             let last =
+               match b.branch with
+               | Code.Stop -> "Stop"
+               | Code.Branch _ -> "Branch"
+               | _ -> "other"
+             in
+             Printf.printf "%s addr=%d last=%s\n" s.modname addr last)
+           s.prog.blocks)
+       plan.units);
+  [%expect
+    {|
+    A addr=0 last=Stop
+    B addr=1 last=Stop
+    |}]
+
+(* Non-[Branch] cross-unit terminators (e.g. [Cond] with one arm in
+   a different unit) are rejected — we can't sequentially dispatch
+   a conditional to the next unit. *)
+let%expect_test "plan rejects cross-unit Cond terminator" =
+  let blocks =
+    Code.Addr.Map.empty
+    |> Code.Addr.Map.add
+         0
+         { Code.params = [ Code.Var.fresh () ]
+         ; body = [| Code.Source_pc 10 |]
+         ; branch =
+             Code.Cond
+               ( Code.Var.fresh ()
+               , (1, [])
+               , (2, []) )
+         }
+    |> Code.Addr.Map.add 1 (make_block ~src_pc:20)
+    |> Code.Addr.Map.add 2 (make_block ~src_pc:100)
+  in
+  let prog = { Code.start = 0; blocks; free_pc = 3 } in
+  let units =
+    [ { Bytecode.Unit.modname = "A"; start_pc = 10; end_pc = 100 }
+    ; { Bytecode.Unit.modname = "B"; start_pc = 100; end_pc = 200 }
+    ]
+  in
+  (match Mis.plan prog ~units with
+   | Mis.Rejected why -> Printf.printf "rejected: %s\n" why
    | Mis.Split _ -> Printf.printf "unexpected split\n");
-  [%expect {| rejected: CFG edge 0(unit A) -> 1(unit B) crosses units |}]
+  [%expect
+    {| rejected: block 0 in unit A has non-Branch cross-unit terminator |}]
 
 let%expect_test "plan rejects straddling block" =
   let blocks =
