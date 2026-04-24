@@ -1426,23 +1426,23 @@ let compile_t
                Format.eprintf "[ir_emit] <main>: legacy (gen: %s)@." msg;
              None)
     in
-    (* Gated by [JAVA_OF_OCAML_SPLIT_INIT=1]. When it succeeds,
-       [try_main_ir_split] returns the pieces needed to replace
-       [main]'s monolithic init chain with a sequence of per-
-       compilation-unit [invokestatic] calls onto sibling classes
+    (* On by default. [try_main_ir_split] replaces [main]'s
+       monolithic init chain with a sequence of per-compilation-
+       unit [invokestatic] calls onto sibling classes
        [Main$init_<mod>]. Each sibling carries one unit's init as
        a self-contained static method; [Method_split] still runs
        per-slice when a slice is individually oversized, emitting
-       [Main$init_<mod>_split_<N>] helper siblings.
+       [Main$init_<mod>_<N>] helper siblings.
 
-       Falls back to [None] when the env var is unset or the
-       planner rejects the program; the outer code then takes the
-       original monolithic path via [try_main_ir]. *)
+       Opt out by setting [JAVA_OF_OCAML_SPLIT_INIT=0] (or [false]
+       / [no]): the driver falls back to the monolithic
+       [try_main_ir] path below. Returns [None] on opt-out, empty
+       input, or when the planner rejects the program. *)
     let try_main_ir_split () =
       let enabled =
         match Sys.getenv_opt "JAVA_OF_OCAML_SPLIT_INIT" with
-        | Some ("1" | "true" | "yes") -> true
-        | _ -> false
+        | Some ("0" | "false" | "no") -> false
+        | _ -> true
       in
       if (not enabled) || Array.length arr = 0
       then None
