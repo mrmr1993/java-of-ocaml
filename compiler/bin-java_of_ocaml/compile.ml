@@ -4,8 +4,10 @@
 open Cmdliner
 
 let parse_export_spec s =
-  (* [NAME=FQCN], where FQCN uses '.' (Java source) or '/' (JVM internal)
-     form; we normalise to '/' downstream. *)
+  (* [NAME=FQCN], where NAME is a dotted OCaml module path (outer,
+     or [Outer.Sub.Leaf] for a nested target), and FQCN uses '.'
+     (Java source) or '/' (JVM internal) form; we normalise to '/'
+     downstream. *)
   match String.index_opt s '=' with
   | None ->
     Error
@@ -21,7 +23,10 @@ let parse_export_spec s =
         (Printf.sprintf
            "--export-module: NAME and FQCN must both be non-empty (got %S)"
            s)
-    else Ok (name, fqcn)
+    else
+      match String.split_on_char '.' name with
+      | [] -> Error "--export-module: empty NAME"
+      | outer :: sub_path -> Ok (outer, sub_path, fqcn)
 
 let run
     inputs

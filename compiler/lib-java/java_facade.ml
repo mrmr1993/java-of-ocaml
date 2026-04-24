@@ -32,9 +32,13 @@
 module K = Cmi_reader
 
 type export =
-  { modname : string
+  { outer : string
+  ; sub_path : string list
   ; fqcn : string
   }
+
+let dotted_name exp =
+  String.concat "." (exp.outer :: exp.sub_path)
 
 type facade_class =
   { jvm_name : string
@@ -214,67 +218,6 @@ let push_module_field code ~field_idx =
   Jvm.Code.ldc_int code field_idx;
   Jvm.Code.aaload code
 
-(* --- Per-method emission ------------------------------------------- *)
-
-let emit_binding_method ~facade_class ~mod_idx (b : K.binding) =
-  let cp = Jvm.Cp.create () in
-  let code = Jvm.Code.create cp in
-  let open Jvm.Code in
-  (* init(); *)
-  invokestatic code ~class_:facade_class ~method_:"init"
-    ~descriptor:"()V";
-  ignore facade_class;
-  (* Load module block and its binding. *)
-  push_module code ~mod_idx;
-  push_module_field code ~field_idx:b.field_index;
-  let arg_kinds, ret_kind =
-    match b.kind with
-    | K.K_fun (args, ret) -> args, ret
-    | k -> [], k
-  in
-  (match arg_kinds with
-   | [] ->
-     (* Non-function value: just unbox and return. *)
-     unbox_and_return code ret_kind
-   | _ ->
-     (* Function: cast to Closure, box args, call applyN. *)
-     checkcast code "Closure";
-     (* Param slots: static method, so locals 0..n-1 are the params
-        (long/double take two slots). *)
-     let slot = ref 0 in
-     List.iter
-       (fun k ->
-         load_param code ~kind:k ~slot:!slot;
-         box_scalar code k;
-         slot := !slot + slots_of_kind k)
-       arg_kinds;
-     let n = List.length arg_kinds in
-     if n < 1 || n > 7
-     then failwith
-       (Printf.sprintf
-          "java_facade: binding %s arity %d outside supported \
-           apply1..apply7 range"
-          b.name
-          n);
-     let descriptor =
-       let buf = Buffer.create 32 in
-       Buffer.add_char buf '(';
-       for _ = 1 to n do Buffer.add_string buf "Ljava/lang/Object;" done;
-       Buffer.add_string buf ")Ljava/lang/Object;";
-       Buffer.contents buf
-     in
-     invokevirtual code ~class_:"Closure"
-       ~method_:(Printf.sprintf "apply%d" n) ~descriptor;
-     unbox_and_return code ret_kind);
-  let m =
-    { Jvm.name = b.name
-    ; descriptor = method_descriptor ~args:arg_kinds ~ret:ret_kind
-    ; access_flags = 0x0009   (* public static *)
-    ; code
-    }
-  in
-  m, cp
-
 (* --- Init method + default constructor ---------------------------- *)
 
 let emit_init_method ~facade_class ~cp =
@@ -318,19 +261,43 @@ let emit_private_ctor ~cp =
 
 (* --- Top-level class assembly ------------------------------------- *)
 
+(* Walk the field-chain from the outer module's block down to the
+   target nested module. Emits, for each index [i] in [chain]:
+     (Block) .fields[i]
+   leaving the nested module's block on top of stack. If [chain] is
+   empty, stack is unchanged. *)
+let walk_field_chain code chain =
+  List.iter
+    (fun idx ->
+      Jvm.Code.checkcast code "Block";
+      Jvm.Code.getfield code ~class_:"Block" ~field:"fields"
+        ~descriptor:"[Ljava/lang/Object;";
+      Jvm.Code.ldc_int code idx;
+      Jvm.Code.aaload code)
+    chain
+
 let emit_one_class ~parsed ~cmi_paths ~(exp : export) ~module_index
     : facade_class option
   =
-  match Hashtbl.find_opt module_index exp.modname with
+  let dname = dotted_name exp in
+  match Hashtbl.find_opt module_index exp.outer with
   | None ->
     failwith
       (Printf.sprintf
-         "java_of_ocaml --export-module %s: module not found in the \
-          linked bytecode (parsed.units has %d entries)"
-         exp.modname
+         "java_of_ocaml --export-module %s: outer module %s not found \
+          in the linked bytecode (parsed.units has %d entries)"
+         dname
+         exp.outer
          (List.length parsed.Bytecode.units))
   | Some mod_idx ->
-    let cmi = Cmi_reader.read ~search_paths:cmi_paths ~modname:exp.modname in
+    let cmi =
+      match exp.sub_path with
+      | [] ->
+        Cmi_reader.read ~search_paths:cmi_paths ~modname:exp.outer
+      | sub_path ->
+        Cmi_reader.read_path ~search_paths:cmi_paths
+          ~outer:exp.outer ~sub_path
+    in
     let supported, skipped =
       List.partition supports_binding cmi.bindings
     in
@@ -338,20 +305,17 @@ let emit_one_class ~parsed ~cmi_paths ~(exp : export) ~module_index
       (fun (b : K.binding) ->
         Format.eprintf
           "[java-facade] skipping %s.%s: unsupported kind@."
-          exp.modname b.name)
+          dname b.name)
       skipped;
     if supported = []
     then (
       Format.eprintf
         "[java-facade] module %s has no supported bindings; no class \
          emitted@."
-        exp.modname;
+        dname;
       None)
     else
       let jvm_name = fqcn_to_internal exp.fqcn in
-      (* Assemble methods. Each binding body builds its own
-         [Code.t] using a *shared* constant pool (required: a class
-         file has exactly one pool, and all methods reference it). *)
       let cp = Jvm.Cp.create () in
       let methods = ref [] in
       let add_method m = methods := m :: !methods in
@@ -359,15 +323,12 @@ let emit_one_class ~parsed ~cmi_paths ~(exp : export) ~module_index
       add_method (emit_init_method ~facade_class:jvm_name ~cp);
       List.iter
         (fun b ->
-          (* Re-emit each binding using the shared cp. We inline
-             [emit_binding_method] here so the shared cp is threaded
-             cleanly; the standalone variant above is kept for
-             readability / debugging. *)
           let code = Jvm.Code.create cp in
           let open Jvm.Code in
           invokestatic code ~class_:jvm_name ~method_:"init"
             ~descriptor:"()V";
           push_module code ~mod_idx;
+          walk_field_chain code cmi.field_chain;
           push_module_field code ~field_idx:b.K.field_index;
           let arg_kinds, ret_kind =
             match b.kind with
@@ -409,25 +370,23 @@ let emit_one_class ~parsed ~cmi_paths ~(exp : export) ~module_index
         [ { Jvm.name = "$initialised"
           ; descriptor = "Z"
           ; access_flags = 0x004A
-              (* private static volatile *)
           }
         ]
       in
       let bytes =
         Jvm.assemble_class
-          ~source_file:("<facade:" ^ exp.modname ^ ">")
+          ~source_file:("<facade:" ^ dname ^ ">")
           ~class_name:jvm_name
           ~super_name:"java/lang/Object"
           ~cp
           ~fields
           ~methods:(List.rev !methods)
-          ~access_flags:0x0031  (* public final super *)
+          ~access_flags:0x0031
           ()
       in
       Some { jvm_name; bytes }
 
 let emit ~parsed ~cmi_paths ~exports =
-  ignore emit_binding_method;  (* unused standalone path, kept for docs *)
   let module_index = build_module_index parsed in
   List.filter_map
     (fun exp -> emit_one_class ~parsed ~cmi_paths ~exp ~module_index)

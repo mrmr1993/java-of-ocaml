@@ -745,7 +745,8 @@ let compile_t
       () =
   let facade_exports =
     List.map
-      (fun (modname, fqcn) -> { Java_facade.modname; fqcn })
+      (fun (outer, sub_path, fqcn) ->
+        { Java_facade.outer; sub_path; fqcn })
       export_modules
   in
   let total = if debug_times () then Some (Timer.make ()) else None in

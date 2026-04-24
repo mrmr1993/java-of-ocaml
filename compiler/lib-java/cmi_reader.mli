@@ -47,6 +47,15 @@ type binding =
 
 type t =
   { modname : string
+        (** Dotted path. For a top-level module, just the module
+            name; for a nested target, [Outer.Sub.Leaf]. *)
+  ; field_chain : int list
+        (** Sequence of field indices that locate the target
+            module's block inside the {e outer} module's block.
+            Empty for a top-level target: [Main.GLOBALS[outer_idx]]
+            is already the right block. For [Outer.Sub], this is
+            [[sub_field_idx_within_Outer]]; for [Outer.Sub.Leaf],
+            [[sub_idx; leaf_idx]]; etc. *)
   ; bindings : binding list   (** In source / signature order. *)
   }
 
@@ -55,4 +64,21 @@ val read : search_paths:string list -> modname:string -> t
     given paths (case-insensitive match on the module name, as
     [ocamlfind] does — [Foo.cmi] and [foo.cmi] are both accepted)
     and returns its extracted bindings. Raises [Failure] if the
-    file is not found or is not a well-formed [.cmi]. *)
+    file is not found or is not a well-formed [.cmi]. [field_chain]
+    is always [[]]. *)
+
+val read_path :
+     search_paths:string list
+  -> outer:string
+  -> sub_path:string list
+  -> t
+(** [read_path ~search_paths ~outer ~sub_path] resolves a nested
+    module target: reads [<outer>.cmi], walks [sub_path] into the
+    signature one [Sig_module] at a time, and returns the nested
+    module's [Sig_value] bindings plus the [field_chain] needed to
+    walk from the outer module's block to this target's block at
+    runtime. Raises [Failure] if any path segment is missing, or
+    if a segment's [module_type] is not an explicit [Mty_signature]
+    (we can't descend through [Mty_ident] / [Mty_functor] /
+    [Mty_alias] without an environment; those shapes are planned
+    follow-up work). *)

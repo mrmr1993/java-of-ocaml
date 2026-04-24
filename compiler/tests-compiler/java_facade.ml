@@ -116,6 +116,56 @@ let%expect_test "cmi_reader surfaces unknowns as K_other without erroring" =
       [3] arr : other
     |}]
 
+let%expect_test "cmi_reader descends into nested Sig_module with field_chain" =
+  Util.with_temp_dir ~f:(fun () ->
+    let oc = open_out "nested.ml" in
+    output_string oc
+      "let top = 1\n\
+       module Inner = struct\n\
+      \  let a = 10\n\
+      \  let b s = \"hi \" ^ s\n\
+      \  module Deep = struct\n\
+      \    let x = 100\n\
+      \    let mul y z = y * z\n\
+      \  end\n\
+       end\n\
+       let post = 2\n";
+    close_out oc;
+    let _ =
+      Util.compile_ocaml_to_cmo
+        (Util.Filetype.ocaml_file_of_path "nested.ml")
+    in
+    let print t =
+      Printf.printf "modname=%s field_chain=[%s]\n"
+        t.Cmi_reader.modname
+        (String.concat ";" (List.map string_of_int t.field_chain));
+      List.iter
+        (fun b ->
+          Printf.printf "  [%d] %s : %s\n"
+            b.Cmi_reader.field_index b.name (kind_to_string b.kind))
+        t.bindings
+    in
+    print
+      (Cmi_reader.read_path ~search_paths:[ Sys.getcwd () ]
+         ~outer:"Nested" ~sub_path:[ "Inner" ]);
+    print
+      (Cmi_reader.read_path ~search_paths:[ Sys.getcwd () ]
+         ~outer:"Nested" ~sub_path:[ "Inner"; "Deep" ]);
+    print
+      (Cmi_reader.read ~search_paths:[ Sys.getcwd () ] ~modname:"Nested"));
+  [%expect
+    {|
+    modname=Nested.Inner field_chain=[1]
+      [0] a : int
+      [1] b : (string) -> string
+    modname=Nested.Inner.Deep field_chain=[1;2]
+      [0] x : int
+      [1] mul : (int, int) -> int
+    modname=Nested field_chain=[]
+      [0] top : int
+      [2] post : int
+    |}]
+
 let%expect_test "cmi_reader skips external primitives" =
   (* [Val_prim] bindings don't consume module-struct slots, so the
      field_index for [y] stays at 0. *)
@@ -170,7 +220,11 @@ let%expect_test "facade: int/long/string dispatch through Main.GLOBALS + Closure
       "let answer = 42\n\
        let add x y = x + y\n\
        let hello s = \"Hello, \" ^ s ^ \"!\"\n\
-       let big (x : int64) (y : int64) = Int64.add x y\n"
+       let big (x : int64) (y : int64) = Int64.add x y\n\
+       module Nested = struct\n\
+      \  let greet s = \"Nested says hi, \" ^ s\n\
+      \  let mul x y = x * y\n\
+       end\n"
     in
     let ml_path =
       Util.Filetype.ocaml_text_of_string ml_source
@@ -196,7 +250,9 @@ let%expect_test "facade: int/long/string dispatch through Main.GLOBALS + Closure
     let cmi_dir = Filename.dirname (Util.Filetype.path_of_cmo_file cmo) in
     let compile_cmd =
       Printf.sprintf
-        "%s %s %s --export-module Mylib=com.example.Mylib -I %s -o %s 2>&1"
+        "%s %s %s --export-module Mylib=com.example.Mylib \
+         --export-module Mylib.Nested=com.example.MylibNested \
+         -I %s -o %s 2>&1"
         compiler_exe
         ocaml_stdlib_cma_e2e
         (Util.Filetype.path_of_cmo_file cmo)
@@ -213,30 +269,33 @@ let%expect_test "facade: int/long/string dispatch through Main.GLOBALS + Closure
        expect can pin it. *)
     if compile_out <> "" then print_string compile_out;
     (* Sanity: structural shape of the class via javap -p. *)
-    let javap_out =
+    let javap_for cls =
       slurp
         (Printf.sprintf
-           "javap -p -cp %s com.example.Mylib 2>&1"
-           (Filename.quote out_dir))
+           "javap -p -cp %s %s 2>&1"
+           (Filename.quote out_dir) cls)
     in
-    (* Strip the "Compiled from" line which varies by JDK. *)
-    let javap_lines =
-      String.split_on_char '\n' javap_out
+    let strip_compiled_from s =
+      String.split_on_char '\n' s
       |> List.filter (fun l ->
         let l = String.trim l in
         l <> ""
         && not (String.length l >= 12 && String.sub l 0 12 = "Compiled fro"))
     in
-    List.iter print_endline javap_lines;
+    List.iter print_endline (strip_compiled_from (javap_for "com.example.Mylib"));
+    List.iter print_endline (strip_compiled_from (javap_for "com.example.MylibNested"));
     (* Write a tiny Java driver that uses the facade and print its
        stdout. *)
     let driver_src =
       "import com.example.Mylib;\n\
+       import com.example.MylibNested;\n\
        public class Driver {\n\
       \  public static void main(String[] args) {\n\
       \    System.out.println(\"answer=\" + Mylib.answer());\n\
       \    System.out.println(\"add=\" + Mylib.add(3, 4));\n\
       \    System.out.println(Mylib.hello(\"world\"));\n\
+      \    System.out.println(MylibNested.greet(\"Java\"));\n\
+      \    System.out.println(\"nested_mul=\" + MylibNested.mul(6, 7));\n\
       \    System.out.println(\"big=\" + Mylib.big(1000000000000L, 2000000000000L));\n\
       \  }\n\
        }\n"
@@ -281,9 +340,18 @@ let%expect_test "facade: int/long/string dispatch through Main.GLOBALS + Closure
       public static java.lang.String hello(java.lang.String);
       public static long big(long, long);
     }
+    public final class com.example.MylibNested {
+      private static volatile boolean $initialised;
+      private com.example.MylibNested();
+      public static synchronized void init();
+      public static java.lang.String greet(java.lang.String);
+      public static int mul(int, int);
+    }
     answer=42
     add=7
     Hello, world!
+    Nested says hi, Java
+    nested_mul=42
     big=3000000000000
     |}]
 

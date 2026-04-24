@@ -21,6 +21,7 @@ type binding =
 
 type t =
   { modname : string
+  ; field_chain : int list
   ; bindings : binding list
   }
 
@@ -154,5 +155,89 @@ let read ~search_paths ~modname =
              (Printexc.to_string e))
     in
     { modname = infos.cmi_name
+    ; field_chain = []
     ; bindings = walk_signature infos.cmi_sign
     }
+
+(* --- Nested-module descent ----------------------------------------
+   Walk one [Sig_module] at a time. At each step, count slot-
+   consuming signature items before the target submodule so we
+   recover its field index in its parent's module block, then
+   follow its [Mty_signature] body to resolve the next segment. *)
+
+let find_submodule (sig_items : Types.signature_item list) ~name =
+  let idx = ref 0 in
+  let result = ref None in
+  List.iter
+    (fun item ->
+      (match item with
+       | Types.Sig_module (id, _, md, _, _) when Ident.name id = name ->
+         if !result = None then result := Some (!idx, md)
+       | _ -> ());
+      if consumes_slot item then incr idx)
+    sig_items;
+  !result
+
+let rec descend sig_items ~path =
+  match path with
+  | [] -> Ok ([], sig_items)
+  | name :: rest ->
+    match find_submodule sig_items ~name with
+    | None ->
+      Error (Printf.sprintf "no submodule %S in signature" name)
+    | Some (fidx, md) ->
+      (match md.md_type with
+       | Mty_signature inner ->
+         (match descend inner ~path:rest with
+          | Error _ as e -> e
+          | Ok (chain, leaf) -> Ok (fidx :: chain, leaf))
+       | Mty_ident _ ->
+         Error
+           (Printf.sprintf
+              "submodule %S body is Mty_ident (module-type alias); \
+               inline-signature descent unsupported"
+              name)
+       | Mty_functor _ ->
+         Error
+           (Printf.sprintf "submodule %S is a functor, cannot descend" name)
+       | Mty_alias _ ->
+         Error
+           (Printf.sprintf "submodule %S is an alias, cannot descend" name))
+
+let read_path ~search_paths ~outer ~sub_path =
+  match find_cmi ~search_paths ~modname:outer with
+  | None ->
+    failwith
+      (Printf.sprintf
+         "java_of_ocaml --export-module %s.%s: no matching .cmi on \
+          the search path (%s)"
+         outer
+         (String.concat "." sub_path)
+         (if search_paths = [] then "empty; pass -I / --cmi-path"
+          else String.concat ":" search_paths))
+  | Some path ->
+    let infos =
+      try Cmi_format.read_cmi path
+      with e ->
+        failwith
+          (Printf.sprintf
+             "java_of_ocaml --export-module %s.%s: failed to read %s: %s"
+             outer
+             (String.concat "." sub_path)
+             path
+             (Printexc.to_string e))
+    in
+    match descend infos.cmi_sign ~path:sub_path with
+    | Error why ->
+      failwith
+        (Printf.sprintf
+           "java_of_ocaml --export-module %s.%s: %s"
+           outer
+           (String.concat "." sub_path)
+           why)
+    | Ok (chain, leaf) ->
+      { modname =
+          String.concat "." (infos.cmi_name :: sub_path)
+      ; field_chain = chain
+      ; bindings = walk_signature leaf
+      }

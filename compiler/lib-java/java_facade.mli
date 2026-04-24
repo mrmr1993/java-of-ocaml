@@ -7,8 +7,11 @@
     widen coverage. *)
 
 type export =
-  { modname : string     (** OCaml module name, matches a
+  { outer : string       (** Outer OCaml module name, matches a
                              [Bytecode.Unit.t].modname. *)
+  ; sub_path : string list
+        (** Dotted submodule path from [outer] to the target. Empty
+            list means [outer] itself is the target. *)
   ; fqcn : string        (** Target fully-qualified Java class
                              name, either dotted or slash form. *)
   }
