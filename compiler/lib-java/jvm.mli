@@ -357,6 +357,12 @@ val backtrace_class_bytes : unit -> string
     flipped by [caml_record_backtrace] and renders OCaml-style
     stack traces from JVM [StackTraceElement[]]. *)
 
+val bounce_class_bytes : unit -> string
+(** Bytes of the [Bounce] class. Trampoline sentinel returned by
+    generated closure bodies at tail-position [Apply]s; the final
+    [Closure.apply<N>] driver loops on [instanceof Bounce] until a
+    real result surfaces. *)
+
 val compare_class_bytes : unit -> string
 (** Bytes of the [Compare] class — polymorphic structural compare /
     equal / lessthan / … helpers. *)

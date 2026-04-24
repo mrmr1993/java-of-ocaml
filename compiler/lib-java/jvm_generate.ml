@@ -5802,6 +5802,53 @@ let emit_last ctx prog (l : Code.last) =
     then Jvm.Code.return_void ctx.code
     else Jvm.Code.areturn ctx.code
 
+(* Detect the tail-position [Apply] pattern:
+     body = [...; Let (x, Apply { f; args; _ })]
+     branch = Return x
+   i.e. a terminal [Apply] whose result feeds directly into a
+   [Return] of the same [Var]. This is how the parser lowers OCaml's
+   [APPTERM*] opcodes. When the arity is 1..7 (the range [Bounce.step]
+   dispatches on), the block is rewritten to construct a [Bounce]
+   sentinel and [areturn] it: the enclosing [Closure.apply<N>] driver
+   will unwind the sentinel in its [while] loop rather than consuming
+   a JVM frame per tail call. *)
+let split_tail_apply (b : Code.block) =
+  let n = Array.length b.body in
+  if n = 0 then None
+  else
+    match b.body.(n - 1), b.branch with
+    | Code.Let (x, Code.Apply { f; args; exact = _ }), Code.Return y
+      when Code.Var.equal x y
+           && List.length args >= 1
+           && List.length args <= 7 ->
+      Some (f, args)
+    | _ -> None
+
+let emit_tail_apply_bounce ctx f args =
+  (* new Bounce; dup; callee; new Object[n]; fill; invokespecial; areturn *)
+  Jvm.Code.new_ ctx.code "Bounce";
+  Jvm.Code.dup ctx.code;
+  emit_load ctx f;
+  (match kind_of ctx f with
+   | K_closure _ -> ()
+   | _ -> Jvm.Code.checkcast ctx.code "Closure");
+  let n = List.length args in
+  Jvm.Code.ldc_int ctx.code n;
+  Jvm.Code.anewarray ctx.code "java/lang/Object";
+  List.iteri
+    (fun i a ->
+      Jvm.Code.dup ctx.code;
+      Jvm.Code.ldc_int ctx.code i;
+      emit_load_as_obj ctx a;
+      Jvm.Code.aastore ctx.code)
+    args;
+  Jvm.Code.invokespecial
+    ctx.code
+    ~class_:"Bounce"
+    ~method_:"<init>"
+    ~descriptor:"(LClosure;[Ljava/lang/Object;)V";
+  Jvm.Code.areturn ctx.code
+
 let emit_block ctx prog addr (b : Code.block) =
   if debug_ir_gen_trace
   then Format.eprintf "[ir_gen_trace] emit_block addr=%d@." addr;
@@ -5813,9 +5860,18 @@ let emit_block ctx prog addr (b : Code.block) =
    | Some (file, line) -> Jvm.Code.mark_line ctx.code file line
    | None -> ());
   Hashtbl.replace ctx.block_start addr start_lbl;
-  Array.iter (fun i -> emit_instr ctx i) b.body;
-  ctx.current_block_addr <- addr;
-  emit_last ctx prog b.branch;
+  (match split_tail_apply b with
+   | Some (f, args) ->
+     let n = Array.length b.body in
+     for i = 0 to n - 2 do
+       emit_instr ctx b.body.(i)
+     done;
+     ctx.current_block_addr <- addr;
+     emit_tail_apply_bounce ctx f args
+   | None ->
+     Array.iter (fun i -> emit_instr ctx i) b.body;
+     ctx.current_block_addr <- addr;
+     emit_last ctx prog b.branch);
   (* Mark the end-of-block label if anyone (a Pushtrap deferred
      handler install) asked for one. *)
   match Hashtbl.find_opt ctx.block_end addr with

@@ -364,6 +364,7 @@ let compile_user_stubs ~stub_manifests ~stub_classpath =
     seed "Closure" (Jvm.closure_class_bytes ());
     seed "CamlException" (Jvm.camlexception_class_bytes ());
     seed "Backtrace" (Jvm.backtrace_class_bytes ());
+    seed "Bounce" (Jvm.bounce_class_bytes ());
     seed "Ocaml" (Jvm.ocaml_class_bytes ());
     seed "Bytes" (Jvm.bytes_class_bytes ());
     seed "BigArray" (Jvm.big_array_class_bytes ());
@@ -2234,7 +2235,15 @@ let compile_t
           }
         in
         let apply_method =
-          { Jvm.name = Printf.sprintf "apply%d" fn_info.nargs
+          (* For arities 1..7 the [Closure] base class has a [final]
+             [apply<N>] driver that loops on [Bounce]; the subclass's
+             body must go in the virtual [tailApply<N>] slot instead.
+             Arities >= 8 still use the direct [apply<N>] name — no
+             trampoline plumbing there. *)
+          { Jvm.name =
+              (if fn_info.nargs >= 1 && fn_info.nargs <= 7
+               then Printf.sprintf "tailApply%d" fn_info.nargs
+               else Printf.sprintf "apply%d" fn_info.nargs)
           ; descriptor =
               (let b = Buffer.create 16 in
                Buffer.add_char b '(';
@@ -2302,6 +2311,7 @@ let compile_t
     write_class "Closure" (Jvm.closure_class_bytes ());
     write_class "CamlException" (Jvm.camlexception_class_bytes ());
     write_class "Backtrace" (Jvm.backtrace_class_bytes ());
+    write_class "Bounce" (Jvm.bounce_class_bytes ());
     write_class "PartialClosure" (Jvm.partial_closure_class_bytes ());
     write_class "DummyClosure" (Jvm.dummy_closure_class_bytes ());
     write_class "Compare" (Jvm.compare_class_bytes ());

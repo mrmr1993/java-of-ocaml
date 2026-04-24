@@ -107,6 +107,7 @@ let%expect_test "compile accepts a .cmo and emits class files" =
     Backtrace.class
     BigArray.class
     Block.class
+    Bounce.class
     Bytes.class
     CamlException.class
     Channel$EmptyInputStream.class
