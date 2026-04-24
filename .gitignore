@@ -5,3 +5,5 @@ _opam/
 *.merlin
 .merlin
 .claude/
+local-stubs/
+a.out
