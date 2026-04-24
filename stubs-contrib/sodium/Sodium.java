@@ -12,7 +12,7 @@
  * to the auto-generated "primitive not implemented" stub.
  *
  * The methods in this file are DELIBERATE STUBS for the
- * "constant query" entry points that the test binary's init paths read at
+ * "constant query" entry points that callers' init paths read at
  * module load to size buffers and configure parameters
  * ([*_bytes], [memlimit_*], [opslimit_*], etc.). Each returns
  * the upstream libsodium constant so init proceeds; no crypto
@@ -34,6 +34,7 @@ public final class Sodium {
     // Each of these is an OCaml [external sz : unit -> int], called
     // at init to sanity-check buffer sizes (e.g. [assert (pk_bytes
     // = 32)]). Real libsodium returns the fixed algorithm-specific
+    // constants below; zero-returning stubs tripped callers' init
     // assertions. Values taken from libsodium's public headers
     // ([crypto_*.h]).
 
@@ -64,6 +65,7 @@ public final class Sodium {
     public static long blake2b_keybytes_max(Object u)     { return 64; }
 
     // crypto_pwhash_argon2i — sizes + the (memlimit, opslimit)
+    // tuning constants. Sodium's [Password_hash] init at
     // [sodium.ml:508-520] eagerly binds [interactive] /
     // [moderate] / [sensitive] difficulty records by reading all
     // six. Values are libsodium's documented defaults.

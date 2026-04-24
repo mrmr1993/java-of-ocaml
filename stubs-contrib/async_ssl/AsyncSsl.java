@@ -36,6 +36,8 @@ public final class AsyncSsl {
     //   let prime256v1 = of_string "prime256v1"
     // where [of_string = Bindings.ASN1_object.txt2nid] — a thin wrapper
     // around the OpenSSL [OBJ_txt2nid] C function. Returning [1] (any
+    // nonzero int) lets the constants bind; downstream uses by the
+    // caller's
     // SSL paths will fail when they attempt a real handshake.
     public static long OBJ_txt2nid(Object fatptr) { return 1L; }
 }

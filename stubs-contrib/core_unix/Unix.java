@@ -124,13 +124,7 @@ public final class Unix {
         }
     }
 
-    /** [spawn_unix_byte env cwd prog argv stdin stdout stderr use_vfork]:
-     *  real subprocess spawn via java.lang.ProcessBuilder. Threads
-     *  the child's stdin/stdout/stderr through the Channel fd
-     *  registry so subsequent [Unix.read] / [write] / [waitpid]
-     *  work end-to-end. */
-
-// [spawn_unix_byte] left auto-stubbed. A complete integration
+    // [spawn_unix_byte] left auto-stubbed. A complete integration
     // with Async's Process.run machinery requires coupling our fd
     // registry into ProcessBuilder's stdio redirection (Pipe-backed
     // fds plumbed as the child's stdin/stdout/stderr) plus waitpid
@@ -222,6 +216,7 @@ public final class Unix {
 
     // === DELIBERATE STUB: unix_spawn ==================================
     // [Unix.spawn prog argv envopt useShell stdfds]: real impl
+    // [fork()] + [execve()]. typical init code runs subprocess probes
     // (e.g. [git rev-parse] for build-tag capture) through here.
     // Returns a fake pid (1) — our [waitpidStub] below already
     // returns [(pid, WEXITED 0)] for any pid, so the probe sees
@@ -249,6 +244,7 @@ public final class Unix {
 
     public static Block fstat(Object fdObj) {
         // We don't yet maintain a fd → path registry; return a
+        // shape-correct zeros block. Callers typically stat() by path
         // during init.
         return makeStat(0, 0, 0, 0, 1, 0, 0, 0, 0, 0.0, 0.0, 0.0);
     }
@@ -457,10 +453,12 @@ public final class Unix {
     // === REAL: core_md5_fd ============================================
     // [digest_fd_blocking : int -> string] — read entire fd contents,
     // return 16-byte raw MD5 digest (NOT hex — see core_kernel/md5.ml).
+    // Typical caller hashes a config file with this.
     public static String md5_fd(long fd) {
         // We don't yet maintain an fd-registry that maps int → InputStream
         // for arbitrary descriptors; if this is stdin / stdout / stderr
         // we can't really read content. Return MD5 of empty buffer
+        // ("d41d…") — typical callers feed the digest into a
         // cache-key, and a fixed digest just means we always hit the
         // same cache slot. Real impl when our fd registry from Stage 2
         // lands.
@@ -478,6 +476,7 @@ public final class Unix {
     // === REAL: unix_access / mkdir / unlink / rmdir / chdir / getcwd ==
     public static long access(Object pathObj, Object modes) {
         // Modes is an OCaml list of [R_OK | W_OK | X_OK | F_OK].
+        // For init-time probes we just need the file to exist; if it does,
         // return unit. If not, raise Unix_error(ENOENT).
         Path p = Paths.get((String) pathObj);
         if (!Files.exists(p)) {
@@ -672,6 +671,7 @@ public final class Unix {
 
     // === DELIBERATE STUB: unix_lockf ==================================
     // [Unix.lockf fd cmd len]: F_LOCK / F_TLOCK / F_ULOCK / F_TEST
+    // file-locking via fcntl. Callers use this for per-config-dir
     // lockfile so two daemons can't share state. We're single-process
     // here; treat every lock attempt as success. Real impl would
     // need [java.nio.channels.FileChannel.tryLock] plus an fd→
@@ -680,6 +680,7 @@ public final class Unix {
 
     // === REAL: unix_close =============================================
     // Closes the underlying stream so Pipe writers de-registering
+    // their write end signals EOF to readers. Without this, typical
     // open_process_in pattern blocks forever:
     //
     //   let pipe_r, pipe_w = pipe () in
@@ -690,12 +691,14 @@ public final class Unix {
     // We don't actually fork+exec — but the parent's [close pipe_w]
     // *must* close the underlying SinkChannel so the read end sees
     // EOF on its first read (which makes input_lines return [],
+    // which the caller pattern-matches and falls through to a
     // sensible default).
     public static long close(Object fd) {
         try {
             int n = (int) Block.asLong(fd);
             Channel.closeFd(n);
         } catch (java.io.IOException e) {
+            // Callers catch EBADF in [protect ~finally:close]; pretend
             // the close succeeded.
         }
         return 0;

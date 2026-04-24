@@ -39,7 +39,8 @@ public final class Mtime {
     // [Time_now.nanoseconds_since_unix_epoch_or_zero]: wall-clock ns
     // since Unix epoch. JVM has currentTimeMillis (ms-precision); we
     // multiply by 1_000_000. Sub-ms resolution would need
-    // here in profiling.
+    // [Instant.now()] — not free, but worth doing if this path
+    // shows up in profiling.
     public static long time_now_nanoseconds_since_unix_epoch_or_zero(Object u) {
         return System.currentTimeMillis() * 1_000_000L;
     }
@@ -55,6 +56,7 @@ public final class Mtime {
     // [core_unix_clock_gettime]: POSIX clock_gettime. Returns time as
     // float-seconds. We collapse all clock IDs to System.nanoTime()
     // (monotonic) or currentTimeMillis (real) — fine for the
+    // measure-elapsed-time use callers typically have. Clock id is an int
     // variant index; 0 = REALTIME, 1 = MONOTONIC, etc.
     public static double clock_gettime(long clock) {
         if (clock == 0) {

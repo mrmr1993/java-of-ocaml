@@ -9,7 +9,7 @@
  * stub the whole bytecode fails to load. Every other [mdbs_*]
  * primitive is left out so the auto-generated "C primitive X
  * is not implemented" stub fires at the first real call site,
- * surfacing exactly which lmdb operation a the test binary path is trying
+ * surfacing exactly which lmdb operation a caller is trying
  * to use.
  */
 public final class Lmdb {

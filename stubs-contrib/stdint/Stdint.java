@@ -11,7 +11,7 @@
  * [java.lang.Long] when crossing into [Object]-typed slots). For
  * widths [W < 64], we mask / sign-extend on input where it
  * matters; for [W = 64] the bit pattern carries directly. For
- * [W = 128], the high half is dropped — the test binary's init paths only
+ * [W = 128], the high half is dropped — typical init paths only
  * touch a handful of int128 constants and it's enough that the
  * primitive returns *something* without throwing. If real
  * 128-bit arithmetic ever runs through here, this needs a

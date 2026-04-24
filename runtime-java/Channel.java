@@ -54,7 +54,7 @@ public class Channel {
 
   /** A never-yielding InputStream — returns -1 (EOF) on every
    *  read. Used to back fake pipe fds so [input_line] on them
-   *  raises [End_of_file] (which the test binary-style init code handles
+   *  raises [End_of_file] (which typical init code handles
    *  with [may_eof]) instead of a JVM-level IOException.
    *  Named inner class to keep the runtime class-bytes bundle
    *  self-contained without an anonymous [Channel$1]. */

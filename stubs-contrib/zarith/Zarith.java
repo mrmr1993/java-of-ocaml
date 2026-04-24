@@ -15,8 +15,8 @@ import java.math.BigInteger;
  * lose out on the full Z range. Blocks it is.
  *
  * Performance: fine for init paths; BigInteger is 10-100x slower
- * than native GMP on hot paths. the test binary's startup probably only does
- * a few dozen Z ops, so this is good enough.
+ * than native GMP on hot paths. Typical init code only does a few
+ * dozen Z ops, so this is good enough.
  *
  * The few "mathematically impossible" primitives (install_frametable,
  * initialize_nat) are GC/runtime hooks for native GMP — we don't

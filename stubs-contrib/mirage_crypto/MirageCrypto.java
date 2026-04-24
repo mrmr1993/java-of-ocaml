@@ -87,6 +87,7 @@ public final class MirageCrypto {
     // [BigArray]).
     //
     // Side table is bounded by the number of distinct hash contexts
+    // alive at once (typical users: a handful — Digestif-style
     // ephemeral [Bytes] per hash op). Identity-keyed via
     // System.identityHashCode wrapping; cleaned by [_init] reuse.
 
@@ -245,7 +246,8 @@ public final class MirageCrypto {
     // === REAL IMPLEMENTATION: mc_getrandom ============================
     // [mirage_crypto_rng_unix.ml: getrandom_buf : buffer -> int -> unit]
     // fills the buffer with [n] random bytes from the OS RNG.
-    // [java.security.SecureRandom] (the JVM's CSPRNG, backed by
+    // The mirage-crypto RNG init seeds 128 bytes here. We delegate
+    // to [java.security.SecureRandom] (the JVM's CSPRNG, backed by
     // [/dev/urandom] on Linux).
     private static final java.security.SecureRandom SECURE_RANDOM
         = new java.security.SecureRandom();
@@ -280,9 +282,10 @@ public final class MirageCrypto {
     // [false] (= 0). NOTHING IS COMPUTED. Code paths that consume
     // these results (real ECC scalar mult, point validation,
     // signature verify) will see all-zero outputs / always-false
-    // these NIST/curve25519 primitives, so the stubs unblock init
-    // but anything that tries to do mirage-crypto-ec ECC for real
-    // (TLS handshake, classic SSH) will silently misbehave.
+    // checks. Callers whose security-critical path uses these
+    // curves must not use this backend — anything that tries to
+    // do mirage-crypto-ec ECC for real (TLS handshake, classic SSH)
+    // will silently misbehave.
     //
     // Honest implementation requires per-curve BigInteger arithmetic
     // or a JNI bridge; tracked as future work.

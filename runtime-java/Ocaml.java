@@ -269,6 +269,7 @@ public final class Ocaml {
     //
     // Common callers: [Unix] registers its [Unix_error] exception so C
     // stubs can raise it; [Digestif] registers internal continuations;
+    // application code registers exit-handler closures. Anything else that wants to
     // bridge OCaml identities into Java stubs goes through here.
 
     private static final java.util.concurrent.ConcurrentHashMap<String, Object>

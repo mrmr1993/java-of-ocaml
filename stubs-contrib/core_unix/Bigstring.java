@@ -37,6 +37,7 @@ public final class Bigstring {
     // Without these, [Bigstring.of_string] silently produces a
     // zero-filled bigstring and downstream [bin_io] reads garbage
     // — which surfaces as "version read 0 does not match expected
+    // version 1" inside typical keypair-deserialisation init code.
 
     private static int byteAt(BigArray ba, int i) {
         return (int) Block.asLong(ba.data[i]) & 0xFF;

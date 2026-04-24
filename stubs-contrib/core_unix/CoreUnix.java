@@ -92,8 +92,8 @@ public final class CoreUnix {
 
     /** [core_unix_sysconf : sysconf -> int64 option]: returns the
      *  system limit for the given variant tag (NCHILDREN_MAX,
-     *  PAGESIZE, etc). Reporting [None] = Long(0) makes the test binary fall
-     *  back to its hardcoded defaults. */
+     *  PAGESIZE, etc). Reporting [None] = Long(0) makes callers
+     *  fall back to their hardcoded defaults. */
     public static Object sysconf(Object conf) {
         return Long.valueOf(0L);
     }
@@ -101,7 +101,7 @@ public final class CoreUnix {
     /** [core_unix_error_of_code]: Linux errno → [Unix.error] variant
      *  tag. The OCaml [Unix.error] type is a flat variant; nullary
      *  constructors are represented as their declaration index. The
-     *  table below covers the codes that the test binary init / common
+     *  table below covers the codes that typical init code /
      *  feature-unavailable probes actually inspect; everything else
      *  collapses to [EUNKNOWNERR n] (constructor index 67, with the
      *  raw code wrapped). Honest enough that pattern-matches on

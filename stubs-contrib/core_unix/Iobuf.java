@@ -10,7 +10,7 @@
  * [CamlException(Failure)] at the actual call site.
  *
  * The handful below are DELIBERATE STUBS with elided
- * functionality, retained only because the test binary's module-load
+ * functionality, retained only because typical module-load
  * sequence does feature-detection probes that pattern-match on
  * the C primitive's *return value* rather than catching an
  * exception. Without a successful (well, gracefully-failing)
