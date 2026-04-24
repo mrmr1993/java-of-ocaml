@@ -558,8 +558,18 @@ public final class Unix {
 
     // === DELIBERATE STUB: fcntl ========================================
     // [core_unix_fcntl fd cmd arg]: F_GETFL / F_SETFL / F_GETFD /
-    // F_SETFD / F_GETLK / etc. JVM doesn't expose this; for the
-    public static long fcntl(Object fd, long cmd, long arg) { return 0; }
+    // F_SETFD / F_GETLK / etc. JVM doesn't expose any of these
+    // honestly — but Async uses F_GETFL to decide whether a fd is
+    // writable / non-blocking. Reporting [O_RDWR | O_NONBLOCK] for
+    // every fd lets Async's writer machinery accept any fd we hand
+    // it. (POSIX: O_RDWR = 2, O_NONBLOCK = 04000 on Linux.)
+    public static long fcntl(Object fd, long cmd, long arg) {
+        // F_GETFL is cmd value 3 in Linux (and the OCaml binding's
+        // variant index for [F_GETFL] is 0). Report flags. For
+        // anything else (F_SETFL etc), return 0.
+        if (cmd == 0L) return 2L | 04000L;  // O_RDWR | O_NONBLOCK
+        return 0;
+    }
 
     // === DELIBERATE STUB: file-descriptor flag ops ====================
     // [set_close_on_exec fd] / [clear_close_on_exec fd] / [set_nonblock

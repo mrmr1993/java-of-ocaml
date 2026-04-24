@@ -2160,29 +2160,18 @@ and emit_ccall_named ctx name args =
       ~method_:"<init>"
       ~descriptor:"(I[Ljava/lang/Object;)V";
     Kind.K_obj
-  (* [convert_raw_backtrace] returns [backtrace_slot array option].
-     Return [Some empty_array] = Block(0, [Block(0, [||])]) so
-     [printexc.ml]'s [Some a -> for i = 0 to Array.length a - 1]
-     loop sees a real array (length 0, iterates zero times) rather
-     than tripping a Long→Block cast on the [a.(i)] inside. */ *)
+  (* [caml_convert_raw_backtrace : raw_backtrace -> backtrace_slot
+     array]: the C primitive returns a raw array; the OCaml-level
+     [Printexc.convert_raw_backtrace] then wraps in [Some]. We
+     return the empty array Block(0, [||]) so the outer Some wrap
+     produces [Some empty_array] and Printexc's
+     [for i = 0 to Array.length a - 1] iterates zero times. *)
   | "caml_convert_raw_backtrace" ->
     Jvm.Code.new_ ctx.code "Block";
     Jvm.Code.dup ctx.code;
-    Jvm.Code.ldc_int ctx.code 0;          (* outer Some-tag *)
-    Jvm.Code.ldc_int ctx.code 1;          (* outer 1 field *)
-    Jvm.Code.anewarray ctx.code "java/lang/Object";
-    Jvm.Code.dup ctx.code;
-    Jvm.Code.ldc_int ctx.code 0;
-    (* Inner empty array Block(0, [||]). *)
-    Jvm.Code.new_ ctx.code "Block";
-    Jvm.Code.dup ctx.code;
     Jvm.Code.ldc_int ctx.code 0;
     Jvm.Code.ldc_int ctx.code 0;
     Jvm.Code.anewarray ctx.code "java/lang/Object";
-    Jvm.Code.invokespecial ctx.code
-      ~class_:"Block" ~method_:"<init>"
-      ~descriptor:"(I[Ljava/lang/Object;)V";
-    Jvm.Code.aastore ctx.code;
     Jvm.Code.invokespecial ctx.code
       ~class_:"Block" ~method_:"<init>"
       ~descriptor:"(I[Ljava/lang/Object;)V";

@@ -212,6 +212,8 @@ public class Channel {
   public static int unixWrite(int fd, Object bufObj, int pos, int len) throws IOException {
     Object stream;
     synchronized (FDS) { stream = FDS.get(fd); }
+    if (TRACE_FDS) System.err.println("[fd] unixWrite fd=" + fd + " len=" + len
+        + " stream=" + (stream == null ? "null" : stream.getClass().getSimpleName()));
     if (stream == null) throw new IOException("bad fd " + fd);
     String s;
     if (bufObj instanceof Bytes) s = ((Bytes) bufObj).sb.toString();
@@ -220,6 +222,7 @@ public class Channel {
     for (int i = 0; i < len; i++) bytes[i] = (byte) s.charAt(pos + i);
     if (stream instanceof OutputStream) {
       ((OutputStream) stream).write(bytes);
+      ((OutputStream) stream).flush();
       return len;
     }
     throw new IOException("fd " + fd + " is not writable");
