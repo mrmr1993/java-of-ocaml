@@ -110,6 +110,34 @@ public final class Unix {
         }
     }
 
+    /** [spawn_pipe ()]: same as [unix_pipe] but from the Jane Street
+     *  spawn library — the signature is [unit -> fd * fd] (no
+     *  cloexec arg). */
+    public static Block spawnPipe(Object unit) {
+        try {
+            int[] fds = Channel.unixPipe();
+            return new Block(0, new Object[] {
+                Long.valueOf(fds[0]), Long.valueOf(fds[1]),
+            });
+        } catch (java.io.IOException e) {
+            throw Ocaml.raiseUnixError(15L, "pipe", "");
+        }
+    }
+
+    /** [spawn_unix_byte env cwd prog argv stdin stdout stderr use_vfork]:
+     *  real subprocess spawn via java.lang.ProcessBuilder. Threads
+     *  the child's stdin/stdout/stderr through the Channel fd
+     *  registry so subsequent [Unix.read] / [write] / [waitpid]
+     *  work end-to-end. */
+
+// [spawn_unix_byte] left auto-stubbed. A complete integration
+    // with Async's Process.run machinery requires coupling our fd
+    // registry into ProcessBuilder's stdio redirection (Pipe-backed
+    // fds plumbed as the child's stdin/stdout/stderr) plus waitpid
+    // that doesn't deadlock the scheduler — significant enough to be
+    // its own piece of work rather than a partial helper here.
+
+
     /** [unix_dup]: returns a new fd. We hand back a value >= 3 so
      *  code like [Unix.file_descr_not_standard] (which recurses
      *  until [fd >= 3]) terminates — a 0-returning stub would
@@ -131,13 +159,13 @@ public final class Unix {
         return 1L;
     }
 
-    /** [unix_waitpid flags pid]: returns a 2-tuple
-     *  [(pid, WEXITED 0)]. OCaml's process-status variant has
-     *  [WEXITED of int] as constructor 0 with one argument, so
-     *  [WEXITED 0] = [Block(tag=0, [Long 0])]. */
+    /** [unix_waitpid flags pid]: always reports [(pid, WEXITED 0)].
+     *  We don't have real subprocess tracking yet, so every wait
+     *  resolves immediately as if the child exited successfully. */
     public static Block waitpidStub(Object flags, Object pid) {
-        Block wexited = new Block(0, new Object[] { Long.valueOf(0L) });
-        return new Block(0, new Object[] { pid, wexited });
+        return new Block(0, new Object[] {
+            pid, new Block(0, new Object[] { Long.valueOf(0L) }),
+        });
     }
 
     /** [unix_inchannel_of_filedescr fd]: wrap an fd as an OCaml

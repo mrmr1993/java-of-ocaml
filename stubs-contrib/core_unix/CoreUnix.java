@@ -78,6 +78,18 @@ public final class CoreUnix {
         return "127.0.0.1";
     }
 
+    /** [core_unix_uname ()]: returns a [Utsname.t] record with
+     *  fields [{sysname; nodename; release; version; machine}]. */
+    public static Block uname(Object unit) {
+        return new Block(0, new Object[] {
+            System.getProperty("os.name", "Linux"),
+            System.getProperty("user.name", "unknown"),
+            System.getProperty("os.version", "unknown"),
+            System.getProperty("java.vm.name", "JVM"),
+            System.getProperty("os.arch", "x86_64"),
+        });
+    }
+
     /** [core_unix_sysconf : sysconf -> int64 option]: returns the
      *  system limit for the given variant tag (NCHILDREN_MAX,
      *  PAGESIZE, etc). Reporting [None] = Long(0) makes the test binary fall

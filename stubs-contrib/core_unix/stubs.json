@@ -203,6 +203,10 @@
     "descriptor": "(Ljava/lang/Object;)Ljava/lang/Object;",
     "target": "CoreUnix.sysconf"
   },
+  "core_unix_uname": {
+    "descriptor": "(Ljava/lang/Object;)LBlock;",
+    "target": "CoreUnix.uname"
+  },
   "core_unix_write_assume_fd_is_nonblocking_stub": {
     "descriptor": "(JLjava/lang/Object;JJ)J",
     "target": "Unix.write_nonblocking"
@@ -226,6 +230,10 @@
   "iobuf_recvmmsg_ctx": {
     "descriptor": "(Ljava/lang/Object;)Ljava/lang/Object;",
     "target": "Iobuf.iobuf_recvmmsg_ctx"
+  },
+  "spawn_pipe": {
+    "descriptor": "(Ljava/lang/Object;)LBlock;",
+    "target": "Unix.spawnPipe"
   },
   "unix_F_GETFL": {
     "descriptor": "(Ljava/lang/Object;)J",
