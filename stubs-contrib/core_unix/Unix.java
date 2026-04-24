@@ -340,16 +340,63 @@ public final class Unix {
         // Honour the timeout so the Async loop doesn't busy-spin
         // burning 100% CPU. Negative timeout = block indefinitely
         // (we cap at 1s so the JVM can still process signals etc.);
-        // 0 = poll, return immediately; positive = sleep that long
-        // before reporting "nothing ready".
+        // 0 = poll; positive = sleep that long before reporting.
         long ms;
         if (timeout < 0)        ms = 1000L;
-        else if (timeout == 0)  ms = 1L;   // tiny sleep to avoid CPU burn
+        else if (timeout == 0)  ms = 1L;
         else                    ms = Math.max(1L, (long) (timeout * 1000.0));
         try { Thread.sleep(ms); }
         catch (InterruptedException e) { Thread.currentThread().interrupt(); }
-        Object empty = Long.valueOf(0L);
-        return new Block(0, new Object[] { empty, empty, empty });
+
+        // For reads, poll InputStream.available() on each fd —
+        // pipe/socket bytes ready or EOF flag-up. For writes, every
+        // OutputStream-backed fd is "always writable" semantically
+        // (Java's blocking-mode files are; regular files never
+        // block on write either). Excepts: nothing ever exceptional.
+        Object readyReads  = filterReady(reads, true);
+        Object readyWrites = passThroughOutputs(writes);
+        return new Block(0, new Object[] {
+            readyReads, readyWrites, Long.valueOf(0L),
+        });
+    }
+
+    /** Walk the OCaml fd list; keep entries whose underlying stream
+     *  has bytes ready (or is closed → EOF, surfaced as "ready"
+     *  too so the caller's read returns 0). */
+    private static Object filterReady(Object list, boolean forRead) {
+        java.util.ArrayList<Object> ready = new java.util.ArrayList<>();
+        Object node = list;
+        while (node instanceof Block) {
+            Block cons = (Block) node;
+            Object fdObj = cons.fields[0];
+            int fd = (int) Block.asLong(fdObj);
+            try {
+                if (forRead && Channel.fdHasBytesReadable(fd)) ready.add(fdObj);
+            } catch (Throwable t) {
+                // ignore
+            }
+            node = cons.fields[1];
+        }
+        return listOf(ready);
+    }
+
+    private static Object passThroughOutputs(Object list) {
+        java.util.ArrayList<Object> out = new java.util.ArrayList<>();
+        Object node = list;
+        while (node instanceof Block) {
+            Block cons = (Block) node;
+            out.add(cons.fields[0]);  // every write fd reported ready
+            node = cons.fields[1];
+        }
+        return listOf(out);
+    }
+
+    private static Object listOf(java.util.List<Object> xs) {
+        Object tail = Long.valueOf(0L);
+        for (int i = xs.size() - 1; i >= 0; i--) {
+            tail = new Block(0, new Object[] { xs.get(i), tail });
+        }
+        return tail;
     }
 
     // === REAL: core_md5_fd ============================================
@@ -526,6 +573,14 @@ public final class Unix {
     public static long clear_close_on_exec(Object fd) { return 0; }
     public static long set_nonblock(Object fd)        { return 0; }
     public static long clear_nonblock(Object fd)      { return 0; }
+
+    // === DELIBERATE STUB: unix_lockf ==================================
+    // [Unix.lockf fd cmd len]: F_LOCK / F_TLOCK / F_ULOCK / F_TEST
+    // lockfile so two daemons can't share state. We're single-process
+    // here; treat every lock attempt as success. Real impl would
+    // need [java.nio.channels.FileChannel.tryLock] plus an fd→
+    // FileChannel map.
+    public static long lockf(Object fd, Object cmd, long len) { return 0; }
 
     // === REAL: unix_close =============================================
     // Closes the underlying stream so Pipe writers de-registering

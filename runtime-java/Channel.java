@@ -166,6 +166,16 @@ public class Channel {
     return fd;
   }
 
+  /** True if [fd] has bytes immediately readable (or is at EOF /
+   *  not-an-input-stream — both surface as "no read will block",
+   *  which is what select wants to report). */
+  public static boolean fdHasBytesReadable(int fd) throws IOException {
+    Object s;
+    synchronized (FDS) { s = FDS.get(fd); }
+    if (!(s instanceof InputStream)) return false;
+    return ((InputStream) s).available() > 0;
+  }
+
   public static int closeFd(int fd) throws IOException {
     Object s;
     synchronized (FDS) { s = FDS.remove(fd); }

@@ -375,6 +375,10 @@
     "descriptor": "(Ljava/lang/Object;)LChannel;",
     "target": "Unix.inchannelOfFiledescr"
   },
+  "unix_lockf": {
+    "descriptor": "(Ljava/lang/Object;Ljava/lang/Object;J)J",
+    "target": "Unix.lockf"
+  },
   "unix_lstat": {
     "descriptor": "(Ljava/lang/Object;)LBlock;",
     "target": "Unix.lstat"
