@@ -128,4 +128,61 @@ public final class Bigstring {
      *  us to do. Listed explicitly so it doesn't get caught by the
      *  general "primitive not implemented" throw. */
     public static long init_stub(Object unit) { return 0; }
+
+    /** [bigstring_write_assume_fd_is_nonblocking_stub fd pos len bstr]:
+     *  Async's Writer uses this to flush its accumulated Bigstring
+     *  buffer to an fd. We delegate to the same Channel registry used
+     *  by [Unix.write]: pull bytes out of the BigArray, push them
+     *  through the OutputStream wrapping the fd. Returns bytes written. */
+    public static long write_nonblocking(long fd, long pos, long len, Object bstr) {
+        try {
+            int n = (int) len;
+            int p = (int) pos;
+            BigArray ba = (BigArray) bstr;
+            byte[] tmp = new byte[n];
+            for (int i = 0; i < n; i++) {
+                tmp[i] = (byte) (Block.asLong(ba.data[p + i]) & 0xFF);
+            }
+            Object stream = Channel.fdGetStream((int) fd);
+            if (!(stream instanceof java.io.OutputStream)) {
+                throw new java.io.IOException("fd " + fd + " not writable");
+            }
+            ((java.io.OutputStream) stream).write(tmp);
+            ((java.io.OutputStream) stream).flush();
+            return n;
+        } catch (java.io.IOException e) {
+            throw Ocaml.raiseUnixError(5L, "write", "");
+        }
+    }
+
+    /** [bigstring_read_assume_fd_is_nonblocking_stub fd pos len bstr]:
+     *  read up to len bytes from fd into bstr at pos. Returns a
+     *  Syscall_result.Int.t — encoded as the number of bytes read
+     *  (>= 0) or -errno (< 0). Returning 0 on EOF, -EAGAIN when
+     *  no data ready (Async treats negative-EAGAIN as "retry next
+     *  cycle"). */
+    public static long read_nonblocking(long fd, long pos, long len, Object bstr) {
+        try {
+            int n = (int) len;
+            int p = (int) pos;
+            Object stream = Channel.fdGetStream((int) fd);
+            if (!(stream instanceof java.io.InputStream)) {
+                return -3L;  // EBADF
+            }
+            java.io.InputStream in = (java.io.InputStream) stream;
+            int avail = in.available();
+            if (avail <= 0) return -11L;  // -EAGAIN (Linux errno 11)
+            int toRead = Math.min(n, avail);
+            byte[] tmp = new byte[toRead];
+            int r = in.read(tmp, 0, toRead);
+            if (r <= 0) return -11L;
+            BigArray ba = (BigArray) bstr;
+            for (int i = 0; i < r; i++) {
+                ba.data[p + i] = Long.valueOf(tmp[i] & 0xFFL);
+            }
+            return r;
+        } catch (java.io.IOException e) {
+            return -5L;  // -EIO
+        }
+    }
 }

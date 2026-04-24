@@ -31,6 +31,14 @@
     "descriptor": "(Ljava/lang/Object;JJJ)J",
     "target": "Bigstring.memset"
   },
+  "bigstring_read_assume_fd_is_nonblocking_stub": {
+    "descriptor": "(JJJLjava/lang/Object;)J",
+    "target": "Bigstring.read_nonblocking"
+  },
+  "bigstring_write_assume_fd_is_nonblocking_stub": {
+    "descriptor": "(JJJLjava/lang/Object;)J",
+    "target": "Bigstring.write_nonblocking"
+  },
   "core_kernel_time_ns_format": {
     "descriptor": "(DLjava/lang/Object;)Ljava/lang/String;",
     "target": "Unix.time_ns_format"

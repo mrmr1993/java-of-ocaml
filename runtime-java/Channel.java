@@ -166,6 +166,12 @@ public class Channel {
     return fd;
   }
 
+  /** Look up the underlying stream for an fd in the registry.
+   *  Returns null if the fd isn't registered. */
+  public static Object fdGetStream(int fd) {
+    synchronized (FDS) { return FDS.get(fd); }
+  }
+
   /** True if [fd] has bytes immediately readable (or is at EOF /
    *  not-an-input-stream — both surface as "no read will block",
    *  which is what select wants to report). */
