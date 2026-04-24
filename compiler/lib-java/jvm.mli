@@ -296,6 +296,13 @@ module Code : sig
 
   val areturn : t -> unit
 
+  val lreturn : t -> unit
+  (** JVM [lreturn] (0xAD). Return a [long] from the current method;
+      the top-of-stack long is popped. *)
+
+  val dreturn : t -> unit
+  (** JVM [dreturn] (0xAF). Return a [double] from the current method. *)
+
   val resolved_size : t -> int
   (** Resolve branches and return the final byte length of the method
       body. Used to probe for the 65535-byte JVM [Code] attribute limit

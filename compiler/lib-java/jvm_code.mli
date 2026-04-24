@@ -220,6 +220,8 @@ val invokestatic :
 val return_void : t -> unit
 val ireturn : t -> unit
 val areturn : t -> unit
+val lreturn : t -> unit
+val dreturn : t -> unit
 
 (** {1 Finalisation}
 

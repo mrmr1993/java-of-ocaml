@@ -743,10 +743,11 @@ let compile_t
       ~parsed
       ~out_dir
       () =
-  (* [export_modules] / [cmi_paths] are accepted but not yet consumed;
-     wiring for the Java-facade feature lands in follow-up steps. See
-     [docs/JAVA_FACADE.md]. *)
-  ignore (export_modules, cmi_paths);
+  let facade_exports =
+    List.map
+      (fun (modname, fqcn) -> { Java_facade.modname; fqcn })
+      export_modules
+  in
   let total = if debug_times () then Some (Timer.make ()) else None in
   let stubs =
     let builtin =
@@ -2295,11 +2296,25 @@ let compile_t
     Timer_bucket.print Format.err_formatter ~label:"emit-closures" closure_tb;
     r)
   in
+  let rec ensure_dir d =
+    if d = "" || d = "." || d = "/" then ()
+    else if Sys.file_exists d then ()
+    else (
+      ensure_dir (Filename.dirname d);
+      try Unix.mkdir d 0o755 with Unix.Unix_error (Unix.EEXIST, _, _) -> ())
+  in
   let write_class name bytes =
     let path = Filename.concat out_dir (name ^ ".class") in
+    ensure_dir (Filename.dirname path);
     let oc = open_out_bin path in
     output_string oc bytes;
     close_out oc
+  in
+  let facade_classes =
+    if facade_exports = [] then []
+    else
+      time_phase "emit-facades" (fun () ->
+        Java_facade.emit ~parsed ~cmi_paths ~exports:facade_exports)
   in
   (* Compile any user-supplied stub [.java] sources via [javac],
      using a temp dir, with the built-in runtime classes on the
@@ -2338,7 +2353,10 @@ let compile_t
       (Jvm.builtin_stub_classes ());
     List.iter (fun (name, bytes) -> write_class name bytes) !main_sibling_classes;
     List.iter (fun (name, bytes) -> write_class name bytes) closure_class_files;
-    List.iter (fun (name, bytes) -> write_class name bytes) user_stub_classes);
+    List.iter (fun (name, bytes) -> write_class name bytes) user_stub_classes;
+    List.iter
+      (fun { Java_facade.jvm_name; bytes } -> write_class jvm_name bytes)
+      facade_classes);
   match total with
   | Some t -> Format.eprintf "[times] total: %a s@." Timer.print t
   | None -> ()

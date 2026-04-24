@@ -614,6 +614,14 @@ let areturn t =
   add_u1 t.buf 0xB0;
   t.stack <- 0
 
+let lreturn t =
+  add_u1 t.buf 0xAD;
+  t.stack <- 0
+
+let dreturn t =
+  add_u1 t.buf 0xAF;
+  t.stack <- 0
+
 (* Invert a conditional-branch opcode. Used by branch relaxation when
    a short [if_cond L] needs to become [if_!cond +8; goto_w L]. *)
 let invert_conditional_branch = function
